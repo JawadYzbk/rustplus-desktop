@@ -235,11 +235,17 @@ public partial class MainWindow : Window
 
     private FrameworkElement BuildCamTile(string id)
     {
+        var cardBg = new SolidColorBrush(Color.FromRgb(33, 28, 23));
+        var cardBorder = new SolidColorBrush(Color.FromRgb(58, 46, 38));
+        var mutedText = new SolidColorBrush(Color.FromRgb(184, 170, 160));
+
         var root = new Border
         {
-            Background = new SolidColorBrush(Color.FromRgb(34, 34, 34)),
+            Background = cardBg,
+            BorderBrush = cardBorder,
+            BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(8),
-            Padding = new Thickness(8),
+            Padding = new Thickness(12),
             Margin = new Thickness(6)
         };
         var grid = new Grid();
@@ -248,10 +254,16 @@ public partial class MainWindow : Window
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
         // Header: Name + Buttons
-        var header = new DockPanel();
-        var name = new TextBlock { Text = id, FontWeight = FontWeights.SemiBold };
+        var header = new DockPanel { LastChildFill = true, Margin = new Thickness(0, 0, 0, 8) };
+        var name = new TextBlock
+        {
+            Text = id,
+            FontWeight = FontWeights.SemiBold,
+            TextTrimming = TextTrimming.CharacterEllipsis
+        };
         var spBtns = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-        var btnOpen = new Button { Width = 16, Height = 16, Margin = new Thickness(4, 0, 0, 0), ToolTip = "Open" };
+        var actionButtonStyle = TryFindResource("GhostButton") as Style;
+        var btnOpen = new Button { Width = 24, Height = 24, Margin = new Thickness(4, 0, 0, 0), Padding = new Thickness(0), ToolTip = "Open", Style = actionButtonStyle };
         btnOpen.Content = new TextBlock { FontFamily = new FontFamily("Segoe MDL2 Assets"), Text = "\uE8A7" }; // E894
         btnOpen.Click += (_, __) =>
         {
@@ -264,7 +276,7 @@ public partial class MainWindow : Window
             }
         };
 
-        var btnDel = new Button { Width = 16, Height = 16, Margin = new Thickness(4, 0, 0, 0), ToolTip = "Delete" };
+        var btnDel = new Button { Width = 24, Height = 24, Margin = new Thickness(4, 0, 0, 0), Padding = new Thickness(0), ToolTip = "Delete", Style = actionButtonStyle };
         btnDel.Content = new TextBlock { FontFamily = new FontFamily("Segoe MDL2 Assets"), Text = "" }; // E74D
         btnDel.Click += (_, __) =>
         {
@@ -281,12 +293,19 @@ public partial class MainWindow : Window
         Grid.SetRow(header, 0);
 
         // Thumb
-        var img = new Image { Stretch = Stretch.UniformToFill, SnapsToDevicePixels = true, UseLayoutRounding = true, Height = 110, ClipToBounds = true };
+        var img = new Image
+        {
+            Stretch = Stretch.UniformToFill,
+            SnapsToDevicePixels = true,
+            UseLayoutRounding = true,
+            Height = 112,
+            ClipToBounds = true
+        };
         img.Tag = id; // damit der Thumb-Refresher weiß, wohin
         Grid.SetRow(img, 1);
 
         // Status-Zeile
-        var status = new TextBlock { Opacity = 0.7, Margin = new Thickness(0, 4, 0, 0) };
+        var status = new TextBlock { Foreground = mutedText, FontSize = 11, Margin = new Thickness(0, 8, 0, 0) };
         status.Tag = id + "|status";
         Grid.SetRow(status, 2);
 
@@ -2973,6 +2992,9 @@ public partial class MainWindow : Window
                 AppendLog($"Pairing updated → {prof.Name}");
             }
 
+            if (_vm.Selected != prof)
+                _vm.Selected = prof;
+
             // >>> Geräte zuverlässig hinzufügen/aktualisieren (Switch + Alarm + StorageMonitor)
 
 
@@ -3096,12 +3118,9 @@ public partial class MainWindow : Window
                 }
                 /* >>>>>>> /ENDE Einfügeblock <<<<<<< */
 
-                if (_vm.Selected != prof)
-                    _vm.Selected = prof;
-
-                _vm.Save();
             }
 
+            _vm.Save();
 
 
         });
@@ -3563,6 +3582,7 @@ public partial class MainWindow : Window
 
         // 2. Clear servers
         _vm.Servers.Clear();
+        _vm.Selected = null;
         _vm.Save();
         AppendLog("[WIPE] Servers cleared.");
 

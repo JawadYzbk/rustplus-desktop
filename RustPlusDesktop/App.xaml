@@ -4,16 +4,19 @@
     <Application.Resources>
     
         <!-- Palette -->
-        <SolidColorBrush x:Key="AppBg"         Color="#121417"/>
-        <SolidColorBrush x:Key="Surface"       Color="#1C1F24"/>
-        <SolidColorBrush x:Key="SurfaceAlt"    Color="#23272E"/>
-        <SolidColorBrush x:Key="CardBorder"    Color="#33414850"/>
-        <SolidColorBrush x:Key="Accent"        Color="#4FC3F7"/>
-        <SolidColorBrush x:Key="AccentDark"    Color="#FF1E576F"/>
+        <SolidColorBrush x:Key="AppBg"         Color="#11100E"/>
+        <SolidColorBrush x:Key="Surface"       Color="#161310"/>
+        <SolidColorBrush x:Key="SurfaceAlt"    Color="#211C17"/>
+        <SolidColorBrush x:Key="CardBorder"    Color="#3A2E26"/>
+        <SolidColorBrush x:Key="Accent"        Color="#D66A38"/>
+        <SolidColorBrush x:Key="AccentDark"    Color="#5B2C1D"/>
+        <SolidColorBrush x:Key="RustOrange"    Color="#C9572A"/>
+        <SolidColorBrush x:Key="RustOrangeDim" Color="#7C351F"/>
+        <SolidColorBrush x:Key="SteelLine"     Color="#4A443C"/>
 
-        <SolidColorBrush x:Key="TextPrimary"   Color="#ECEFF1"/>
-        <SolidColorBrush x:Key="TextSubtle"    Color="#B0BEC5"/>
-        <CornerRadius    x:Key="Radius">10</CornerRadius>
+        <SolidColorBrush x:Key="TextPrimary"   Color="#F6EFE7"/>
+        <SolidColorBrush x:Key="TextSubtle"    Color="#B8AAA0"/>
+        <CornerRadius    x:Key="Radius">8</CornerRadius>
 
         <Style TargetType="ToggleButton">
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
@@ -60,12 +63,12 @@
         </Style>
 
         <!-- ========== TAB STYLES (einfügen in <Window.Resources>) ========== -->
-        <SolidColorBrush x:Key="CardBrush" Color="#171A21"/>
-        <SolidColorBrush x:Key="CardBorderBrush" Color="#222734"/>
-        <SolidColorBrush x:Key="PrimaryBrush" Color="#4C8BF5"/>
-        <SolidColorBrush x:Key="PrimaryBrushMuted" Color="#375FA8"/>
-        <SolidColorBrush x:Key="TextBrush" Color="#E8ECF3"/>
-        <SolidColorBrush x:Key="TextBrushMuted" Color="#AAB6CF"/>
+        <SolidColorBrush x:Key="CardBrush" Color="#15120F"/>
+        <SolidColorBrush x:Key="CardBorderBrush" Color="#3A2E26"/>
+        <SolidColorBrush x:Key="PrimaryBrush" Color="#C9572A"/>
+        <SolidColorBrush x:Key="PrimaryBrushMuted" Color="#8F3F24"/>
+        <SolidColorBrush x:Key="TextBrush" Color="#F6EFE7"/>
+        <SolidColorBrush x:Key="TextBrushMuted" Color="#B8AAA0"/>
         
 
         <Style x:Key="PrettyTabControl" TargetType="{x:Type TabControl}">
@@ -93,7 +96,7 @@
                Background="{StaticResource CardBrush}"
                BorderBrush="{StaticResource CardBorderBrush}"
                BorderThickness="1"
-               CornerRadius="14"
+               CornerRadius="8"
                Margin="8,0,8,8"
                Padding="12">
                                 <ContentPresenter x:Name="PART_SelectedContentHost"
@@ -347,7 +350,7 @@
                      Background="#11151B"
                      BorderBrush="{StaticResource CardBorderBrush}"
                      BorderThickness="1,1,1,0"  
-                         CornerRadius="10,10,0,0"
+                         CornerRadius="8,8,0,0"
                          
                          Padding="12,6"
                      SnapsToDevicePixels="True">
@@ -411,7 +414,7 @@
         <Style x:Key="PrimaryButton" BasedOn="{StaticResource GhostButton}" TargetType="Button">
             <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
             <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrushMuted}"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="#FFF8EF"/>
         </Style>
 
         <!-- ========= Ultra-Slim Scrollbars ========= -->
@@ -485,17 +488,17 @@
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
         </Style>
-        <SolidColorBrush x:Key="CbBg"       Color="#202428"/>
+        <SolidColorBrush x:Key="CbBg"       Color="#211C17"/>
         <SolidColorBrush x:Key="CbBorder"   Color="#5A6672"/>
         <SolidColorBrush x:Key="CbHover"    Color="#7F8A96"/>
-        <SolidColorBrush x:Key="CbAccent"   Color="#62D38B"/>
+        <SolidColorBrush x:Key="CbAccent"   Color="#D66A38"/>
         <SolidColorBrush x:Key="CbDisabled" Color="#334049"/>
         <SolidColorBrush x:Key="CbText"     Color="#EAEFF3"/>
 
-        <SolidColorBrush x:Key="DonateYellow"        Color="#FFD166"/>
-        <SolidColorBrush x:Key="DonateYellowHover"   Color="#FFDE89"/>
-        <SolidColorBrush x:Key="DonateYellowPressed" Color="#FFBE4C"/>
-        <SolidColorBrush x:Key="DonateTextDark"      Color="#1A1E22"/>
+        <SolidColorBrush x:Key="DonateYellow"        Color="#211C17"/>
+        <SolidColorBrush x:Key="DonateYellowHover"   Color="#2B231D"/>
+        <SolidColorBrush x:Key="DonateYellowPressed" Color="#3A2E26"/>
+        <SolidColorBrush x:Key="DonateTextDark"      Color="#F6EFE7"/>
 
         <!-- Runde gelbe Accent-Button -->
         <Style x:Key="DonateButton" TargetType="Button">
@@ -509,7 +512,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Bd"
-             CornerRadius="10"
+             CornerRadius="8"
              Background="{TemplateBinding Background}"
              BorderBrush="{TemplateBinding BorderBrush}"
              BorderThickness="{TemplateBinding BorderThickness}"
