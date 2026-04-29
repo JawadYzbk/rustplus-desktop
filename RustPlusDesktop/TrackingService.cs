@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -399,50 +400,61 @@ public static class TrackingService
         sb.AppendLine("<!DOCTYPE html><html><head><meta charset='utf-8'>");
         sb.AppendLine("<style>");
         // Root styles
-        sb.AppendLine("body { background: #0d1117; color: #c9d1d9; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; margin: 30px; line-height: 1.5; }");
-        sb.AppendLine(".player-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 24px; margin-bottom: 30px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }");
-        sb.AppendLine("h1 { color: #f0f6fc; font-size: 28px; font-weight: 600; margin-bottom: 30px; letter-spacing: -0.5px; }");
+        sb.AppendLine("html { background: #11100e; }");
+        sb.AppendLine("body { background: #11100e; color: #f5efe7; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; margin: 0; padding: 26px; line-height: 1.45; }");
+        sb.AppendLine(".report-shell { max-width: 1120px; margin: 0 auto; }");
+        sb.AppendLine(".report-kicker { color: #d66a38; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }");
+        sb.AppendLine(".report-subtitle { color: #b8aaa0; font-size: 13px; margin: -18px 0 24px 0; }");
+        sb.AppendLine(".player-card { background: #161310; border: 1px solid #3a2e26; border-radius: 8px; padding: 22px; margin-bottom: 22px; box-shadow: 0 10px 28px rgba(0,0,0,0.24); }");
+        sb.AppendLine("h1 { color: #f5efe7; font-size: 28px; font-weight: 700; margin: 0 0 24px 0; letter-spacing: 0; }");
 
         // Theme variables (to be overridden per card)
-        sb.AppendLine(".theme-online { --theme-accent: #3fb950; --theme-accent-soft: rgba(63, 185, 80, 0.1); --theme-accent-border: rgba(63, 185, 80, 0.3); --cell-lv1: #0e4429; --cell-lv2: #006d32; --cell-lv3: #26a641; --cell-lv4: #39d353; }");
-        sb.AppendLine(".theme-offline { --theme-accent: #8b949e; --theme-accent-soft: rgba(139, 148, 158, 0.1); --theme-accent-border: rgba(139, 148, 158, 0.3); --cell-lv1: #161b22; --cell-lv2: #21262d; --cell-lv3: #30363d; --cell-lv4: #484f58; }");
+        sb.AppendLine(".theme-online { --theme-accent: #62d38b; --theme-accent-soft: rgba(98, 211, 139, 0.10); --theme-accent-border: rgba(98, 211, 139, 0.30); --cell-lv1: #2c3827; --cell-lv2: #476833; --cell-lv3: #76a747; --cell-lv4: #a7d66d; }");
+        sb.AppendLine(".theme-offline { --theme-accent: #b8aaa0; --theme-accent-soft: rgba(214, 106, 56, 0.08); --theme-accent-border: rgba(214, 106, 56, 0.22); --cell-lv1: #211c17; --cell-lv2: #3a2e26; --cell-lv3: #773e25; --cell-lv4: #d66a38; }");
 
-        sb.AppendLine("h2 { color: var(--theme-accent); margin: 0 0 16px 0; font-size: 22px; border-bottom: 1px solid #21262d; padding-bottom: 8px; }");
-        sb.AppendLine(".stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }");
-        sb.AppendLine(".stat-item { background: #0d1117; padding: 12px; border-radius: 6px; border: 1px solid #21262d; }");
-        sb.AppendLine(".stat-label { font-size: 11px; color: #8b949e; text-transform: uppercase; font-weight: 600; }");
-        sb.AppendLine(".stat-value { font-size: 16px; color: #f0f6fc; font-weight: 600; margin-top: 4px; }");
+        sb.AppendLine("h2 { color: #f5efe7; margin: 0; font-size: 22px; font-weight: 700; }");
+        sb.AppendLine(".player-heading { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; border-bottom: 1px solid #3a2e26; padding-bottom: 14px; margin-bottom: 16px; }");
+        sb.AppendLine(".player-meta { color: #786a60; font-size: 11px; margin-top: 3px; }");
+        sb.AppendLine(".server-title { color: #d66a38; font-size: 12px; font-weight: 700; margin: 28px 0 10px 0; text-transform: uppercase; letter-spacing: .06em; border-bottom: 1px solid #3a2e26; padding-bottom: 8px; }");
+        sb.AppendLine(".stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }");
+        sb.AppendLine(".stat-item { background: #211c17; padding: 12px; border-radius: 8px; border: 1px solid #3a2e26; }");
+        sb.AppendLine(".stat-label { font-size: 10px; color: #b8aaa0; text-transform: uppercase; font-weight: 700; }");
+        sb.AppendLine(".stat-value { font-size: 16px; color: #f5efe7; font-weight: 700; margin-top: 4px; }");
         
-        sb.AppendLine(".badge { padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; text-transform: uppercase; }");
-        sb.AppendLine(".badge-online { background: rgba(63, 185, 80, 0.1); color: #3fb950; border: 1px solid rgba(63, 185, 80, 0.4); }");
-        sb.AppendLine(".badge-offline { background: rgba(139, 148, 158, 0.05); color: #8b949e; border: 1px solid rgba(139, 148, 158, 0.2); }");
+        sb.AppendLine(".badge { display: inline-flex; align-items: center; min-height: 22px; padding: 0 10px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; }");
+        sb.AppendLine(".badge-online { background: rgba(98, 211, 139, 0.10); color: #62d38b; border: 1px solid rgba(98, 211, 139, 0.35); }");
+        sb.AppendLine(".badge-offline { background: rgba(184, 170, 160, 0.08); color: #b8aaa0; border: 1px solid rgba(184, 170, 160, 0.18); }");
         
-        sb.AppendLine(".section-title { font-size: 13px; font-weight: 600; color: #8b949e; margin: 25px 0 10px 0; display: flex; align-items: center; }");
-        sb.AppendLine(".section-title::after { content: ''; flex: 1; height: 1px; background: #21262d; margin-left: 10px; }");
+        sb.AppendLine(".section-title { font-size: 12px; font-weight: 700; color: #b8aaa0; margin: 24px 0 10px 0; display: flex; align-items: center; text-transform: uppercase; }");
+        sb.AppendLine(".section-title::after { content: ''; flex: 1; height: 1px; background: #3a2e26; margin-left: 10px; }");
 
-        // GitHub style grid
+        // Activity grid
         sb.AppendLine(".grid-container { display: grid; grid-template-columns: repeat(12, 1fr); gap: 10px; margin-top: 10px; }");
         sb.AppendLine(".grid-week { display: grid; grid-template-rows: repeat(7, 10px); gap: 2px; }");
-        sb.AppendLine(".grid-cell { width: 10px; height: 10px; border-radius: 2px; background: #21262d; }");
+        sb.AppendLine(".grid-cell { width: 10px; height: 10px; border-radius: 2px; background: #211c17; border: 1px solid rgba(255,255,255,0.03); }");
         sb.AppendLine(".grid-cell.lv1 { background: var(--cell-lv1); }");
         sb.AppendLine(".grid-cell.lv2 { background: var(--cell-lv2); }");
         sb.AppendLine(".grid-cell.lv3 { background: var(--cell-lv3); }");
         sb.AppendLine(".grid-cell.lv4 { background: var(--cell-lv4); }");
 
         // Hourly heat
-        sb.AppendLine(".hourly-wrap { background: #0d1117; padding: 15px; border-radius: 6px; border: 1px solid #21262d; }");
+        sb.AppendLine(".hourly-wrap { background: #211c17; padding: 15px; border-radius: 8px; border: 1px solid #3a2e26; }");
         sb.AppendLine(".hourly-container { display: flex; height: 60px; gap: 2px; align-items: flex-end; }");
-        sb.AppendLine(".hour-bar { flex: 1; background: #21262d; border-radius: 2px 2px 0 0; position: relative; }");
+        sb.AppendLine(".hour-bar { flex: 1; background: #3a2e26; border-radius: 3px 3px 0 0; position: relative; }");
         sb.AppendLine(".hour-bar.active { background: var(--theme-accent); }");
-        sb.AppendLine(".hour-labels { display: flex; justify-content: space-between; margin-top: 8px; font-size: 10px; color: #8b949e; font-family: monospace; }");
+        sb.AppendLine(".hour-labels { display: flex; justify-content: space-between; margin-top: 8px; font-size: 10px; color: #786a60; font-family: monospace; }");
         
         sb.AppendLine(".insight-box { background: var(--theme-accent-soft); border: 1px solid var(--theme-accent-border); padding: 16px; margin-top: 20px; border-radius: 8px; }");
-        sb.AppendLine(".insight-item { margin: 8px 0; font-size: 14px; display: flex; align-items: center; }");
-        sb.AppendLine(".insight-icon { margin-right: 10px; font-size: 18px; }");
-        sb.AppendLine(".warning { background: rgba(210, 153, 34, 0.1); border: 1px solid rgba(210, 153, 34, 0.2); color: #d29922; padding: 10px; border-radius: 6px; font-size: 12px; margin-top: 15px; }");
-        sb.AppendLine("</style></head><body>");
+        sb.AppendLine(".insight-item { margin: 8px 0; font-size: 14px; display: flex; align-items: center; color: #f5efe7; }");
+        sb.AppendLine(".insight-label { color: #b8aaa0; font-weight: 700; min-width: 128px; }");
+        sb.AppendLine(".warning { background: rgba(214, 106, 56, 0.10); border: 1px solid rgba(214, 106, 56, 0.24); color: #d66a38; padding: 10px; border-radius: 8px; font-size: 12px; margin-top: 15px; }");
+        sb.AppendLine(".empty-state { background: #161310; border: 1px solid #3a2e26; border-radius: 8px; padding: 18px; color: #b8aaa0; }");
+        sb.AppendLine("@media (max-width: 760px) { body { padding: 16px; } .stat-grid { grid-template-columns: 1fr; } .player-heading { display: block; } .badge { margin-top: 10px; } }");
+        sb.AppendLine("</style></head><body><div class='report-shell'>");
 
+        sb.AppendLine("<div class='report-kicker'>RustPlusDesk tracker</div>");
         sb.AppendLine("<h1>Activity Intelligence Report</h1>");
+        sb.AppendLine("<div class='report-subtitle'>Session history, intensity, and likely activity windows for tracked BattleMetrics targets.</div>");
         
         var playersToReport = targetBmId == null 
             ? _trackedPlayers.Values.ToList() 
@@ -450,14 +462,14 @@ public static class TrackingService
 
         if (!playersToReport.Any())
         {
-            sb.AppendLine("<p>No players in tracking database. Start by tracking players from the server list.</p>");
+            sb.AppendLine("<div class='empty-state'>No players in tracking database. Start by tracking players from the server list.</div>");
         }
 
         var groupedPlayers = playersToReport.GroupBy(p => string.IsNullOrEmpty(p.LastServerName) ? "Global / Legacy" : p.LastServerName);
 
         foreach(var group in groupedPlayers)
         {
-            sb.AppendLine($"<div class='section-title' style='color:#58a6ff; font-size:16px; margin-top:40px; border-bottom: 2px solid #30363d;'>{group.Key}</div>");
+            sb.AppendLine($"<div class='server-title'>{WebUtility.HtmlEncode(group.Key)}</div>");
             
             foreach(var p in group)
             {
@@ -492,11 +504,16 @@ public static class TrackingService
                 var themeClass = isOnline ? "theme-online" : "theme-offline";
 
                 sb.AppendLine($"<div class='player-card {themeClass}'>");
-                sb.AppendLine($"<h2>{p.Name}</h2>");
+                sb.AppendLine("<div class='player-heading'>");
+                sb.AppendLine("<div>");
+                sb.AppendLine($"<h2>{WebUtility.HtmlEncode(p.Name)}</h2>");
+                sb.AppendLine($"<div class='player-meta'>BattleMetrics ID {WebUtility.HtmlEncode(p.BMId)}</div>");
+                sb.AppendLine("</div>");
                 
                 var statusClass = isOnline ? "badge-online" : "badge-offline";
                 var statusText = isOnline ? "Online" : "Offline";
-                sb.AppendLine($"<div style='margin-bottom:20px;'><span class='badge {statusClass}'>{statusText}</span></div>");
+                sb.AppendLine($"<span class='badge {statusClass}'>{statusText}</span>");
+                sb.AppendLine("</div>");
 
                 var lastS = p.Sessions.LastOrDefault();
                 string lastConnectedStr = lastS != null ? lastS.ConnectTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm") : "Never";
@@ -559,12 +576,12 @@ public static class TrackingService
             }
 
             sb.AppendLine("<div class='insight-box'>");
-            sb.AppendLine("<div class='insight-item'><span class='insight-icon'>⚡</span> Most likely to play: <b>" + $"{peakPlay:00}:00 - {(peakPlay + 3) % 24:00}:00" + "</b></div>");
-            sb.AppendLine("<div class='insight-item'><span class='insight-icon'>💤</span> Most likely to sleep: <b>" + $"{peakSleep:00}:00 - {(peakSleep + 5) % 24:00}:00" + "</b></div>");
+            sb.AppendLine("<div class='insight-item'><span class='insight-label'>Likely online</span><b>" + $"{peakPlay:00}:00 - {(peakPlay + 3) % 24:00}:00" + "</b></div>");
+            sb.AppendLine("<div class='insight-item'><span class='insight-label'>Likely quiet</span><b>" + $"{peakSleep:00}:00 - {(peakSleep + 5) % 24:00}:00" + "</b></div>");
             if (p.Sessions.Count < 5) {
-                sb.AppendLine("<div class='warning'><b>Data Confidence: LOW</b><br/>More sessions needed for accurate pattern recognition. Predictions currenty represent early observations.</div>");
+                sb.AppendLine("<div class='warning'><b>Data Confidence: LOW</b><br/>More sessions needed for accurate pattern recognition. Predictions currently represent early observations.</div>");
             } else {
-                sb.AppendLine("<div style='color: #8b949e; font-size: 11px; margin-top: 10px;'>Forecast based on " + p.Sessions.Count + " recorded sessions.</div>");
+                sb.AppendLine("<div style='color: #b8aaa0; font-size: 11px; margin-top: 10px;'>Forecast based on " + p.Sessions.Count + " recorded sessions.</div>");
             }
             sb.AppendLine("</div>");
 
@@ -572,7 +589,7 @@ public static class TrackingService
         }
     }
         
-        sb.AppendLine("</body></html>");
+        sb.AppendLine("</div></body></html>");
         return sb.ToString();
     }
 

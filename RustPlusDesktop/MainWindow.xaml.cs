@@ -81,12 +81,13 @@ public partial class MainWindow : Window
     private Point _panLast;
     private const double ZoomStep = 1.1;   // ~10% pro Wheel-Klick
     private readonly MatrixTransform MapTransform = new MatrixTransform();
-    // --- Dark theme brushes for search window ---
-    private static readonly Brush SearchWinBg = new SolidColorBrush(Color.FromRgb(24, 26, 30));
-    private static readonly Brush SearchCardBg = new SolidColorBrush(Color.FromRgb(36, 40, 46));
-    private static readonly Brush SearchCardBrd = new SolidColorBrush(Color.FromArgb(80, 255, 255, 255));
-    private static readonly Brush SearchText = Brushes.White;
-    private static readonly Brush SearchSubtle = new SolidColorBrush(Color.FromArgb(180, 220, 220, 220));
+    private DispatcherTimer? _mapFocusTimer;
+    // --- Rust theme brushes for search windows ---
+    private static readonly Brush SearchWinBg = new SolidColorBrush(Color.FromRgb(17, 16, 14));
+    private static readonly Brush SearchCardBg = new SolidColorBrush(Color.FromRgb(33, 28, 23));
+    private static readonly Brush SearchCardBrd = new SolidColorBrush(Color.FromRgb(58, 46, 38));
+    private static readonly Brush SearchText = new SolidColorBrush(Color.FromRgb(245, 239, 231));
+    private static readonly Brush SearchSubtle = new SolidColorBrush(Color.FromRgb(184, 170, 160));
     // CROSSHAIR
     private CrosshairWindow? _overlay;
     private CrosshairStyle _currentStyle = CrosshairStyle.GreenDot;
@@ -2095,8 +2096,8 @@ public partial class MainWindow : Window
         foreach (var o in offers)
             root.Children.Add(BuildOfferRowSearchUI(o, compact));
 
-        // click → zur Position zentrieren (Zoom unverändert)
-        card.MouseLeftButtonUp += (_, __) => CenterMapOnWorld(s.X, s.Y);
+        // click -> animated map focus
+        card.MouseLeftButtonUp += (_, __) => FocusShopOnMap(s.X, s.Y);
 
         return card;
     }
@@ -7119,11 +7120,208 @@ public partial class MainWindow : Window
 
 
     private Window? _shopSearchWin;
-    private TextBox? _searchTb;
+    private WebView2? _shopSearchWebView;
+    private bool _shopSearchWebReady;
+    private string _shopSearchQuery = "";
+    private bool _shopSearchWantSell = true;
+    private bool _shopSearchWantBuy = true;
+    private bool _shopSearchHideEmpty;
+    private string _shopSearchSortMode = "shop";
+    private bool UseWebViewShopSearch => true;
+    private readonly List<int> _shopSearchRecentItemIds = new();
+    private bool _shopSearchRecentItemsLoaded;
+    private ComboBox? _searchCombo;
+    private TextBox? _searchComboTextBox;
+    private bool _syncingShopSearchCombo;
+    private string _lastShopSuggestionQuery = "";
     private CheckBox? _chkSell;
     private CheckBox? _chkBuy;
     private ListBox? _searchList;
     private List<RustPlusClientReal.ShopMarker> _lastShops = new(); // füllen wir beim Polling
+
+    private sealed class ShopSearchChoice
+    {
+        public int Id { get; init; }
+        public string ShortName { get; init; } = "";
+        public string Display { get; init; } = "";
+        public ImageSource? Icon { get; init; }
+        public string SearchText => $"{Display} {ShortName} {Id}";
+        public override string ToString() => Display;
+    }
+
+    private string CurrentShopSearchText()
+        => (_shopSearchWebView != null
+            ? _shopSearchQuery
+            : (_searchComboTextBox?.Text ?? _searchCombo?.Text ?? "")).Trim();
+
+    private void SetShopSearchText(string text, ImageSource? icon = null)
+    {
+        if (_searchCombo == null) return;
+
+        _syncingShopSearchCombo = true;
+        _searchCombo.Tag = icon;
+        _searchCombo.Text = text;
+        if (_searchComboTextBox != null)
+        {
+            _searchComboTextBox.Text = text;
+            _searchComboTextBox.SelectionStart = _searchComboTextBox.Text.Length;
+            _searchComboTextBox.SelectionLength = 0;
+        }
+        _syncingShopSearchCombo = false;
+
+        RefreshShopSearchResults();
+    }
+
+    private void ClearCommittedShopSearchIcon(string rawText, int caret)
+    {
+        if (_searchCombo == null) return;
+        if (_searchCombo.Tag == null && _searchCombo.SelectedIndex < 0) return;
+
+        _syncingShopSearchCombo = true;
+        _searchCombo.Tag = null;
+        _searchCombo.SelectedIndex = -1;
+        _syncingShopSearchCombo = false;
+        RestoreShopSearchInput(rawText, caret);
+    }
+
+    private void CommitShopSearchChoice(ShopSearchChoice item)
+    {
+        if (_searchCombo == null) return;
+
+        SetShopSearchText(item.Display, item.Icon);
+        _searchCombo.IsDropDownOpen = false;
+        _lastShopSuggestionQuery = "";
+    }
+
+    private void MoveShopSuggestionSelection(int delta)
+    {
+        if (_searchCombo == null || _searchCombo.Items.Count == 0) return;
+
+        var rawText = _searchComboTextBox?.Text ?? _searchCombo.Text ?? "";
+        var caret = _searchComboTextBox?.SelectionStart ?? rawText.Length;
+        var current = _searchCombo.SelectedIndex;
+        var next = current < 0
+            ? (delta > 0 ? 0 : _searchCombo.Items.Count - 1)
+            : Math.Max(0, Math.Min(_searchCombo.Items.Count - 1, current + delta));
+
+        _syncingShopSearchCombo = true;
+        _searchCombo.IsDropDownOpen = true;
+        _searchCombo.SelectedIndex = next;
+        _syncingShopSearchCombo = false;
+
+        RestoreShopSearchInput(rawText, caret);
+        _searchCombo.Dispatcher.BeginInvoke(new Action(() => RestoreShopSearchInput(rawText, caret)), DispatcherPriority.Background);
+    }
+
+    private void ShopSearchTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (_searchCombo == null) return;
+
+        switch (e.Key)
+        {
+            case Key.Down:
+                UpdateShopSearchSuggestions(CurrentShopSearchText(), openDropdown: true);
+                MoveShopSuggestionSelection(1);
+                e.Handled = true;
+                break;
+
+            case Key.Up:
+                UpdateShopSearchSuggestions(CurrentShopSearchText(), openDropdown: true);
+                MoveShopSuggestionSelection(-1);
+                e.Handled = true;
+                break;
+
+            case Key.Enter:
+                if (_searchCombo.IsDropDownOpen && _searchCombo.SelectedItem is ShopSearchChoice item)
+                {
+                    CommitShopSearchChoice(item);
+                    e.Handled = true;
+                }
+                break;
+
+            case Key.Escape:
+                _searchCombo.IsDropDownOpen = false;
+                e.Handled = true;
+                break;
+        }
+    }
+
+    private void RestoreShopSearchInput(string rawText, int caret)
+    {
+        if (_searchComboTextBox == null) return;
+
+        var safeCaret = Math.Max(0, Math.Min(caret, rawText?.Length ?? 0));
+        _syncingShopSearchCombo = true;
+        if (_searchComboTextBox.Text != rawText)
+            _searchComboTextBox.Text = rawText;
+        _searchComboTextBox.SelectionStart = safeCaret;
+        _searchComboTextBox.SelectionLength = 0;
+        _syncingShopSearchCombo = false;
+    }
+
+    private void UpdateShopSearchSuggestions(string rawText, bool openDropdown)
+    {
+        if (_searchCombo == null) return;
+
+        var query = (rawText ?? "").Trim();
+        var caret = _searchComboTextBox?.SelectionStart ?? rawText?.Length ?? 0;
+        if (query.Length < 2)
+        {
+            _lastShopSuggestionQuery = "";
+            _syncingShopSearchCombo = true;
+            _searchCombo.SelectedIndex = -1;
+            _searchCombo.ItemsSource = Array.Empty<ShopSearchChoice>();
+            _syncingShopSearchCombo = false;
+            _searchCombo.IsDropDownOpen = false;
+            RestoreShopSearchInput(rawText, caret);
+            return;
+        }
+
+        if (string.Equals(query, _lastShopSuggestionQuery, StringComparison.OrdinalIgnoreCase))
+        {
+            if (openDropdown && _searchCombo.HasItems)
+            {
+                _searchCombo.IsDropDownOpen = true;
+                RestoreShopSearchInput(rawText, caret);
+                _searchCombo.Dispatcher.BeginInvoke(new Action(() => RestoreShopSearchInput(rawText, caret)), DispatcherPriority.Background);
+            }
+            return;
+        }
+
+        _lastShopSuggestionQuery = query;
+        EnsureNewItemDbLoaded();
+
+        var choices = sItemsById.Values
+            .Where(i => i.Id != 0 && !string.IsNullOrWhiteSpace(i.Display))
+            .GroupBy(i => i.Id)
+            .Select(g => g.First())
+            .Where(i =>
+                i.Display.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                (!string.IsNullOrWhiteSpace(i.ShortName) && i.ShortName.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
+                i.Id.ToString(CultureInfo.InvariantCulture).Contains(query, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(i => i.Display.StartsWith(query, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ThenBy(i => i.Display.Length)
+            .ThenBy(i => i.Display)
+            .Take(40)
+            .Select(i => new ShopSearchChoice
+            {
+                Id = i.Id,
+                ShortName = i.ShortName,
+                Display = i.Display,
+                Icon = ResolveItemIcon(i.Id, i.ShortName, 22)
+            })
+            .ToList();
+
+        _syncingShopSearchCombo = true;
+        _searchCombo.SelectedIndex = -1;
+        _searchCombo.ItemsSource = choices;
+        _searchCombo.SelectedIndex = -1;
+        _syncingShopSearchCombo = false;
+
+        _searchCombo.IsDropDownOpen = openDropdown && choices.Count > 0;
+        RestoreShopSearchInput(rawText, caret);
+        _searchCombo.Dispatcher.BeginInvoke(new Action(() => RestoreShopSearchInput(rawText, caret)), DispatcherPriority.Background);
+    }
 
     private Style BuildNiceButtonStyle(
     Color bgNormal,
@@ -7221,16 +7419,16 @@ public partial class MainWindow : Window
 
         // BorderBrush + Background kommen über Trigger
         circleBorder.SetValue(Border.BorderBrushProperty,
-            new SolidColorBrush(Color.FromArgb(160, 255, 255, 255))); // default
+            new SolidColorBrush(Color.FromRgb(58, 46, 38))); // default
         circleBorder.SetValue(Border.BackgroundProperty,
-            new SolidColorBrush(Color.FromRgb(40, 44, 48))); // default dark bg
+            new SolidColorBrush(Color.FromRgb(33, 28, 23))); // default dark bg
 
         // innerer Punkt
         var dot = new FrameworkElementFactory(typeof(Ellipse));
         dot.SetValue(Ellipse.WidthProperty, 8.0);
         dot.SetValue(Ellipse.HeightProperty, 8.0);
         dot.SetValue(Ellipse.FillProperty,
-            new SolidColorBrush(Color.FromRgb(0, 200, 255))); // cyan-ish
+            new SolidColorBrush(Color.FromRgb(214, 106, 56)));
         dot.SetValue(Ellipse.HorizontalAlignmentProperty, HorizontalAlignment.Center);
         dot.SetValue(Ellipse.VerticalAlignmentProperty, VerticalAlignment.Center);
 
@@ -7267,7 +7465,7 @@ public partial class MainWindow : Window
             Value = true
         };
         tIsChecked.Setters.Add(new Setter(Border.BorderBrushProperty,
-            new SolidColorBrush(Color.FromRgb(0, 200, 255)), "circle"));
+            new SolidColorBrush(Color.FromRgb(214, 106, 56)), "circle"));
         tIsChecked.Setters.Add(new Setter(Ellipse.VisibilityProperty,
             Visibility.Visible, dot.Name ?? ""));
         // Trick: wir müssen den Childs Namen geben, damit wir sie im Setter ansprechen können
@@ -7283,9 +7481,9 @@ public partial class MainWindow : Window
             Value = true
         };
         tIsChecked.Setters.Add(new Setter(Border.BorderBrushProperty,
-            new SolidColorBrush(Color.FromRgb(0, 200, 255)), "circle"));
+            new SolidColorBrush(Color.FromRgb(214, 106, 56)), "circle"));
         tIsChecked.Setters.Add(new Setter(Border.BackgroundProperty,
-            new SolidColorBrush(Color.FromRgb(20, 30, 36)), "circle")); // leicht blauer bg
+            new SolidColorBrush(Color.FromRgb(43, 32, 25)), "circle"));
         tIsChecked.Setters.Add(new Setter(UIElement.VisibilityProperty,
             Visibility.Visible, "dot"));
 
@@ -7294,31 +7492,862 @@ public partial class MainWindow : Window
         cb.Template = tpl;
     }
 
+    private Style BuildRustSearchComboStyle()
+    {
+        const string xaml = @"
+<Style xmlns=""http://schemas.microsoft.com/winfx/2006/xaml/presentation""
+       xmlns:x=""http://schemas.microsoft.com/winfx/2006/xaml""
+       TargetType=""{x:Type ComboBox}"">
+    <Setter Property=""Height"" Value=""32""/>
+    <Setter Property=""Foreground"" Value=""#F5EFE7""/>
+    <Setter Property=""Background"" Value=""#211C17""/>
+    <Setter Property=""BorderBrush"" Value=""#3A2E26""/>
+    <Setter Property=""BorderThickness"" Value=""1""/>
+    <Setter Property=""Template"">
+        <Setter.Value>
+            <ControlTemplate TargetType=""{x:Type ComboBox}"">
+                <Grid SnapsToDevicePixels=""True"">
+                    <Border x:Name=""Bd""
+                            Background=""{TemplateBinding Background}""
+                            BorderBrush=""{TemplateBinding BorderBrush}""
+                            BorderThickness=""{TemplateBinding BorderThickness}""
+                            CornerRadius=""8""/>
+
+                    <Image x:Name=""SelectedIcon""
+                           Width=""20""
+                           Height=""20""
+                           Margin=""9,0,0,0""
+                           HorizontalAlignment=""Left""
+                           VerticalAlignment=""Center""
+                           Stretch=""Uniform""
+                           Source=""{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}""/>
+
+                    <TextBox x:Name=""PART_EditableTextBox""
+                             Margin=""36,0,31,0""
+                             Background=""Transparent""
+                             BorderThickness=""0""
+                             Foreground=""{TemplateBinding Foreground}""
+                             CaretBrush=""#F5EFE7""
+                             SelectionBrush=""#5B2C1D""
+                             VerticalContentAlignment=""Center""
+                             Visibility=""Hidden""/>
+
+                    <ContentPresenter x:Name=""ContentSite""
+                                      Margin=""36,0,31,0""
+                                      VerticalAlignment=""Center""
+                                      HorizontalAlignment=""Left""
+                                      IsHitTestVisible=""False""
+                                      Content=""{TemplateBinding SelectionBoxItem}""
+                                      ContentTemplate=""{TemplateBinding SelectionBoxItemTemplate}""
+                                      ContentStringFormat=""{TemplateBinding SelectionBoxItemStringFormat}""/>
+
+                    <ToggleButton x:Name=""DropDownToggle""
+                                  Width=""30""
+                                  HorizontalAlignment=""Right""
+                                  Background=""Transparent""
+                                  BorderThickness=""0""
+                                  Focusable=""False""
+                                  ClickMode=""Press""
+                                  IsChecked=""{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"">
+                        <TextBlock Text=""v"" Foreground=""#B8AAA0"" FontSize=""11"" HorizontalAlignment=""Center"" VerticalAlignment=""Center""/>
+                    </ToggleButton>
+
+                    <Popup x:Name=""PART_Popup""
+                           Placement=""Bottom""
+                           IsOpen=""{TemplateBinding IsDropDownOpen}""
+                           AllowsTransparency=""True""
+                           Focusable=""False""
+                           PopupAnimation=""Fade"">
+                        <Grid Width=""{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}""
+                              MaxHeight=""{TemplateBinding MaxDropDownHeight}"">
+                            <Border Background=""#161310""
+                                    BorderBrush=""#3A2E26""
+                                    BorderThickness=""1""
+                                    CornerRadius=""8""
+                                    Padding=""4"">
+                                <ScrollViewer CanContentScroll=""True"">
+                                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation=""Contained""/>
+                                </ScrollViewer>
+                            </Border>
+                        </Grid>
+                    </Popup>
+                </Grid>
+
+                <ControlTemplate.Triggers>
+                    <Trigger Property=""IsEditable"" Value=""True"">
+                        <Setter TargetName=""PART_EditableTextBox"" Property=""Visibility"" Value=""Visible""/>
+                        <Setter TargetName=""ContentSite"" Property=""Visibility"" Value=""Hidden""/>
+                    </Trigger>
+                    <Trigger Property=""Tag"" Value=""{x:Null}"">
+                        <Setter TargetName=""SelectedIcon"" Property=""Visibility"" Value=""Collapsed""/>
+                        <Setter TargetName=""PART_EditableTextBox"" Property=""Margin"" Value=""10,0,31,0""/>
+                        <Setter TargetName=""ContentSite"" Property=""Margin"" Value=""10,0,31,0""/>
+                    </Trigger>
+                    <Trigger Property=""IsMouseOver"" Value=""True"">
+                        <Setter TargetName=""Bd"" Property=""BorderBrush"" Value=""#773E25""/>
+                    </Trigger>
+                    <Trigger Property=""IsKeyboardFocusWithin"" Value=""True"">
+                        <Setter TargetName=""Bd"" Property=""BorderBrush"" Value=""#D66A38""/>
+                    </Trigger>
+                    <Trigger Property=""IsEnabled"" Value=""False"">
+                        <Setter Property=""Opacity"" Value=""0.55""/>
+                    </Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate>
+        </Setter.Value>
+    </Setter>
+</Style>";
+
+        return (Style)XamlReader.Parse(xaml);
+    }
+
+    private Style BuildRustSearchComboItemStyle()
+    {
+        const string xaml = @"
+<Style xmlns=""http://schemas.microsoft.com/winfx/2006/xaml/presentation""
+       xmlns:x=""http://schemas.microsoft.com/winfx/2006/xaml""
+       TargetType=""{x:Type ComboBoxItem}"">
+    <Setter Property=""Foreground"" Value=""#F5EFE7""/>
+    <Setter Property=""Padding"" Value=""6,4""/>
+    <Setter Property=""HorizontalContentAlignment"" Value=""Stretch""/>
+    <Setter Property=""Template"">
+        <Setter.Value>
+            <ControlTemplate TargetType=""{x:Type ComboBoxItem}"">
+                <Border x:Name=""Bd"" Background=""Transparent"" CornerRadius=""6"" Padding=""{TemplateBinding Padding}"">
+                    <ContentPresenter/>
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property=""IsHighlighted"" Value=""True"">
+                        <Setter TargetName=""Bd"" Property=""Background"" Value=""#2B2019""/>
+                    </Trigger>
+                    <Trigger Property=""IsSelected"" Value=""True"">
+                        <Setter TargetName=""Bd"" Property=""Background"" Value=""#5B2C1D""/>
+                    </Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate>
+        </Setter.Value>
+    </Setter>
+</Style>";
+
+        return (Style)XamlReader.Parse(xaml);
+    }
+
+    private DataTemplate BuildShopSearchChoiceTemplate()
+    {
+        var template = new DataTemplate(typeof(ShopSearchChoice));
+
+        var row = new FrameworkElementFactory(typeof(StackPanel));
+        row.SetValue(StackPanel.OrientationProperty, Orientation.Horizontal);
+        row.SetValue(FrameworkElement.HeightProperty, 24.0);
+
+        var img = new FrameworkElementFactory(typeof(Image));
+        img.SetValue(FrameworkElement.WidthProperty, 20.0);
+        img.SetValue(FrameworkElement.HeightProperty, 20.0);
+        img.SetValue(FrameworkElement.MarginProperty, new Thickness(0, 0, 8, 0));
+        img.SetValue(Image.StretchProperty, Stretch.Uniform);
+        img.SetBinding(Image.SourceProperty, new Binding(nameof(ShopSearchChoice.Icon)));
+        row.AppendChild(img);
+
+        var text = new FrameworkElementFactory(typeof(TextBlock));
+        text.SetValue(TextBlock.ForegroundProperty, SearchText);
+        text.SetValue(TextBlock.FontSizeProperty, 12.0);
+        text.SetValue(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center);
+        text.SetValue(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis);
+        text.SetBinding(TextBlock.TextProperty, new Binding(nameof(ShopSearchChoice.Display)));
+        row.AppendChild(text);
+
+        template.VisualTree = row;
+        return template;
+    }
+
+    private ComboBox BuildShopSearchCombo()
+    {
+        _searchCombo = new ComboBox
+        {
+            Width = 398,
+            Margin = new Thickness(0, 0, 8, 0),
+            IsEditable = true,
+            IsTextSearchEnabled = false,
+            StaysOpenOnEdit = true,
+            MaxDropDownHeight = 330,
+            ItemsSource = Array.Empty<ShopSearchChoice>(),
+            ItemTemplate = BuildShopSearchChoiceTemplate(),
+            ItemContainerStyle = BuildRustSearchComboItemStyle(),
+            Style = BuildRustSearchComboStyle(),
+            Background = SearchCardBg,
+            Foreground = SearchText,
+            BorderBrush = SearchCardBrd,
+            BorderThickness = new Thickness(1),
+            ToolTip = "Type any text. Matching JSON items appear after 2 characters."
+        };
+
+        _searchCombo.Loaded += (_, __) =>
+        {
+            if (_searchCombo == null) return;
+            _searchComboTextBox = _searchCombo.Template.FindName("PART_EditableTextBox", _searchCombo) as TextBox;
+            if (_searchComboTextBox != null)
+            {
+                _searchComboTextBox.TextChanged += (_, __2) =>
+                {
+                    if (!_syncingShopSearchCombo)
+                    {
+                        var rawText = _searchComboTextBox.Text;
+                        var caret = _searchComboTextBox.SelectionStart;
+                        ClearCommittedShopSearchIcon(rawText, caret);
+                        RefreshShopSearchResults();
+                        UpdateShopSearchSuggestions(rawText, openDropdown: true);
+                    }
+                };
+                _searchComboTextBox.PreviewKeyDown += ShopSearchTextBox_PreviewKeyDown;
+                _searchComboTextBox.Focus();
+            }
+        };
+
+        _searchCombo.DropDownOpened += (_, __) =>
+        {
+            UpdateShopSearchSuggestions(CurrentShopSearchText(), openDropdown: true);
+        };
+
+        _searchCombo.SelectionChanged += (_, __) =>
+        {
+            if (_syncingShopSearchCombo) return;
+            if (_searchCombo?.SelectedItem is not ShopSearchChoice item) return;
+            CommitShopSearchChoice(item);
+        };
+
+        return _searchCombo;
+    }
+
     private void BtnShopSearch_Click(object sender, RoutedEventArgs e)
     {
         if (_shopSearchWin == null) CreateShopSearchWindow();
         _shopSearchWin.Show();
         _shopSearchWin.Activate();
-        RefreshShopSearchResults(); // später: Live-Filter
-        _shopSearchWin.Closed += (sender, args) => _shopSearchWin = null;
+        RefreshShopSearchResults();
     }
 
+
+    private void CreateShopSearchWebWindow()
+    {
+        _searchCombo = null;
+        _searchComboTextBox = null;
+        _searchList = null;
+        _shopSearchWebReady = false;
+
+        if (_alertRules.All(r => !r.IsSaved))
+            LoadPersistentAlerts();
+
+        var w = new Window
+        {
+            Title = "Shop Search",
+            Width = 820,
+            Height = 680,
+            MinWidth = 640,
+            MinHeight = 520,
+            Owner = this,
+            Background = SearchWinBg,
+            Foreground = SearchText,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner
+        };
+
+        var frame = new Border
+        {
+            Background = new SolidColorBrush(Color.FromRgb(10, 10, 9)),
+            BorderBrush = SearchCardBrd,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(1),
+            Child = new Grid()
+        };
+
+        var wv = new WebView2 { Margin = new Thickness(0) };
+        frame.Child = wv;
+        w.Content = frame;
+        _shopSearchWin = w;
+        _shopSearchWebView = wv;
+
+        w.Loaded += async (_, __) =>
+        {
+            try
+            {
+                var dataPath = System.IO.Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "RustPlusDesk",
+                    "WebView2_ShopSearch");
+                var env = await CoreWebView2Environment.CreateAsync(userDataFolder: dataPath);
+                await wv.EnsureCoreWebView2Async(env);
+                wv.DefaultBackgroundColor = System.Drawing.Color.FromArgb(10, 10, 9);
+                wv.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
+                wv.CoreWebView2.Settings.AreDevToolsEnabled = true;
+                wv.CoreWebView2.WebMessageReceived += ShopSearchWebView_WebMessageReceived;
+                wv.NavigationCompleted += (_, __2) =>
+                {
+                    _shopSearchWebReady = true;
+                    SendShopSearchPayload();
+                };
+                wv.NavigateToString(BuildShopSearchHtml());
+            }
+            catch (Exception ex)
+            {
+                w.Content = new Border
+                {
+                    Background = SearchCardBg,
+                    BorderBrush = SearchCardBrd,
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(8),
+                    Padding = new Thickness(18),
+                    Margin = new Thickness(12),
+                    Child = new TextBlock
+                    {
+                        Text = "Error loading Shop Search WebView: " + ex.Message + "\n\nEnsure WebView2 Runtime is installed.",
+                        Foreground = SearchText,
+                        TextWrapping = TextWrapping.Wrap
+                    }
+                };
+            }
+        };
+
+        w.Closed += (_, __) =>
+        {
+            if (_shopSearchWebView?.CoreWebView2 != null)
+                _shopSearchWebView.CoreWebView2.WebMessageReceived -= ShopSearchWebView_WebMessageReceived;
+            _shopSearchWebReady = false;
+            _shopSearchWebView = null;
+            _shopSearchWin = null;
+        };
+    }
+
+    private void ShopSearchWebView_WebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(e.WebMessageAsJson);
+            var root = doc.RootElement;
+            if (!root.TryGetProperty("type", out var typeEl)) return;
+
+            var type = typeEl.GetString() ?? "";
+            switch (type)
+            {
+                case "state":
+                    _shopSearchQuery = ReadJsonString(root, "query");
+                    _shopSearchWantSell = ReadJsonBool(root, "sell", _shopSearchWantSell);
+                    _shopSearchWantBuy = ReadJsonBool(root, "buy", _shopSearchWantBuy);
+                    _shopSearchHideEmpty = ReadJsonBool(root, "hideEmpty", _shopSearchHideEmpty);
+                    var sortMode = ReadJsonString(root, "sort");
+                    if (!string.IsNullOrWhiteSpace(sortMode))
+                        _shopSearchSortMode = sortMode;
+                    SendShopSearchPayload();
+                    break;
+
+                case "selectItem":
+                    _shopSearchQuery = ReadJsonString(root, "display");
+                    if (root.TryGetProperty("id", out var pickedIdEl) && pickedIdEl.TryGetInt32(out var pickedId))
+                        TrackShopSearchPickedItem(pickedId);
+                    SendShopSearchPayload();
+                    break;
+
+                case "addAlert":
+                    AddAlertFromCurrentSearch();
+                    break;
+
+                case "profit":
+                    OpenAnalysisWindow();
+                    break;
+
+                case "routes":
+                    OpenPathFinderWindow();
+                    break;
+
+                case "centerShop":
+                    if (root.TryGetProperty("id", out var idEl) && idEl.TryGetUInt32(out var id))
+                    {
+                        var shop = _lastShops.FirstOrDefault(s => s.Id == id);
+                        if (shop != null) FocusShopOnMap(shop.X, shop.Y);
+                    }
+                    break;
+
+                case "globalAlert":
+                    _notifyNewShopsToChat = ReadJsonBool(root, "newShops", _notifyNewShopsToChat);
+                    _notifySuspiciousShops = ReadJsonBool(root, "suspicious", _notifySuspiciousShops);
+                    SendShopSearchPayload();
+                    break;
+
+                case "alert":
+                    HandleShopSearchAlertMessage(root);
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            AppendLog("[shop-search-web] message error: " + ex.Message);
+        }
+    }
+
+    private static string ReadJsonString(JsonElement root, string name)
+        => root.TryGetProperty(name, out var el) && el.ValueKind == JsonValueKind.String
+            ? el.GetString() ?? ""
+            : "";
+
+    private static bool ReadJsonBool(JsonElement root, string name, bool fallback)
+        => root.TryGetProperty(name, out var el) && (el.ValueKind == JsonValueKind.True || el.ValueKind == JsonValueKind.False)
+            ? el.GetBoolean()
+            : fallback;
+
+    private void HandleShopSearchAlertMessage(JsonElement root)
+    {
+        if (!root.TryGetProperty("id", out var idEl) || !Guid.TryParse(idEl.GetString(), out var id))
+            return;
+
+        var rule = _alertRules.FirstOrDefault(r => r.Id == id);
+        if (rule == null) return;
+
+        var action = ReadJsonString(root, "action");
+        switch (action)
+        {
+            case "chat":
+                rule.NotifyChat = ReadJsonBool(root, "value", rule.NotifyChat);
+                SavePersistentAlerts();
+                break;
+            case "sound":
+                rule.NotifySound = ReadJsonBool(root, "value", rule.NotifySound);
+                SavePersistentAlerts();
+                break;
+            case "save":
+                rule.IsSaved = ReadJsonBool(root, "value", !rule.IsSaved);
+                SavePersistentAlerts();
+                break;
+            case "delete":
+                _alertRules.Remove(rule);
+                SavePersistentAlerts();
+                break;
+        }
+
+        SendShopSearchPayload();
+    }
+
+    private void SendShopSearchPayload()
+    {
+        if (_shopSearchWebView?.CoreWebView2 == null || !_shopSearchWebReady) return;
+
+        var payload = BuildShopSearchPayload();
+        var json = JsonSerializer.Serialize(payload);
+        _ = _shopSearchWebView.ExecuteScriptAsync($"window.RustShopSearch && window.RustShopSearch.apply({json});");
+    }
+
+    private object BuildShopSearchPayload()
+    {
+        var q = _shopSearchQuery.Trim();
+        var suggestions = BuildShopSearchSuggestions(q);
+        var selectedIcon = FindShopSearchSelectedIcon(q);
+
+        bool MatchesLeft(RustPlusClientReal.ShopOrder o)
+            => string.IsNullOrWhiteSpace(q) || ItemQueryMatches(o.ItemId, o.ItemShortName, q);
+
+        bool MatchesRight(RustPlusClientReal.ShopOrder o)
+            => string.IsNullOrWhiteSpace(q) || ItemQueryMatches(o.CurrencyItemId, o.CurrencyShortName, q);
+
+        var shopResults = _lastShops
+            .Where(s => s.Orders != null && s.Orders.Count > 0)
+            .Select(s =>
+            {
+                var offers = s.Orders
+                    .Where(o =>
+                        ((_shopSearchWantSell && MatchesLeft(o)) || (_shopSearchWantBuy && MatchesRight(o))) &&
+                        (!_shopSearchHideEmpty || o.Stock > 0))
+                    .Select(o => new
+                    {
+                        itemId = o.ItemId,
+                        itemShort = o.ItemShortName ?? "",
+                        itemName = ResolveItemName(o.ItemId, o.ItemShortName),
+                        itemIcon = ResolveItemWebIconSrc(o.ItemId, o.ItemShortName),
+                        quantity = o.Quantity,
+                        currencyItemId = o.CurrencyItemId,
+                        currencyShort = o.CurrencyShortName ?? "",
+                        currencyName = ResolveItemName(o.CurrencyItemId, o.CurrencyShortName),
+                        currencyIcon = ResolveItemWebIconSrc(o.CurrencyItemId, o.CurrencyShortName),
+                        currencyAmount = o.CurrencyAmount,
+                        stock = o.Stock
+                    })
+                    .ToList();
+
+                return new
+                {
+                    id = s.Id,
+                    title = CleanLabel(s.Label) ?? "Shop",
+                    grid = GetGridLabel(s),
+                    offers
+                };
+            })
+            .Where(s => s.offers.Count > 0)
+            .ToList();
+
+        var shops = SortShopSearchResults(shopResults);
+
+        return new
+        {
+            query = q,
+            sell = _shopSearchWantSell,
+            buy = _shopSearchWantBuy,
+            hideEmpty = _shopSearchHideEmpty,
+            sort = _shopSearchSortMode,
+            newShops = _notifyNewShopsToChat,
+            suspicious = _notifySuspiciousShops,
+            selectedIcon,
+            suggestions,
+            shops,
+            alerts = _alertRules.Select(r => new
+            {
+                id = r.Id,
+                query = r.QueryText,
+                mode = (r.MatchSellSide && r.MatchBuySide) ? "sell/buy" : (r.MatchSellSide ? "sell" : (r.MatchBuySide ? "buy" : "off")),
+                chat = r.NotifyChat,
+                sound = r.NotifySound,
+                saved = r.IsSaved
+            }).ToList()
+        };
+    }
+
+    private List<T> SortShopSearchResults<T>(List<T> shops)
+    {
+        static object? GetProp(object obj, string name)
+            => obj.GetType().GetProperty(name)?.GetValue(obj);
+
+        static string S(object obj, string name)
+            => GetProp(obj, name)?.ToString() ?? "";
+
+        static int I(object obj, string name)
+            => Convert.ToInt32(GetProp(obj, name) ?? 0, CultureInfo.InvariantCulture);
+
+        static IEnumerable<object> Offers(object shop)
+            => (GetProp(shop, "offers") as IEnumerable)?.Cast<object>() ?? Enumerable.Empty<object>();
+
+        string CurrencyKey(object offer)
+        {
+            var currencyId = I(offer, "currencyItemId");
+            var currencyName = S(offer, "currencyName");
+            return $"{currencyName}|{currencyId}";
+        }
+
+        double UnitPrice(object offer)
+        {
+            var amount = I(offer, "currencyAmount");
+            var quantity = Math.Max(1, I(offer, "quantity"));
+            return amount / (double)quantity;
+        }
+
+        return _shopSearchSortMode switch
+        {
+            "currency-price-asc" => shops
+                .OrderBy(s => Offers(s!).Select(CurrencyKey).DefaultIfEmpty("").Min())
+                .ThenBy(s => Offers(s!).Select(UnitPrice).DefaultIfEmpty(double.MaxValue).Min())
+                .ThenBy(s => S(s!, "title"))
+                .ToList(),
+
+            "currency-price-desc" => shops
+                .OrderBy(s => Offers(s!).Select(CurrencyKey).DefaultIfEmpty("").Min())
+                .ThenByDescending(s => Offers(s!).Select(UnitPrice).DefaultIfEmpty(0).Max())
+                .ThenBy(s => S(s!, "title"))
+                .ToList(),
+
+            "price-asc" => shops
+                .OrderBy(s => Offers(s!).Select(UnitPrice).DefaultIfEmpty(double.MaxValue).Min())
+                .ThenBy(s => S(s!, "title"))
+                .ToList(),
+
+            "price-desc" => shops
+                .OrderByDescending(s => Offers(s!).Select(UnitPrice).DefaultIfEmpty(0).Max())
+                .ThenBy(s => S(s!, "title"))
+                .ToList(),
+
+            "stock-desc" => shops
+                .OrderByDescending(s => Offers(s!).Sum(o => I(o, "stock")))
+                .ThenBy(s => S(s!, "title"))
+                .ToList(),
+
+            "name" => shops
+                .OrderBy(s => S(s!, "title"))
+                .ThenBy(s => S(s!, "grid"))
+                .ToList(),
+
+            _ => shops
+        };
+    }
+
+    private List<object> BuildShopSearchSuggestions(string q)
+    {
+        EnsureNewItemDbLoaded();
+        LoadShopSearchRecentItems();
+
+        var query = (q ?? "").Trim();
+        IEnumerable<ItemInfo> items = sItemsById.Values
+            .Where(i => i.Id != 0 && !string.IsNullOrWhiteSpace(i.Display))
+            .GroupBy(i => i.Id)
+            .Select(g => g.First());
+
+        if (query.Length == 0)
+        {
+            var recent = _shopSearchRecentItemIds
+                .Select(id => sItemsById.TryGetValue(id, out var item) ? item : null)
+                .Where(i => i != null)
+                .Cast<ItemInfo>()
+                .Take(5)
+                .ToList();
+
+            var recentIds = recent.Select(i => i.Id).ToHashSet();
+            items = recent.Concat(items
+                .Where(i => !recentIds.Contains(i.Id))
+                .OrderBy(i => i.Display)
+                .Take(20));
+        }
+        else
+        {
+            items = items
+                .Where(i =>
+                    i.Display.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                    (!string.IsNullOrWhiteSpace(i.ShortName) && i.ShortName.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
+                    i.Id.ToString(CultureInfo.InvariantCulture).Contains(query, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(i => i.Display.StartsWith(query, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                .ThenBy(i => i.Display.Length)
+                .ThenBy(i => i.Display)
+                .Take(query.Length < 2 ? 20 : 40);
+        }
+
+        return items
+            .Select(i => (object)new
+            {
+                id = i.Id,
+                shortName = i.ShortName,
+                display = i.Display,
+                icon = ResolveItemWebIconSrc(i.Id, i.ShortName)
+            })
+            .ToList();
+    }
+
+    private string? FindShopSearchSelectedIcon(string q)
+    {
+        if (string.IsNullOrWhiteSpace(q)) return null;
+        EnsureNewItemDbLoaded();
+        var item = sItemsById.Values.FirstOrDefault(i =>
+            string.Equals(i.Display, q, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(i.ShortName, q, StringComparison.OrdinalIgnoreCase));
+        return item == null ? null : ResolveItemWebIconSrc(item.Id, item.ShortName);
+    }
+
+    private void LoadShopSearchRecentItems()
+    {
+        if (_shopSearchRecentItemsLoaded) return;
+        _shopSearchRecentItemsLoaded = true;
+
+        try
+        {
+            var path = GetShopSearchRecentItemsPath();
+            if (!System.IO.File.Exists(path)) return;
+
+            var ids = JsonSerializer.Deserialize<List<int>>(System.IO.File.ReadAllText(path));
+            if (ids == null) return;
+
+            _shopSearchRecentItemIds.Clear();
+            foreach (var id in ids.Where(id => id != 0).Distinct().Take(5))
+                _shopSearchRecentItemIds.Add(id);
+        }
+        catch { }
+    }
+
+    private void TrackShopSearchPickedItem(int itemId)
+    {
+        if (itemId == 0) return;
+        LoadShopSearchRecentItems();
+
+        _shopSearchRecentItemIds.Remove(itemId);
+        _shopSearchRecentItemIds.Insert(0, itemId);
+        while (_shopSearchRecentItemIds.Count > 5)
+            _shopSearchRecentItemIds.RemoveAt(_shopSearchRecentItemIds.Count - 1);
+
+        try
+        {
+            System.IO.File.WriteAllText(
+                GetShopSearchRecentItemsPath(),
+                JsonSerializer.Serialize(_shopSearchRecentItemIds));
+        }
+        catch { }
+    }
+
+    private static string GetShopSearchRecentItemsPath()
+        => System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "shop_search_recent_items.json");
+
+    private static readonly Dictionary<string, string> sWebIconDataCache = new(StringComparer.OrdinalIgnoreCase);
+
+    private static string? ResolveItemWebIconSrc(int itemId, string? shortName)
+    {
+        EnsureNewItemDbLoaded();
+
+        if (string.IsNullOrWhiteSpace(shortName) && itemId != 0 && sItemsById.TryGetValue(itemId, out var ii0))
+            shortName = ii0.ShortName;
+
+        string? rusthelpUrl = null;
+        if (itemId != 0 && sItemsById.TryGetValue(itemId, out var ii1)) rusthelpUrl = ii1.IconUrl;
+        if (rusthelpUrl == null && !string.IsNullOrWhiteSpace(shortName) && sItemsByShort.TryGetValue(shortName!, out var ii2))
+            rusthelpUrl = ii2.IconUrl;
+
+        string? rustclashUrl = !string.IsNullOrWhiteSpace(shortName)
+            ? $"https://wiki.rustclash.com/img/items40/{shortName}.png"
+            : null;
+
+        foreach (var url in new[] { rustclashUrl, rusthelpUrl })
+        {
+            if (string.IsNullOrWhiteSpace(url)) continue;
+            var path = GetIconCachePath(url);
+            if (System.IO.File.Exists(path))
+                return TryGetIconDataUri(path);
+        }
+
+        if (!string.IsNullOrWhiteSpace(rustclashUrl))
+            QueueIconDownload(rustclashUrl!, GetIconCachePath(rustclashUrl!), rusthelpUrl);
+        else if (!string.IsNullOrWhiteSpace(rusthelpUrl))
+            QueueIconDownload(rusthelpUrl!, GetIconCachePath(rusthelpUrl!), null);
+
+        return rustclashUrl ?? rusthelpUrl;
+    }
+
+    private static string? TryGetIconDataUri(string path)
+    {
+        try
+        {
+            if (sWebIconDataCache.TryGetValue(path, out var ready))
+                return ready;
+
+            var bytes = System.IO.File.ReadAllBytes(path);
+            if (bytes.Length == 0) return null;
+
+            var dataUri = "data:image/png;base64," + Convert.ToBase64String(bytes);
+            sWebIconDataCache[path] = dataUri;
+            return dataUri;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private string BuildShopSearchHtml()
+    {
+        return @"<!doctype html>
+<html>
+<head>
+<meta charset=""utf-8"">
+<meta name=""viewport"" content=""width=device-width,initial-scale=1"">
+<style>
+:root{color-scheme:dark;--bg:#0b0a09;--panel:#15110e;--card:#211a14;--card2:#191410;--line:#3b2b22;--line2:#684029;--text:#f5eee7;--muted:#b9aaa0;--rust:#d66a38;--rust2:#a84524;--green:#5bb77a;--warn:#e0b35b}
+*{box-sizing:border-box}html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font:12px/1.35 'Segoe UI',system-ui,sans-serif;overflow:hidden}
+body:before{content:"""";position:fixed;inset:0;pointer-events:none;background:linear-gradient(135deg,rgba(214,106,56,.08),transparent 34%),repeating-linear-gradient(0deg,rgba(255,255,255,.018),rgba(255,255,255,.018) 1px,transparent 1px,transparent 4px)}
+.app{height:100%;display:grid;grid-template-rows:auto 1fr;gap:8px;padding:10px}
+.bar{border:1px solid var(--line);background:linear-gradient(180deg,#18130f,#100d0b);border-radius:8px;padding:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+.top{display:grid;grid-template-columns:minmax(260px,1fr) auto auto;gap:8px;align-items:start}
+.combo{position:relative;min-width:0}
+.search{height:36px;width:100%;border:1px solid var(--line);border-radius:7px;background:#0f0d0b;color:var(--text);outline:none;padding:0 38px 0 35px;font-weight:600}
+.search:focus{border-color:var(--rust);box-shadow:0 0 0 2px rgba(214,106,56,.15)}
+.searchIcon{position:absolute;left:9px;top:7px;width:22px;height:22px;object-fit:contain;display:none}
+.searchIcon.show{display:block}.glass{position:absolute;right:10px;top:8px;color:var(--muted);font-size:14px}
+.suggest{position:absolute;z-index:10;top:40px;left:0;right:0;max-height:315px;overflow:auto;border:1px solid var(--line2);background:#120f0d;border-radius:8px;padding:4px;box-shadow:0 16px 35px rgba(0,0,0,.45);display:none}
+.suggest.open{display:block}.opt{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;min-height:30px;padding:4px 6px;border-radius:6px;cursor:pointer}.opt:hover,.opt.active{background:#2a1e18}.opt img,.ico{width:22px;height:22px;object-fit:contain}.short{color:var(--muted);font-size:11px}
+.btn,.toggle,.sort{height:32px;border:1px solid var(--line);background:#1f1914;color:var(--text);border-radius:7px;padding:0 10px;cursor:pointer;font-weight:650}.btn:hover,.toggle:hover,.sort:hover{border-color:var(--rust);background:#2a1d16}.btn.primary{background:#332018;border-color:#7a4328}.sort{min-width:176px;outline:none}.filters{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.toggle{height:28px;display:inline-flex;align-items:center;gap:7px}.dot{width:13px;height:13px;border:1px solid #5b4537;border-radius:50%;background:#181410}.toggle.on .dot{border-color:var(--rust);background:radial-gradient(circle,var(--rust) 0 42%,#2b2019 45%)}.toggle.on{color:#fff;border-color:#5f3b28}
+.alerts{display:flex;align-items:center;gap:6px;min-height:30px;margin-top:7px;overflow:auto}.pill{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 6px;border:1px solid var(--line);background:#1b1511;border-radius:999px;white-space:nowrap}.pill button{height:20px;min-width:22px;border:1px solid #4a3529;background:#15110e;color:var(--text);border-radius:999px;cursor:pointer}.pill button.on{border-color:var(--rust);background:#342116;color:#fff}.pill button.off{opacity:.55}.pill button.saved{border-color:#42764d;color:#8cf0a1}.pill button.delete{border-color:#673025;color:#ff9d86}
+.content{min-height:0;overflow:auto;border:1px solid var(--line);background:#0f0e0c;border-radius:8px;padding:8px}
+.shop,.currencyGroup{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:8px;margin:0 0 8px 0;padding:10px;max-width:640px;box-shadow:inset 3px 0 0 rgba(214,106,56,.55)}
+.head{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;margin-bottom:7px}.title{font-size:14px;font-weight:800}.grid{color:var(--warn);font-family:Consolas,monospace}
+.offer{display:grid;grid-template-columns:24px minmax(90px,1fr) auto auto 24px minmax(70px,auto);gap:7px;align-items:center;min-height:27px}.name{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.stock{color:var(--muted);font-variant-numeric:tabular-nums}.arrow{color:var(--muted)}.price{font-weight:800;color:#fff;white-space:nowrap}.empty{height:100%;display:grid;place-items:center;color:var(--muted);border:1px dashed #3b2b22;border-radius:8px}.meta{color:var(--muted);margin:0 0 7px 2px}
+.currencyRow{display:grid;grid-template-columns:24px minmax(130px,1fr) auto auto auto;gap:8px;align-items:center;min-height:29px;border-top:1px solid rgba(255,255,255,.04);padding-top:4px}.unit{color:var(--warn);font-family:Consolas,monospace}.shopLink{color:var(--muted);cursor:pointer}.shopLink:hover{color:var(--text)}
+::-webkit-scrollbar{width:7px;height:7px}::-webkit-scrollbar-thumb{background:#5a3928;border-radius:99px}::-webkit-scrollbar-track{background:#111}
+@media (max-width:720px){.top{grid-template-columns:1fr auto}.top .btn{padding:0 8px}.shop{max-width:none}.offer{grid-template-columns:24px 1fr auto auto 24px auto}.filters{gap:4px}.toggle{padding:0 7px}}
+</style>
+</head>
+<body>
+<div class=""app"">
+  <section class=""bar"">
+    <div class=""top"">
+      <div class=""combo"">
+        <img id=""selectedIcon"" class=""searchIcon"">
+        <input id=""search"" class=""search"" autocomplete=""off"" spellcheck=""false"" placeholder=""Type custom text or pick item"">
+        <span class=""glass"">⌕</span>
+        <div id=""suggest"" class=""suggest""></div>
+      </div>
+      <button class=""btn primary"" id=""profit"">Profit</button>
+      <button class=""btn"" id=""routes"">Routes</button>
+    </div>
+    <div class=""filters"">
+      <button class=""toggle on"" data-key=""sell""><span class=""dot""></span>Sells</button>
+      <button class=""toggle on"" data-key=""buy""><span class=""dot""></span>Buys</button>
+      <button class=""toggle"" data-key=""hideEmpty""><span class=""dot""></span>Hide 0-stock</button>
+      <button class=""toggle"" data-key=""newShops""><span class=""dot""></span>New shops</button>
+      <button class=""toggle"" data-key=""suspicious""><span class=""dot""></span>Suspicious</button>
+      <select class=""sort"" id=""sort"">
+        <option value=""shop"">Shop order</option>
+        <option value=""currency-price-asc"">Currency group · cheap</option>
+        <option value=""currency-price-desc"">Currency group · expensive</option>
+        <option value=""price-asc"">Price low → high</option>
+        <option value=""price-desc"">Price high → low</option>
+        <option value=""stock-desc"">Stock high → low</option>
+        <option value=""name"">Name A → Z</option>
+      </select>
+      <button class=""btn"" id=""addAlert"">+ Alert</button>
+    </div>
+    <div id=""alerts"" class=""alerts""></div>
+  </section>
+  <main id=""results"" class=""content""><div class=""empty"">Waiting for shop data...</div></main>
+</div>
+<script>
+const state={query:'',sell:true,buy:true,hideEmpty:false,newShops:false,suspicious:false,sort:'shop',suggestions:[],shops:[],alerts:[],active:-1,selectedIcon:null};
+const $=id=>document.getElementById(id), input=$('search'), sug=$('suggest'), results=$('results'), selectedIcon=$('selectedIcon'), alerts=$('alerts'), sortSel=$('sort');
+const post=m=>window.chrome&&chrome.webview&&chrome.webview.postMessage(m);
+function esc(s){return String(s??'').replace(/[&<>""']/g,c=>c==='&'?'&amp;':c==='<'?'&lt;':c==='>'?'&gt;':c==='""'?'&quot;':'&#39;');}
+function img(src,cls='ico'){return src?`<img class=""${cls}"" src=""${esc(src)}"" onerror=""this.style.visibility='hidden'"">`:`<span class=""${cls}""></span>`}
+function sendState(){post({type:'state',query:input.value,sell:state.sell,buy:state.buy,hideEmpty:state.hideEmpty,sort:state.sort});}
+function applyToggles(){document.querySelectorAll('.toggle').forEach(b=>{const k=b.dataset.key;const on=!!state[k];b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false');});}
+function renderSelectedIcon(){const src=state.selectedIcon;if(src){selectedIcon.src=src;selectedIcon.classList.add('show');input.style.paddingLeft='35px'}else{selectedIcon.removeAttribute('src');selectedIcon.classList.remove('show');input.style.paddingLeft='12px'}}
+function renderSuggest(open=true){if(!state.suggestions.length){sug.classList.remove('open');sug.innerHTML='';return} sug.innerHTML=state.suggestions.map((x,i)=>`<div class=""opt ${i===state.active?'active':''}"" data-i=""${i}"">${img(x.icon)}<div><div class=""name"">${esc(x.display)}</div><div class=""short"">${esc(x.shortName)} · ${x.id}</div></div><span class=""short"">↵</span></div>`).join('');sug.classList.toggle('open',open);sug.querySelectorAll('.opt').forEach(o=>o.onclick=()=>choose(+o.dataset.i));}
+function choose(i){const x=state.suggestions[i];if(!x)return;state.query=x.display;state.selectedIcon=x.icon;input.value=x.display;state.active=i;renderSelectedIcon();renderSuggest(false);input.focus();post({type:'selectItem',id:x.id,display:x.display,shortName:x.shortName});}
+function renderAlerts(){alerts.innerHTML=state.alerts.length?'':`<span class=""meta"">No alerts armed</span>`;state.alerts.forEach(a=>{const d=document.createElement('div');d.className='pill';d.innerHTML=`<b>${esc(a.query)}</b><span class=""short"">${esc(a.mode)}</span><button data-a=""chat"" class=""${a.chat?'on':'off'}"">Chat ${a.chat?'on':'off'}</button><button data-a=""sound"" class=""${a.sound?'on':'off'}"">Sound ${a.sound?'on':'off'}</button><button data-a=""save"" class=""${a.saved?'saved on':'off'}"">${a.saved?'Saved':'Save'}</button><button data-a=""delete"" class=""delete"">X</button>`;d.querySelectorAll('button').forEach(b=>b.onclick=()=>{const action=b.dataset.a;if(action==='chat'){a.chat=!a.chat;renderAlerts();post({type:'alert',id:a.id,action:'chat',value:a.chat});return}if(action==='sound'){a.sound=!a.sound;renderAlerts();post({type:'alert',id:a.id,action:'sound',value:a.sound});return}if(action==='save'){a.saved=!a.saved;renderAlerts();post({type:'alert',id:a.id,action:'save',value:a.saved});return}if(action==='delete'){state.alerts=state.alerts.filter(x=>x.id!==a.id);renderAlerts();post({type:'alert',id:a.id,action:'delete'});}});alerts.appendChild(d);});}
+function unitPrice(o){return Number(o.currencyAmount||0)/Math.max(1,Number(o.quantity||1))}
+function flatOffers(){return state.shops.flatMap(s=>s.offers.map(o=>({...o,shopId:s.id,shopTitle:s.title,shopGrid:s.grid,unit:unitPrice(o)})))}
+function renderCurrencyGroups(count){const rows=flatOffers();const desc=state.sort==='currency-price-desc';rows.sort((a,b)=>(a.currencyName||'').localeCompare(b.currencyName||'')||(desc?b.unit-a.unit:a.unit-b.unit)||(a.itemName||'').localeCompare(b.itemName||''));const groups=new Map();rows.forEach(r=>{const k=`${r.currencyName}|${r.currencyItemId}`;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(r)});results.innerHTML=`<div class=""meta"">${groups.size} currency groups · ${count} offers</div>`+[...groups.entries()].map(([k,items])=>{const first=items[0];return `<section class=""currencyGroup"">${`<div class=""head""><div class=""title"">${img(first.currencyIcon)} ${esc(first.currencyName)}</div><div class=""grid"">${items.length} offers</div></div>`}${items.map(o=>`<div class=""currencyRow"" data-shop=""${o.shopId}"">${img(o.itemIcon)}<div class=""name"" title=""${esc(o.itemName)}"">${esc(o.itemName)}${o.quantity>1?` <span class=""short"">x${o.quantity}</span>`:''}</div><div class=""unit"">${o.unit.toFixed(2)} ea</div><div class=""price"">${o.currencyAmount}</div><div class=""stock"">Stock ${o.stock}</div><div class=""shopLink"">${esc(o.shopTitle)} [${esc(o.shopGrid)}]</div></div>`).join('')}</section>`}).join('');document.querySelectorAll('.currencyRow').forEach(r=>r.onclick=()=>post({type:'centerShop',id:+r.dataset.shop}));}
+function renderResults(){const count=state.shops.reduce((n,s)=>n+s.offers.length,0);if(!state.shops.length){results.innerHTML='<div class=""empty"">No matching vending shops.</div>';return}if(state.sort==='currency-price-asc'||state.sort==='currency-price-desc'){renderCurrencyGroups(count);return}results.innerHTML=`<div class=""meta"">${state.shops.length} shops · ${count} offers</div>`+state.shops.map(s=>`<article class=""shop"" data-id=""${s.id}""><div class=""head""><div class=""title"">${esc(s.title)}</div><div class=""grid"">[${esc(s.grid)}]</div></div>${s.offers.map(o=>`<div class=""offer"">${img(o.itemIcon)}<div class=""name"" title=""${esc(o.itemName)}"">${esc(o.itemName)}${o.quantity>1?` <span class=""short"">x${o.quantity}</span>`:''}</div><div class=""stock"">Stock ${o.stock}</div><div class=""arrow"">→</div>${img(o.currencyIcon)}<div class=""price"">${esc(o.currencyName)} ${o.currencyAmount}</div></div>`).join('')}</article>`).join('');document.querySelectorAll('.shop').forEach(c=>c.onclick=()=>post({type:'centerShop',id:+c.dataset.id}));}
+input.addEventListener('input',()=>{state.query=input.value;state.selectedIcon=null;state.active=-1;renderSelectedIcon();sendState();});
+input.addEventListener('focus',()=>renderSuggest(true));
+input.addEventListener('keydown',e=>{if(e.key==='ArrowDown'){e.preventDefault();if(state.suggestions.length){state.active=Math.min(state.suggestions.length-1,state.active+1);renderSuggest(true)}}else if(e.key==='ArrowUp'){e.preventDefault();if(state.suggestions.length){state.active=state.active<=0?state.suggestions.length-1:state.active-1;renderSuggest(true)}}else if(e.key==='Enter'&&state.active>=0){e.preventDefault();choose(state.active)}else if(e.key==='Escape'){sug.classList.remove('open')}});
+document.addEventListener('click',e=>{if(!e.target.closest('.combo'))sug.classList.remove('open')});
+document.querySelectorAll('.toggle').forEach(b=>b.onclick=()=>{const k=b.dataset.key;state[k]=!state[k];applyToggles();if(k==='newShops'||k==='suspicious')post({type:'globalAlert',newShops:state.newShops,suspicious:state.suspicious});else sendState();});
+sortSel.onchange=()=>{state.sort=sortSel.value;sendState();};
+$('addAlert').onclick=()=>post({type:'addAlert'});
+$('profit').onclick=()=>post({type:'profit'});
+$('routes').onclick=()=>post({type:'routes'});
+window.RustShopSearch={apply(p){const hadFocus=document.activeElement===input;Object.assign(state,p);if(input.value!==state.query&&!hadFocus)input.value=state.query;if(sortSel.value!==state.sort)sortSel.value=state.sort;state.active=-1;applyToggles();renderSelectedIcon();renderSuggest(hadFocus);renderAlerts();renderResults();if(hadFocus){input.focus();const end=input.value.length;input.setSelectionRange(end,end)}}};
+input.focus();
+</script>
+</body>
+</html>";
+    }
 
 
     private void CreateShopSearchWindow()
     {
+        if (UseWebViewShopSearch)
+        {
+            CreateShopSearchWebWindow();
+            return;
+        }
 
         // Farb-Palette ähnlich deinem globalen Theme
-        Color colBgNormal = Color.FromRgb(30, 87, 111);   // SurfaceAlt
-        Color colBgHover = Color.FromRgb(42, 48, 52);   // Surface
-        Color colBgPressed = Color.FromRgb(10, 58, 74);   // AccentDark-ish (leicht blaugrün)
-        Color colBorderNorm = Color.FromRgb(79, 195, 247); // helle dünne Linie
-        Color colBorderDown = Color.FromRgb(10, 58, 74);   // gleich wie Pressed BG = "eingedrückt"
-        Color colFgNormal = Colors.White;                // TextPrimary
+        Color colBgNormal = Color.FromRgb(33, 28, 23);
+        Color colBgHover = Color.FromRgb(43, 32, 25);
+        Color colBgPressed = Color.FromRgb(91, 44, 29);
+        Color colBorderNorm = Color.FromRgb(58, 46, 38);
+        Color colBorderDown = Color.FromRgb(214, 106, 56);
+        Color colFgNormal = Color.FromRgb(245, 239, 231);
         Color colFgPressed = Colors.White;
 
-        var corner = new CornerRadius(10); // dein Radius
-        var pad = new Thickness(8, 4, 8, 4);
+        var corner = new CornerRadius(8);
+        var pad = new Thickness(8, 3, 8, 3);
 
         Style niceBtnStyle = BuildNiceButtonStyle(
             colBgNormal,
@@ -7335,8 +8364,10 @@ public partial class MainWindow : Window
         var w = new Window
         {
             Title = "Shop Search",
-            Width = 560,
-            Height = 560,
+            Width = 680,
+            Height = 600,
+            MinWidth = 620,
+            MinHeight = 520,
             Owner = this,
             Background = SearchWinBg,
             Foreground = SearchText
@@ -7353,103 +8384,51 @@ public partial class MainWindow : Window
         var headerWrap = new StackPanel
         {
             Orientation = Orientation.Vertical,
-            Margin = new Thickness(0, 0, 0, 8)
+            Margin = new Thickness(0)
+        };
+        var headerCard = new Border
+        {
+            Background = new SolidColorBrush(Color.FromRgb(22, 19, 16)),
+            BorderBrush = SearchCardBrd,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(10),
+            Margin = new Thickness(0, 0, 0, 8),
+            Child = headerWrap
         };
 
         // --- Zeile 1: [TextBox][Search][Analyze] ---
         var row1 = new StackPanel
         {
             Orientation = Orientation.Horizontal,
-            Margin = new Thickness(0, 0, 0, 4)
+            Margin = new Thickness(0, 0, 0, 8)
         };
 
       
 
-        // Icon links
-        // Farben im Stil deiner UI
-        var colOuterBg = Color.FromRgb(24, 26, 28);        // Gesamtfeld-Hintergrund (dunkel)
-        var colIconBg = Color.FromRgb(18, 20, 22);        // extra dunkler Block hinter dem Icon
-        var colBorder = Color.FromArgb(160, 0, 173, 239); // dein Cyan-ish Border (kannst du anpassen)
-        var colText = Colors.White;
-
-        // Äußere Border = komplette Suchleiste mit runden Ecken
-        var searchOuter = new Border
-        {
-            Background = new SolidColorBrush(colOuterBg),
-            BorderBrush = new SolidColorBrush(colBorder),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(6),
-            Margin = new Thickness(0, 0, 8, 0), // Abstand rechts zu "Profit Trades"
-            VerticalAlignment = VerticalAlignment.Center,
-            SnapsToDevicePixels = true
-        };
-
-        // Innenlayout: 2 Spalten (Icon | TextBox)
-        var innerGrid = new Grid
-        {
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        innerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        innerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-        // Icon-Panel links
-        var iconHost = new Border
-        {
-            Background = new SolidColorBrush(colIconBg),
-            BorderBrush = Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            Padding = new Thickness(6, 4, 6, 4),
-            VerticalAlignment = VerticalAlignment.Center,
-            Child = new TextBlock
-            {
-                Text = "🔍",
-                Foreground = new SolidColorBrush(colText),
-                FontSize = 12,
-                VerticalAlignment = VerticalAlignment.Center
-            }
-        };
-        Grid.SetColumn(iconHost, 0);
-        innerGrid.Children.Add(iconHost);
-
-        // TextBox rechts – ohne eigenen Border, damit’s wie ein Control wirkt
-        _searchTb = new TextBox
-        {
-            Width = 260,
-            Background = Brushes.Transparent, // Wichtig!
-            BorderThickness = new Thickness(0),     // kein eigener Rand
-            Foreground = new SolidColorBrush(colText),
-            Padding = new Thickness(4, 4, 6, 4),
-            VerticalContentAlignment = VerticalAlignment.Center
-        };
-        _searchTb.TextChanged += (_, __) => RefreshShopSearchResults();
-        Grid.SetColumn(_searchTb, 1);
-        innerGrid.Children.Add(_searchTb);
-
-        // pack Grid in die äußere Border
-        searchOuter.Child = innerGrid;
+        var searchCombo = BuildShopSearchCombo();
 
         _btnAnalyze = new Button
         {
-            Content = " 💰 Profit Trades ",
-            Margin = new Thickness(4, 2, 4, 2),
+            Content = "Profit",
+            Margin = new Thickness(0, 0, 6, 0),
             Style = niceBtnStyle
         };
 
         _btnPathFinder = new Button
         {
-            Content = " 🔍 Buy X for Y ",
-            Margin = new Thickness(4, 2, 4, 2),
+            Content = "Routes",
+            Margin = new Thickness(0, 0, 0, 0),
             Style = niceBtnStyle
         };
 
         //btnGo.Click += (_, __) => RefreshShopSearchResults();
-        _searchTb.TextChanged += (_, __) => RefreshShopSearchResults();
 
         _btnAnalyze.Click += (_, __) => OpenAnalysisWindow();
         _btnPathFinder.Click += (_, __) => OpenPathFinderWindow();
 
 
-        row1.Children.Add(searchOuter);
+        row1.Children.Add(searchCombo);
       //  row1.Children.Add(btnGo);
         row1.Children.Add(_btnAnalyze);
         row1.Children.Add(_btnPathFinder);
@@ -7459,15 +8438,15 @@ public partial class MainWindow : Window
         var row2 = new StackPanel
         {
             Orientation = Orientation.Horizontal,
-            Margin = new Thickness(0, 0, 0, 4)
+            Margin = new Thickness(0, 0, 0, 8)
         };
 
         _chkSell = new CheckBox();
-        StyleHeaderCheckBox(_chkSell, "Sells💰", true);
+        StyleHeaderCheckBox(_chkSell, "Sells", true);
         
 
         _chkBuy = new CheckBox();
-        StyleHeaderCheckBox(_chkBuy, "Buys🛒", true);
+        StyleHeaderCheckBox(_chkBuy, "Buys", true);
        
 
         _chkHideEmpty = new CheckBox();
@@ -7475,11 +8454,11 @@ public partial class MainWindow : Window
         
         
         _chkNewShopAlerts = new CheckBox();
-        StyleHeaderCheckBox(_chkNewShopAlerts, "New Shops → chat", false);
+        StyleHeaderCheckBox(_chkNewShopAlerts, "New shops", false);
        
 
         _chkSuspiciousAlerts = new CheckBox();
-        StyleHeaderCheckBox(_chkSuspiciousAlerts, "Suspicious → chat", false);
+        StyleHeaderCheckBox(_chkSuspiciousAlerts, "Suspicious", false);
         
 
         // Events für Filter/Aktionen
@@ -7508,15 +8487,18 @@ public partial class MainWindow : Window
         // --- Zeile 3: Alerts / "+ Alert" Button + Alert-Liste ---
         var row3 = new StackPanel
         {
-            Orientation = Orientation.Vertical,
-            Margin = new Thickness(0, 0, 0, 4)
+            Orientation = Orientation.Horizontal,
+            Margin = new Thickness(0)
         };
 
         // Add-Alert Button
         _btnAddAlert = new Button
         {
-            Content = "＋ Alert (watch this)",
-            Margin = new Thickness(0, 0, 0, 4)
+            Content = "+ Alert",
+            Height = 28,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Margin = new Thickness(0, 0, 8, 0),
+            Style = niceBtnStyle
         };
 
         _btnAddAlert.Click += (_, __) => AddAlertFromCurrentSearch();
@@ -7524,11 +8506,14 @@ public partial class MainWindow : Window
         // Alert-Liste
         _alertList = new ListBox
         {
-            Background = SearchWinBg,
+            Background = SearchCardBg,
             BorderThickness = new Thickness(1),
-            BorderBrush = new SolidColorBrush(Color.FromArgb(60, 255, 255, 255)),
+            BorderBrush = SearchCardBrd,
             Foreground = SearchText,
-            Height = 70
+            Height = 28,
+            MinWidth = 420,
+            Padding = new Thickness(4),
+            Visibility = Visibility.Collapsed
         };
 
         row3.Children.Add(_btnAddAlert);
@@ -7537,8 +8522,8 @@ public partial class MainWindow : Window
         headerWrap.Children.Add(row3);
 
         // Dock das oben rein
-        DockPanel.SetDock(headerWrap, Dock.Top);
-        root.Children.Add(headerWrap);
+        DockPanel.SetDock(headerCard, Dock.Top);
+        root.Children.Add(headerCard);
 
         // PATH FINDER WINDOW
 
@@ -7547,7 +8532,7 @@ public partial class MainWindow : Window
         // ========== MAIN SEARCH RESULT LIST ==========
         _searchList = new ListBox
         {
-            Background = SearchWinBg,
+            Background = Brushes.Transparent,
             BorderThickness = new Thickness(0),
             Foreground = SearchText
         };
@@ -7581,7 +8566,7 @@ public partial class MainWindow : Window
 
         _analysisList = new ListBox
         {
-            Background = SearchWinBg,
+            Background = Brushes.Transparent,
             BorderThickness = new Thickness(0),
             Foreground = SearchText,
             Visibility = Visibility.Collapsed // erst sichtbar machen, wenn Analyze geklickt
@@ -7598,7 +8583,16 @@ public partial class MainWindow : Window
         ApplyThinScrollbar(scroll);
 
         // Wichtig: kein eigenes Scroll-Handling mehr hier!
-        root.Children.Add(scroll);
+        var resultsFrame = new Border
+        {
+            Background = new SolidColorBrush(Color.FromRgb(13, 12, 11)),
+            BorderBrush = SearchCardBrd,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(8),
+            Child = scroll
+        };
+        root.Children.Add(resultsFrame);
 
         // Jetzt sorgen wir dafür, dass das Fenster-Mausrad an den ScrollViewer geht:
         w.PreviewMouseWheel += (snd, e) =>
@@ -9280,9 +10274,15 @@ public partial class MainWindow : Window
 
     private void RefreshShopSearchResults()
     {
+        if (_shopSearchWebView != null)
+        {
+            SendShopSearchPayload();
+            return;
+        }
+
         if (_shopSearchWin == null || _searchList == null) return;
 
-        string q = _searchTb?.Text?.Trim() ?? "";
+        string q = CurrentShopSearchText();
 
         bool wantSell = _chkSell?.IsChecked != false;
         bool wantBuy = _chkBuy?.IsChecked != false;
@@ -9291,14 +10291,10 @@ public partial class MainWindow : Window
 
         // Helper zum Text-Match
         bool MatchesLeft(RustPlusClientReal.ShopOrder o)
-            => string.IsNullOrEmpty(q)
-               || ResolveItemName(o.ItemId, o.ItemShortName)
-                  .Contains(q, StringComparison.OrdinalIgnoreCase);
+            => string.IsNullOrEmpty(q) || ItemQueryMatches(o.ItemId, o.ItemShortName, q);
 
         bool MatchesRight(RustPlusClientReal.ShopOrder o)
-            => string.IsNullOrEmpty(q)
-               || ResolveItemName(o.CurrencyItemId, o.CurrencyShortName)
-                  .Contains(q, StringComparison.OrdinalIgnoreCase);
+            => string.IsNullOrEmpty(q) || ItemQueryMatches(o.CurrencyItemId, o.CurrencyShortName, q);
 
         _searchList.Items.Clear();
 
@@ -9323,6 +10319,22 @@ public partial class MainWindow : Window
             // Karte bauen und hinzufügen
             _searchList.Items.Add(BuildShopSearchCard(s, offers, compact: false));
         }
+    }
+
+    private static bool ItemQueryMatches(int itemId, string? shortName, string q)
+    {
+        if (string.IsNullOrWhiteSpace(q)) return true;
+
+        var pretty = ResolveItemName(itemId, shortName);
+        if (!string.IsNullOrWhiteSpace(pretty) &&
+            pretty.Contains(q, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (!string.IsNullOrWhiteSpace(shortName) &&
+            shortName.Contains(q, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return itemId != 0 && itemId.ToString(CultureInfo.InvariantCulture).Contains(q, StringComparison.OrdinalIgnoreCase);
     }
 
     private FrameworkElement BuildSearchResultCard(
@@ -9405,11 +10417,140 @@ public partial class MainWindow : Window
         MapTransform.Matrix = m;
     }
 
+    private void FocusShopOnMap(double x, double y)
+    {
+        if (_worldSizeS <= 0 || WebViewHost.ActualWidth <= 0 || WebViewHost.ActualHeight <= 0)
+        {
+            CenterMapOnWorld(x, y);
+            return;
+        }
+
+        const double targetZoom = 6.0;
+        const double overviewZoom = 2.15;
+        const double nearbyHostPx = 160.0;
+        const double zoomTolerance = 0.7;
+
+        var targetPoint = WorldToImagePx(x, y);
+        var hostCenter = new Point(WebViewHost.ActualWidth * 0.5, WebViewHost.ActualHeight * 0.5);
+        var currentFocus = HostToScenePreTransform(hostCenter);
+        var current = MapTransform.Matrix;
+        var currentZoom = Math.Abs(current.M11) < 1e-6 ? 1.0 : Math.Abs(current.M11);
+
+        var (viewScale, _, _) = GetViewboxScaleAndOffset();
+        var hostDistance = (targetPoint - currentFocus).Length * viewScale * Math.Max(0.001, currentZoom);
+        var zoomIsClose = Math.Abs(currentZoom - targetZoom) <= zoomTolerance;
+
+        var finalMatrix = BuildCenteredMapMatrix(targetPoint, targetZoom);
+        if (hostDistance <= nearbyHostPx && zoomIsClose)
+        {
+            AnimateMapMatrix(new[] { (0.0, current), (1.0, finalMatrix) }, TimeSpan.FromMilliseconds(260));
+            return;
+        }
+
+        var travelFocus = new Point(
+            (currentFocus.X + targetPoint.X) * 0.5,
+            (currentFocus.Y + targetPoint.Y) * 0.5);
+        var pullbackZoom = Math.Min(currentZoom, overviewZoom);
+        pullbackZoom = Math.Clamp(pullbackZoom, 1.15, targetZoom);
+
+        var overviewMatrix = BuildCenteredMapMatrix(travelFocus, pullbackZoom);
+        AnimateMapMatrix(
+            new[]
+            {
+                (0.0, current),
+                (0.38, overviewMatrix),
+                (1.0, finalMatrix)
+            },
+            TimeSpan.FromMilliseconds(720));
+    }
+
+    private Matrix BuildCenteredMapMatrix(Point imagePoint, double zoom)
+    {
+        var (s, offX, offY) = GetViewboxScaleAndOffset();
+        double hostCx = WebViewHost.ActualWidth * 0.5;
+        double hostCy = WebViewHost.ActualHeight * 0.5;
+
+        var m = Matrix.Identity;
+        m.M11 = zoom;
+        m.M22 = zoom;
+        m.OffsetX = (hostCx - offX) / s - zoom * imagePoint.X;
+        m.OffsetY = (hostCy - offY) / s - zoom * imagePoint.Y;
+        return m;
+    }
+
+    private void AnimateMapMatrix(IReadOnlyList<(double t, Matrix m)> keyframes, TimeSpan duration)
+    {
+        if (keyframes.Count < 2)
+        {
+            if (keyframes.Count == 1) ApplyMapMatrix(keyframes[0].m);
+            return;
+        }
+
+        _mapFocusTimer?.Stop();
+
+        var started = DateTime.UtcNow;
+        _mapFocusTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(16)
+        };
+
+        _mapFocusTimer.Tick += (_, __) =>
+        {
+            var raw = (DateTime.UtcNow - started).TotalMilliseconds / Math.Max(1.0, duration.TotalMilliseconds);
+            var t = Math.Clamp(raw, 0.0, 1.0);
+
+            var a = keyframes[0];
+            var b = keyframes[^1];
+            for (int i = 0; i < keyframes.Count - 1; i++)
+            {
+                if (t >= keyframes[i].t && t <= keyframes[i + 1].t)
+                {
+                    a = keyframes[i];
+                    b = keyframes[i + 1];
+                    break;
+                }
+            }
+
+            var local = Math.Abs(b.t - a.t) < 1e-6 ? 1.0 : (t - a.t) / (b.t - a.t);
+            local = EaseInOutCubic(Math.Clamp(local, 0.0, 1.0));
+            ApplyMapMatrix(LerpMatrix(a.m, b.m, local));
+
+            if (t >= 1.0)
+            {
+                _mapFocusTimer?.Stop();
+                _mapFocusTimer = null;
+            }
+        };
+
+        _mapFocusTimer.Start();
+    }
+
+    private void ApplyMapMatrix(Matrix matrix)
+    {
+        MapTransform.Matrix = matrix;
+        RefreshAllOverlayScales();
+        RefreshMonumentOverlayPositions();
+        RefreshUserOverlayIcons();
+        CenterMiniMapOnPlayer();
+    }
+
+    private static double EaseInOutCubic(double t)
+        => t < 0.5 ? 4 * t * t * t : 1 - Math.Pow(-2 * t + 2, 3) / 2;
+
+    private static Matrix LerpMatrix(Matrix a, Matrix b, double t)
+        => new(
+            a.M11 + (b.M11 - a.M11) * t,
+            a.M12 + (b.M12 - a.M12) * t,
+            a.M21 + (b.M21 - a.M21) * t,
+            a.M22 + (b.M22 - a.M22) * t,
+            a.OffsetX + (b.OffsetX - a.OffsetX) * t,
+            a.OffsetY + (b.OffsetY - a.OffsetY) * t);
+
     private void ShopElement_Click(object sender, MouseButtonEventArgs e)
     {
         if (sender is FrameworkElement fe && fe.Tag is RustPlusClientReal.ShopMarker s)
         {
-            CenterMapOnWorld(s.X, s.Y);
+            FocusShopOnMap(s.X, s.Y);
             AppendLog($"Shop clicked: {s.Label ?? "(no Label)"} @ ({s.X:0},{s.Y:0}) | offers={s.Orders?.Count ?? 0}");
             // hier könntest du später ein richtiges Popup öffnen
         }
@@ -9697,9 +10838,9 @@ public partial class MainWindow : Window
 
     private void AddAlertFromCurrentSearch()
     {
-        string q = _searchTb?.Text?.Trim() ?? "";
-        bool wantSell = _chkSell?.IsChecked != false;
-        bool wantBuy = _chkBuy?.IsChecked != false;
+        string q = CurrentShopSearchText();
+        bool wantSell = _shopSearchWebView != null ? _shopSearchWantSell : _chkSell?.IsChecked != false;
+        bool wantBuy = _shopSearchWebView != null ? _shopSearchWantBuy : _chkBuy?.IsChecked != false;
 
         if (string.IsNullOrWhiteSpace(q))
             return;
@@ -9745,6 +10886,12 @@ public partial class MainWindow : Window
     // Zeichnet die Alert-Liste (_alertList) neu
     private void RefreshAlertListUI()
     {
+        if (_shopSearchWebView != null)
+        {
+            SendShopSearchPayload();
+            return;
+        }
+
         // "pill" style (runde kleine Buttons wie bei dir in der UI Leiste)
         var pillButtonStyle = new Style(typeof(Button));
         pillButtonStyle.Setters.Add(new Setter(Control.BackgroundProperty,
@@ -9762,6 +10909,7 @@ public partial class MainWindow : Window
         if (_alertList == null) return;
 
         _alertList.Items.Clear();
+        _alertList.Visibility = _alertRules.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
 
         foreach (var rule in _alertRules.ToList())
         {
@@ -10052,15 +11200,13 @@ public partial class MainWindow : Window
     private bool MatchOrderLeft(RustPlusClientReal.ShopOrder o, string q)
     {
         if (string.IsNullOrEmpty(q)) return true;
-        var name = ResolveItemName(o.ItemId, o.ItemShortName);
-        return name.Contains(q, StringComparison.OrdinalIgnoreCase);
+        return ItemQueryMatches(o.ItemId, o.ItemShortName, q);
     }
 
     private bool MatchOrderRight(RustPlusClientReal.ShopOrder o, string q)
     {
         if (string.IsNullOrEmpty(q)) return true;
-        var name = ResolveItemName(o.CurrencyItemId, o.CurrencyShortName);
-        return name.Contains(q, StringComparison.OrdinalIgnoreCase);
+        return ItemQueryMatches(o.CurrencyItemId, o.CurrencyShortName, q);
     }
 
     private async Task CheckAlerts(IReadOnlyList<RustPlusClientReal.ShopMarker> shops)
@@ -10405,72 +11551,150 @@ public partial class MainWindow : Window
 
     private void ShowTrackedPlayersManager()
     {
+        var appBg = new SolidColorBrush(Color.FromRgb(17, 16, 14));
+        var panelBg = new SolidColorBrush(Color.FromRgb(22, 19, 16));
+        var cardBg = new SolidColorBrush(Color.FromRgb(33, 28, 23));
+        var cardBorder = new SolidColorBrush(Color.FromRgb(58, 46, 38));
+        var rust = new SolidColorBrush(Color.FromRgb(214, 106, 56));
+        var rustDim = new SolidColorBrush(Color.FromRgb(119, 62, 37));
+        var text = new SolidColorBrush(Color.FromRgb(245, 239, 231));
+        var muted = new SolidColorBrush(Color.FromRgb(184, 170, 160));
+        var faint = new SolidColorBrush(Color.FromRgb(120, 106, 96));
+        var online = new SolidColorBrush(Color.FromRgb(98, 211, 139));
+        var danger = new SolidColorBrush(Color.FromRgb(173, 70, 57));
+        var ghostButtonStyle = TryFindResource("GhostButton") as Style;
+        var primaryButtonStyle = TryFindResource("PrimaryButton") as Style;
+        var destructiveButtonStyle = TryFindResource("DestructiveButton") as Style;
+
+        Button TrackerButton(string content, Style? style = null, double? width = null)
+        {
+            return new Button
+            {
+                Content = content,
+                Height = 30,
+                MinWidth = width ?? 0,
+                Padding = new Thickness(12, 0, 12, 0),
+                Margin = new Thickness(6, 0, 0, 0),
+                Style = style ?? ghostButtonStyle
+            };
+        }
+
         var win = new Window
         {
-            Title = "Managed Tracked Players",
-            Width = 500,
-            Height = 700,
-            Background = new SolidColorBrush(Color.FromRgb(18, 20, 23)),
+            Title = "Tracker List",
+            Width = 720,
+            Height = 760,
+            MinWidth = 620,
+            MinHeight = 560,
+            Background = appBg,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Owner = this,
         };
 
-        var grid = new Grid { Margin = new Thickness(20) };
+        var grid = new Grid { Margin = new Thickness(18) };
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Header
-        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Search
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Controls
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Add Player
         grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // List
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Actions
 
-        var header = new TextBlock { Text = "Tracked Players", FontSize = 20, FontWeight = FontWeights.Bold, Foreground = Brushes.White, Margin = new Thickness(0,0,0,10) };
-        grid.Children.Add(header);
+        var trackedCount = TrackingService.GetTrackedPlayers().Count;
+        var headerCard = new Border
+        {
+            Background = panelBg,
+            BorderBrush = cardBorder,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(16, 14, 16, 14),
+            Margin = new Thickness(0, 0, 0, 12)
+        };
+        var headerGrid = new Grid();
+        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var headerText = new StackPanel();
+        headerText.Children.Add(new TextBlock { Text = "TRACKER LIST", Foreground = rust, FontSize = 11, FontWeight = FontWeights.SemiBold });
+        headerText.Children.Add(new TextBlock { Text = "Tracked Players", FontSize = 24, FontWeight = FontWeights.Bold, Foreground = text, Margin = new Thickness(0, 2, 0, 0) });
+        headerText.Children.Add(new TextBlock { Text = "Watch activity, rename targets, and open a report without leaving the desk.", Foreground = muted, FontSize = 12, Margin = new Thickness(0, 4, 0, 0) });
+        var countBadge = new Border
+        {
+            Background = new SolidColorBrush(Color.FromRgb(43, 32, 25)),
+            BorderBrush = rustDim,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(12, 8, 12, 8),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        countBadge.Child = new TextBlock { Text = $"{trackedCount} tracked", Foreground = text, FontWeight = FontWeights.SemiBold, FontSize = 12 };
+        Grid.SetColumn(countBadge, 1);
+        headerGrid.Children.Add(headerText);
+        headerGrid.Children.Add(countBadge);
+        headerCard.Child = headerGrid;
+        grid.Children.Add(headerCard);
 
-        var searchBox = new TextBox { 
-            Margin = new Thickness(0,0,0,10), 
-            Padding = new Thickness(6,4,6,4),
-            Background = new SolidColorBrush(Color.FromRgb(30, 32, 35)),
-            Foreground = Brushes.Gray,
-            BorderBrush = new SolidColorBrush(Color.FromRgb(50, 50, 50)),
+        var searchBox = new TextBox {
+            Margin = new Thickness(0,0,0,10),
+            Padding = new Thickness(10,7,10,7),
+            Background = cardBg,
+            Foreground = faint,
+            BorderBrush = cardBorder,
             FontSize = 12,
             Text = "Filter players..."
         };
-        searchBox.GotFocus += (s, e) => { if (searchBox.Text == "Filter players...") { searchBox.Text = ""; searchBox.Foreground = Brushes.White; } };
-        searchBox.LostFocus += (s, e) => { if (string.IsNullOrWhiteSpace(searchBox.Text)) { searchBox.Text = "Filter players..."; searchBox.Foreground = Brushes.Gray; } };
+        searchBox.GotFocus += (s, e) => { if (searchBox.Text == "Filter players...") { searchBox.Text = ""; searchBox.Foreground = text; } };
+        searchBox.LostFocus += (s, e) => { if (string.IsNullOrWhiteSpace(searchBox.Text)) { searchBox.Text = "Filter players..."; searchBox.Foreground = faint; } };
         Grid.SetRow(searchBox, 1);
         grid.Children.Add(searchBox);
 
         // Manual Add Section
-        var addGrid = new Grid { Margin = new Thickness(0, 0, 0, 15) };
+        var addCard = new Border
+        {
+            Background = panelBg,
+            BorderBrush = cardBorder,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(12),
+            Margin = new Thickness(0, 0, 0, 12)
+        };
+        var addGrid = new Grid();
         addGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         addGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         
-        var idInput = new TextBox { 
-            Padding = new Thickness(6,4,6,4),
-            Background = new SolidColorBrush(Color.FromRgb(25, 27, 30)),
-            Foreground = Brushes.White,
-            BorderBrush = new SolidColorBrush(Color.FromRgb(60, 60, 60)),
+        var idInput = new TextBox {
+            Padding = new Thickness(10,7,10,7),
+            Background = cardBg,
+            Foreground = text,
+            BorderBrush = cardBorder,
             FontSize = 12,
-            Margin = new Thickness(0,0,8,0)
+            Margin = new Thickness(0,0,8,0),
+            Height = 32
         };
         // Poor man's watermark
         idInput.Text = "Enter BattleMetrics Player ID...";
-        idInput.Foreground = Brushes.Gray;
-        idInput.GotFocus += (s, e) => { if (idInput.Text == "Enter BattleMetrics Player ID...") { idInput.Text = ""; idInput.Foreground = Brushes.White; } };
-        idInput.LostFocus += (s, e) => { if (string.IsNullOrWhiteSpace(idInput.Text)) { idInput.Text = "Enter BattleMetrics Player ID..."; idInput.Foreground = Brushes.Gray; } };
+        idInput.Foreground = faint;
+        idInput.GotFocus += (s, e) => { if (idInput.Text == "Enter BattleMetrics Player ID...") { idInput.Text = ""; idInput.Foreground = text; } };
+        idInput.LostFocus += (s, e) => { if (string.IsNullOrWhiteSpace(idInput.Text)) { idInput.Text = "Enter BattleMetrics Player ID..."; idInput.Foreground = faint; } };
 
-        var addBtn = new Button { Content = "Track Player ID", Padding = new Thickness(15, 0, 15, 0), Height = 30, Background = new SolidColorBrush(Color.FromRgb(63, 185, 80)), Foreground = Brushes.White };
+        var addBtn = TrackerButton("Track ID", primaryButtonStyle, 92);
         
         Grid.SetColumn(idInput, 0);
         Grid.SetColumn(addBtn, 1);
         addGrid.Children.Add(idInput);
         addGrid.Children.Add(addBtn);
+        addCard.Child = addGrid;
         
-        Grid.SetRow(addGrid, 2);
-        grid.Children.Add(addGrid);
+        Grid.SetRow(addCard, 2);
+        grid.Children.Add(addCard);
 
-        var listContainer = new DockPanel();
-        var list = new ListBox { Background = Brushes.Transparent, BorderThickness = new Thickness(0), Foreground = Brushes.White };
-        listContainer.Children.Add(list);
+        var listContainer = new Border
+        {
+            Background = panelBg,
+            BorderBrush = cardBorder,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(10)
+        };
+        var list = new ListBox { Background = Brushes.Transparent, BorderThickness = new Thickness(0), Foreground = text };
+        listContainer.Child = list;
 
         Grid.SetRow(listContainer, 3);
         grid.Children.Add(listContainer);
@@ -10486,20 +11710,40 @@ public partial class MainWindow : Window
                 ).ToList();
             }
 
+            countBadge.Child = new TextBlock { Text = $"{TrackingService.GetTrackedPlayers().Count} tracked", Foreground = text, FontWeight = FontWeights.SemiBold, FontSize = 12 };
+
             var grouped = players.GroupBy(p => string.IsNullOrEmpty(p.LastServerName) ? "Global / Legacy" : p.LastServerName);
             foreach(var group in grouped)
             {
-                list.Items.Add(new TextBlock { 
-                    Text = group.Key, 
-                    FontWeight = FontWeights.Bold, 
-                    Foreground = new SolidColorBrush(Color.FromRgb(88, 166, 255)),
-                    Margin = new Thickness(0, 10, 0, 5),
-                    FontSize = 14
-                });
+                var groupHeader = new Border
+                {
+                    Background = new SolidColorBrush(Color.FromRgb(27, 23, 19)),
+                    BorderBrush = cardBorder,
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(8),
+                    Padding = new Thickness(10, 7, 10, 7),
+                    Margin = new Thickness(0, 2, 0, 8)
+                };
+                groupHeader.Child = new TextBlock {
+                    Text = group.Key,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = rust,
+                    FontSize = 12
+                };
+                list.Items.Add(groupHeader);
 
                 foreach(var p in group)
                 {
-                    var pGrid = new Grid { Margin = new Thickness(10,5,0,5) };
+                    var rowCard = new Border
+                    {
+                        Background = cardBg,
+                        BorderBrush = cardBorder,
+                        BorderThickness = new Thickness(1),
+                        CornerRadius = new CornerRadius(8),
+                        Padding = new Thickness(10),
+                        Margin = new Thickness(0, 0, 0, 8)
+                    };
+                    var pGrid = new Grid();
                     pGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Name
                     pGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Playtime
                     pGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // View
@@ -10510,29 +11754,39 @@ public partial class MainWindow : Window
                     bool isOnline = onlineInfo != null;
 
                     var namePanel = new StackPanel { Orientation = Orientation.Horizontal };
-                    var dot = new Ellipse { 
-                        Width = 8, 
-                        Height = 8, 
+                    var dot = new Ellipse {
+                        Width = 8,
+                        Height = 8,
                         Fill = isOnline ? new SolidColorBrush(Color.FromRgb(98, 211, 139)) : new SolidColorBrush(Color.FromRgb(102, 102, 102)),
                         Margin = new Thickness(0, 0, 8, 0),
                         VerticalAlignment = VerticalAlignment.Center
                     };
                     namePanel.Children.Add(dot);
-                    namePanel.Children.Add(new TextBlock { 
-                        Text = p.Name, 
-                        VerticalAlignment = VerticalAlignment.Center, 
+                    var nameStack = new StackPanel();
+                    nameStack.Children.Add(new TextBlock {
+                        Text = p.Name,
+                        VerticalAlignment = VerticalAlignment.Center,
                         FontSize = 13,
-                        Foreground = isOnline ? Brushes.White : Brushes.Gray
+                        FontWeight = FontWeights.SemiBold,
+                        Foreground = isOnline ? text : muted,
+                        TextTrimming = TextTrimming.CharacterEllipsis
                     });
+                    nameStack.Children.Add(new TextBlock {
+                        Text = $"BM {p.BMId}",
+                        Foreground = faint,
+                        FontSize = 10,
+                        Margin = new Thickness(0, 2, 0, 0)
+                    });
+                    namePanel.Children.Add(nameStack);
 
                     Grid.SetColumn(namePanel, 0);
                     pGrid.Children.Add(namePanel);
 
                     if (isOnline)
                     {
-                        var playTxt = new TextBlock { 
-                            Text = onlineInfo.PlayTimeStr, 
-                            Foreground = new SolidColorBrush(Color.FromRgb(176, 190, 197)), 
+                        var playTxt = new TextBlock {
+                            Text = onlineInfo.PlayTimeStr,
+                            Foreground = online,
                             VerticalAlignment = VerticalAlignment.Center,
                             Margin = new Thickness(10, 0, 10, 0),
                             FontSize = 11,
@@ -10543,12 +11797,14 @@ public partial class MainWindow : Window
                         pGrid.Children.Add(playTxt);
                     }
 
-                    var viewBtn = new Button { Content = "View", Width = 45, Margin = new Thickness(5,0,0,0), Tag = p.BMId };
+                    var viewBtn = TrackerButton("Report", ghostButtonStyle, 62);
+                    viewBtn.Tag = p.BMId;
                     viewBtn.Click += (s, e) => ShowTrackingAnalysisWindow((string)((Button)s).Tag);
                     Grid.SetColumn(viewBtn, 2);
                     pGrid.Children.Add(viewBtn);
 
-                    var renameBtn = new Button { Content = "Rename", Width = 55, Margin = new Thickness(5,0,0,0), Tag = p };
+                    var renameBtn = TrackerButton("Rename", ghostButtonStyle, 68);
+                    renameBtn.Tag = p;
                     renameBtn.Click += (s, e) => {
                         var player = (TrackedPlayer)((Button)s).Tag;
                         var newName = ShowInputBox($"Enter new name for {player.BMId}:", "Rename Player", player.Name);
@@ -10560,7 +11816,10 @@ public partial class MainWindow : Window
                     Grid.SetColumn(renameBtn, 3);
                     pGrid.Children.Add(renameBtn);
 
-                    var removeBtn = new Button { Content = "Remove", Width = 55, Margin = new Thickness(5,0,0,0), Tag = p.BMId, Background = Brushes.DarkRed, Foreground = Brushes.White };
+                    var removeBtn = TrackerButton("Remove", destructiveButtonStyle, 70);
+                    removeBtn.Tag = p.BMId;
+                    removeBtn.Background = danger;
+                    removeBtn.Foreground = Brushes.White;
                     removeBtn.Click += (s, e) => {
                         TrackingService.UntrackPlayer((string)((Button)s).Tag);
                         refreshList(searchBox.Text);
@@ -10568,11 +11827,22 @@ public partial class MainWindow : Window
                     Grid.SetColumn(removeBtn, 4);
                     pGrid.Children.Add(removeBtn);
 
-                    list.Items.Add(pGrid);
+                    rowCard.Child = pGrid;
+                    list.Items.Add(rowCard);
                 }
             }
             if (players.Count == 0 && !string.IsNullOrEmpty(filter)) {
-                list.Items.Add(new TextBlock { Text = "No results found matching filter.", Margin = new Thickness(0,20,0,0), Foreground = Brushes.Gray, HorizontalAlignment = HorizontalAlignment.Center });
+                var empty = new Border
+                {
+                    Background = cardBg,
+                    BorderBrush = cardBorder,
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(8),
+                    Padding = new Thickness(18),
+                    Margin = new Thickness(0, 8, 0, 0),
+                    Child = new TextBlock { Text = "No tracked players match this filter.", Foreground = muted, HorizontalAlignment = HorizontalAlignment.Center }
+                };
+                list.Items.Add(empty);
             }
         };
 
@@ -10597,7 +11867,7 @@ public partial class MainWindow : Window
             idInput.Text = "";
             idInput.Focus();
             addBtn.IsEnabled = true;
-            addBtn.Content = "Track Player ID";
+            addBtn.Content = "Track ID";
             refreshList(searchBox.Text);
         };
 
@@ -10612,7 +11882,9 @@ public partial class MainWindow : Window
         refreshList(""); // Initial load
         searchBox.Focus();
 
-        var viewAllBtn = new Button { Content = "View All Analysis Report", Height = 35, Margin = new Thickness(0,15,0,0), Background = new SolidColorBrush(Color.FromRgb(76, 139, 245)), Foreground = Brushes.White };
+        var viewAllBtn = TrackerButton("Open full report", primaryButtonStyle, 140);
+        viewAllBtn.Margin = new Thickness(0, 14, 0, 0);
+        viewAllBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
         viewAllBtn.Click += (s, e) => ShowTrackingAnalysisWindow();
         Grid.SetRow(viewAllBtn, 4);
         grid.Children.Add(viewAllBtn);
@@ -10664,20 +11936,57 @@ public partial class MainWindow : Window
     private void ShowTrackingAnalysisWindow(string? bmId = null)
     {
         var html = TrackingService.GetAnalysisReport(bmId);
+        var appBg = new SolidColorBrush(Color.FromRgb(17, 16, 14));
+        var panelBg = new SolidColorBrush(Color.FromRgb(22, 19, 16));
+        var cardBorder = new SolidColorBrush(Color.FromRgb(58, 46, 38));
+        var rust = new SolidColorBrush(Color.FromRgb(214, 106, 56));
+        var text = new SolidColorBrush(Color.FromRgb(245, 239, 231));
+        var muted = new SolidColorBrush(Color.FromRgb(184, 170, 160));
 
         var win = new Window
         {
-            Title = "Player Activity Analytics & Forecasts",
-            Width = 900,
-            Height = 750,
-            Background = new SolidColorBrush(Color.FromRgb(18, 20, 23)),
+            Title = bmId == null ? "Tracker Report" : "Player Tracker Report",
+            Width = 980,
+            Height = 780,
+            MinWidth = 760,
+            MinHeight = 560,
+            Background = appBg,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Owner = this,
         };
 
-        var grid = new Grid();
+        var grid = new Grid { Margin = new Thickness(18) };
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+        var header = new Border
+        {
+            Background = panelBg,
+            BorderBrush = cardBorder,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(16, 13, 16, 13),
+            Margin = new Thickness(0, 0, 0, 12)
+        };
+        var headerStack = new StackPanel();
+        headerStack.Children.Add(new TextBlock { Text = "ACTIVITY INTEL", Foreground = rust, FontSize = 11, FontWeight = FontWeights.SemiBold });
+        headerStack.Children.Add(new TextBlock { Text = bmId == null ? "Tracker Report" : "Player Report", Foreground = text, FontSize = 23, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 2, 0, 0) });
+        headerStack.Children.Add(new TextBlock { Text = bmId == null ? "All tracked targets grouped by last known server." : $"BattleMetrics target {bmId}", Foreground = muted, FontSize = 12, Margin = new Thickness(0, 4, 0, 0) });
+        header.Child = headerStack;
+        grid.Children.Add(header);
+
+        var webFrame = new Border
+        {
+            Background = panelBg,
+            BorderBrush = cardBorder,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(1)
+        };
         var wv = new WebView2 { Margin = new Thickness(0) };
-        grid.Children.Add(wv);
+        webFrame.Child = wv;
+        Grid.SetRow(webFrame, 1);
+        grid.Children.Add(webFrame);
         win.Content = grid;
         
         win.Loaded += async (s, e) =>
@@ -10691,16 +12000,22 @@ public partial class MainWindow : Window
             } 
             catch (Exception ex) 
             {
-                win.Content = new ScrollViewer 
-                { 
-                   Content = new TextBlock 
-                   { 
-                      Text = "Error loading analytics view: " + ex.Message + "\n\nEnsure WebView2 Runtime is installed.", 
-                      Foreground = Brushes.White,
-                      TextWrapping = TextWrapping.Wrap,
-                      Margin = new Thickness(20) 
-                   } 
+                var errorCard = new Border
+                {
+                    Background = panelBg,
+                    BorderBrush = cardBorder,
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(8),
+                    Padding = new Thickness(18),
+                    Margin = new Thickness(18),
+                    Child = new TextBlock
+                    {
+                        Text = "Error loading analytics view: " + ex.Message + "\n\nEnsure WebView2 Runtime is installed.",
+                        Foreground = text,
+                        TextWrapping = TextWrapping.Wrap
+                    }
                 };
+                win.Content = new ScrollViewer { Background = appBg, Content = errorCard };
             }
         };
 

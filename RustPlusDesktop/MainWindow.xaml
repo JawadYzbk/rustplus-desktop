@@ -1116,7 +1116,7 @@
                                             </DataTemplate>
                                         </ListBox.ItemTemplate>
                                     </ListBox>
-                                    <Button x:Name="BtnViewTracking" Grid.Row="3" Content="View tracker players list" Margin="0,6,0,0" Style="{StaticResource PrimaryButton}" Click="BtnViewTracking_Click" />
+                                    <Button x:Name="BtnViewTracking" Grid.Row="3" Content="Open tracker list" Margin="0,6,0,0" Style="{StaticResource PrimaryButton}" Click="BtnViewTracking_Click" />
                                 </Grid>
                             </Border>
                         </Popup>
