@@ -1158,70 +1158,70 @@ Tải xuống và cài đặt ngay bây giờ?</value>
     <value>Lưu và đóng</value>
   </data>
   <data name="ChatMessagePlaceholder" xml:space="preserve">
-    <value>Message...</value>
+    <value>Thông điệp...</value>
   </data>
   <data name="ChatErrorPlaceholder" xml:space="preserve">
-    <value>Error message here</value>
+    <value>Thông báo lỗi ở đây</value>
   </data>
   <data name="HeliEventName" xml:space="preserve">
-    <value>Patrol Heli</value>
+    <value>Trực thăng tuần tra</value>
   </data>
   <data name="HeliActiveRunningFor" xml:space="preserve">
-    <value>Patrol Heli active – running for {0}</value>
+    <value>Trực thăng tuần tra đang hoạt động – đang bay tại {0}</value>
   </data>
   <data name="ConnectedMidEventSpawnUnknown" xml:space="preserve">
-    <value>Connected mid-event – spawn time unknown</value>
+    <value>Kết nối trong khi sự kiện đang diễn ra – thời gian xuất hiện chưa xác định</value>
   </data>
   <data name="HeliActiveSpawnUnknown" xml:space="preserve">
-    <value>Patrol Heli active (spawn time unknown)</value>
+    <value>Trực thăng tuần tra đang hoạt động (thời gian xuất hiện chưa rõ)</value>
   </data>
   <data name="HeliShotDownAgo" xml:space="preserve">
-    <value>Patrol Heli shot down {0} ago this session</value>
+    <value>Máy bay trực thăng tuần tra bị bắn rơi {0} trước đó trong phiên này</value>
   </data>
   <data name="HeliLeftMapAgo" xml:space="preserve">
-    <value>Patrol Heli left the map {0} ago this session</value>
+    <value>Trực thăng tuần tra đã rời khỏi bản đồ {0} trong phiên này</value>
   </data>
   <data name="CargoDockedDepartsIn" xml:space="preserve">
-    <value>Docked at {0} – departs in ~{1}</value>
+    <value>Đang neo đậu tại {0} – khởi hành trong khoảng{1}</value>
   </data>
   <data name="HarborFallback" xml:space="preserve">
-    <value>harbor</value>
+    <value>cảng</value>
   </data>
   <data name="CargoAlreadyDockedOnConnect" xml:space="preserve">
-    <value>Already docked on connect – depart time unknown</value>
+    <value>Đã cập cảng – thời gian khởi hành chưa xác định</value>
   </data>
   <data name="CargoDockedDurationNotLearned" xml:space="preserve">
-    <value>Docked at {0} (dock duration not yet learned)</value>
+    <value>Đang neo đậu tại {0} (thời gian neo đậu chưa được xác định)</value>
   </data>
   <data name="CargoTimeRemainingOnMap" xml:space="preserve">
-    <value>Time remaining on map (from spawn)</value>
+    <value>Thời gian còn lại trên bản đồ (tính từ lúc xuất hiện)</value>
   </data>
   <data name="CargoConnectedMidRouteTimeUnknown" xml:space="preserve">
-    <value>Connected mid-route – time unknown</value>
+    <value>Kết nối giữa chừng – thời gian chưa xác định</value>
   </data>
   <data name="CargoConnectedMidRouteTimeUnknownFormatted" xml:space="preserve">
-    <value>Connected mid-route – time unknown (route ~{0}m total)</value>
+    <value>Kết nối giữa chặng đường – thời gian không rõ (tổng chiều dài lộ trình ~{0}m)</value>
   </data>
   <data name="CargoDespawnedAgo" xml:space="preserve">
-    <value>Cargo Ship despawned {0}m {1}s ago this session</value>
+    <value>Tàu chở hàng đã biến mất {0}phút {1}giây trước trong phiên này</value>
   </data>
   <data name="VendorActiveRunningFor" xml:space="preserve">
-    <value>Travelling Vendor active – running for {0}</value>
+    <value>Người bán hàng lưu động đang hoạt động – đang chạy cho {0}</value>
   </data>
   <data name="VendorActiveSpawnUnknown" xml:space="preserve">
-    <value>Travelling Vendor active (spawn time unknown)</value>
+    <value>Người bán rong đang hoạt động (thời gian xuất hiện chưa rõ)</value>
   </data>
   <data name="VendorDespawnedAgo" xml:space="preserve">
-    <value>Travelling Vendor despawned {0} ago this session</value>
+    <value>Người bán hàng rong đã biến mất {0} trước đó trong phiên này</value>
   </data>
   <data name="DeepSeaActiveRunningFor" xml:space="preserve">
-    <value>Deep Sea active – running for {0}</value>
+    <value>Deep Sea active – chạy bộ vì {0}</value>
   </data>
   <data name="DeepSeaActiveSpawnUnknown" xml:space="preserve">
-    <value>Deep Sea active (spawn time unknown)</value>
+    <value>Deep Sea active (thời gian sinh sản chưa rõ)</value>
   </data>
   <data name="DeepSeaEndedAgo" xml:space="preserve">
-    <value>Deep Sea ended {0} ago this session</value>
+    <value>Deep Sea đã kết thúc {0} trước đó trong phiên này</value>
   </data>
   <data name="TimerHoursMinutes" xml:space="preserve">
     <value>{0}h {1:D2}m</value>
@@ -1242,267 +1242,267 @@ Tải xuống và cài đặt ngay bây giờ?</value>
     <value>{0}s</value>
   </data>
   <data name="ChatCmdPopResponse" xml:space="preserve">
-    <value>{0} players currently online.{1}</value>
+    <value>{0} Người chơi hiện đang trực tuyến.{1}</value>
   </data>
   <data name="ChatCmdPopQueue" xml:space="preserve">
-    <value> Queue: {0} players.</value>
+    <value> Danh sách chờ: {0} người chơi.</value>
   </data>
   <data name="ChatCmdTimeResponse" xml:space="preserve">
-    <value>Current in-game time: {0}.</value>
+    <value>Thời gian hiện tại trong trò chơi: {0}.</value>
   </data>
   <data name="ChatCmdPromoteResponse" xml:space="preserve">
-    <value>{0} was promoted to leader.</value>
+    <value>{0} đã được thăng chức làm trưởng nhóm.</value>
   </data>
   <data name="ChatCmdDeepSeaActive" xml:space="preserve">
-    <value>Deep Sea is active! Running for {0}.</value>
+    <value>Deep Sea đã hoạt động! Đang chạy cho {0}.</value>
   </data>
   <data name="ChatCmdDeepSeaActiveMidEvent" xml:space="preserve">
-    <value>Deep Sea is currently active (connected mid-event – spawn time unknown).</value>
+    <value>Deep Sea hiện đang hoạt động (đã kết nối giữa chừng sự kiện – thời gian xuất hiện chưa rõ).</value>
   </data>
   <data name="ChatCmdDeepSeaEndedMinutesAgo" xml:space="preserve">
-    <value>Deep Sea ended {0} minutes ago this session.</value>
+    <value>Deep Sea đã kết thúc phiên làm việc này cách đây {0} phút.</value>
   </data>
   <data name="ChatCmdDeepSeaStatusUnknown" xml:space="preserve">
-    <value>Deep Sea event status unknown (not seen this session).</value>
+    <value>Tình trạng sự kiện Deep Sea chưa rõ (chưa được quan sát thấy trong phiên này).</value>
   </data>
   <data name="ChatCmdCargoNotActive" xml:space="preserve">
-    <value>Cargo Ship not active.</value>
+    <value>Tàu chở hàng không hoạt động.</value>
   </data>
   <data name="ChatCmdCargoDockedDeparts" xml:space="preserve">
-    <value>Cargo Ship docked at {0}. Departs in approx. {1} minutes.</value>
+    <value>Tàu chở hàng đã cập cảng tại {0}. Sẽ khởi hành trong khoảng {1} phút.</value>
   </data>
   <data name="ChatCmdCargoDockedPreparingDepart" xml:space="preserve">
-    <value>Cargo Ship docked at {0} and preparing to depart.</value>
+    <value>Tàu chở hàng đã cập cảng tại {0} và đang chuẩn bị khởi hành.</value>
   </data>
   <data name="ChatCmdCargoDockedUnknown" xml:space="preserve">
-    <value>Cargo Ship docked at {0} (departure time unknown).</value>
+    <value>Tàu chở hàng đã cập cảng tại {0} (thời gian khởi hành chưa rõ).</value>
   </data>
   <data name="ChatCmdCargoActiveLeaves" xml:space="preserve">
-    <value>Cargo Ship active. Leaves in approx. {0} minutes.</value>
+    <value>Tàu chở hàng đang hoạt động. Sẽ khởi hành trong khoảng {0} phút.</value>
   </data>
   <data name="ChatCmdCargoActivePreparingLeave" xml:space="preserve">
-    <value>Cargo Ship active and preparing to leave soon.</value>
+    <value>Tàu chở hàng đang hoạt động và chuẩn bị rời cảng trong thời gian tới.</value>
   </data>
   <data name="ChatCmdCargoActiveDurationNotLearned" xml:space="preserve">
-    <value>Cargo Ship active (route duration not yet learned for this server).</value>
+    <value>Tàu chở hàng đang hoạt động (thời gian di chuyển trên tuyến đường này chưa được xác định cho máy chủ này).</value>
   </data>
   <data name="ChatCmdCargoActiveMidRoute" xml:space="preserve">
-    <value>Cargo Ship active (connected after spawn – remaining time unknown).</value>
+    <value>Tàu chở hàng đang hoạt động (đã kết nối sau khi xuất hiện – thời gian còn lại chưa rõ).</value>
   </data>
   <data name="ChatCmdCargoDespawnedMinutesAgo" xml:space="preserve">
-    <value>Cargo Ship not active. Despawned {0} minutes ago this session.</value>
+    <value>Tàu chở hàng hiện không hoạt động. Đã biến mất khỏi màn hình cách đây {0} phút trong phiên này.</value>
   </data>
   <data name="ChatCmdOilRigCrateIn" xml:space="preserve">
-    <value>{0}: crate in {1}m {2}s</value>
+    <value>{0}: crate trong {1}m {2}s</value>
   </data>
   <data name="ChatCmdOilRigLastCalledAgo" xml:space="preserve">
-    <value>{0}: last called {1}m ago</value>
+    <value>{0}: Cuộc gọi gần nhất đến số {1}cách đây m phút</value>
   </data>
   <data name="ChatCmdOilRigNotCalled" xml:space="preserve">
-    <value>{0}: not called this session</value>
+    <value>{0}: không được gọi trong phiên này</value>
   </data>
   <data name="ChatCmdHeliActive" xml:space="preserve">
-    <value>Patrol Heli is active! Running for {0}.</value>
+    <value>Trực thăng tuần tra đã hoạt động! Đang chạy cho {0}.</value>
   </data>
   <data name="ChatCmdHeliActiveMidEvent" xml:space="preserve">
-    <value>Patrol Heli is currently active (connected mid-event – spawn time unknown).</value>
+    <value>Trực thăng tuần tra hiện đang hoạt động (đã kết nối giữa sự kiện – thời gian xuất hiện chưa rõ).</value>
   </data>
   <data name="ChatCmdHeliNotActiveAgo" xml:space="preserve">
-    <value>Patrol Heli not active. It was {0} {1} ago this session.</value>
+    <value>Trực thăng tuần tra hiện không hoạt động. Lần cuối cùng nó hoạt động trong phiên này là cách đây {0} {1}.</value>
   </data>
   <data name="ChatCmdHeliReasonShotDown" xml:space="preserve">
-    <value>shot down</value>
+    <value>bị bắn hạ</value>
   </data>
   <data name="ChatCmdHeliReasonLeftMap" xml:space="preserve">
-    <value>left the map</value>
+    <value>đã rời khỏi bản đồ</value>
   </data>
   <data name="ChatCmdHeliStatusUnknown" xml:space="preserve">
-    <value>Patrol Heli event status unknown (not seen this session).</value>
+    <value>Tình trạng sự kiện trực thăng tuần tra chưa rõ (chưa được phát hiện trong phiên này).</value>
   </data>
   <data name="ChatCmdVendorActive" xml:space="preserve">
-    <value>Travelling Vendor is active! Running for {0}.</value>
+    <value>Travelling Vendor đã hoạt động! Đang chạy cho {0}.</value>
   </data>
   <data name="ChatCmdVendorActiveMidEvent" xml:space="preserve">
-    <value>Travelling Vendor is currently active (connected mid-event – spawn time unknown).</value>
+    <value>Người bán rong hiện đang hoạt động (đã kết nối giữa sự kiện – thời gian xuất hiện chưa rõ).</value>
   </data>
   <data name="ChatCmdVendorDespawnedAgo" xml:space="preserve">
-    <value>Travelling Vendor not active. Despawned {0} ago this session.</value>
+    <value>Người bán hàng rong hiện không hoạt động. Đã biến mất khỏi phiên này cách đây {0}.</value>
   </data>
   <data name="ChatCmdVendorStatusUnknown" xml:space="preserve">
-    <value>Travelling Vendor event status unknown (not seen this session).</value>
+    <value>Tình trạng sự kiện của người bán hàng lưu động hiện chưa rõ (chưa thấy trong phiên này).</value>
   </data>
   <data name="ChatCmdUpkeepNoTcMapped" xml:space="preserve">
-    <value>No Tool Cupboards are mapped for upkeep commands.</value>
+    <value>Không có tủ dụng cụ nào được gán cho các lệnh bảo trì.</value>
   </data>
   <data name="ChatCmdUpkeepTcEmptyExpired" xml:space="preserve">
-    <value>Upkeep in {0} TC: Empty or expired.</value>
+    <value>Quản lý tại {0} TC: Trống hoặc đã hết hạn.</value>
   </data>
   <data name="ChatCmdUpkeepNeed24h" xml:space="preserve">
-    <value> Need/24h: {0}.</value>
+    <value> Liên hệ 24/7: {0}.</value>
   </data>
   <data name="ChatCmdUpkeepTcTime" xml:space="preserve">
-    <value>Upkeep in {0} TC: {1}.</value>
+    <value>Bảo trì tại {0} TC: {1}.</value>
   </data>
   <data name="ChatCmdUpkeepDays" xml:space="preserve">
-    <value>{0} days</value>
+    <value>{0} ngày</value>
   </data>
   <data name="ChatCmdUpkeepHours" xml:space="preserve">
-    <value>{0} hours</value>
+    <value>{0} giờ</value>
   </data>
   <data name="ChatCmdUpkeepMinutes" xml:space="preserve">
-    <value>{0} minutes</value>
+    <value>{0} biên bản</value>
   </data>
   <data name="ChatCmdUpkeepEmptyExpiredShort" xml:space="preserve">
-    <value>{0}: Empty/expired</value>
+    <value>{0}: Trống/đã hết hạn</value>
   </data>
   <data name="ChatCmdUpkeepTimeShort" xml:space="preserve">
     <value>{0}: {1}d, {2}h</value>
   </data>
   <data name="ChatCmdUpkeepHeader" xml:space="preserve">
-    <value>Upkeep: {0}</value>
+    <value>Quản trị: {0}</value>
   </data>
   <data name="ChatCmdUpkeepNotPaired" xml:space="preserve">
-    <value>Bound Tool Cupboard monitors not found or not paired.</value>
+    <value>Không tìm thấy hoặc chưa ghép nối các màn hình của tủ dụng cụ Bound.</value>
   </data>
   <data name="ChatCmdUpkeepNotPairedSingle" xml:space="preserve">
-    <value>Bound Tool Cupboard monitor not found or not paired.</value>
+    <value>Không tìm thấy màn hình tủ dụng cụ Bound hoặc chưa ghép nối.</value>
   </data>
   <data name="ChatCmdSwitchToggled" xml:space="preserve">
-    <value>{0} turned {1}.</value>
+    <value>{0} đã chuyển sang {1}.</value>
   </data>
   <data name="ChatCmdSwitchStateOn" xml:space="preserve">
-    <value>ON</value>
+    <value>BẬT</value>
   </data>
   <data name="ChatCmdSwitchStateOff" xml:space="preserve">
-    <value>OFF</value>
+    <value>TẮT</value>
   </data>
   <data name="ChatCmdSwitchNotPaired" xml:space="preserve">
-    <value>Bound Smart Switch not found or not paired.</value>
+    <value>Không tìm thấy hoặc chưa ghép nối với công tắc thông minh Bound.</value>
   </data>
   <data name="MaterialWood" xml:space="preserve">
-    <value>Wood</value>
+    <value>Gỗ</value>
   </data>
   <data name="MaterialStone" xml:space="preserve">
-    <value>Stone</value>
+    <value>Đá</value>
   </data>
   <data name="MaterialMetal" xml:space="preserve">
-    <value>Metal</value>
+    <value>Kim loại</value>
   </data>
   <data name="MaterialHQM" xml:space="preserve">
     <value>HQM</value>
   </data>
   <data name="SmallOilRig" xml:space="preserve">
-    <value>Small Oil Rig</value>
+    <value>Giàn khoan dầu nhỏ</value>
   </data>
   <data name="LargeOilRig" xml:space="preserve">
-    <value>Large Oil Rig</value>
+    <value>Giàn khoan dầu cỡ lớn</value>
   </data>
   <data name="ShopWord" xml:space="preserve">
-    <value>Shop</value>
+    <value>Cửa hàng</value>
   </data>
   <data name="EventCargoShip" xml:space="preserve">
-    <value>Cargo Ship</value>
+    <value>Tàu chở hàng</value>
   </data>
   <data name="EventTravellingVendor" xml:space="preserve">
-    <value>Travelling Vendor</value>
+    <value>Người bán hàng rong</value>
   </data>
   <data name="EventCH47" xml:space="preserve">
     <value>CH47</value>
   </data>
   <data name="EventPatrolHelicopter" xml:space="preserve">
-    <value>Patrol Helicopter</value>
+    <value>Trực thăng tuần tra</value>
   </data>
   <data name="EventOilrigCrate" xml:space="preserve">
-    <value>Oilrig Crate</value>
+    <value>Thùng chứa giàn khoan</value>
   </data>
   <data name="EventExplosion" xml:space="preserve">
-    <value>Explosion</value>
+    <value>Vụ nổ</value>
   </data>
   <data name="EventBuildingBlocked" xml:space="preserve">
-    <value>Building Blocked</value>
+    <value>Công trình bị chặn</value>
   </data>
   <data name="EventGeneric" xml:space="preserve">
-    <value>Event</value>
+    <value>Sự kiện</value>
   </data>
   <data name="AlertOilRigTriggered" xml:space="preserve">
-    <value>[{0}] triggered! Crate unlocks in {1}.</value>
+    <value>[{0}] đã được kích hoạt! Hộp quà sẽ được mở khóa tại {1}.</value>
   </data>
   <data name="AlertAlarmTriggered" xml:space="preserve">
-    <value>ALARM: {0} triggered!</value>
+    <value>CẢNH BÁO: {0} đã được kích hoạt!</value>
   </data>
   <data name="AlertCrateUnlocksIn10Min" xml:space="preserve">
-    <value>[{0}] Crate unlocks in 10 minutes!</value>
+    <value>[{0}] Hộp quà sẽ mở khóa trong 10 phút nữa!</value>
   </data>
   <data name="AlertCrateUnlocksIn5Min" xml:space="preserve">
-    <value>[{0}] Crate unlocks in 5 minutes!</value>
+    <value>[{0}] Hộp quà sẽ được mở khóa trong 5 phút nữa!</value>
   </data>
   <data name="AlertDeepSeaUp" xml:space="preserve">
-    <value>Deep Sea is up</value>
+    <value>Deep Sea đã ra mắt</value>
   </data>
   <data name="AlertNewShop" xml:space="preserve">
-    <value>New shop {0} [{1}]: {2}</value>
+    <value>Cửa hàng mới {0} [{1}]: {2}</value>
   </data>
   <data name="AlertSuspiciousShop" xml:space="preserve">
-    <value>Suspicious shop {0} [{1}] was online {2}s, sold {3}</value>
+    <value>Cửa hàng đáng ngờ {0} [{1}] đã trực tuyến {2}, đã bán {3}</value>
   </data>
   <data name="AlertCargoSpawned" xml:space="preserve">
-    <value>Cargo Ship spawned {0}</value>
+    <value>Tàu chở hàng xuất hiện tại {0}</value>
   </data>
   <data name="CargoFarOutAtSea" xml:space="preserve">
-    <value>far out at sea (near {0})</value>
+    <value>ở ngoài khơi xa (gần {0})</value>
   </data>
   <data name="AlertCargoDocked" xml:space="preserve">
-    <value>Cargo Ship docked at {0} ({1})</value>
+    <value>Tàu chở hàng đã cập cảng tại {0} ({1})</value>
   </data>
   <data name="AlertCargoExpectedDock" xml:space="preserve">
-    <value>Cargo Ship expected to dock at {0} ({1}) in approx. 5 minutes.</value>
+    <value>Tàu chở hàng dự kiến sẽ cập cảng tại {0} ({1}) trong khoảng 5 phút nữa.</value>
   </data>
   <data name="AlertCargoDeparting" xml:space="preserve">
-    <value>Cargo Ship departing from {0} in 5 minutes ({1})</value>
+    <value>Tàu chở hàng sẽ rời cảng {0} trong 5 phút nữa ({1})</value>
   </data>
   <data name="AlertHeliCrashFalseAlarm" xml:space="preserve">
-    <value>Crash detected due to server lag — Heli is still on map at {0}</value>
+    <value>Phát hiện sự cố do độ trễ máy chủ — Chiếc trực thăng vẫn còn trên bản đồ tại {0}</value>
   </data>
   <data name="AlertEventSpawned" xml:space="preserve">
-    <value>{0} spawned in at {1}</value>
+    <value>{0} được tạo ra tại {1}</value>
   </data>
   <data name="AlertHeliShotDown" xml:space="preserve">
-    <value>Patrol Heli shot down at {0}</value>
+    <value>Máy bay trực thăng tuần tra bị bắn rơi tại {0}</value>
   </data>
   <data name="Unknown" xml:space="preserve">
-    <value>unknown</value>
+    <value>không rõ</value>
   </data>
   <data name="AlertPlayerOnlineWithPos" xml:space="preserve">
-    <value>{0} came online @ {1}</value>
+    <value>{0} đã được đăng tải tại {1}</value>
   </data>
   <data name="AlertPlayerOffline" xml:space="preserve">
-    <value>{0} went offline</value>
+    <value>{0} đã ngắt kết nối</value>
   </data>
   <data name="AlertPlayerDied" xml:space="preserve">
-    <value>{0} died @ {1}</value>
+    <value>{0} đã qua đời @ {1}</value>
   </data>
   <data name="AlertPlayerRespawned" xml:space="preserve">
-    <value>{0} respawned @ {1}</value>
+    <value>{0} đã được đăng lại tại {1}</value>
   </data>
   <data name="AlertTrackingOnline" xml:space="preserve">
-    <value>[Tracking] {0}{1} is now ONLINE</value>
+    <value>[Theo dõi] {0}{1} hiện đã hoạt động</value>
   </data>
   <data name="AlertTrackingOffline" xml:space="preserve">
-    <value>[Tracking] {0}{1} is now OFFLINE</value>
+    <value>[Theo dõi] {0}{1} hiện đang NGỪNG HOẠT ĐỘNG</value>
   </data>
   <data name="AlertTrackingRenamed" xml:space="preserve">
-    <value>[Tracking] {0}{1} renamed to {2}!</value>
+    <value>[Cập nhật] {0}{1} đã được đổi tên thành {2}!</value>
   </data>
   <data name="AlertShopSells" xml:space="preserve">
-    <value>sells</value>
+    <value>bán</value>
   </data>
   <data name="AlertShopBuys" xml:space="preserve">
-    <value>buys</value>
+    <value>mua</value>
   </data>
   <data name="AlertShopLabelFallback" xml:space="preserve">
-    <value>Shop</value>
+    <value>Cửa hàng</value>
   </data>
   <data name="AlertShopMatch" xml:space="preserve">
-    <value>{0} [{1}] {2} x{3} {4} (Stock {5}) for {6} {7}</value>
+    <value>{0} [{1}] {2} x{3} {4} (Cổ phiếu {5}) cho {6} {7}</value>
   </data>
 </root>
