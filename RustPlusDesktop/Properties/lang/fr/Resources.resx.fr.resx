@@ -1157,4 +1157,10 @@ Télécharger et installer maintenant ?</value>
   <data name="SaveAndClose" xml:space="preserve">
     <value>Enregistrer &amp; Fermer</value>
   </data>
+  <data name="ChatMessagePlaceholder" xml:space="preserve">
+    <value>Message...</value>
+  </data>
+  <data name="ChatErrorPlaceholder" xml:space="preserve">
+    <value>Error message here</value>
+  </data>
 </root>
