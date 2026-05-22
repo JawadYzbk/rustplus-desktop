@@ -1158,70 +1158,70 @@ Aflaai en installeer nou?</value>
     <value>Bewaar en Sluit</value>
   </data>
   <data name="ChatMessagePlaceholder" xml:space="preserve">
-    <value>Message...</value>
+    <value>Boodskap...</value>
   </data>
   <data name="ChatErrorPlaceholder" xml:space="preserve">
-    <value>Error message here</value>
+    <value>Foutboodskap hier</value>
   </data>
   <data name="HeliEventName" xml:space="preserve">
-    <value>Patrol Heli</value>
+    <value>Patrouillehelikopter</value>
   </data>
   <data name="HeliActiveRunningFor" xml:space="preserve">
-    <value>Patrol Heli active – running for {0}</value>
+    <value>Patrolliehelikopter aktief – hardloop vir {0}</value>
   </data>
   <data name="ConnectedMidEventSpawnUnknown" xml:space="preserve">
-    <value>Connected mid-event – spawn time unknown</value>
+    <value>Gekoppel in die middel van die gebeurtenis – verskynstyd onbekend</value>
   </data>
   <data name="HeliActiveSpawnUnknown" xml:space="preserve">
-    <value>Patrol Heli active (spawn time unknown)</value>
+    <value>Patrolliehelikopter aktief (verskynstyd onbekend)</value>
   </data>
   <data name="HeliShotDownAgo" xml:space="preserve">
-    <value>Patrol Heli shot down {0} ago this session</value>
+    <value>Patrolliehelikopter het {0} gelanseer en neergeskiet tydens hierdie sessie</value>
   </data>
   <data name="HeliLeftMapAgo" xml:space="preserve">
-    <value>Patrol Heli left the map {0} ago this session</value>
+    <value>Patrol Heli het die kaart verlaat {0} gelede in hierdie sessie</value>
   </data>
   <data name="CargoDockedDepartsIn" xml:space="preserve">
-    <value>Docked at {0} – departs in ~{1}</value>
+    <value>Aangemeer by {0} – vertrek omstreeks{1}</value>
   </data>
   <data name="HarborFallback" xml:space="preserve">
-    <value>harbor</value>
+    <value>hawe</value>
   </data>
   <data name="CargoAlreadyDockedOnConnect" xml:space="preserve">
-    <value>Already docked on connect – depart time unknown</value>
+    <value>Alreeds aan boord by aanmelding – vertrektyd onbekend</value>
   </data>
   <data name="CargoDockedDurationNotLearned" xml:space="preserve">
-    <value>Docked at {0} (dock duration not yet learned)</value>
+    <value>Aangemeer by {0} (aangemeerduur nog nie bekend nie)</value>
   </data>
   <data name="CargoTimeRemainingOnMap" xml:space="preserve">
-    <value>Time remaining on map (from spawn)</value>
+    <value>Tyd wat oor is op die kaart (sedert spawn)</value>
   </data>
   <data name="CargoConnectedMidRouteTimeUnknown" xml:space="preserve">
-    <value>Connected mid-route – time unknown</value>
+    <value>Middelpad gekoppel – tyd onbekend</value>
   </data>
   <data name="CargoConnectedMidRouteTimeUnknownFormatted" xml:space="preserve">
-    <value>Connected mid-route – time unknown (route ~{0}m total)</value>
+    <value>Gekoppel halverwege die roete – tyd onbekend (roete ~{0}m totaal)</value>
   </data>
   <data name="CargoDespawnedAgo" xml:space="preserve">
-    <value>Cargo Ship despawned {0}m {1}s ago this session</value>
+    <value>Ladingskip het {0}m {1}s gelede in hierdie sessie uitgedaan</value>
   </data>
   <data name="VendorActiveRunningFor" xml:space="preserve">
-    <value>Travelling Vendor active – running for {0}</value>
+    <value>Reisende verkoper aktief – aan die gang vir {0}</value>
   </data>
   <data name="VendorActiveSpawnUnknown" xml:space="preserve">
-    <value>Travelling Vendor active (spawn time unknown)</value>
+    <value>Reisende verkoper aktief (verskynstyd onbekend)</value>
   </data>
   <data name="VendorDespawnedAgo" xml:space="preserve">
-    <value>Travelling Vendor despawned {0} ago this session</value>
+    <value>Reisende verkoper het {0} gelede in hierdie sessie verdwyn</value>
   </data>
   <data name="DeepSeaActiveRunningFor" xml:space="preserve">
-    <value>Deep Sea active – running for {0}</value>
+    <value>Deep Sea aktief – hardloop vir {0}</value>
   </data>
   <data name="DeepSeaActiveSpawnUnknown" xml:space="preserve">
-    <value>Deep Sea active (spawn time unknown)</value>
+    <value>Diepsee aktief (broeityd onbekend)</value>
   </data>
   <data name="DeepSeaEndedAgo" xml:space="preserve">
-    <value>Deep Sea ended {0} ago this session</value>
+    <value>Deep Sea het {0} gelede hierdie sessie geëindig.</value>
   </data>
   <data name="TimerHoursMinutes" xml:space="preserve">
     <value>{0}h {1:D2}m</value>
@@ -1230,279 +1230,279 @@ Aflaai en installeer nou?</value>
     <value>{0}m {1:D2}s</value>
   </data>
   <data name="AgoHoursMinutes" xml:space="preserve">
-    <value>{0}h {1}m</value>
+    <value>{0} {1}m</value>
   </data>
   <data name="AgoMinutes" xml:space="preserve">
     <value>{0}m</value>
   </data>
   <data name="DurationMinutesSeconds" xml:space="preserve">
-    <value>{0}m {1}s</value>
+    <value>{0} {1}se</value>
   </data>
   <data name="DurationSeconds" xml:space="preserve">
     <value>{0}s</value>
   </data>
   <data name="ChatCmdPopResponse" xml:space="preserve">
-    <value>{0} players currently online.{1}</value>
+    <value>{0} Spelers tans aanlyn.{1}</value>
   </data>
   <data name="ChatCmdPopQueue" xml:space="preserve">
-    <value> Queue: {0} players.</value>
+    <value> Ranglys: {0} -spelers.</value>
   </data>
   <data name="ChatCmdTimeResponse" xml:space="preserve">
-    <value>Current in-game time: {0}.</value>
+    <value>Huidige in-spel tyd: {0}</value>
   </data>
   <data name="ChatCmdPromoteResponse" xml:space="preserve">
-    <value>{0} was promoted to leader.</value>
+    <value>{0} is bevorder tot leier.</value>
   </data>
   <data name="ChatCmdDeepSeaActive" xml:space="preserve">
-    <value>Deep Sea is active! Running for {0}.</value>
+    <value>Deep Sea is aktief! Hardloop vir {0}.</value>
   </data>
   <data name="ChatCmdDeepSeaActiveMidEvent" xml:space="preserve">
-    <value>Deep Sea is currently active (connected mid-event – spawn time unknown).</value>
+    <value>Deep Sea is tans aktief (aangesluit in die middel van die gebeurtenis – broeityd onbekend).</value>
   </data>
   <data name="ChatCmdDeepSeaEndedMinutesAgo" xml:space="preserve">
-    <value>Deep Sea ended {0} minutes ago this session.</value>
+    <value>Deep Sea het hierdie sessie {0} minute gelede beëindig.</value>
   </data>
   <data name="ChatCmdDeepSeaStatusUnknown" xml:space="preserve">
-    <value>Deep Sea event status unknown (not seen this session).</value>
+    <value>Die status van die Deep Sea-gebeurtenis is onbekend (nie in hierdie sessie gesien nie).</value>
   </data>
   <data name="ChatCmdCargoNotActive" xml:space="preserve">
-    <value>Cargo Ship not active.</value>
+    <value>Vrachtskip nie aktief nie.</value>
   </data>
   <data name="ChatCmdCargoDockedDeparts" xml:space="preserve">
-    <value>Cargo Ship docked at {0}. Departs in approx. {1} minutes.</value>
+    <value>Vrachtskip aangemeer by {0}. Vertrek oor ongeveer {1} minute.</value>
   </data>
   <data name="ChatCmdCargoDockedPreparingDepart" xml:space="preserve">
-    <value>Cargo Ship docked at {0} and preparing to depart.</value>
+    <value>Ladingskip is aangemeer by {0} en maak gereed om te vertrek.</value>
   </data>
   <data name="ChatCmdCargoDockedUnknown" xml:space="preserve">
-    <value>Cargo Ship docked at {0} (departure time unknown).</value>
+    <value>Ladingskip aangemeer by {0} (vertrektyd onbekend).</value>
   </data>
   <data name="ChatCmdCargoActiveLeaves" xml:space="preserve">
-    <value>Cargo Ship active. Leaves in approx. {0} minutes.</value>
+    <value>Ladingskip aktief. Vertrek oor ongeveer {0} minute.</value>
   </data>
   <data name="ChatCmdCargoActivePreparingLeave" xml:space="preserve">
-    <value>Cargo Ship active and preparing to leave soon.</value>
+    <value>Ladingskip aktief en maak gereed om binnekort te vertrek.</value>
   </data>
   <data name="ChatCmdCargoActiveDurationNotLearned" xml:space="preserve">
-    <value>Cargo Ship active (route duration not yet learned for this server).</value>
+    <value>Ladingskip aktief (roeteduur nog nie vir hierdie bediener geleer nie).</value>
   </data>
   <data name="ChatCmdCargoActiveMidRoute" xml:space="preserve">
-    <value>Cargo Ship active (connected after spawn – remaining time unknown).</value>
+    <value>Ladingskip aktief (aangesluit ná spawn – oorblywende tyd onbekend).</value>
   </data>
   <data name="ChatCmdCargoDespawnedMinutesAgo" xml:space="preserve">
-    <value>Cargo Ship not active. Despawned {0} minutes ago this session.</value>
+    <value>Ladingskip nie aktief nie. Ontspaai {0} minute gelede in hierdie sessie.</value>
   </data>
   <data name="ChatCmdOilRigCrateIn" xml:space="preserve">
-    <value>{0}: crate in {1}m {2}s</value>
+    <value>{0}: krat in {1}m {2}s</value>
   </data>
   <data name="ChatCmdOilRigLastCalledAgo" xml:space="preserve">
-    <value>{0}: last called {1}m ago</value>
+    <value>{0}: laaste keer genoem {1}m gelede</value>
   </data>
   <data name="ChatCmdOilRigNotCalled" xml:space="preserve">
-    <value>{0}: not called this session</value>
+    <value>{0}: nie in hierdie sessie opgeroep nie</value>
   </data>
   <data name="ChatCmdHeliActive" xml:space="preserve">
-    <value>Patrol Heli is active! Running for {0}.</value>
+    <value>Patrol Heli is aktief! Hardloop vir {0}.</value>
   </data>
   <data name="ChatCmdHeliActiveMidEvent" xml:space="preserve">
-    <value>Patrol Heli is currently active (connected mid-event – spawn time unknown).</value>
+    <value>Patrol Heli is tans aktief (aangesluit in die middel van die gebeurtenis – verskynstyd onbekend).</value>
   </data>
   <data name="ChatCmdHeliNotActiveAgo" xml:space="preserve">
-    <value>Patrol Heli not active. It was {0} {1} ago this session.</value>
+    <value>Patrolliehelikopter nie aktief nie. Dit was {0} {1} gelede in hierdie sessie.</value>
   </data>
   <data name="ChatCmdHeliReasonShotDown" xml:space="preserve">
-    <value>shot down</value>
+    <value>afgeskiet</value>
   </data>
   <data name="ChatCmdHeliReasonLeftMap" xml:space="preserve">
-    <value>left the map</value>
+    <value>het die kaart verlaat</value>
   </data>
   <data name="ChatCmdHeliStatusUnknown" xml:space="preserve">
-    <value>Patrol Heli event status unknown (not seen this session).</value>
+    <value>Patrolliehelikopter-gebeurtenisstatus onbekend (nie in hierdie sessie gesien nie).</value>
   </data>
   <data name="ChatCmdVendorActive" xml:space="preserve">
-    <value>Travelling Vendor is active! Running for {0}.</value>
+    <value>Travelling Vendor is aktief! Hardloop vir {0}.</value>
   </data>
   <data name="ChatCmdVendorActiveMidEvent" xml:space="preserve">
-    <value>Travelling Vendor is currently active (connected mid-event – spawn time unknown).</value>
+    <value>Travelling Vendor is tans aktief (aangesluit in die middel van die geleentheid – verskynstyd onbekend).</value>
   </data>
   <data name="ChatCmdVendorDespawnedAgo" xml:space="preserve">
-    <value>Travelling Vendor not active. Despawned {0} ago this session.</value>
+    <value>Reisende Verkoper is nie aktief nie. Uitgespook {0} gelede in hierdie sessie.</value>
   </data>
   <data name="ChatCmdVendorStatusUnknown" xml:space="preserve">
-    <value>Travelling Vendor event status unknown (not seen this session).</value>
+    <value>Reisende verkoper-gebeurtenisstatus onbekend (nie hierdie sessie gesien nie).</value>
   </data>
   <data name="ChatCmdUpkeepNoTcMapped" xml:space="preserve">
-    <value>No Tool Cupboards are mapped for upkeep commands.</value>
+    <value>Geen gereedskapskaste is vir instandhoudingsopdragte gekarteer nie.</value>
   </data>
   <data name="ChatCmdUpkeepTcEmptyExpired" xml:space="preserve">
-    <value>Upkeep in {0} TC: Empty or expired.</value>
+    <value>Onderhoud in {0} TC: Leeg of vervalle.</value>
   </data>
   <data name="ChatCmdUpkeepNeed24h" xml:space="preserve">
-    <value> Need/24h: {0}.</value>
+    <value> Behoefte/24h: {0}</value>
   </data>
   <data name="ChatCmdUpkeepTcTime" xml:space="preserve">
-    <value>Upkeep in {0} TC: {1}.</value>
+    <value>Onderhoud in {0} TC: {1}</value>
   </data>
   <data name="ChatCmdUpkeepDays" xml:space="preserve">
-    <value>{0} days</value>
+    <value>{0} dae</value>
   </data>
   <data name="ChatCmdUpkeepHours" xml:space="preserve">
-    <value>{0} hours</value>
+    <value>{0} ure</value>
   </data>
   <data name="ChatCmdUpkeepMinutes" xml:space="preserve">
-    <value>{0} minutes</value>
+    <value>{0} minute</value>
   </data>
   <data name="ChatCmdUpkeepEmptyExpiredShort" xml:space="preserve">
-    <value>{0}: Empty/expired</value>
+    <value>{0}: Leeg/vervalle</value>
   </data>
   <data name="ChatCmdUpkeepTimeShort" xml:space="preserve">
-    <value>{0}: {1}d, {2}h</value>
+    <value>{0} {1}d, {2}h</value>
   </data>
   <data name="ChatCmdUpkeepHeader" xml:space="preserve">
-    <value>Upkeep: {0}</value>
+    <value>Onderhoud: {0}</value>
   </data>
   <data name="ChatCmdUpkeepNotPaired" xml:space="preserve">
-    <value>Bound Tool Cupboard monitors not found or not paired.</value>
+    <value>Gebonde gereedskapskasmonitors is nie gevind of nie gepaard nie.</value>
   </data>
   <data name="ChatCmdUpkeepNotPairedSingle" xml:space="preserve">
-    <value>Bound Tool Cupboard monitor not found or not paired.</value>
+    <value>Bound Tool Cupboard-monitor nie gevind of nie gepaard nie.</value>
   </data>
   <data name="ChatCmdSwitchToggled" xml:space="preserve">
-    <value>{0} turned {1}.</value>
+    <value>{0} het omgedraai {1}.</value>
   </data>
   <data name="ChatCmdSwitchStateOn" xml:space="preserve">
-    <value>ON</value>
+    <value>Aan</value>
   </data>
   <data name="ChatCmdSwitchStateOff" xml:space="preserve">
-    <value>OFF</value>
+    <value>UIT</value>
   </data>
   <data name="ChatCmdSwitchNotPaired" xml:space="preserve">
-    <value>Bound Smart Switch not found or not paired.</value>
+    <value>Gebonde Smart Switch nie gevind of nie gepaard nie.</value>
   </data>
   <data name="MaterialWood" xml:space="preserve">
-    <value>Wood</value>
+    <value>Hout</value>
   </data>
   <data name="MaterialStone" xml:space="preserve">
-    <value>Stone</value>
+    <value>Steen</value>
   </data>
   <data name="MaterialMetal" xml:space="preserve">
-    <value>Metal</value>
+    <value>Metaal</value>
   </data>
   <data name="MaterialHQM" xml:space="preserve">
-    <value>HQM</value>
+    <value>Hoofkwartiermedewerker</value>
   </data>
   <data name="SmallOilRig" xml:space="preserve">
-    <value>Small Oil Rig</value>
+    <value>Klein olieboorplatform</value>
   </data>
   <data name="LargeOilRig" xml:space="preserve">
-    <value>Large Oil Rig</value>
+    <value>Groot olieboorplatform</value>
   </data>
   <data name="ShopWord" xml:space="preserve">
-    <value>Shop</value>
+    <value>Winkel</value>
   </data>
   <data name="EventCargoShip" xml:space="preserve">
-    <value>Cargo Ship</value>
+    <value>Ladingskip</value>
   </data>
   <data name="EventTravellingVendor" xml:space="preserve">
-    <value>Travelling Vendor</value>
+    <value>Reisende verkoper</value>
   </data>
   <data name="EventCH47" xml:space="preserve">
     <value>CH47</value>
   </data>
   <data name="EventPatrolHelicopter" xml:space="preserve">
-    <value>Patrol Helicopter</value>
+    <value>Patrouillehelikopter</value>
   </data>
   <data name="EventOilrigCrate" xml:space="preserve">
-    <value>Oilrig Crate</value>
+    <value>Olieboorplatformkist</value>
   </data>
   <data name="EventExplosion" xml:space="preserve">
-    <value>Explosion</value>
+    <value>Ontploffing</value>
   </data>
   <data name="EventBuildingBlocked" xml:space="preserve">
-    <value>Building Blocked</value>
+    <value>Bou geblokkeer</value>
   </data>
   <data name="EventGeneric" xml:space="preserve">
-    <value>Event</value>
+    <value>Geleentheid</value>
   </data>
   <data name="AlertOilRigTriggered" xml:space="preserve">
-    <value>[{0}] triggered! Crate unlocks in {1}.</value>
+    <value>[{0}] is geaktiveer! Kist ontsluit in {1}.</value>
   </data>
   <data name="AlertAlarmTriggered" xml:space="preserve">
-    <value>ALARM: {0} triggered!</value>
+    <value>ALARM: {0} -trigger geaktiveer!</value>
   </data>
   <data name="AlertCrateUnlocksIn10Min" xml:space="preserve">
-    <value>[{0}] Crate unlocks in 10 minutes!</value>
+    <value>[{0}] Kist ontsluit oor 10 minute!</value>
   </data>
   <data name="AlertCrateUnlocksIn5Min" xml:space="preserve">
-    <value>[{0}] Crate unlocks in 5 minutes!</value>
+    <value>[{0}] Kist ontsluit oor 5 minute!</value>
   </data>
   <data name="AlertDeepSeaUp" xml:space="preserve">
-    <value>Deep Sea is up</value>
+    <value>Deep Sea is op</value>
   </data>
   <data name="AlertNewShop" xml:space="preserve">
-    <value>New shop {0} [{1}]: {2}</value>
+    <value>Nuwe winkel {0} [{1}]: {2}</value>
   </data>
   <data name="AlertSuspiciousShop" xml:space="preserve">
-    <value>Suspicious shop {0} [{1}] was online {2}s, sold {3}</value>
+    <value>Verdagte winkel {0} [{1}] was aanlyn {2}'s, verkoop {3}</value>
   </data>
   <data name="AlertCargoSpawned" xml:space="preserve">
-    <value>Cargo Ship spawned {0}</value>
+    <value>Ladingskip verskyn het {0}</value>
   </data>
   <data name="CargoFarOutAtSea" xml:space="preserve">
-    <value>far out at sea (near {0})</value>
+    <value>ver uit op see (naby {0})</value>
   </data>
   <data name="AlertCargoDocked" xml:space="preserve">
-    <value>Cargo Ship docked at {0} ({1})</value>
+    <value>Vrachtskip aangemeer by {0} ({1})</value>
   </data>
   <data name="AlertCargoExpectedDock" xml:space="preserve">
-    <value>Cargo Ship expected to dock at {0} ({1}) in approx. 5 minutes.</value>
+    <value>Vrachtskip word verwag om oor ongeveer 5 minute by {0} ({1}) aan te dok.</value>
   </data>
   <data name="AlertCargoDeparting" xml:space="preserve">
-    <value>Cargo Ship departing from {0} in 5 minutes ({1})</value>
+    <value>Ladingskip vertrek oor 5 minute vanaf {0} ({1})</value>
   </data>
   <data name="AlertHeliCrashFalseAlarm" xml:space="preserve">
-    <value>Crash detected due to server lag — Heli is still on map at {0}</value>
+    <value>botsing opgespoor weens bedieneragterstand — Heli is nog steeds op die kaart by {0}</value>
   </data>
   <data name="AlertEventSpawned" xml:space="preserve">
-    <value>{0} spawned in at {1}</value>
+    <value>{0} in verskyn het by {1}</value>
   </data>
   <data name="AlertHeliShotDown" xml:space="preserve">
-    <value>Patrol Heli shot down at {0}</value>
+    <value>Patrolliehelikopter neergeskiet by {0}</value>
   </data>
   <data name="Unknown" xml:space="preserve">
-    <value>unknown</value>
+    <value>onbekend</value>
   </data>
   <data name="AlertPlayerOnlineWithPos" xml:space="preserve">
-    <value>{0} came online @ {1}</value>
+    <value>{0} het aanlyn gekom @ {1}</value>
   </data>
   <data name="AlertPlayerOffline" xml:space="preserve">
-    <value>{0} went offline</value>
+    <value>{0} Het vanlyn gegaan</value>
   </data>
   <data name="AlertPlayerDied" xml:space="preserve">
-    <value>{0} died @ {1}</value>
+    <value>{0} oorlede by {1}</value>
   </data>
   <data name="AlertPlayerRespawned" xml:space="preserve">
-    <value>{0} respawned @ {1}</value>
+    <value>{0} herverskyn by @ {1}</value>
   </data>
   <data name="AlertTrackingOnline" xml:space="preserve">
-    <value>[Tracking] {0}{1} is now ONLINE</value>
+    <value>{0}{1} is nou aanlyn</value>
   </data>
   <data name="AlertTrackingOffline" xml:space="preserve">
-    <value>[Tracking] {0}{1} is now OFFLINE</value>
+    <value>{0}{1} is nou OFFLINE</value>
   </data>
   <data name="AlertTrackingRenamed" xml:space="preserve">
-    <value>[Tracking] {0}{1} renamed to {2}!</value>
+    <value>[Opsporing] {0}{1} is hernoem na {2}!</value>
   </data>
   <data name="AlertShopSells" xml:space="preserve">
-    <value>sells</value>
+    <value>verkoop</value>
   </data>
   <data name="AlertShopBuys" xml:space="preserve">
-    <value>buys</value>
+    <value>koop</value>
   </data>
   <data name="AlertShopLabelFallback" xml:space="preserve">
-    <value>Shop</value>
+    <value>Winkel</value>
   </data>
   <data name="AlertShopMatch" xml:space="preserve">
-    <value>{0} [{1}] {2} x{3} {4} (Stock {5}) for {6} {7}</value>
+    <value>{0} [{1}] {2} x{3} {4} (Stokk {5}) vir {6} {7}</value>
   </data>
 </root>
