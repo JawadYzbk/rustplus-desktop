@@ -276,7 +276,7 @@ Note: This transmission method will be optimized in the future. If teammates are
     <value>Action Required:</value>
   </data>
   <data name="BattleMetricsRemovalTitle" xml:space="preserve">
-    <value>BattleMetrics Removal:</value>
+    <value>BattleMetrics Tracking Removed</value>
   </data>
   <data name="PlayerTrackingOverhaulTitle" xml:space="preserve">
     <value>Player Tracking System Overhaul</value>
