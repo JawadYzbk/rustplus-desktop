@@ -79,10 +79,10 @@
     <value>Notas de Atualização</value>
   </data>
   <data name="Settings" xml:space="preserve">
-    <value>Confirgurações</value>
+    <value>Configurações</value>
   </data>
   <data name="PairedServers" xml:space="preserve">
-    <value>SERVIDORES PAIXOS</value>
+    <value>SERVIDORES PAREADOS</value>
   </data>
   <data name="NoServersPaired" xml:space="preserve">
     <value>Nenhum servidor pareado ainda</value>
