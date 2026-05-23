@@ -58,7 +58,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="AppTitle" xml:space="preserve">
-    <value>format@@0 RUST+ DESKTOP</value>
+    <value>RUST+ DESKTOP</value>
   </data>
   <data name="SteamAccount" xml:space="preserve">
     <value>Conta Steam</value>
@@ -270,7 +270,7 @@ Observação: esse método de transmissão será otimizado no futuro. Se os cole
     <value>Escala do Marcador</value>
   </data>
   <data name="MiniMapPolishTitle" xml:space="preserve">
-    <value>Mini mapa polonês</value>
+    <value>Mini Mapa (Atualizações)</value>
   </data>
   <data name="ActionRequiredTitle" xml:space="preserve">
     <value>Ação Necessária:</value>
@@ -358,8 +358,8 @@ Formato: rustplus://IP:PORT</value>
     <value>Reset pairing</value>
   </data>
   <data name="DeletePairingConfigBody" xml:space="preserve">
-    <value>Excluir a configuração de emparelhamento existente?
-Você precisará emparelhar novamente na próxima inicialização.</value>
+    <value>Excluir a configuração de pareamento existente?
+Você precisará parear novamente na próxima inicialização.</value>
   </data>
   <data name="ResetListenHeader" xml:space="preserve">
     <value>Reset + Listen</value>
