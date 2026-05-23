@@ -1,3 +1,18 @@
 files:
   - source: /RustPlusDesktop/Properties/Resources.resx
-    translation: /RustPlusDesktop/Properties/lang/%locale%/Resources.%locale%.resx
+    translation: /RustPlusDesktop/Properties/lang/%two_letters_code%/Resources.%two_letters_code%.resx
+    # Language mapping overrides for languages that need region-specific codes
+    # (matching the codes used in PopulateLanguages() in AppSettingsOverlay.xaml.cs)
+    language_mapping:
+      pt:
+        two_letters_code: pt-BR   # Crowdin "Portuguese, Brazilian" -> pt-BR folder
+      pt-PT:
+        two_letters_code: pt-PT
+      es-ES:
+        two_letters_code: es-ES   # Crowdin "Spanish" -> es-ES folder
+      sv-SE:
+        two_letters_code: sv-SE   # Crowdin "Swedish" -> sv-SE folder
+      zh-CN:
+        two_letters_code: zh-CN   # Crowdin "Chinese Simplified" -> zh-CN folder
+      zh-TW:
+        two_letters_code: zh-TW   # Crowdin "Chinese Traditional" -> zh-TW folder
