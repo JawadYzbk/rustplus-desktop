@@ -1,0 +1,51 @@
+<Window x:Class="RustPlusDesk.Views.InventoryRegionSelectorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        Title="Select Inventory Region"
+        WindowStartupLocation="Manual"
+        AllowsTransparency="True"
+        WindowStyle="None"
+        Background="Transparent"
+        Topmost="True"
+        Cursor="Cross">
+    <Grid x:Name="LayoutRoot">
+        <!-- Screenshot image -->
+        <Image x:Name="ImgScreenshot" Stretch="Fill" />
+
+        <!-- Overlay path with cutout -->
+        <Path x:Name="OverlayPath" Fill="#B3000000">
+            <Path.Data>
+                <CombinedGeometry GeometryCombineMode="Exclude">
+                    <CombinedGeometry.Geometry1>
+                        <RectangleGeometry x:Name="FullWindowGeometry" />
+                    </CombinedGeometry.Geometry1>
+                    <CombinedGeometry.Geometry2>
+                        <RectangleGeometry x:Name="SelectionGeometry" />
+                    </CombinedGeometry.Geometry2>
+                </CombinedGeometry>
+            </Path.Data>
+        </Path>
+
+        <!-- Selection border Canvas -->
+        <Canvas x:Name="SelectionCanvas">
+            <!-- Dashed selection border -->
+            <Border x:Name="SelectionBorder" BorderBrush="#FF4ADE80" BorderThickness="2" Visibility="Collapsed">
+                <Border.Effect>
+                    <DropShadowEffect Color="Black" BlurRadius="6" ShadowDepth="1" Opacity="0.8" />
+                </Border.Effect>
+            </Border>
+
+            <!-- Text Instructions Overlay -->
+            <Border Background="#E6111317" BorderBrush="#25FFFFFF" BorderThickness="1" CornerRadius="8" Padding="14,8" Canvas.Left="20" Canvas.Top="20">
+                <Border.Effect>
+                    <DropShadowEffect Color="Black" BlurRadius="10" Opacity="0.5" ShadowDepth="0" />
+                </Border.Effect>
+                <StackPanel Orientation="Horizontal">
+                    <ui:SymbolIcon Symbol="Drag24" Foreground="#FF4ADE80" Margin="0,0,8,0" FontSize="18" />
+                    <TextBlock Text="Click and drag to select the inventory grid. Hold Shift to append. Press ESC to cancel." Foreground="White" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </Canvas>
+    </Grid>
+</Window>

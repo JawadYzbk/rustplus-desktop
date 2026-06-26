@@ -6,7 +6,9 @@
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              mc:Ignorable="d" 
              d:DesignHeight="540" d:DesignWidth="450"
-             Background="Transparent">
+             Background="Transparent"
+             Focusable="True"
+             PreviewKeyDown="UserControl_PreviewKeyDown">
 
     <Border Background="#F9111317" BorderBrush="#25FFFFFF" BorderThickness="1" CornerRadius="12" Margin="10">
         <Border.Effect>
@@ -200,15 +202,24 @@
 
             <!-- Bottom Action Bar -->
             <Grid Grid.Row="2" Margin="0,10,0,0">
-                <StackPanel Orientation="Vertical" VerticalAlignment="Center">
-                    <TextBlock Text="Shift+Click / Scroll to change by 10" FontSize="10" Foreground="{DynamicResource TextSubtle}" Margin="0,0,0,4" />
-                    <StackPanel Orientation="Horizontal">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Row 0: Time and Tips -->
+                <Grid Grid.Row="0" Margin="0,0,0,8">
+                    <TextBlock Text="Shift+Click / Scroll to change by 10" FontSize="10" Foreground="{DynamicResource TextSubtle}" VerticalAlignment="Center" HorizontalAlignment="Left" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                         <TextBlock Text="Time:" FontSize="11" Foreground="{DynamicResource TextSubtle}" Margin="0,0,6,0" VerticalAlignment="Center"/>
                         <TextBlock x:Name="TxtWildTime" Text="00:00:00" FontSize="11" FontWeight="Bold" Foreground="#FF4ADE80" Margin="0,0,8,0" VerticalAlignment="Center" ToolTip="Wild Recycler Time"/>
                         <TextBlock x:Name="TxtSafeTime" Text="00:00:00" FontSize="11" FontWeight="Bold" Foreground="#FFFBA585" VerticalAlignment="Center" ToolTip="Outpost Recycler Time"/>
                     </StackPanel>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                </Grid>
+
+                <!-- Row 1: Action Buttons -->
+                <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <ui:Button Content="Scan Inventory" Appearance="Primary" Padding="12,5" Click="BtnScanInventory_Click" Margin="0,0,8,0" FontSize="11" />
                     <ui:Button Content="Clear All" Appearance="Secondary" Padding="12,5" Click="BtnClearAll_Click" Margin="0,0,8,0" FontSize="11" />
                     <ui:Button Content="Fill Stacks" Appearance="Secondary" Padding="12,5" Click="BtnFillStacks_Click" FontSize="11" />
                 </StackPanel>

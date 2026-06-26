@@ -9,6 +9,10 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Threading.Tasks;
+using OpenCvSharp;
+using RustPlusDesk.Services.InventoryScan;
 
 namespace RustPlusDesk.Views
 {
@@ -42,6 +46,14 @@ namespace RustPlusDesk.Views
 
                 Unloaded += (s, e) => {
                     MainWindow.IconsUpdated -= OnIconsUpdated;
+                };
+
+                // Focus when visible to capture keyboard shortcuts (Ctrl+V)
+                IsVisibleChanged += (s, e) => {
+                    if ((bool)e.NewValue)
+                    {
+                        Focus();
+                    }
                 };
             }
             catch (Exception ex)
@@ -99,6 +111,27 @@ namespace RustPlusDesk.Views
             ["cctv.camera"]       = "CCTV Camera",
             ["targeting.computer"]= "Targeting Computer",
             ["fuse"]              = "Fuse",
+        };
+
+        private static readonly HashSet<string> _scanComponentWhitelist = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "gears",
+            "metalblade",
+            "metalpipe",
+            "metalspring",
+            "riflebody",
+            "semibody",
+            "smgbody",
+            "roadsigns",
+            "sheetmetal",
+            "sewingkit",
+            "tarp",
+            "propanetank",
+            "cctv.camera",
+            "targeting.computer",
+            "fuse",
+            "rope",
+            "techparts"
         };
 
         private void LogDiag(string message)
@@ -341,7 +374,11 @@ namespace RustPlusDesk.Views
                                      Data = item,
                                      Icon = MainWindow.ResolveItemIcon(0, item.shortName, 40)
                                  };
-                                vm.QuantityChanged += (s, e) => CalculateYields();
+                                vm.QuantityChanged += (s, e) =>
+                                {
+                                    if (!_suppressYieldCalculation)
+                                        CalculateYields();
+                                };
                                 list.Add(vm);
                             }
                         }
@@ -685,6 +722,194 @@ namespace RustPlusDesk.Views
                 {
                     tb.Text = "0";
                 }
+            }
+        }
+
+        private bool _suppressYieldCalculation;
+
+        private void ApplyInventoryScanResults(IEnumerable<RecognizedInventoryStack> results, bool append = false)
+        {
+            _suppressYieldCalculation = true;
+
+            try
+            {
+                if (!append)
+                {
+                    foreach (var item in _allRecyclerItems)
+                        item.Quantity = 0;
+                }
+
+                foreach (var group in results.GroupBy(x => x.ShortName, StringComparer.OrdinalIgnoreCase))
+                {
+                    var vm = _allRecyclerItems.FirstOrDefault(x =>
+                        string.Equals(x.ShortName, group.Key, StringComparison.OrdinalIgnoreCase));
+
+                    if (vm == null)
+                        continue;
+
+                    int total = group.Sum(x => x.Quantity);
+                    vm.Quantity = append ? vm.Quantity + total : total;
+                }
+            }
+            finally
+            {
+                _suppressYieldCalculation = false;
+                CalculateYields();
+            }
+        }
+
+        private async void UserControl_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.V && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            {
+                if (Clipboard.ContainsImage())
+                {
+                    e.Handled = true;
+                    var screenshot = Clipboard.GetImage();
+                    if (screenshot != null)
+                    {
+                        await StartScanWithImage(screenshot);
+                    }
+                }
+            }
+        }
+
+        private async void BtnScanInventory_Click(object sender, RoutedEventArgs e)
+        {
+            BitmapSource screenshot = null;
+
+            if (Clipboard.ContainsImage())
+            {
+                var result = System.Windows.MessageBox.Show(
+                    "An image was detected in your clipboard. Do you want to scan this clipboard image?\n\nSelect 'Yes' to scan the clipboard image.\nSelect 'No' to capture a new screenshot of your screen.",
+                    "Clipboard Image Detected",
+                    MessageBoxButton.YesNoCancel,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    screenshot = Clipboard.GetImage();
+                }
+                else if (result == MessageBoxResult.No)
+                {
+                    screenshot = ScreenCaptureHelper.CapturePrimaryScreen();
+                }
+                else
+                {
+                    return; // Cancelled
+                }
+            }
+            else
+            {
+                screenshot = ScreenCaptureHelper.CapturePrimaryScreen();
+            }
+
+            if (screenshot != null)
+            {
+                await StartScanWithImage(screenshot);
+            }
+        }
+
+        private async Task StartScanWithImage(BitmapSource screenshot)
+        {
+            try
+            {
+                if (screenshot == null)
+                {
+                    System.Windows.MessageBox.Show(
+                        "Failed to obtain a screenshot or clipboard image.",
+                        "Inventory Scanner",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Best UX: show transparent crop selector and return selected inventory grid rectangle.
+                var selector = new InventoryRegionSelectorWindow(screenshot);
+                if (selector.ShowDialog() != true)
+                    return;
+
+                // 1. Convert screenshot to BGR Mat on UI thread (thread-safe)
+                var screenMatRGBA = RustInventoryScreenshotScanner.BitmapSourceToMat(screenshot);
+                var screenMat = new Mat();
+                Cv2.CvtColor(screenMatRGBA, screenMat, ColorConversionCodes.BGRA2BGR);
+                screenMatRGBA.Dispose();
+
+                // 2. Preprocess templates to 40x40 grayscale Mats on UI thread (thread-safe)
+                var templates = new List<(string ShortName, string DisplayName, Mat TemplateMat)>();
+                foreach (var item in _allRecyclerItems)
+                {
+                    if (!_scanComponentWhitelist.Contains(item.ShortName))
+                        continue;
+
+                    if (item.Icon is BitmapSource bmp)
+                    {
+                        try
+                        {
+                            var templateRGBA = RustInventoryScreenshotScanner.BitmapSourceToMat(bmp);
+                            templates.Add((item.ShortName, item.DisplayName, templateRGBA));
+                        }
+                        catch { }
+                    }
+                }
+
+                // Calculate physical pixels crop rect relative to selector window containing the stretched image
+                double windowWidth = selector.Width;
+                double windowHeight = selector.Height;
+                double scaleX = (double)screenshot.PixelWidth / windowWidth;
+                double scaleY = (double)screenshot.PixelHeight / windowHeight;
+
+                System.Windows.Rect physicalRect = new System.Windows.Rect(
+                    selector.SelectedRegion.X * scaleX,
+                    selector.SelectedRegion.Y * scaleY,
+                    selector.SelectedRegion.Width * scaleX,
+                    selector.SelectedRegion.Height * scaleY
+                );
+
+                var scanner = new RustInventoryScreenshotScanner();
+
+                // 3. Scan in background thread
+                var results = await Task.Run(() =>
+                {
+                    try
+                    {
+                        return scanner.Scan(
+                            screenMat,
+                            physicalRect,
+                            templates);
+                    }
+                    finally
+                    {
+                        // Clean up Mats
+                        screenMat.Dispose();
+                        foreach (var t in templates)
+                        {
+                            t.TemplateMat.Dispose();
+                        }
+                    }
+                });
+
+                // Ask the user to confirm the scan results before applying them
+                var confirmWindow = new InventoryScanConfirmationWindow(results, _allRecyclerItems)
+                {
+                    Owner = Application.Current.MainWindow
+                };
+
+                if (confirmWindow.ShowDialog() == true)
+                {
+                    var approvedResults = confirmWindow.GetApprovedResults();
+                    bool append = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+                    ApplyInventoryScanResults(approvedResults, append);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogDiag($"[InventoryScan] Failed: {ex}");
+                System.Windows.MessageBox.Show(
+                    $"Inventory scan failed:\n{ex.Message}",
+                    "Inventory Scanner",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
             }
         }
     }

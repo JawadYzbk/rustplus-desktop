@@ -6,6 +6,7 @@
 		<UseWPF>true</UseWPF>
 		<UseWindowsForms>true</UseWindowsForms>
 		<ApplicationIcon>Assets\rustplus-desktop-icon.ico</ApplicationIcon>
+		<RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
 		
 		<!-- Fixes for Single-File Publish and Cleanup -->
 		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
@@ -316,12 +317,12 @@
 	<ItemGroup>
 		<Resource Include="Assets\heatmap icons\**\*" />
 	</ItemGroup>
-
-
   <ItemGroup>
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3485.44" />
+    <PackageReference Include="OpenCvSharp4.Windows" Version="4.13.0.20260602" />
     <PackageReference Include="RustPlusApi" Version="1.3.0" />
     <PackageReference Include="supabase-csharp" Version="0.16.2" />
+    <PackageReference Include="Tesseract" Version="5.2.0" />
     <PackageReference Include="WPF-UI" Version="3.0.5" />
   </ItemGroup>
 
