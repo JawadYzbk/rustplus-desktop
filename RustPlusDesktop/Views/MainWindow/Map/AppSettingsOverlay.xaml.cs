@@ -1096,7 +1096,7 @@ namespace RustPlusDesk.Views
             {
                 // Disconnect Discord
                 TxtDiscordBtnLabel.Text = T("AuthDisconnectingStatus", "Disconnecting...");
-                await Services.Auth.SupabaseAuthManager.LogoutAsync();
+                await Services.Cloud.CloudAuth.LogoutAsync();
                 ParentWindow?.AppendLog("[Cloud] Discord disconnected.");
             }
             else
@@ -1104,7 +1104,7 @@ namespace RustPlusDesk.Views
                 // Connect Discord
                 ParentWindow?.AppendLog("[Cloud] Starting Discord OAuth login...");
                 TxtDiscordBtnLabel.Text = T("AuthConnectingStatus", "Connecting...");
-                bool success = await Services.Auth.SupabaseAuthManager.LoginWithDiscordAsync();
+                var (success, _) = await Services.Cloud.CloudAuth.LoginWithDiscordAsync();
 
                 if (success)
                 {
@@ -1138,7 +1138,7 @@ namespace RustPlusDesk.Views
 
                 if (result == System.Windows.MessageBoxResult.Yes)
                 {
-                    _ = Services.Auth.SupabaseAuthManager.LogoutAsync();
+                    _ = Services.Cloud.CloudAuth.LogoutAsync();
                     ParentWindow?.AppendLog("[Cloud] Email account signed out.");
                     LoadSettings();
                     ParentWindow?.UpdateCloudSyncUI();

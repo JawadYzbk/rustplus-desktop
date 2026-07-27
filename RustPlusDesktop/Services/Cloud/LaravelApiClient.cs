@@ -24,14 +24,15 @@ namespace RustPlusDesk.Services.Cloud
         private static readonly HttpClient Http = new();
 
         /// <summary>
-        /// Call an authenticated Laravel <c>/api/v1</c> route with the given Sanctum bearer
-        /// token. Throws on a non-success status (matching the Supabase call contract) after
+        /// Call an authenticated Laravel <c>/api/v1</c> route. When <paramref name="bearerToken"/>
+        /// is null the signed-in desktop token (<see cref="LaravelAuthManager.CurrentToken"/>) is
+        /// used. Throws on a non-success status (matching the Supabase call contract) after
         /// caching any <c>upgrade_required</c> signal.
         /// </summary>
         public static async Task<string> CallApiAsync(
             string routePath,
             HttpMethod method,
-            string? bearerToken,
+            string? bearerToken = null,
             object? payload = null,
             IDictionary<string, string>? queryParams = null)
         {

@@ -106,7 +106,7 @@ public partial class CloudAccountWindow : Window
     private async void BtnLogout_Click(object sender, RoutedEventArgs e)
     {
         SetBusy(true, "Signing out...");
-        await SupabaseAuthManager.LogoutAsync();
+        await Services.Cloud.CloudAuth.LogoutAsync();
         _owner.UpdateCloudSyncUI();
         DialogResult = true;
         Close();

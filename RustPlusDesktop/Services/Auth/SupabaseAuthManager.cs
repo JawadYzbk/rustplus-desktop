@@ -93,6 +93,13 @@ namespace RustPlusDesk.Services.Auth
 
         public static async Task FetchTierLimitsAsync(bool forceRefresh = false)
         {
+            if (Cloud.CloudBackend.UseLaravel)
+            {
+                if (forceRefresh || TierLimits == null || TierLimits.Count == 0)
+                    await FetchTierLimitsLaravelAsync();
+                return;
+            }
+
             if (Client == null) return;
             if (!forceRefresh && TierLimits != null && TierLimits.Count > 0) return;
             try
@@ -401,7 +408,7 @@ namespace RustPlusDesk.Services.Auth
         {
             _keepAliveTimer ??= new System.Threading.Timer(async _ =>
             {
-                if (IsAuthenticated)
+                if (Cloud.CloudAuth.IsAuthenticated)
                 {
                     try { await EnsureFreshSessionAsync(); } catch { }
                 }
@@ -418,7 +425,7 @@ namespace RustPlusDesk.Services.Auth
                 if (System.Threading.Interlocked.Exchange(ref _profileUpdateBusy, 1) == 1) return;
                 try
                 {
-                    if (IsAuthenticated)
+                    if (Cloud.CloudAuth.IsAuthenticated)
                     {
                         string steamId = TrackingService.SteamId64;
                         if (!string.IsNullOrEmpty(steamId) && steamId != "0")
@@ -1174,6 +1181,9 @@ namespace RustPlusDesk.Services.Auth
             if (!accepted)
                 ConfirmedCloudSyncConsentIdentity = null;
 
+            if (Cloud.CloudBackend.UseLaravel)
+                return await UpdateCloudSyncConsentLaravelAsync(accepted);
+
             if (!IsAuthenticated) return false;
             if (!await EnsureFreshSessionAsync()) return false;
 
@@ -1274,6 +1284,12 @@ namespace RustPlusDesk.Services.Auth
 
         public static async Task UpdatePresenceAsync(string? serverKey, string? serverName, System.Collections.Generic.IReadOnlyCollection<CloudTeamMemberDto> teamMembers)
         {
+            if (Cloud.CloudBackend.UseLaravel)
+            {
+                await UpdatePresenceLaravelAsync();
+                return;
+            }
+
             if (!IsAuthenticated) return;
             if (!await EnsureFreshSessionAsync()) return;
             string steamId = TrackingService.SteamId64;
@@ -1305,6 +1321,9 @@ namespace RustPlusDesk.Services.Auth
 
         public static async Task MarkAppOfflineAsync()
         {
+            // Laravel presence expires via last_active_at staleness — no explicit offline call.
+            if (Cloud.CloudBackend.UseLaravel) return;
+
             if (!IsAuthenticated) return;
             if (!await EnsureFreshSessionAsync()) return;
             string steamId = TrackingService.SteamId64;
@@ -1359,6 +1378,12 @@ namespace RustPlusDesk.Services.Auth
 
         private static async Task TouchProfileAsync(string steamId, string? discordId = null)
         {
+            if (Cloud.CloudBackend.UseLaravel)
+            {
+                await TouchProfileLaravelAsync(steamId);
+                return;
+            }
+
             if (Client?.Auth?.CurrentUser == null) return;
             await ProfileTouchLock.WaitAsync();
             try
@@ -1602,6 +1627,113 @@ namespace RustPlusDesk.Services.Auth
                 Helpers.VersionHelper.GetClientVersion());
 
         private static readonly HttpClient Http = new();
+
+        // ── Laravel backend variants (Phase 11 slice 1) ─────────────────────────
+        // Self-contained cloud writes routed to /api/v1 when the Laravel backend is
+        // active. The bearer is LaravelAuthManager.CurrentToken (applied by
+        // LaravelApiClient). Payloads/response shapes match the Laravel contract,
+        // which differs from the legacy Supabase Edge Functions.
+
+        private static async Task FetchTierLimitsLaravelAsync()
+        {
+            if (!Cloud.LaravelAuthManager.IsAuthenticated) return;
+
+            try
+            {
+                var body = await Cloud.LaravelApiClient.CallApiAsync("me/limits", HttpMethod.Get);
+                using var doc = JsonDocument.Parse(body);
+                var data = doc.RootElement.GetProperty("data");
+                var planCode = data.TryGetProperty("plan_code", out var pc) ? pc.GetString() ?? "free" : "free";
+
+                var model = new RustPlusDesk.Models.TierLimitModel { TierCode = planCode };
+                if (data.TryGetProperty("limits", out var limits) && limits.TryGetProperty("sync", out var sync))
+                {
+                    model.MaxOverlayKb = LaravelLimitValue(sync, "max_overlay_kb");
+                    model.MaxBases = LaravelLimitValue(sync, "max_bases");
+                    model.MaxDevices = LaravelLimitValue(sync, "max_devices");
+                    model.MaxScreenshotsPerBase = LaravelLimitValue(sync, "max_screenshots_per_base");
+                }
+
+                CurrentTier = planCode;
+                IsPremium = !string.Equals(planCode, "free", StringComparison.OrdinalIgnoreCase);
+                TierLimits = new System.Collections.Generic.Dictionary<string, RustPlusDesk.Models.TierLimitModel>(StringComparer.OrdinalIgnoreCase)
+                {
+                    [planCode] = model,
+                };
+                AppendLog($"[Laravel] Loaded plan limits for '{planCode}' (IsPremium: {IsPremium}).");
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"[Laravel/Error] Failed to fetch plan limits: {ex.Message}. Using defaults.");
+            }
+        }
+
+        private static int? LaravelLimitValue(JsonElement feature, string key) =>
+            feature.TryGetProperty(key, out var k) && k.TryGetProperty("value", out var v) && v.TryGetInt32(out var n)
+                ? n
+                : (int?)null;
+
+        private static async Task UpdatePresenceLaravelAsync()
+        {
+            if (!Cloud.LaravelAuthManager.IsAuthenticated) return;
+
+            try
+            {
+                // Laravel derives presence from the authenticated user + request headers.
+                await Cloud.LaravelApiClient.CallApiAsync("profile/presence", HttpMethod.Post, null, new { });
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"[Laravel/Debug] Presence update failed: {ex.Message}");
+            }
+        }
+
+        private static async Task<bool> UpdateCloudSyncConsentLaravelAsync(bool accepted)
+        {
+            if (!Cloud.LaravelAuthManager.IsAuthenticated) return false;
+
+            try
+            {
+                await Cloud.LaravelApiClient.CallApiAsync("profile/consent", HttpMethod.Post, null, new { accepted });
+                ConfirmedCloudSyncConsentIdentity = accepted ? (GetCloudSyncConsentIdentity() ?? "laravel") : null;
+                AppendLog($"[Laravel] Updated cloud-sync consent to: {accepted}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                if (accepted)
+                    ConfirmedCloudSyncConsentIdentity = null;
+                AppendLog($"[Laravel/Error] Failed to update consent: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static async Task TouchProfileLaravelAsync(string steamId)
+        {
+            if (!Cloud.LaravelAuthManager.IsAuthenticated) return;
+
+            await ProfileTouchLock.WaitAsync();
+            try
+            {
+                var identity = $"{Cloud.LaravelAuthManager.CurrentUser?.Id}:{steamId}";
+                var minimized = CloudTrafficPolicy.IsMinimized;
+                if (identity == LastProfileTouchIdentity &&
+                    DateTime.UtcNow - LastProfileTouchUtc < CloudTrafficPolicy.ProfileTouchInterval(minimized))
+                    return;
+
+                await Cloud.LaravelApiClient.CallApiAsync("profile/touch", HttpMethod.Post, null, new { });
+                LastProfileTouchIdentity = identity;
+                LastProfileTouchUtc = DateTime.UtcNow;
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"[Laravel/Debug] Touch profile failed: {ex.Message}");
+            }
+            finally
+            {
+                ProfileTouchLock.Release();
+            }
+        }
 
         public static async Task<string> CallEdgeFunctionAsync(
             string functionName,
