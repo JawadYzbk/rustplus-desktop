@@ -1,9 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using RustPlusDesk.Services.Auth;
@@ -34,7 +38,16 @@ namespace RustPlusDesk.Services.Cloud
 
         public static bool IsAuthenticated => !string.IsNullOrEmpty(CurrentToken);
 
+        /// <summary>When the desktop token stops being accepted, if the server said so.</summary>
+        public static DateTime? TokenExpiresAt { get; private set; }
+
         public static event Action? AuthenticationChanged;
+
+        /// <summary>How long a successful validation is trusted before re-checking.</summary>
+        private static readonly TimeSpan ValidationInterval = TimeSpan.FromMinutes(15);
+
+        private static readonly SemaphoreSlim ValidationLock = new(1, 1);
+        private static DateTime _lastValidatedUtc = DateTime.MinValue;
 
         /// <summary>Restore a persisted token at startup.</summary>
         public static void Initialize()
@@ -44,8 +57,108 @@ namespace RustPlusDesk.Services.Cloud
             {
                 CurrentToken = stored.Token;
                 CurrentUser = stored.User;
+                TokenExpiresAt = stored.ExpiresAt;
             }
         }
+
+        /// <summary>
+        /// Whether the account can sign in with the given provider ("discord", "email").
+        /// The Supabase equivalent decoded the identity list out of the session JWT;
+        /// a Sanctum token is opaque, so this reads what the API reported instead.
+        /// </summary>
+        public static bool HasProvider(string provider)
+        {
+            if (!IsAuthenticated || CurrentUser == null) return false;
+
+            if (string.Equals(provider, "email", StringComparison.OrdinalIgnoreCase) && CurrentUser.HasPassword)
+                return true;
+
+            return CurrentUser.Providers.Any(p => string.Equals(p, provider, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Confirm the desktop token is still good. Sanctum tokens are opaque and
+        /// cannot be refreshed, so there is nothing to renew: the check is whether the
+        /// server still accepts it. A rejected token is cleared, which surfaces to the
+        /// UI as a signed-out state — the same outcome as a failed Supabase refresh.
+        ///
+        /// Successful checks are cached, so this stays cheap on hot paths like sync.
+        /// </summary>
+        public static async Task<bool> EnsureValidSessionAsync()
+        {
+            if (!IsAuthenticated) return false;
+
+            if (TokenExpiresAt.HasValue && TokenExpiresAt.Value <= DateTime.UtcNow)
+            {
+                SupabaseAuthManager.AppendLog("[Laravel/Auth] Desktop token expired; signing out.");
+                Logout();
+                return false;
+            }
+
+            if (DateTime.UtcNow - _lastValidatedUtc < ValidationInterval)
+                return true;
+
+            await ValidationLock.WaitAsync();
+            try
+            {
+                // Another caller may have validated while this one waited.
+                if (DateTime.UtcNow - _lastValidatedUtc < ValidationInterval)
+                    return IsAuthenticated;
+
+                var (status, body) = await LaravelApiClient.TryCallApiAsync("me", HttpMethod.Get);
+
+                if (status == 401 || status == 403)
+                {
+                    SupabaseAuthManager.AppendLog($"[Laravel/Auth] Desktop token rejected ({status}); signing out.");
+                    Logout();
+                    return false;
+                }
+
+                if (status < 200 || status >= 300)
+                {
+                    // Server trouble or no network — keep the session and retry later
+                    // rather than signing the user out over a transient failure.
+                    SupabaseAuthManager.AppendLog($"[Laravel/Auth] Session check inconclusive ({status}); keeping session.");
+                    return true;
+                }
+
+                // Refresh the cached identity so provider-gated UI follows changes
+                // made on the web dashboard (linking Discord, setting a password).
+                try
+                {
+                    using var doc = JsonDocument.Parse(body);
+                    if (doc.RootElement.TryGetProperty("data", out var data))
+                    {
+                        CurrentUser = ParseUser(data);
+                        Persist();
+                    }
+                }
+                catch (JsonException)
+                {
+                    // Keep the cached user; the token is what mattered here.
+                }
+
+                _lastValidatedUtc = DateTime.UtcNow;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                SupabaseAuthManager.AppendLog($"[Laravel/Auth] Session check failed: {ex.Message}");
+                return true;
+            }
+            finally
+            {
+                ValidationLock.Release();
+            }
+        }
+
+        private static void Persist() =>
+            DataManager.SaveCache(TokenCacheKey, new TokenStore
+            {
+                Token = CurrentToken,
+                User = CurrentUser,
+                ExpiresAt = TokenExpiresAt,
+            });
 
         /// <summary>Exchange email + password for a desktop Sanctum token.</summary>
         public static Task<(bool Success, string? Error)> LoginWithEmailAsync(string email, string password)
@@ -80,6 +193,8 @@ namespace RustPlusDesk.Services.Cloud
             TeamSyncWebSocketService.Shutdown();
             CurrentToken = null;
             CurrentUser = null;
+            TokenExpiresAt = null;
+            _lastValidatedUtc = DateTime.MinValue;
             DataManager.SaveCache<TokenStore?>(TokenCacheKey, null);
             AuthenticationChanged?.Invoke();
         }
@@ -113,7 +228,14 @@ namespace RustPlusDesk.Services.Cloud
 
                 CurrentToken = token;
                 CurrentUser = data.TryGetProperty("user", out var userEl) ? ParseUser(userEl) : null;
-                DataManager.SaveCache(TokenCacheKey, new TokenStore { Token = token, User = CurrentUser });
+                TokenExpiresAt = data.TryGetProperty("expires_at", out var expiresEl)
+                                 && expiresEl.ValueKind == JsonValueKind.String
+                                 && DateTime.TryParse(expiresEl.GetString(), CultureInfo.InvariantCulture,
+                                        DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var expiresAt)
+                    ? expiresAt
+                    : null;
+                _lastValidatedUtc = DateTime.UtcNow;
+                Persist();
 
                 SupabaseAuthManager.AppendLog($"[Laravel/Auth] Signed in as {CurrentUser?.Email ?? CurrentUser?.Id ?? "user"}.");
                 TeamSyncWebSocketService.Initialize();
@@ -214,11 +336,24 @@ namespace RustPlusDesk.Services.Cloud
 
         private static LaravelUser ParseUser(JsonElement userEl)
         {
+            var providers = new List<string>();
+            if (userEl.TryGetProperty("providers", out var providersEl) && providersEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var provider in providersEl.EnumerateArray())
+                {
+                    if (provider.ValueKind == JsonValueKind.String && provider.GetString() is { Length: > 0 } name)
+                        providers.Add(name);
+                }
+            }
+
             return new LaravelUser
             {
                 Id = GetString(userEl, "id"),
                 Email = GetString(userEl, "email"),
                 DisplayName = GetString(userEl, "display_name") ?? GetString(userEl, "name"),
+                Providers = providers,
+                HasPassword = userEl.TryGetProperty("has_password", out var hasPassword)
+                              && hasPassword.ValueKind == JsonValueKind.True,
             };
         }
 
@@ -260,12 +395,22 @@ namespace RustPlusDesk.Services.Cloud
             public string? Id { get; set; }
             public string? Email { get; set; }
             public string? DisplayName { get; set; }
+
+            /// <summary>
+            /// Sign-in methods the account supports ("discord", "email", ...), as
+            /// reported by the API. Sanctum tokens carry no claims, so this cannot be
+            /// derived client-side the way Supabase identities were read from the JWT.
+            /// </summary>
+            public List<string> Providers { get; set; } = new();
+
+            public bool HasPassword { get; set; }
         }
 
         private sealed class TokenStore
         {
             public string? Token { get; set; }
             public LaravelUser? User { get; set; }
+            public DateTime? ExpiresAt { get; set; }
         }
     }
 }

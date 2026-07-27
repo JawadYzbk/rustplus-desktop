@@ -197,6 +197,11 @@ namespace RustPlusDesk.Services.Auth
         /// <summary>True when the current account has the requested sign-in provider linked.</summary>
         public static bool HasAuthProvider(string provider)
         {
+            // Laravel issues opaque Sanctum tokens, so there is no JWT identity list
+            // to inspect — the API reports which providers the account can use.
+            if (Cloud.CloudBackend.UseLaravel)
+                return Cloud.LaravelAuthManager.HasProvider(provider);
+
             var user = Client?.Auth?.CurrentUser;
             if (user == null || Client?.Auth?.CurrentSession == null) return false;
             if (string.Equals(provider, "email", StringComparison.OrdinalIgnoreCase))
@@ -462,6 +467,11 @@ namespace RustPlusDesk.Services.Auth
         public static async Task<bool> EnsureFreshSessionAsync()
         {
             if (IsUpgradeRequiredSnackbarShown) return false;
+
+            // Sanctum tokens cannot be refreshed and carry no readable expiry, so
+            // "fresh" means "the server still accepts it".
+            if (Cloud.CloudBackend.UseLaravel)
+                return await Cloud.LaravelAuthManager.EnsureValidSessionAsync();
 
             // Discord/email session refresh — an account session is required (no guest path).
             var session = Client?.Auth?.CurrentSession;
@@ -1422,16 +1432,9 @@ namespace RustPlusDesk.Services.Auth
             bool wantsChatAlerts,
             bool wantsChatCommands)
         {
-            if (Cloud.CloudBackend.UseLaravel)
-            {
-                if (!Cloud.LaravelAuthManager.IsAuthenticated) return null;
-            }
-            else
-            {
-                if (Client == null) return null;
-                if (!IsDiscordAuthenticated && !IsEmailAuthenticated) return null;
-                if (!await EnsureFreshSessionAsync()) return null;
-            }
+            if (!Cloud.CloudBackend.UseLaravel && Client == null) return null;
+            if (!IsDiscordAuthenticated && !IsEmailAuthenticated) return null;
+            if (!await EnsureFreshSessionAsync()) return null;
 
             try
             {

@@ -51,6 +51,37 @@ namespace RustPlusDesk.Services.Cloud
         }
 
         /// <summary>
+        /// Call an authenticated route without throwing, returning the status code
+        /// alongside the body. Needed where the caller has to act on a specific status
+        /// — notably 401, which means the Sanctum token has been revoked or expired
+        /// and cannot be told apart from a transient failure by an exception message.
+        /// </summary>
+        public static async Task<(int Status, string Body)> TryCallApiAsync(
+            string routePath,
+            HttpMethod method,
+            string? bearerToken = null,
+            object? payload = null)
+        {
+            bearerToken ??= LaravelAuthManager.CurrentToken;
+
+            using var request = new HttpRequestMessage(method, CloudBackend.ApiUrl(DataManager.LARAVEL_API_BASEURL, routePath));
+            request.Headers.Add("X-Client-Version", Helpers.VersionHelper.GetClientVersion());
+            if (!string.IsNullOrEmpty(bearerToken))
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
+
+            if (payload != null)
+                request.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+
+            using var response = await Http.SendAsync(request);
+            var body = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+                SupabaseAuthManager.HandleUpgradeRequiredResponse(body);
+
+            return ((int)response.StatusCode, body);
+        }
+
+        /// <summary>
         /// Call an authenticated Laravel <c>/api/v1</c> route. When <paramref name="bearerToken"/>
         /// is null the signed-in desktop token (<see cref="LaravelAuthManager.CurrentToken"/>) is
         /// used. Throws on a non-success status (matching the Supabase call contract) after
