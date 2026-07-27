@@ -38,6 +38,9 @@ namespace RustPlusDesk.Services.Cloud
             if (SupabaseAuthManager.IsUpgradeRequiredSnackbarShown)
                 throw new InvalidOperationException("Cloud features are unavailable because an application update is required.");
 
+            // Default to the signed-in desktop token when a caller doesn't pass one.
+            bearerToken ??= LaravelAuthManager.CurrentToken;
+
             var url = CloudBackend.ApiUrl(DataManager.LARAVEL_API_BASEURL, routePath);
             if (queryParams != null && queryParams.Count > 0)
             {
