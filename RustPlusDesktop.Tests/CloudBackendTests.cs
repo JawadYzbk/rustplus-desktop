@@ -36,12 +36,8 @@ public class CloudBackendTests
     }
 
     [TestMethod]
-    public void UrlBuilders_NormaliseSlashes()
+    public void ApiUrl_NormalisesSlashes()
     {
-        Assert.AreEqual(
-            "https://api.example.com/api/v1/desktop-auth/handshake",
-            CloudBackend.HandshakeUrl("https://api.example.com/"));
-
         Assert.AreEqual(
             "https://api.example.com/api/v1/profile/presence",
             CloudBackend.ApiUrl("https://api.example.com", "/profile/presence"));

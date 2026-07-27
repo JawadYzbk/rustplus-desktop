@@ -50,10 +50,6 @@ namespace RustPlusDesk.Services.Cloud
             };
         }
 
-        /// <summary>Absolute URL for the desktop handshake on the Laravel backend.</summary>
-        public static string HandshakeUrl(string laravelBaseUrl) =>
-            $"{laravelBaseUrl.TrimEnd('/')}/api/v1/desktop-auth/handshake";
-
         /// <summary>Absolute URL for a Laravel <c>/api/v1</c> route path.</summary>
         public static string ApiUrl(string laravelBaseUrl, string routePath) =>
             $"{laravelBaseUrl.TrimEnd('/')}/api/v1/{routePath.TrimStart('/')}";
