@@ -1,14 +1,19 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using RustPlusDesk.Models;
 using RustPlusDesk.Services.Auth;
+using RustPlusDesk.Services.Cloud;
 
 namespace RustPlusDesk.Services
 {
     public static class FcmSyncService
     {
-        private static string ConfigPath => Path.Combine(
+        /// <summary>Local rustplus.js FCM credentials, the source of truth for what gets uploaded.</summary>
+        public static string ConfigPath => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "RustPlusDesk", "rustplusjs-config.json");
 
@@ -37,7 +42,12 @@ namespace RustPlusDesk.Services
 
                 var client = SupabaseAuthManager.Client;
                 var userId = client?.Auth?.CurrentUser?.Id;
-                if (client is null || string.IsNullOrEmpty(userId))
+                if (!CloudBackend.UseLaravel && (client is null || string.IsNullOrEmpty(userId)))
+                {
+                    SupabaseAuthManager.AppendLog("[FcmSync] User not authenticated.");
+                    return false;
+                }
+                if (CloudBackend.UseLaravel && !LaravelAuthManager.IsAuthenticated)
                 {
                     SupabaseAuthManager.AppendLog("[FcmSync] User not authenticated.");
                     return false;
@@ -62,28 +72,63 @@ namespace RustPlusDesk.Services
                     fcmConfigObj["telegram_call_url"] = TrackingService.TelegramCallWebhookUrl;
                 }
 
-                var model = new UserFcmCredentialsModel
-                {
-                    UserId = userId,
-                    SteamId = steamId,
-                    FcmConfig = fcmConfigObj,
-                    UpdatedAt = DateTime.UtcNow
-                };
+                bool stored;
 
-                var response = await client.From<UserFcmCredentialsModel>().Upsert(model);
-                
+                if (CloudBackend.UseLaravel)
+                {
+                    await LaravelApiClient.CallApiAsync("me/fcm", HttpMethod.Put, payload: new
+                    {
+                        steam_id = steamId,
+                        fcm_config = fcmConfigObj,
+                    });
+                    stored = true;
+                }
+                else
+                {
+                    var model = new UserFcmCredentialsModel
+                    {
+                        UserId = userId,
+                        SteamId = steamId,
+                        FcmConfig = fcmConfigObj,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+
+                    var response = await client!.From<UserFcmCredentialsModel>().Upsert(model);
+                    stored = response != null && response.Models.Count > 0;
+                }
+
                 // Sync User Servers for the Cloud Worker
                 try
                 {
                     var profiles = RustPlusDesk.Services.Data.ProfileDataModule.LoadProfiles();
                     if (profiles != null && profiles.Count > 0)
                     {
-                        var serverModels = new System.Collections.Generic.List<UserServerModel>();
-                        foreach (var p in profiles)
+                        var paired = profiles
+                            .Where(p => !string.IsNullOrEmpty(p.Host) && p.Port > 0
+                                        && !string.IsNullOrEmpty(p.PlayerToken) && p.PlayerToken != "offline")
+                            .ToList();
+
+                        if (paired.Count > 0)
                         {
-                            if (!string.IsNullOrEmpty(p.Host) && p.Port > 0 && !string.IsNullOrEmpty(p.PlayerToken) && p.PlayerToken != "offline")
+                            if (CloudBackend.UseLaravel)
                             {
-                                serverModels.Add(new UserServerModel
+                                // Pairing is idempotent server-side (upsert per server key),
+                                // so unlike the Supabase path there is nothing to clear first.
+                                foreach (var p in paired)
+                                {
+                                    await LaravelApiClient.CallApiAsync("me/servers", HttpMethod.Post, payload: new
+                                    {
+                                        server_ip = p.Host,
+                                        server_port = p.Port,
+                                        name = p.Name,
+                                        player_token = p.PlayerToken,
+                                        steam_id = steamId,
+                                    });
+                                }
+                            }
+                            else
+                            {
+                                var serverModels = paired.Select(p => new UserServerModel
                                 {
                                     UserId = userId,
                                     SteamId = steamId,
@@ -91,16 +136,14 @@ namespace RustPlusDesk.Services
                                     ServerPort = p.Port,
                                     PlayerToken = p.PlayerToken,
                                     UpdatedAt = DateTime.UtcNow
-                                });
-                            }
-                        }
+                                }).ToList();
 
-                        if (serverModels.Count > 0)
-                        {
-                            // Delete old servers first to prevent accumulation
-                            await client.From<UserServerModel>().Where(x => x.UserId == userId).Delete();
-                            await client.From<UserServerModel>().Upsert(serverModels);
-                            SupabaseAuthManager.AppendLog($"[FcmSync] Synced {serverModels.Count} servers to cloud.");
+                                // Delete old servers first to prevent accumulation
+                                await client!.From<UserServerModel>().Where(x => x.UserId == userId).Delete();
+                                await client.From<UserServerModel>().Upsert(serverModels);
+                            }
+
+                            SupabaseAuthManager.AppendLog($"[FcmSync] Synced {paired.Count} servers to cloud.");
                         }
                     }
                 }
@@ -109,16 +152,14 @@ namespace RustPlusDesk.Services
                     SupabaseAuthManager.AppendLog($"[FcmSync] Failed to sync user servers: {ex.Message}");
                 }
 
-                if (response != null && response.Models.Count > 0)
+                if (stored)
                 {
-                    SupabaseAuthManager.AppendLog("[FcmSync] Successfully synced FCM credentials to Supabase.");
+                    SupabaseAuthManager.AppendLog("[FcmSync] Successfully synced FCM credentials to the cloud.");
                     return true;
                 }
-                else
-                {
-                    SupabaseAuthManager.AppendLog("[FcmSync] Failed to sync FCM credentials (no models returned).");
-                    return false;
-                }
+
+                SupabaseAuthManager.AppendLog("[FcmSync] Failed to sync FCM credentials (no models returned).");
+                return false;
             }
             catch (Exception ex)
             {
@@ -132,13 +173,27 @@ namespace RustPlusDesk.Services
             if (!SupabaseAuthManager.IsAuthenticated) return false;
             try
             {
+                if (CloudBackend.UseLaravel)
+                {
+                    if (!LaravelAuthManager.IsAuthenticated) return false;
+
+                    // Pairings are addressed by id, so they have to be enumerated first.
+                    foreach (var serverId in await FetchPairedServerIdsAsync())
+                        await LaravelApiClient.CallApiAsync($"me/servers/{serverId}", HttpMethod.Delete);
+
+                    await LaravelApiClient.CallApiAsync("me/fcm", HttpMethod.Delete);
+
+                    SupabaseAuthManager.AppendLog("[FcmSync] Successfully revoked FCM credentials and deleted cloud servers.");
+                    return true;
+                }
+
                 var client = SupabaseAuthManager.Client;
                 var userId = client?.Auth?.CurrentUser?.Id;
                 if (client is null || string.IsNullOrEmpty(userId)) return false;
 
                 await client.From<UserServerModel>().Where(x => x.UserId == userId).Delete();
                 await client.From<UserFcmCredentialsModel>().Where(x => x.UserId == userId).Delete();
-                
+
                 SupabaseAuthManager.AppendLog("[FcmSync] Successfully revoked FCM credentials and deleted cloud servers.");
                 return true;
             }
@@ -147,6 +202,33 @@ namespace RustPlusDesk.Services
                 SupabaseAuthManager.AppendLog($"[FcmSync] Exception during revoke: {ex.Message}");
                 return false;
             }
+        }
+
+        /// <summary>Ids of the caller's paired servers on the Laravel backend.</summary>
+        private static async Task<List<string>> FetchPairedServerIdsAsync()
+        {
+            var ids = new List<string>();
+
+            var body = await LaravelApiClient.CallApiAsync("me/servers", HttpMethod.Get);
+            using var doc = System.Text.Json.JsonDocument.Parse(body);
+
+            if (!doc.RootElement.TryGetProperty("data", out var data) ||
+                data.ValueKind != System.Text.Json.JsonValueKind.Array)
+            {
+                return ids;
+            }
+
+            foreach (var server in data.EnumerateArray())
+            {
+                if (server.TryGetProperty("id", out var id) &&
+                    id.ValueKind == System.Text.Json.JsonValueKind.String &&
+                    id.GetString() is { Length: > 0 } value)
+                {
+                    ids.Add(value);
+                }
+            }
+
+            return ids;
         }
     }
 }

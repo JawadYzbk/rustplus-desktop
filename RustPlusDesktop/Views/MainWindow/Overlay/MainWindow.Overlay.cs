@@ -3125,28 +3125,24 @@ private bool _overlayToolsVisible = false;
     private async Task FetchSteamIdsWithOverlaysAsync()
     {
         if (SupabaseAuthManager.IsUpgradeRequiredSnackbarShown) return;
-        if (SupabaseAuthManager.Client == null) return;
         try
         {
             var serverKey = GetServerKey();
             var ids = TeamMembers.Select(tm => tm.SteamId.ToString()).ToList();
             if (ids.Count == 0) return;
 
-            var response = await SupabaseAuthManager.Client
-                .From<MapOverlayModel>()
-                .Filter("server_key", Postgrest.Constants.Operator.Equals, serverKey)
-                .Filter("steam_id", Postgrest.Constants.Operator.In, ids)
-                .Get();
+            var steamIds = RustPlusDesk.Services.Cloud.CloudBackend.UseLaravel
+                ? await FetchOverlayOwnersFromApiAsync(serverKey)
+                : await FetchOverlayOwnersFromSupabaseAsync(serverKey, ids);
+
+            if (steamIds == null) return;
 
             _steamIdsWithOverlays.Clear();
-            if (response.Models != null)
+            foreach (var steamId in steamIds)
             {
-                foreach (var m in response.Models)
+                if (ulong.TryParse(steamId, out ulong sid))
                 {
-                    if (ulong.TryParse(m.SteamId, out ulong sid))
-                    {
-                        _steamIdsWithOverlays.Add(sid);
-                    }
+                    _steamIdsWithOverlays.Add(sid);
                 }
             }
         }
@@ -3154,6 +3150,51 @@ private bool _overlayToolsVisible = false;
         {
             AppendLog("[overlay/db] Error checking who has overlays: " + ex.Message);
         }
+    }
+
+    /// <summary>
+    /// The API scopes this to teams the caller is actually on, so the local roster
+    /// does not need to be sent along.
+    /// </summary>
+    private static async Task<List<string>?> FetchOverlayOwnersFromApiAsync(string serverKey)
+    {
+        var body = await RustPlusDesk.Services.Cloud.LaravelApiClient.CallApiAsync(
+            "sync/team-overlays",
+            System.Net.Http.HttpMethod.Get,
+            queryParams: new Dictionary<string, string> { ["server_key"] = serverKey });
+
+        using var doc = System.Text.Json.JsonDocument.Parse(body);
+        if (!doc.RootElement.TryGetProperty("data", out var data) ||
+            !data.TryGetProperty("steam_ids", out var steamIds) ||
+            steamIds.ValueKind != System.Text.Json.JsonValueKind.Array)
+        {
+            return null;
+        }
+
+        var result = new List<string>();
+        foreach (var steamId in steamIds.EnumerateArray())
+        {
+            if (steamId.ValueKind == System.Text.Json.JsonValueKind.String && steamId.GetString() is { Length: > 0 } value)
+                result.Add(value);
+        }
+
+        return result;
+    }
+
+    private static async Task<List<string>?> FetchOverlayOwnersFromSupabaseAsync(string serverKey, List<string> ids)
+    {
+        if (SupabaseAuthManager.Client == null) return null;
+
+        var response = await SupabaseAuthManager.Client
+            .From<MapOverlayModel>()
+            .Filter("server_key", Postgrest.Constants.Operator.Equals, serverKey)
+            .Filter("steam_id", Postgrest.Constants.Operator.In, ids)
+            .Get();
+
+        return response.Models?
+            .Select(m => m.SteamId)
+            .Where(id => !string.IsNullOrEmpty(id))
+            .ToList();
     }
 
     private void UpdateSavedSubscriptionsInProfile()

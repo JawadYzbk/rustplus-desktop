@@ -58,6 +58,10 @@ namespace RustPlusDesk.Services.Cloud
                 "team-feature/heartbeat" => "team-feature/heartbeat",
                 "team-feature/master" => "team-feature/master",
                 "team-feature/has-master" => "team-feature/has-master",
+                // The desktop admin panel is steam-id keyed; the dashboard's
+                // entitlement routes are UUID keyed, so these get their own surface.
+                "admin/users" => "admin/desktop-users",
+                "admin/set-supporter" => "admin/desktop-users/supporter",
                 _ => null,
             };
         }
