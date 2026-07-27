@@ -1742,8 +1742,12 @@ namespace RustPlusDesk.Services.Auth
 
             try
             {
-                // Laravel derives presence from the authenticated user + request headers.
-                await Cloud.LaravelApiClient.CallApiAsync("profile/presence", HttpMethod.Post, null, new { });
+                // Laravel derives presence itself from the authenticated user and
+                // request headers, but the steam id has to be reported: the desktop
+                // token flows authenticate an account that knows nothing about Steam,
+                // and team features are keyed by steam id.
+                var steamId = TrackingService.SteamId64;
+                await Cloud.LaravelApiClient.CallApiAsync("profile/presence", HttpMethod.Post, null, new { steam_id = steamId });
             }
             catch (Exception ex)
             {
