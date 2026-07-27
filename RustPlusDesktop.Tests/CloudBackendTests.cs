@@ -7,10 +7,10 @@ namespace RustPlusDesktop.Tests;
 public class CloudBackendTests
 {
     [TestMethod]
-    public void Mode_DefaultsToSupabase_ForZeroBehaviourChange()
+    public void Mode_TargetsLaravel_AfterTheCutover()
     {
-        Assert.AreEqual(CloudBackendMode.Supabase, CloudBackend.Mode);
-        Assert.IsFalse(CloudBackend.UseLaravel);
+        Assert.AreEqual(CloudBackendMode.Laravel, CloudBackend.Mode);
+        Assert.IsTrue(CloudBackend.UseLaravel);
     }
 
     [DataTestMethod]

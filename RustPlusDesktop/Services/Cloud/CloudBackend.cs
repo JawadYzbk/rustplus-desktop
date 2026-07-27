@@ -21,8 +21,8 @@ namespace RustPlusDesk.Services.Cloud
     /// </summary>
     public static class CloudBackend
     {
-        /// <summary>The backend this build targets. Flip to <c>Laravel</c> for the cutover.</summary>
-        public static CloudBackendMode Mode { get; } = CloudBackendMode.Supabase;
+        /// <summary>The backend this build targets. Flip to <c>Supabase</c> to roll back.</summary>
+        public static CloudBackendMode Mode { get; } = CloudBackendMode.Laravel;
 
         /// <summary>True when the client should route cloud traffic to the Laravel API.</summary>
         public static bool UseLaravel => Mode == CloudBackendMode.Laravel;
