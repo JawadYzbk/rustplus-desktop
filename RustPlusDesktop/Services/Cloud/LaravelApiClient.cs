@@ -24,6 +24,33 @@ namespace RustPlusDesk.Services.Cloud
         private static readonly HttpClient Http = new();
 
         /// <summary>
+        /// POST multipart form content (e.g. a map screenshot) to an authenticated
+        /// <c>/api/v1</c> route. Returns false on a non-success status, mirroring the
+        /// legacy upload helpers rather than throwing.
+        /// </summary>
+        public static async Task<bool> PostMultipartAsync(string routePath, MultipartFormDataContent content)
+        {
+            if (SupabaseAuthManager.IsUpgradeRequiredSnackbarShown)
+                return false;
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, CloudBackend.ApiUrl(DataManager.LARAVEL_API_BASEURL, routePath));
+            request.Headers.Add("X-Client-Version", Helpers.VersionHelper.GetClientVersion());
+            if (!string.IsNullOrEmpty(LaravelAuthManager.CurrentToken))
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", LaravelAuthManager.CurrentToken);
+            request.Content = content;
+
+            using var response = await Http.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+                return true;
+
+            var body = await response.Content.ReadAsStringAsync();
+            SupabaseAuthManager.HandleUpgradeRequiredResponse(body);
+            SupabaseAuthManager.AppendLog($"[Laravel/Error] POST /api/v1/{routePath} -> {(int)response.StatusCode}: {body}");
+
+            return false;
+        }
+
+        /// <summary>
         /// Call an authenticated Laravel <c>/api/v1</c> route. When <paramref name="bearerToken"/>
         /// is null the signed-in desktop token (<see cref="LaravelAuthManager.CurrentToken"/>) is
         /// used. Throws on a non-success status (matching the Supabase call contract) after
