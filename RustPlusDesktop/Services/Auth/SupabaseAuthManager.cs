@@ -1422,9 +1422,16 @@ namespace RustPlusDesk.Services.Auth
             bool wantsChatAlerts,
             bool wantsChatCommands)
         {
-            if (Client == null) return null;
-            if (!IsDiscordAuthenticated && !IsEmailAuthenticated) return null;
-            if (!await EnsureFreshSessionAsync()) return null;
+            if (Cloud.CloudBackend.UseLaravel)
+            {
+                if (!Cloud.LaravelAuthManager.IsAuthenticated) return null;
+            }
+            else
+            {
+                if (Client == null) return null;
+                if (!IsDiscordAuthenticated && !IsEmailAuthenticated) return null;
+                if (!await EnsureFreshSessionAsync()) return null;
+            }
 
             try
             {
@@ -1442,6 +1449,26 @@ namespace RustPlusDesk.Services.Auth
 
                 var body = await CallEdgeFunctionAsync("team-feature/heartbeat", HttpMethod.Post, payload);
                 if (string.IsNullOrWhiteSpace(body)) return null;
+
+                // Laravel wraps the result: { data: { team_id, master, master_changed } }.
+                // The team id names the Reverb channel, so it is handed to the realtime
+                // service before the master state is unwrapped and returned.
+                if (Cloud.CloudBackend.UseLaravel)
+                {
+                    using var envelope = JsonDocument.Parse(body);
+                    if (!envelope.RootElement.TryGetProperty("data", out var data))
+                        return null;
+
+                    if (data.TryGetProperty("team_id", out var teamIdEl) && teamIdEl.ValueKind == JsonValueKind.String)
+                        TeamSyncWebSocketService.NotifyTeamResolved(teamIdEl.GetString());
+
+                    if (!data.TryGetProperty("master", out var masterEl) || masterEl.ValueKind != JsonValueKind.Object)
+                        return null;
+
+                    return JsonSerializer.Deserialize<RustPlusDesk.Models.TeamFeatureMasterState>(
+                        masterEl.GetRawText(),
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                }
 
                 using var doc = JsonDocument.Parse(body);
                 var root = doc.RootElement;

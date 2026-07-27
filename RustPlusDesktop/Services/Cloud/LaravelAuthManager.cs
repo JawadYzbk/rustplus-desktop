@@ -77,6 +77,7 @@ namespace RustPlusDesk.Services.Cloud
 
         public static void Logout()
         {
+            TeamSyncWebSocketService.Shutdown();
             CurrentToken = null;
             CurrentUser = null;
             DataManager.SaveCache<TokenStore?>(TokenCacheKey, null);
@@ -115,6 +116,7 @@ namespace RustPlusDesk.Services.Cloud
                 DataManager.SaveCache(TokenCacheKey, new TokenStore { Token = token, User = CurrentUser });
 
                 SupabaseAuthManager.AppendLog($"[Laravel/Auth] Signed in as {CurrentUser?.Email ?? CurrentUser?.Id ?? "user"}.");
+                TeamSyncWebSocketService.Initialize();
                 AuthenticationChanged?.Invoke();
                 return (true, null);
             }
