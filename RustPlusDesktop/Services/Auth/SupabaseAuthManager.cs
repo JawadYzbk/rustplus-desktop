@@ -1586,6 +1586,39 @@ namespace RustPlusDesk.Services.Auth
 
         public static async Task<(bool IsAdmin, string? ErrorMessage)> CheckIsAdminDetailedAsync()
         {
+            if (Cloud.CloudBackend.UseLaravel)
+            {
+                if (!Cloud.LaravelAuthManager.IsAuthenticated) return (false, "Sign in to your cloud account first.");
+                try
+                {
+                    // Laravel exposes roles rather than a boolean admin flag.
+                    var rolesBody = await Cloud.LaravelApiClient.CallApiAsync("me/roles", HttpMethod.Get);
+                    using var rolesDoc = JsonDocument.Parse(rolesBody);
+                    var roles = rolesDoc.RootElement.TryGetProperty("data", out var d) ? d : rolesDoc.RootElement;
+
+                    if (roles.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var role in roles.EnumerateArray())
+                        {
+                            var name = role.ValueKind == JsonValueKind.String
+                                ? role.GetString()
+                                : role.TryGetProperty("name", out var n) ? n.GetString() : null;
+
+                            if (string.Equals(name, "admin", StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(name, "super_admin", StringComparison.OrdinalIgnoreCase))
+                                return (true, null);
+                        }
+                    }
+
+                    return (false, null);
+                }
+                catch (Exception ex)
+                {
+                    AppendLog($"[Laravel/Error] Admin check failed: {ex.Message}");
+                    return (false, ex.Message);
+                }
+            }
+
             if (Client == null) return (false, "Supabase client not initialized.");
             if (!IsDiscordAuthenticated) return (false, "No active Supabase session (Discord login required).");
             try
@@ -1746,6 +1779,10 @@ namespace RustPlusDesk.Services.Auth
             // missing port surfaces immediately instead of leaking to Supabase.
             if (Cloud.CloudBackend.UseLaravel)
             {
+                // Discord bot config needs shape/id translation rather than a route swap.
+                if (Cloud.LaravelDiscordAdapter.Handles(functionName))
+                    return await Cloud.LaravelDiscordAdapter.CallAsync(functionName, method, payload, queryParams);
+
                 var route = Cloud.CloudBackend.MapEdgeFunctionToRoute(functionName, method.Method)
                     ?? throw new NotSupportedException($"'{functionName}' has no Laravel route yet.");
 
