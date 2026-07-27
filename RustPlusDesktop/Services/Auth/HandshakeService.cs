@@ -245,6 +245,16 @@ namespace RustPlusDesk.Services.Auth
                 return null;
 
             var json = JsonSerializer.Serialize(payload);
+
+            // Laravel backend: public /api/v1/desktop-auth/handshake, no apikey/anon header.
+            // The register/refresh/recover payloads and the { token, recovery_code,
+            // new_recovery_code } response are byte-for-byte compatible with the legacy contract.
+            if (Cloud.CloudBackend.UseLaravel)
+            {
+                var laravelBody = await Cloud.LaravelApiClient.PostHandshakeAsync(json);
+                return laravelBody == null ? null : JsonSerializer.Deserialize<HandshakeResponse>(laravelBody);
+            }
+
             var url = $"{DataManager.SUPABASE_URL.TrimEnd('/')}/functions/v1/auth-handshake";
             var request = new HttpRequestMessage(HttpMethod.Post, url);
             request.Headers.Add("apikey", DataManager.SUPABASE_ANON_KEY);
