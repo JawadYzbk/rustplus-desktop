@@ -34,18 +34,30 @@ namespace RustPlusDesk.Services.Cloud
         /// 1:1 route (e.g. <c>user-profile/claim</c>, which the Laravel handshake resolves
         /// server-side) — callers handle those cases explicitly in later slices.
         /// </summary>
-        public static string? MapEdgeFunctionToRoute(string edgeFunction)
+        public static string? MapEdgeFunctionToRoute(string edgeFunction, string? httpMethod = null)
         {
             if (string.IsNullOrWhiteSpace(edgeFunction))
                 return null;
 
-            return edgeFunction.Trim().Trim('/') switch
+            var name = edgeFunction.Trim().Trim('/');
+
+            // The legacy /overlay contract is preserved server-side for GET/POST, but
+            // deleting a server's sync data lives on the versioned sync route.
+            if (name == "overlay")
+                return string.Equals(httpMethod, "DELETE", StringComparison.OrdinalIgnoreCase) ? "sync/overlay" : "overlay";
+
+            return name switch
             {
+                "overlay/purge-orphaned" => "overlay/purge-orphaned",
                 "user-profile/limits" => "me/limits",
                 "user-profile/presence" => "profile/presence",
                 "user-profile/consent" => "profile/consent",
+                "user-profile/touch" => "profile/touch",
                 "user-profile" => "profile",
                 "discord-roles" => "me/discord/sync-roles",
+                "team-feature/heartbeat" => "team-feature/heartbeat",
+                "team-feature/master" => "team-feature/master",
+                "team-feature/has-master" => "team-feature/has-master",
                 _ => null,
             };
         }

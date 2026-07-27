@@ -26,7 +26,29 @@ public class CloudBackendTests
     }
 
     [DataTestMethod]
+    [DataRow("overlay/purge-orphaned", "overlay/purge-orphaned")]
+    [DataRow("user-profile/touch", "profile/touch")]
+    [DataRow("team-feature/heartbeat", "team-feature/heartbeat")]
+    [DataRow("team-feature/master", "team-feature/master")]
+    [DataRow("team-feature/has-master", "team-feature/has-master")]
+    public void MapEdgeFunctionToRoute_MapsSyncAndTeamFunctions(string edge, string expected)
+    {
+        Assert.AreEqual(expected, CloudBackend.MapEdgeFunctionToRoute(edge));
+    }
+
+    [TestMethod]
+    public void MapEdgeFunctionToRoute_RoutesOverlayByMethod()
+    {
+        // Legacy contract for reads/writes; the versioned sync route for deletes.
+        Assert.AreEqual("overlay", CloudBackend.MapEdgeFunctionToRoute("overlay", "GET"));
+        Assert.AreEqual("overlay", CloudBackend.MapEdgeFunctionToRoute("overlay", "POST"));
+        Assert.AreEqual("sync/overlay", CloudBackend.MapEdgeFunctionToRoute("overlay", "DELETE"));
+    }
+
+    [DataTestMethod]
     [DataRow("user-profile/claim")]
+    [DataRow("discord-bot/settings")]
+    [DataRow("admin/check")]
     [DataRow("unknown-function")]
     [DataRow("")]
     [DataRow("   ")]

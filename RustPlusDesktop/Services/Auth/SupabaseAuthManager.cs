@@ -1741,6 +1741,17 @@ namespace RustPlusDesk.Services.Auth
             object? payload = null,
             System.Collections.Generic.Dictionary<string, string>? queryParams = null)
         {
+            // Laravel backend: translate the legacy edge-function name to its /api/v1
+            // route. Unported endpoints throw rather than silently falling back, so a
+            // missing port surfaces immediately instead of leaking to Supabase.
+            if (Cloud.CloudBackend.UseLaravel)
+            {
+                var route = Cloud.CloudBackend.MapEdgeFunctionToRoute(functionName, method.Method)
+                    ?? throw new NotSupportedException($"'{functionName}' has no Laravel route yet.");
+
+                return await Cloud.LaravelApiClient.CallApiAsync(route, method, null, payload, queryParams);
+            }
+
             if (Client == null)
                 throw new InvalidOperationException("Supabase client not initialized.");
 
