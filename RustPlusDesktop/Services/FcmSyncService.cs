@@ -42,12 +42,12 @@ namespace RustPlusDesk.Services
 
                 var client = SupabaseAuthManager.Client;
                 var userId = client?.Auth?.CurrentUser?.Id;
-                if (!CloudBackend.UseLaravel && (client is null || string.IsNullOrEmpty(userId)))
+                if (!CloudBackend.UsePlatform && (client is null || string.IsNullOrEmpty(userId)))
                 {
                     SupabaseAuthManager.AppendLog("[FcmSync] User not authenticated.");
                     return false;
                 }
-                if (CloudBackend.UseLaravel && !LaravelAuthManager.IsAuthenticated)
+                if (CloudBackend.UsePlatform && !CloudAuthManager.IsAuthenticated)
                 {
                     SupabaseAuthManager.AppendLog("[FcmSync] User not authenticated.");
                     return false;
@@ -74,9 +74,9 @@ namespace RustPlusDesk.Services
 
                 bool stored;
 
-                if (CloudBackend.UseLaravel)
+                if (CloudBackend.UsePlatform)
                 {
-                    await LaravelApiClient.CallApiAsync("me/fcm", HttpMethod.Put, payload: new
+                    await CloudApiClient.CallApiAsync("me/fcm", HttpMethod.Put, payload: new
                     {
                         steam_id = steamId,
                         fcm_config = fcmConfigObj,
@@ -110,13 +110,13 @@ namespace RustPlusDesk.Services
 
                         if (paired.Count > 0)
                         {
-                            if (CloudBackend.UseLaravel)
+                            if (CloudBackend.UsePlatform)
                             {
                                 // Pairing is idempotent server-side (upsert per server key),
                                 // so unlike the Supabase path there is nothing to clear first.
                                 foreach (var p in paired)
                                 {
-                                    await LaravelApiClient.CallApiAsync("me/servers", HttpMethod.Post, payload: new
+                                    await CloudApiClient.CallApiAsync("me/servers", HttpMethod.Post, payload: new
                                     {
                                         server_ip = p.Host,
                                         server_port = p.Port,
@@ -173,15 +173,15 @@ namespace RustPlusDesk.Services
             if (!SupabaseAuthManager.IsAuthenticated) return false;
             try
             {
-                if (CloudBackend.UseLaravel)
+                if (CloudBackend.UsePlatform)
                 {
-                    if (!LaravelAuthManager.IsAuthenticated) return false;
+                    if (!CloudAuthManager.IsAuthenticated) return false;
 
                     // Pairings are addressed by id, so they have to be enumerated first.
                     foreach (var serverId in await FetchPairedServerIdsAsync())
-                        await LaravelApiClient.CallApiAsync($"me/servers/{serverId}", HttpMethod.Delete);
+                        await CloudApiClient.CallApiAsync($"me/servers/{serverId}", HttpMethod.Delete);
 
-                    await LaravelApiClient.CallApiAsync("me/fcm", HttpMethod.Delete);
+                    await CloudApiClient.CallApiAsync("me/fcm", HttpMethod.Delete);
 
                     SupabaseAuthManager.AppendLog("[FcmSync] Successfully revoked FCM credentials and deleted cloud servers.");
                     return true;
@@ -204,12 +204,12 @@ namespace RustPlusDesk.Services
             }
         }
 
-        /// <summary>Ids of the caller's paired servers on the Laravel backend.</summary>
+        /// <summary>Ids of the caller's paired servers on the cloud platform.</summary>
         private static async Task<List<string>> FetchPairedServerIdsAsync()
         {
             var ids = new List<string>();
 
-            var body = await LaravelApiClient.CallApiAsync("me/servers", HttpMethod.Get);
+            var body = await CloudApiClient.CallApiAsync("me/servers", HttpMethod.Get);
             using var doc = System.Text.Json.JsonDocument.Parse(body);
 
             if (!doc.RootElement.TryGetProperty("data", out var data) ||

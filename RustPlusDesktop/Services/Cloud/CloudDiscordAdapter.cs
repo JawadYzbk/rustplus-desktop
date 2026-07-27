@@ -7,13 +7,13 @@ using System.Threading.Tasks;
 namespace RustPlusDesk.Services.Cloud
 {
     /// <summary>
-    /// Translates the legacy <c>discord-bot/*</c> edge-function calls to the Laravel
-    /// Discord routes. This is not a straight route swap: Laravel wraps responses in a
+    /// Translates the legacy <c>discord-bot/*</c> edge-function calls to the cloud
+    /// Discord routes. This is not a straight route swap: the API wraps responses in a
     /// <c>data</c> envelope, derives the owner from the authenticated user, and keys
     /// guilds/channels by UUID rather than the Discord snowflake, so guild ids are
     /// resolved before the underlying call.
     /// </summary>
-    internal static class LaravelDiscordAdapter
+    internal static class CloudDiscordAdapter
     {
         /// <summary>True when this adapter handles the given legacy function name.</summary>
         public static bool Handles(string functionName) =>
@@ -34,11 +34,11 @@ namespace RustPlusDesk.Services.Cloud
         {
             // GET — the client expects a bare array of guild settings.
             if (method == HttpMethod.Get)
-                return Unwrap(await LaravelApiClient.CallApiAsync("discord/guilds", HttpMethod.Get));
+                return Unwrap(await CloudApiClient.CallApiAsync("discord/guilds", HttpMethod.Get));
 
-            // POST — upsert; Laravel takes the owner from the bearer token.
+            // POST — upsert; the API takes the owner from the bearer token.
             if (method == HttpMethod.Post)
-                return Unwrap(await LaravelApiClient.CallApiAsync("discord/guilds", HttpMethod.Post, null, payload));
+                return Unwrap(await CloudApiClient.CallApiAsync("discord/guilds", HttpMethod.Post, null, payload));
 
             if (method == HttpMethod.Delete)
             {
@@ -46,7 +46,7 @@ namespace RustPlusDesk.Services.Cloud
                 var uuid = await ResolveGuildUuidAsync(guildId)
                     ?? throw new InvalidOperationException($"Discord guild '{guildId}' is not linked to this account.");
 
-                return await LaravelApiClient.CallApiAsync($"discord/guilds/{uuid}", HttpMethod.Delete);
+                return await CloudApiClient.CallApiAsync($"discord/guilds/{uuid}", HttpMethod.Delete);
             }
 
             throw new NotSupportedException($"discord-bot/settings does not support {method.Method}.");
@@ -60,10 +60,10 @@ namespace RustPlusDesk.Services.Cloud
                 ?? throw new InvalidOperationException($"Discord guild '{guildId}' is not linked to this account.");
 
             if (method == HttpMethod.Get)
-                return Unwrap(await LaravelApiClient.CallApiAsync($"discord/guilds/{uuid}/channels", HttpMethod.Get));
+                return Unwrap(await CloudApiClient.CallApiAsync($"discord/guilds/{uuid}/channels", HttpMethod.Get));
 
             if (method == HttpMethod.Post)
-                return Unwrap(await LaravelApiClient.CallApiAsync($"discord/guilds/{uuid}/channels", HttpMethod.Post, null, payload));
+                return Unwrap(await CloudApiClient.CallApiAsync($"discord/guilds/{uuid}/channels", HttpMethod.Post, null, payload));
 
             if (method == HttpMethod.Delete)
             {
@@ -72,18 +72,18 @@ namespace RustPlusDesk.Services.Cloud
                 if (channelUuid == null)
                     return "{\"status\":\"success\"}"; // Already absent — deleting is a no-op.
 
-                return await LaravelApiClient.CallApiAsync($"discord/channels/{channelUuid}", HttpMethod.Delete);
+                return await CloudApiClient.CallApiAsync($"discord/channels/{channelUuid}", HttpMethod.Delete);
             }
 
             throw new NotSupportedException($"discord-bot/channels does not support {method.Method}.");
         }
 
-        /// <summary>Map a Discord guild snowflake to its Laravel UUID for the current user.</summary>
+        /// <summary>Map a Discord guild snowflake to its platform UUID for the current user.</summary>
         private static async Task<string?> ResolveGuildUuidAsync(string? guildId)
         {
             if (string.IsNullOrWhiteSpace(guildId)) return null;
 
-            var body = await LaravelApiClient.CallApiAsync("discord/guilds", HttpMethod.Get);
+            var body = await CloudApiClient.CallApiAsync("discord/guilds", HttpMethod.Get);
             foreach (var guild in EnumerateData(body))
             {
                 if (StringProp(guild, "guild_id") == guildId)
@@ -97,7 +97,7 @@ namespace RustPlusDesk.Services.Cloud
         {
             if (string.IsNullOrWhiteSpace(notificationType)) return null;
 
-            var body = await LaravelApiClient.CallApiAsync($"discord/guilds/{guildUuid}/channels", HttpMethod.Get);
+            var body = await CloudApiClient.CallApiAsync($"discord/guilds/{guildUuid}/channels", HttpMethod.Get);
             foreach (var channel in EnumerateData(body))
             {
                 if (StringProp(channel, "notification_type") == notificationType)
@@ -107,7 +107,7 @@ namespace RustPlusDesk.Services.Cloud
             return null;
         }
 
-        /// <summary>Strip Laravel's <c>data</c> envelope so legacy deserialisation still works.</summary>
+        /// <summary>Strip the API's <c>data</c> envelope so legacy deserialisation still works.</summary>
         private static string Unwrap(string body)
         {
             try

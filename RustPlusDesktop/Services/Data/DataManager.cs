@@ -17,7 +17,7 @@ namespace RustPlusDesk.Services.Data
         public static string OVERLAY_SYNC_BASEURL => Decrypt(ObfuscatedSecrets.ObfuscatedUrl);
         public static string SUPABASE_URL => Decrypt(ObfuscatedSecrets.ObfuscatedSupabaseUrl);
         public static string SUPABASE_ANON_KEY => Decrypt(ObfuscatedSecrets.ObfuscatedSupabaseAnonKey);
-        public static string LARAVEL_API_BASEURL => Decrypt(ObfuscatedSecrets.ObfuscatedLaravelUrl);
+        public static string CLOUD_API_BASEURL => Decrypt(ObfuscatedSecrets.ObfuscatedCloudUrl);
         public const int OVERLAY_MAX_BYTES = 350_000;
 
         private static string Decrypt(byte[] encrypted)

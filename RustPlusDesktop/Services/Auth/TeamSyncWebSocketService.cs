@@ -18,7 +18,7 @@ namespace RustPlusDesk.Services.Auth
     ///
     /// Two transports sit behind the same event handlers. Supabase Realtime discovers
     /// the current team by subscribing to postgres changes on the caller's presence
-    /// row, then joins <c>team_sync:{serverKey}:{teamKey}</c>. Laravel Reverb has no
+    /// row, then joins <c>team_sync:{serverKey}:{teamKey}</c>. the realtime service has no
     /// database-change feed, so the team is instead learned from the heartbeat
     /// response (which returns the resolved team id) and the client subscribes to the
     /// private channel <c>team-sync.{teamId}</c>. Both deliver the same event names
@@ -38,13 +38,13 @@ namespace RustPlusDesk.Services.Auth
         private static readonly SemaphoreSlim BroadcastSubscriptionLock = new(1, 1);
         private static bool _initialized;
 
-        // Laravel/Reverb state.
+        // cloud/the realtime service state.
         private static string? _currentTeamId;
-        private static string? _reverbChannel;
-        private static bool _reverbHandlerAttached;
+        private static string? _realtimeChannel;
+        private static bool _realtimeHandlerAttached;
 
-        public static bool IsActive => CloudBackend.UseLaravel
-            ? _reverbChannel != null && ReverbClient.Shared.IsSubscribed(_reverbChannel)
+        public static bool IsActive => CloudBackend.UsePlatform
+            ? _realtimeChannel != null && RealtimeClient.Shared.IsSubscribed(_realtimeChannel)
             : _broadcastSubscribed;
 
         public static void Initialize()
@@ -53,11 +53,11 @@ namespace RustPlusDesk.Services.Auth
             if (_initialized) return;
             _initialized = true;
 
-            if (CloudBackend.UseLaravel)
+            if (CloudBackend.UsePlatform)
             {
-                AttachReverbHandler();
-                ReverbClient.Shared.Start();
-                AppendLog("[TeamSyncWS] Service initialized (Laravel Reverb). Awaiting team heartbeat.");
+                AttachRealtimeHandler();
+                RealtimeClient.Shared.Start();
+                AppendLog("[TeamSyncWS] Service initialized (the realtime service). Awaiting team heartbeat.");
                 return;
             }
 
@@ -74,28 +74,28 @@ namespace RustPlusDesk.Services.Auth
 
         /// <summary>
         /// Called from the team-feature heartbeat once the server has resolved which
-        /// team the local player is on. On Laravel this is the only source of team
-        /// identity — the heartbeat returns the team id that names the Reverb channel.
+        /// team the local player is on. On cloud this is the only source of team
+        /// identity — the heartbeat returns the team id that names the realtime channel.
         /// A no-op when the team has not changed, so it is safe to call every beat.
         /// </summary>
         public static void NotifyTeamResolved(string? teamId)
         {
-            if (!CloudBackend.UseLaravel) return;
+            if (!CloudBackend.UsePlatform) return;
             if (string.IsNullOrWhiteSpace(teamId)) return;
             if (_currentTeamId == teamId && IsActive) return;
 
             _ = SubscribeToTeamChannelAsync(teamId);
         }
 
-        private static void AttachReverbHandler()
+        private static void AttachRealtimeHandler()
         {
-            if (_reverbHandlerAttached) return;
-            _reverbHandlerAttached = true;
+            if (_realtimeHandlerAttached) return;
+            _realtimeHandlerAttached = true;
 
-            ReverbClient.Shared.EventReceived += (channel, eventName, data) =>
+            RealtimeClient.Shared.EventReceived += (channel, eventName, data) =>
             {
                 // Ignore traffic for a channel we have since moved off of.
-                if (_reverbChannel != null && channel != _reverbChannel) return;
+                if (_realtimeChannel != null && channel != _realtimeChannel) return;
 
                 try
                 {
@@ -103,7 +103,7 @@ namespace RustPlusDesk.Services.Auth
                 }
                 catch (Exception ex)
                 {
-                    AppendLog($"[TeamSyncWS/Error] Reverb handler error: {ex.Message}");
+                    AppendLog($"[TeamSyncWS/Error] the realtime service handler error: {ex.Message}");
                 }
             };
         }
@@ -114,14 +114,14 @@ namespace RustPlusDesk.Services.Auth
             try
             {
                 var channel = $"private-team-sync.{teamId}";
-                if (_reverbChannel == channel && ReverbClient.Shared.IsSubscribed(channel))
+                if (_realtimeChannel == channel && RealtimeClient.Shared.IsSubscribed(channel))
                     return;
 
-                if (_reverbChannel != null && _reverbChannel != channel)
+                if (_realtimeChannel != null && _realtimeChannel != channel)
                 {
-                    var previous = _reverbChannel;
-                    _reverbChannel = null;
-                    await ReverbClient.Shared.UnsubscribeAsync(previous);
+                    var previous = _realtimeChannel;
+                    _realtimeChannel = null;
+                    await RealtimeClient.Shared.UnsubscribeAsync(previous);
                     AppendLog($"[TeamSyncWS] Left team channel: {previous}");
                 }
 
@@ -130,16 +130,16 @@ namespace RustPlusDesk.Services.Auth
                 _lastBroadcastMasterSteamId = null;
 
                 _currentTeamId = teamId;
-                _reverbChannel = channel;
+                _realtimeChannel = channel;
 
-                AttachReverbHandler();
-                await ReverbClient.Shared.SubscribeAsync(channel);
+                AttachRealtimeHandler();
+                await RealtimeClient.Shared.SubscribeAsync(channel);
                 AppendLog($"[TeamSyncWS] Subscribing to team channel: {channel}");
             }
             catch (Exception ex)
             {
                 AppendLog($"[TeamSyncWS/Error] Failed to subscribe to team channel: {ex.Message}");
-                _reverbChannel = null;
+                _realtimeChannel = null;
                 _currentTeamId = null;
             }
             finally
@@ -148,20 +148,20 @@ namespace RustPlusDesk.Services.Auth
             }
         }
 
-        private static void UnsubscribeReverb()
+        private static void UnsubscribeRealtime()
         {
-            var channel = _reverbChannel;
-            _reverbChannel = null;
+            var channel = _realtimeChannel;
+            _realtimeChannel = null;
             _currentTeamId = null;
             _hasBroadcastMasterState = false;
             _lastBroadcastMasterSteamId = null;
 
             if (channel != null)
             {
-                try { _ = ReverbClient.Shared.UnsubscribeAsync(channel); } catch { }
+                try { _ = RealtimeClient.Shared.UnsubscribeAsync(channel); } catch { }
             }
 
-            ReverbClient.Shared.Stop();
+            RealtimeClient.Shared.Stop();
         }
 
         private static async Task SubscribeToPresenceAsync()
@@ -342,9 +342,9 @@ namespace RustPlusDesk.Services.Auth
 
         private static void UnsubscribeAll()
         {
-            if (CloudBackend.UseLaravel)
+            if (CloudBackend.UsePlatform)
             {
-                UnsubscribeReverb();
+                UnsubscribeRealtime();
                 return;
             }
 
@@ -422,10 +422,10 @@ namespace RustPlusDesk.Services.Auth
                     break;
 
                 case "presence_changed":
-                    // On Laravel the channel follows the team id from the heartbeat, so
+                    // On cloud the channel follows the team id from the heartbeat, so
                     // there is nothing to re-derive here; only Supabase needs to switch
                     // channels off the presence row.
-                    if (CloudBackend.UseLaravel) break;
+                    if (CloudBackend.UsePlatform) break;
 
                     string? presenceSteamId = payload["steam_id"]?.ToString();
                     if (presenceSteamId == mySteamId)

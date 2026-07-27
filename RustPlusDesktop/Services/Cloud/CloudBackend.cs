@@ -5,33 +5,31 @@ namespace RustPlusDesk.Services.Cloud
     /// <summary>Which cloud backend the client talks to.</summary>
     public enum CloudBackendMode
     {
-        /// <summary>Legacy Supabase (Edge Functions + Gotrue + Realtime).</summary>
+        /// <summary>Legacy third-party backend, retained as the rollback path.</summary>
         Supabase,
 
-        /// <summary>Self-hosted Laravel platform (REST /api/v1 + Sanctum + Reverb).</summary>
-        Laravel,
+        /// <summary>Self-hosted cloud platform (REST + token auth + realtime).</summary>
+        Platform,
     }
 
     /// <summary>
-    /// Single source of truth for the active cloud backend during the Supabase → Laravel
-    /// cutover (Phase 11). Defaults to <see cref="CloudBackendMode.Supabase"/> so a build is
-    /// behaviour-identical until the mode is flipped; a cutover build sets it to
-    /// <see cref="CloudBackendMode.Laravel"/>. Kept free of WPF/service dependencies so the
-    /// routing logic is unit-testable in isolation.
+    /// Single source of truth for the active cloud backend during the cutover to the
+    /// self-hosted platform. Kept free of WPF/service dependencies so the routing
+    /// logic is unit-testable in isolation.
     /// </summary>
     public static class CloudBackend
     {
         /// <summary>The backend this build targets. Flip to <c>Supabase</c> to roll back.</summary>
-        public static CloudBackendMode Mode { get; } = CloudBackendMode.Laravel;
+        public static CloudBackendMode Mode { get; } = CloudBackendMode.Platform;
 
-        /// <summary>True when the client should route cloud traffic to the Laravel API.</summary>
-        public static bool UseLaravel => Mode == CloudBackendMode.Laravel;
+        /// <summary>True when the client should route cloud traffic to the Cloud API.</summary>
+        public static bool UsePlatform => Mode == CloudBackendMode.Platform;
 
         /// <summary>
         /// Translate a legacy Supabase Edge Function name (as passed to
-        /// <c>SupabaseAuthManager.CallEdgeFunctionAsync</c>) into the equivalent Laravel
+        /// <c>SupabaseAuthManager.CallEdgeFunctionAsync</c>) into the equivalent platform
         /// <c>/api/v1</c> route path. Returns <c>null</c> when the operation has no direct
-        /// 1:1 route (e.g. <c>user-profile/claim</c>, which the Laravel handshake resolves
+        /// 1:1 route (e.g. <c>user-profile/claim</c>, which the platform resolves
         /// server-side) — callers handle those cases explicitly in later slices.
         /// </summary>
         public static string? MapEdgeFunctionToRoute(string edgeFunction, string? httpMethod = null)
@@ -66,8 +64,8 @@ namespace RustPlusDesk.Services.Cloud
             };
         }
 
-        /// <summary>Absolute URL for a Laravel <c>/api/v1</c> route path.</summary>
-        public static string ApiUrl(string laravelBaseUrl, string routePath) =>
-            $"{laravelBaseUrl.TrimEnd('/')}/api/v1/{routePath.TrimStart('/')}";
+        /// <summary>Absolute URL for an <c>/api/v1</c> route path.</summary>
+        public static string ApiUrl(string cloudBaseUrl, string routePath) =>
+            $"{cloudBaseUrl.TrimEnd('/')}/api/v1/{routePath.TrimStart('/')}";
     }
 }

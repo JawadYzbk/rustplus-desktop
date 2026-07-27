@@ -1852,10 +1852,10 @@ namespace RustPlusDesk.Views
             {
                 string? activeServerKey;
 
-                if (Services.Cloud.CloudBackend.UseLaravel)
+                if (Services.Cloud.CloudBackend.UsePlatform)
                 {
-                    if (!Services.Cloud.LaravelAuthManager.IsAuthenticated) return;
-                    activeServerKey = await Services.Cloud.LaravelAlexaAdapter.GetActiveServerKeyAsync();
+                    if (!Services.Cloud.CloudAuthManager.IsAuthenticated) return;
+                    activeServerKey = await Services.Cloud.CloudAlexaAdapter.GetActiveServerKeyAsync();
                 }
                 else
                 {
@@ -1891,7 +1891,7 @@ namespace RustPlusDesk.Views
         private async void BtnGenerateAlexaPIN_Click(object sender, RoutedEventArgs e)
         {
             var client = Services.Auth.SupabaseAuthManager.Client;
-            if (!Services.Cloud.CloudAuth.IsAuthenticated || (!Services.Cloud.CloudBackend.UseLaravel && client == null))
+            if (!Services.Cloud.CloudAuth.IsAuthenticated || (!Services.Cloud.CloudBackend.UsePlatform && client == null))
             {
                 MessageBox.Show(RustPlusDesk.Properties.Resources.GetString("CodeUiPleaseConnectYourCloudAccountFirst"), RustPlusDesk.Properties.Resources.GetString("ErrorPrefix"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
@@ -1911,9 +1911,9 @@ namespace RustPlusDesk.Views
                 var random = new Random();
                 string pin = random.Next(100000, 999999).ToString();
 
-                if (Services.Cloud.CloudBackend.UseLaravel)
+                if (Services.Cloud.CloudBackend.UsePlatform)
                 {
-                    if (!await Services.Cloud.LaravelAlexaAdapter.SetAlexaPinAsync(steamId, pin, DateTime.UtcNow.AddMinutes(15)))
+                    if (!await Services.Cloud.CloudAlexaAdapter.SetAlexaPinAsync(steamId, pin, DateTime.UtcNow.AddMinutes(15)))
                     {
                         MessageBox.Show(RustPlusDesk.Properties.Resources.GetString("CodeUiPleaseEnableCloudSyncFirstBeforeGeneratingAnAlexaPIN"), RustPlusDesk.Properties.Resources.GetString("ErrorPrefix"), MessageBoxButton.OK, MessageBoxImage.Warning);
                         BtnGenerateAlexaPIN.IsEnabled = true;
@@ -1955,7 +1955,7 @@ namespace RustPlusDesk.Views
         private async void BtnLinkAlexa_Click(object sender, RoutedEventArgs e)
         {
             var client = Services.Auth.SupabaseAuthManager.Client;
-            if (!Services.Cloud.CloudAuth.IsAuthenticated || (!Services.Cloud.CloudBackend.UseLaravel && client == null))
+            if (!Services.Cloud.CloudAuth.IsAuthenticated || (!Services.Cloud.CloudBackend.UsePlatform && client == null))
             {
                 MessageBox.Show(RustPlusDesk.Properties.Resources.GetString("CodeUiPleaseConnectYourCloudAccountFirst"), RustPlusDesk.Properties.Resources.GetString("ErrorPrefix"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
@@ -1978,7 +1978,7 @@ namespace RustPlusDesk.Views
             }
 
             var userId = client?.Auth?.CurrentUser?.Id;
-            if (!Services.Cloud.CloudBackend.UseLaravel && string.IsNullOrEmpty(userId)) return;
+            if (!Services.Cloud.CloudBackend.UsePlatform && string.IsNullOrEmpty(userId)) return;
 
             var consentDialog = new Windows.Dialogs.FcmConsentWindow { Owner = ParentWindow };
             if (consentDialog.ShowDialog() != true) return;
@@ -2002,11 +2002,11 @@ namespace RustPlusDesk.Views
                 var serverProfile = vm.Servers.FirstOrDefault(s => $"{s.Host}-{s.Port}" == serverKey);
                 if (serverProfile != null)
                 {
-                    if (Services.Cloud.CloudBackend.UseLaravel)
+                    if (Services.Cloud.CloudBackend.UsePlatform)
                     {
                         // Pairing and linking are one step: the API returns the server id
                         // that the Alexa setting references.
-                        await Services.Cloud.LaravelAlexaAdapter.LinkServerAsync(
+                        await Services.Cloud.CloudAlexaAdapter.LinkServerAsync(
                             steamId,
                             serverProfile.Host,
                             serverProfile.Port,
@@ -2073,16 +2073,16 @@ namespace RustPlusDesk.Views
 
         private async void BtnRevokeAlexa_Click(object sender, RoutedEventArgs e)
         {
-            if (!Services.Cloud.CloudBackend.UseLaravel && Services.Auth.SupabaseAuthManager.Client == null) return;
+            if (!Services.Cloud.CloudBackend.UsePlatform && Services.Auth.SupabaseAuthManager.Client == null) return;
             var user = Services.Auth.SupabaseAuthManager.Client?.Auth?.CurrentUser;
-            if (!Services.Cloud.CloudBackend.UseLaravel && user == null) return;
+            if (!Services.Cloud.CloudBackend.UsePlatform && user == null) return;
 
             BtnRevokeAlexa.IsEnabled = false;
             try
             {
-                if (Services.Cloud.CloudBackend.UseLaravel)
+                if (Services.Cloud.CloudBackend.UsePlatform)
                 {
-                    await Services.Cloud.LaravelAlexaAdapter.RevokeAsync();
+                    await Services.Cloud.CloudAlexaAdapter.RevokeAsync();
                 }
                 else
                 {

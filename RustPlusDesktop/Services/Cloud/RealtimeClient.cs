@@ -12,11 +12,11 @@ using RustPlusDesk.Services.Auth;
 namespace RustPlusDesk.Services.Cloud
 {
     /// <summary>
-    /// Connection details for the Reverb server, served by
+    /// Connection details for the realtime server, served by
     /// <c>GET /api/v1/broadcasting/config</c> so the WebSocket endpoint can move
     /// without shipping a new desktop build.
     /// </summary>
-    public sealed class ReverbConnectionInfo
+    public sealed class RealtimeConnectionInfo
     {
         public string WsUrl { get; init; } = "";
         public string AuthEndpoint { get; init; } = "";
@@ -24,19 +24,19 @@ namespace RustPlusDesk.Services.Cloud
     }
 
     /// <summary>
-    /// Minimal Pusher-protocol (v7) WebSocket client for Laravel Reverb, covering
+    /// Minimal Pusher-protocol (v7) WebSocket client for the realtime service, covering
     /// exactly what the desktop needs: connect, authorize and subscribe to private
-    /// channels with the Sanctum bearer token, answer keepalives, and transparently
+    /// channels with the bearer token, answer keepalives, and transparently
     /// reconnect with backoff — resubscribing whatever was requested.
     ///
     /// This deliberately avoids a Pusher SDK dependency: the protocol surface in use
-    /// is small, and the auth step has to run through <see cref="LaravelApiClient"/>
+    /// is small, and the auth step has to run through <see cref="CloudApiClient"/>
     /// so it inherits the client-version header and upgrade-required handling.
     /// </summary>
-    public sealed class ReverbClient
+    public sealed class RealtimeClient
     {
         /// <summary>Process-wide client. Realtime is a single connection by design.</summary>
-        public static ReverbClient Shared { get; } = new();
+        public static RealtimeClient Shared { get; } = new();
 
         private const int MaxBackoffSeconds = 30;
         private const int ReceiveBufferSize = 16 * 1024;
@@ -50,7 +50,7 @@ namespace RustPlusDesk.Services.Cloud
         /// <summary>Channels the server has confirmed on the current connection.</summary>
         private readonly HashSet<string> _confirmedChannels = new(StringComparer.Ordinal);
 
-        private ReverbConnectionInfo? _connectionInfo;
+        private RealtimeConnectionInfo? _connectionInfo;
         private ClientWebSocket? _socket;
         private CancellationTokenSource? _cts;
         private Task? _runLoop;
@@ -159,7 +159,7 @@ namespace RustPlusDesk.Services.Cloud
                 }
                 catch (Exception ex)
                 {
-                    Log($"[Reverb/Error] Connection failed: {ex.Message}");
+                    Log($"[Realtime/Error] Connection failed: {ex.Message}");
                     attempt++;
                 }
                 finally
@@ -184,7 +184,7 @@ namespace RustPlusDesk.Services.Cloud
         {
             var info = await EnsureConnectionInfoAsync();
             if (info == null || string.IsNullOrWhiteSpace(info.WsUrl))
-                throw new InvalidOperationException("Reverb connection details unavailable.");
+                throw new InvalidOperationException("realtime connection details unavailable.");
 
             var uri = new Uri($"{info.WsUrl}?protocol=7&client=rustplusdesk&version={Helpers.VersionHelper.GetClientVersion()}");
 
@@ -193,7 +193,7 @@ namespace RustPlusDesk.Services.Cloud
             _socket = socket;
 
             await socket.ConnectAsync(uri, ct);
-            Log("[Reverb] WebSocket connected.");
+            Log("[Realtime] WebSocket connected.");
 
             _lastInboundUtc = DateTime.UtcNow;
 
@@ -223,7 +223,7 @@ namespace RustPlusDesk.Services.Cloud
 
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    Log($"[Reverb] Server closed the connection: {result.CloseStatus} {result.CloseStatusDescription}");
+                    Log($"[Realtime] Server closed the connection: {result.CloseStatus} {result.CloseStatusDescription}");
                     return;
                 }
 
@@ -240,7 +240,7 @@ namespace RustPlusDesk.Services.Cloud
                 }
                 catch (Exception ex)
                 {
-                    Log($"[Reverb/Error] Frame handling failed: {ex.Message}");
+                    Log($"[Realtime/Error] Frame handling failed: {ex.Message}");
                 }
             }
         }
@@ -261,7 +261,7 @@ namespace RustPlusDesk.Services.Cloud
                     if (data?["activity_timeout"] != null)
                         _activityTimeoutSeconds = data["activity_timeout"]!.Value<int>();
 
-                    Log($"[Reverb] Connection established (socket {_socketId}).");
+                    Log($"[Realtime] Connection established (socket {_socketId}).");
                     await ResubscribeAllAsync(ct);
                     break;
 
@@ -274,11 +274,11 @@ namespace RustPlusDesk.Services.Cloud
 
                 case "pusher_internal:subscription_succeeded":
                     lock (_confirmedChannels) _confirmedChannels.Add(channel);
-                    Log($"[Reverb] Subscribed to {channel}.");
+                    Log($"[Realtime] Subscribed to {channel}.");
                     break;
 
                 case "pusher:error":
-                    Log($"[Reverb/Error] {data?["code"]}: {data?["message"]}");
+                    Log($"[Realtime/Error] {data?["code"]}: {data?["message"]}");
                     break;
 
                 default:
@@ -324,7 +324,7 @@ namespace RustPlusDesk.Services.Cloud
                 var auth = await AuthorizeAsync(channel, socketId);
                 if (auth == null)
                 {
-                    Log($"[Reverb/Error] Channel auth denied for {channel}.");
+                    Log($"[Realtime/Error] Channel auth denied for {channel}.");
                     return;
                 }
 
@@ -336,18 +336,18 @@ namespace RustPlusDesk.Services.Cloud
             }
             catch (Exception ex)
             {
-                Log($"[Reverb/Error] Subscribe to {channel} failed: {ex.Message}");
+                Log($"[Realtime/Error] Subscribe to {channel} failed: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Exchange the Sanctum bearer token for a Pusher channel signature. The
+        /// Exchange the bearer token for a Pusher channel signature. The
         /// framework's own /broadcasting/auth is session+CSRF gated, so this uses the
         /// bearer-friendly route under /api/v1.
         /// </summary>
         private static async Task<string?> AuthorizeAsync(string channel, string socketId)
         {
-            var body = await LaravelApiClient.CallApiAsync(
+            var body = await CloudApiClient.CallApiAsync(
                 "broadcasting/auth",
                 HttpMethod.Post,
                 payload: new { socket_id = socketId, channel_name = channel });
@@ -355,7 +355,7 @@ namespace RustPlusDesk.Services.Cloud
             return string.IsNullOrWhiteSpace(body) ? null : JObject.Parse(body)["auth"]?.ToString();
         }
 
-        private async Task<ReverbConnectionInfo?> EnsureConnectionInfoAsync()
+        private async Task<RealtimeConnectionInfo?> EnsureConnectionInfoAsync()
         {
             if (_connectionInfo != null) return _connectionInfo;
 
@@ -364,11 +364,11 @@ namespace RustPlusDesk.Services.Cloud
             {
                 if (_connectionInfo != null) return _connectionInfo;
 
-                var body = await LaravelApiClient.CallApiAsync("broadcasting/config", HttpMethod.Get);
+                var body = await CloudApiClient.CallApiAsync("broadcasting/config", HttpMethod.Get);
                 var data = JObject.Parse(body)["data"];
                 if (data == null) return null;
 
-                _connectionInfo = new ReverbConnectionInfo
+                _connectionInfo = new RealtimeConnectionInfo
                 {
                     WsUrl = data["ws_url"]?.ToString() ?? "",
                     AuthEndpoint = data["auth_endpoint"]?.ToString() ?? "",
@@ -401,7 +401,7 @@ namespace RustPlusDesk.Services.Cloud
                 // aborting drops out of the receive loop and triggers a reconnect.
                 if (idle > TimeSpan.FromSeconds(_activityTimeoutSeconds * 2))
                 {
-                    Log("[Reverb] Keepalive timed out; reconnecting.");
+                    Log("[Realtime] Keepalive timed out; reconnecting.");
                     try { _socket?.Abort(); } catch { }
                     return;
                 }

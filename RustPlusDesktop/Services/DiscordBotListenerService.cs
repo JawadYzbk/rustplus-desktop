@@ -20,9 +20,9 @@ public class DiscordBotListenerService
     private readonly List<RealtimeChannel> _activeChannels = new();
     private readonly HashSet<string> _subscribedGuildIds = new();
 
-    /// <summary>Reverb channel names currently joined (Laravel backend).</summary>
-    private readonly HashSet<string> _reverbChannels = new();
-    private bool _reverbHandlerAttached;
+    /// <summary>realtime channel names currently joined (cloud platform).</summary>
+    private readonly HashSet<string> _realtimeChannels = new();
+    private bool _realtimeHandlerAttached;
 
     private bool _isListening;
     private bool _isNotificationMaster;
@@ -68,7 +68,7 @@ public class DiscordBotListenerService
 
         try
         {
-            if (CloudBackend.UseLaravel)
+            if (CloudBackend.UsePlatform)
             {
                 // The API scopes both the guild list and the command queue to the
                 // signed-in owner, so a client serves its own guilds only. Under
@@ -108,7 +108,7 @@ public class DiscordBotListenerService
     {
         var ids = new List<string>();
 
-        var body = await LaravelApiClient.CallApiAsync("discord/guilds", System.Net.Http.HttpMethod.Get);
+        var body = await CloudApiClient.CallApiAsync("discord/guilds", System.Net.Http.HttpMethod.Get);
         using var doc = JsonDocument.Parse(body);
 
         if (!doc.RootElement.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
@@ -130,9 +130,9 @@ public class DiscordBotListenerService
     {
         if (SupabaseAuthManager.IsUpgradeRequiredSnackbarShown) return;
 
-        if (CloudBackend.UseLaravel)
+        if (CloudBackend.UsePlatform)
         {
-            await SubscribeToGuildQueueViaReverbAsync(guildId);
+            await SubscribeToGuildQueueViaRealtimeAsync(guildId);
             return;
         }
 
@@ -184,20 +184,20 @@ public class DiscordBotListenerService
     }
 
     /// <summary>
-    /// Reverb equivalent of the postgres-changes subscription: the API broadcasts
+    /// the realtime service equivalent of the postgres-changes subscription: the API broadcasts
     /// `command_queued` on the owning guild's private channel.
     /// </summary>
-    private async Task SubscribeToGuildQueueViaReverbAsync(string guildId)
+    private async Task SubscribeToGuildQueueViaRealtimeAsync(string guildId)
     {
         try
         {
-            AttachReverbHandler();
+            AttachRealtimeHandler();
 
             var channel = $"private-discord-guilds.{guildId}";
             lock (_subscribedGuildIds) { _subscribedGuildIds.Add(guildId); }
-            lock (_reverbChannels) { _reverbChannels.Add(channel); }
+            lock (_realtimeChannels) { _realtimeChannels.Add(channel); }
 
-            await ReverbClient.Shared.SubscribeAsync(channel);
+            await RealtimeClient.Shared.SubscribeAsync(channel);
             Log($"[DiscordBotListener] Subscribed to command queue for Guild: {guildId}");
 
             await ProcessRecentPendingCommandsAsync(guildId);
@@ -209,18 +209,18 @@ public class DiscordBotListenerService
         }
     }
 
-    private void AttachReverbHandler()
+    private void AttachRealtimeHandler()
     {
-        if (_reverbHandlerAttached) return;
-        _reverbHandlerAttached = true;
+        if (_realtimeHandlerAttached) return;
+        _realtimeHandlerAttached = true;
 
-        ReverbClient.Shared.EventReceived += (channel, eventName, data) =>
+        RealtimeClient.Shared.EventReceived += (channel, eventName, data) =>
         {
             if (eventName != "command_queued") return;
 
-            lock (_reverbChannels)
+            lock (_realtimeChannels)
             {
-                if (!_reverbChannels.Contains(channel)) return;
+                if (!_realtimeChannels.Contains(channel)) return;
             }
 
             try
@@ -332,9 +332,9 @@ public class DiscordBotListenerService
     /// </summary>
     private static async Task<bool> TryClaimCommandAsync(string id)
     {
-        if (CloudBackend.UseLaravel)
+        if (CloudBackend.UsePlatform)
         {
-            var body = await LaravelApiClient.CallApiAsync(
+            var body = await CloudApiClient.CallApiAsync(
                 $"discord/commands/{id}/claim", System.Net.Http.HttpMethod.Post);
 
             using var doc = JsonDocument.Parse(body);
@@ -356,17 +356,17 @@ public class DiscordBotListenerService
 
     private static async Task ReportCommandResultAsync(string id, CommandResult reply)
     {
-        if (CloudBackend.UseLaravel)
+        if (CloudBackend.UsePlatform)
         {
             if (reply.Success)
             {
-                await LaravelApiClient.CallApiAsync(
+                await CloudApiClient.CallApiAsync(
                     $"discord/commands/{id}/complete", System.Net.Http.HttpMethod.Post,
                     payload: new { response = new { success = true, message = reply.Message } });
             }
             else
             {
-                await LaravelApiClient.CallApiAsync(
+                await CloudApiClient.CallApiAsync(
                     $"discord/commands/{id}/fail", System.Net.Http.HttpMethod.Post,
                     payload: new { error = reply.Message });
             }
@@ -543,16 +543,16 @@ public class DiscordBotListenerService
             catch { }
         }
 
-        string[] reverbChannels;
-        lock (_reverbChannels)
+        string[] realtimeChannels;
+        lock (_realtimeChannels)
         {
-            reverbChannels = _reverbChannels.ToArray();
-            _reverbChannels.Clear();
+            realtimeChannels = _realtimeChannels.ToArray();
+            _realtimeChannels.Clear();
         }
 
-        foreach (var channel in reverbChannels)
+        foreach (var channel in realtimeChannels)
         {
-            try { _ = ReverbClient.Shared.UnsubscribeAsync(channel); } catch { }
+            try { _ = RealtimeClient.Shared.UnsubscribeAsync(channel); } catch { }
         }
 
         _activeChannels.Clear();
@@ -615,7 +615,7 @@ public class DiscordBotListenerService
             return;
         }
 
-        if (CloudBackend.UseLaravel)
+        if (CloudBackend.UsePlatform)
         {
             await SendNotificationViaApiAsync(notificationType, message, ownerSteamIds);
             return;
@@ -755,7 +755,7 @@ public class DiscordBotListenerService
     {
         try
         {
-            var body = await LaravelApiClient.CallApiAsync(
+            var body = await CloudApiClient.CallApiAsync(
                 "discord/notify", System.Net.Http.HttpMethod.Post,
                 payload: new
                 {
@@ -784,7 +784,7 @@ public class DiscordBotListenerService
         {
             var cutoff = DateTime.UtcNow.AddSeconds(-15);
 
-            if (CloudBackend.UseLaravel)
+            if (CloudBackend.UsePlatform)
             {
                 foreach (var command in await FetchPendingCommandsAsync(guildId))
                 {
@@ -820,7 +820,7 @@ public class DiscordBotListenerService
     {
         var commands = new List<BotCommandsQueueModel>();
 
-        var body = await LaravelApiClient.CallApiAsync("discord/commands", System.Net.Http.HttpMethod.Get);
+        var body = await CloudApiClient.CallApiAsync("discord/commands", System.Net.Http.HttpMethod.Get);
         var parsed = Newtonsoft.Json.Linq.JObject.Parse(body)["data"] as Newtonsoft.Json.Linq.JArray;
         if (parsed == null) return commands;
 

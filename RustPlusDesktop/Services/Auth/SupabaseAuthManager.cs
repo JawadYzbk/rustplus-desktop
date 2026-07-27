@@ -93,10 +93,10 @@ namespace RustPlusDesk.Services.Auth
 
         public static async Task FetchTierLimitsAsync(bool forceRefresh = false)
         {
-            if (Cloud.CloudBackend.UseLaravel)
+            if (Cloud.CloudBackend.UsePlatform)
             {
                 if (forceRefresh || TierLimits == null || TierLimits.Count == 0)
-                    await FetchTierLimitsLaravelAsync();
+                    await FetchTierLimitscloudAsync();
                 return;
             }
 
@@ -197,10 +197,10 @@ namespace RustPlusDesk.Services.Auth
         /// <summary>True when the current account has the requested sign-in provider linked.</summary>
         public static bool HasAuthProvider(string provider)
         {
-            // Laravel issues opaque Sanctum tokens, so there is no JWT identity list
+            // cloud issues opaque session tokens, so there is no JWT identity list
             // to inspect — the API reports which providers the account can use.
-            if (Cloud.CloudBackend.UseLaravel)
-                return Cloud.LaravelAuthManager.HasProvider(provider);
+            if (Cloud.CloudBackend.UsePlatform)
+                return Cloud.CloudAuthManager.HasProvider(provider);
 
             var user = Client?.Auth?.CurrentUser;
             if (user == null || Client?.Auth?.CurrentSession == null) return false;
@@ -468,10 +468,10 @@ namespace RustPlusDesk.Services.Auth
         {
             if (IsUpgradeRequiredSnackbarShown) return false;
 
-            // Sanctum tokens cannot be refreshed and carry no readable expiry, so
+            // session tokens cannot be refreshed and carry no readable expiry, so
             // "fresh" means "the server still accepts it".
-            if (Cloud.CloudBackend.UseLaravel)
-                return await Cloud.LaravelAuthManager.EnsureValidSessionAsync();
+            if (Cloud.CloudBackend.UsePlatform)
+                return await Cloud.CloudAuthManager.EnsureValidSessionAsync();
 
             // Discord/email session refresh — an account session is required (no guest path).
             var session = Client?.Auth?.CurrentSession;
@@ -1191,8 +1191,8 @@ namespace RustPlusDesk.Services.Auth
             if (!accepted)
                 ConfirmedCloudSyncConsentIdentity = null;
 
-            if (Cloud.CloudBackend.UseLaravel)
-                return await UpdateCloudSyncConsentLaravelAsync(accepted);
+            if (Cloud.CloudBackend.UsePlatform)
+                return await UpdateCloudSyncConsentcloudAsync(accepted);
 
             if (!IsAuthenticated) return false;
             if (!await EnsureFreshSessionAsync()) return false;
@@ -1294,9 +1294,9 @@ namespace RustPlusDesk.Services.Auth
 
         public static async Task UpdatePresenceAsync(string? serverKey, string? serverName, System.Collections.Generic.IReadOnlyCollection<CloudTeamMemberDto> teamMembers)
         {
-            if (Cloud.CloudBackend.UseLaravel)
+            if (Cloud.CloudBackend.UsePlatform)
             {
-                await UpdatePresenceLaravelAsync();
+                await UpdatePresencecloudAsync();
                 return;
             }
 
@@ -1331,8 +1331,8 @@ namespace RustPlusDesk.Services.Auth
 
         public static async Task MarkAppOfflineAsync()
         {
-            // Laravel presence expires via last_active_at staleness — no explicit offline call.
-            if (Cloud.CloudBackend.UseLaravel) return;
+            // cloud presence expires via last_active_at staleness — no explicit offline call.
+            if (Cloud.CloudBackend.UsePlatform) return;
 
             if (!IsAuthenticated) return;
             if (!await EnsureFreshSessionAsync()) return;
@@ -1388,9 +1388,9 @@ namespace RustPlusDesk.Services.Auth
 
         private static async Task TouchProfileAsync(string steamId, string? discordId = null)
         {
-            if (Cloud.CloudBackend.UseLaravel)
+            if (Cloud.CloudBackend.UsePlatform)
             {
-                await TouchProfileLaravelAsync(steamId);
+                await TouchProfilecloudAsync(steamId);
                 return;
             }
 
@@ -1432,7 +1432,7 @@ namespace RustPlusDesk.Services.Auth
             bool wantsChatAlerts,
             bool wantsChatCommands)
         {
-            if (!Cloud.CloudBackend.UseLaravel && Client == null) return null;
+            if (!Cloud.CloudBackend.UsePlatform && Client == null) return null;
             if (!IsDiscordAuthenticated && !IsEmailAuthenticated) return null;
             if (!await EnsureFreshSessionAsync()) return null;
 
@@ -1453,10 +1453,10 @@ namespace RustPlusDesk.Services.Auth
                 var body = await CallEdgeFunctionAsync("team-feature/heartbeat", HttpMethod.Post, payload);
                 if (string.IsNullOrWhiteSpace(body)) return null;
 
-                // Laravel wraps the result: { data: { team_id, master, master_changed } }.
-                // The team id names the Reverb channel, so it is handed to the realtime
+                // cloud wraps the result: { data: { team_id, master, master_changed } }.
+                // The team id names the realtime channel, so it is handed to the realtime
                 // service before the master state is unwrapped and returned.
-                if (Cloud.CloudBackend.UseLaravel)
+                if (Cloud.CloudBackend.UsePlatform)
                 {
                     using var envelope = JsonDocument.Parse(body);
                     if (!envelope.RootElement.TryGetProperty("data", out var data))
@@ -1616,13 +1616,13 @@ namespace RustPlusDesk.Services.Auth
 
         public static async Task<(bool IsAdmin, string? ErrorMessage)> CheckIsAdminDetailedAsync()
         {
-            if (Cloud.CloudBackend.UseLaravel)
+            if (Cloud.CloudBackend.UsePlatform)
             {
-                if (!Cloud.LaravelAuthManager.IsAuthenticated) return (false, "Sign in to your cloud account first.");
+                if (!Cloud.CloudAuthManager.IsAuthenticated) return (false, "Sign in to your cloud account first.");
                 try
                 {
-                    // Laravel exposes roles rather than a boolean admin flag.
-                    var rolesBody = await Cloud.LaravelApiClient.CallApiAsync("me/roles", HttpMethod.Get);
+                    // cloud exposes roles rather than a boolean admin flag.
+                    var rolesBody = await Cloud.CloudApiClient.CallApiAsync("me/roles", HttpMethod.Get);
                     using var rolesDoc = JsonDocument.Parse(rolesBody);
                     var roles = rolesDoc.RootElement.TryGetProperty("data", out var d) ? d : rolesDoc.RootElement;
 
@@ -1644,7 +1644,7 @@ namespace RustPlusDesk.Services.Auth
                 }
                 catch (Exception ex)
                 {
-                    AppendLog($"[Laravel/Error] Admin check failed: {ex.Message}");
+                    AppendLog($"[Cloud/Error] Admin check failed: {ex.Message}");
                     return (false, ex.Message);
                 }
             }
@@ -1691,19 +1691,19 @@ namespace RustPlusDesk.Services.Auth
 
         private static readonly HttpClient Http = new();
 
-        // ── Laravel backend variants (Phase 11 slice 1) ─────────────────────────
-        // Self-contained cloud writes routed to /api/v1 when the Laravel backend is
-        // active. The bearer is LaravelAuthManager.CurrentToken (applied by
-        // LaravelApiClient). Payloads/response shapes match the Laravel contract,
+        // ── cloud platform variants (Phase 11 slice 1) ─────────────────────────
+        // Self-contained cloud writes routed to /api/v1 when the cloud platform is
+        // active. The bearer is CloudAuthManager.CurrentToken (applied by
+        // CloudApiClient). Payloads/response shapes match the cloud contract,
         // which differs from the legacy Supabase Edge Functions.
 
-        private static async Task FetchTierLimitsLaravelAsync()
+        private static async Task FetchTierLimitscloudAsync()
         {
-            if (!Cloud.LaravelAuthManager.IsAuthenticated) return;
+            if (!Cloud.CloudAuthManager.IsAuthenticated) return;
 
             try
             {
-                var body = await Cloud.LaravelApiClient.CallApiAsync("me/limits", HttpMethod.Get);
+                var body = await Cloud.CloudApiClient.CallApiAsync("me/limits", HttpMethod.Get);
                 using var doc = JsonDocument.Parse(body);
                 var data = doc.RootElement.GetProperty("data");
                 var planCode = data.TryGetProperty("plan_code", out var pc) ? pc.GetString() ?? "free" : "free";
@@ -1711,10 +1711,10 @@ namespace RustPlusDesk.Services.Auth
                 var model = new RustPlusDesk.Models.TierLimitModel { TierCode = planCode };
                 if (data.TryGetProperty("limits", out var limits) && limits.TryGetProperty("sync", out var sync))
                 {
-                    model.MaxOverlayKb = LaravelLimitValue(sync, "max_overlay_kb");
-                    model.MaxBases = LaravelLimitValue(sync, "max_bases");
-                    model.MaxDevices = LaravelLimitValue(sync, "max_devices");
-                    model.MaxScreenshotsPerBase = LaravelLimitValue(sync, "max_screenshots_per_base");
+                    model.MaxOverlayKb = cloudLimitValue(sync, "max_overlay_kb");
+                    model.MaxBases = cloudLimitValue(sync, "max_bases");
+                    model.MaxDevices = cloudLimitValue(sync, "max_devices");
+                    model.MaxScreenshotsPerBase = cloudLimitValue(sync, "max_screenshots_per_base");
                 }
 
                 CurrentTier = planCode;
@@ -1723,78 +1723,78 @@ namespace RustPlusDesk.Services.Auth
                 {
                     [planCode] = model,
                 };
-                AppendLog($"[Laravel] Loaded plan limits for '{planCode}' (IsPremium: {IsPremium}).");
+                AppendLog($"[Cloud] Loaded plan limits for '{planCode}' (IsPremium: {IsPremium}).");
             }
             catch (Exception ex)
             {
-                AppendLog($"[Laravel/Error] Failed to fetch plan limits: {ex.Message}. Using defaults.");
+                AppendLog($"[Cloud/Error] Failed to fetch plan limits: {ex.Message}. Using defaults.");
             }
         }
 
-        private static int? LaravelLimitValue(JsonElement feature, string key) =>
+        private static int? cloudLimitValue(JsonElement feature, string key) =>
             feature.TryGetProperty(key, out var k) && k.TryGetProperty("value", out var v) && v.TryGetInt32(out var n)
                 ? n
                 : (int?)null;
 
-        private static async Task UpdatePresenceLaravelAsync()
+        private static async Task UpdatePresencecloudAsync()
         {
-            if (!Cloud.LaravelAuthManager.IsAuthenticated) return;
+            if (!Cloud.CloudAuthManager.IsAuthenticated) return;
 
             try
             {
-                // Laravel derives presence itself from the authenticated user and
+                // cloud derives presence itself from the authenticated user and
                 // request headers, but the steam id has to be reported: the desktop
                 // token flows authenticate an account that knows nothing about Steam,
                 // and team features are keyed by steam id.
                 var steamId = TrackingService.SteamId64;
-                await Cloud.LaravelApiClient.CallApiAsync("profile/presence", HttpMethod.Post, null, new { steam_id = steamId });
+                await Cloud.CloudApiClient.CallApiAsync("profile/presence", HttpMethod.Post, null, new { steam_id = steamId });
             }
             catch (Exception ex)
             {
-                AppendLog($"[Laravel/Debug] Presence update failed: {ex.Message}");
+                AppendLog($"[Cloud/Debug] Presence update failed: {ex.Message}");
             }
         }
 
-        private static async Task<bool> UpdateCloudSyncConsentLaravelAsync(bool accepted)
+        private static async Task<bool> UpdateCloudSyncConsentcloudAsync(bool accepted)
         {
-            if (!Cloud.LaravelAuthManager.IsAuthenticated) return false;
+            if (!Cloud.CloudAuthManager.IsAuthenticated) return false;
 
             try
             {
-                await Cloud.LaravelApiClient.CallApiAsync("profile/consent", HttpMethod.Post, null, new { accepted });
-                ConfirmedCloudSyncConsentIdentity = accepted ? (GetCloudSyncConsentIdentity() ?? "laravel") : null;
-                AppendLog($"[Laravel] Updated cloud-sync consent to: {accepted}");
+                await Cloud.CloudApiClient.CallApiAsync("profile/consent", HttpMethod.Post, null, new { accepted });
+                ConfirmedCloudSyncConsentIdentity = accepted ? (GetCloudSyncConsentIdentity() ?? "cloud") : null;
+                AppendLog($"[Cloud] Updated cloud-sync consent to: {accepted}");
                 return true;
             }
             catch (Exception ex)
             {
                 if (accepted)
                     ConfirmedCloudSyncConsentIdentity = null;
-                AppendLog($"[Laravel/Error] Failed to update consent: {ex.Message}");
+                AppendLog($"[Cloud/Error] Failed to update consent: {ex.Message}");
                 return false;
             }
         }
 
-        private static async Task TouchProfileLaravelAsync(string steamId)
+        private static async Task TouchProfilecloudAsync(string steamId)
         {
-            if (!Cloud.LaravelAuthManager.IsAuthenticated) return;
+            if (!Cloud.CloudAuthManager.IsAuthenticated) return;
 
             await ProfileTouchLock.WaitAsync();
             try
             {
-                var identity = $"{Cloud.LaravelAuthManager.CurrentUser?.Id}:{steamId}";
+                var identity = $"{Cloud.CloudAuthManager.CurrentUser?.Id}:{steamId}";
                 var minimized = CloudTrafficPolicy.IsMinimized;
                 if (identity == LastProfileTouchIdentity &&
                     DateTime.UtcNow - LastProfileTouchUtc < CloudTrafficPolicy.ProfileTouchInterval(minimized))
                     return;
 
-                await Cloud.LaravelApiClient.CallApiAsync("profile/touch", HttpMethod.Post, null, new { });
+                await Cloud.CloudApiClient.CallApiAsync("profile/touch", HttpMethod.Post, null, new { });
                 LastProfileTouchIdentity = identity;
                 LastProfileTouchUtc = DateTime.UtcNow;
             }
             catch (Exception ex)
             {
-                AppendLog($"[Laravel/Debug] Touch profile failed: {ex.Message}");
+                AppendLog($"[Cloud/Debug] Touch profile failed: {ex.Message}");
             }
             finally
             {
@@ -1808,19 +1808,19 @@ namespace RustPlusDesk.Services.Auth
             object? payload = null,
             System.Collections.Generic.Dictionary<string, string>? queryParams = null)
         {
-            // Laravel backend: translate the legacy edge-function name to its /api/v1
+            // cloud platform: translate the legacy edge-function name to its /api/v1
             // route. Unported endpoints throw rather than silently falling back, so a
             // missing port surfaces immediately instead of leaking to Supabase.
-            if (Cloud.CloudBackend.UseLaravel)
+            if (Cloud.CloudBackend.UsePlatform)
             {
                 // Discord bot config needs shape/id translation rather than a route swap.
-                if (Cloud.LaravelDiscordAdapter.Handles(functionName))
-                    return await Cloud.LaravelDiscordAdapter.CallAsync(functionName, method, payload, queryParams);
+                if (Cloud.CloudDiscordAdapter.Handles(functionName))
+                    return await Cloud.CloudDiscordAdapter.CallAsync(functionName, method, payload, queryParams);
 
                 var route = Cloud.CloudBackend.MapEdgeFunctionToRoute(functionName, method.Method)
-                    ?? throw new NotSupportedException($"'{functionName}' has no Laravel route yet.");
+                    ?? throw new NotSupportedException($"'{functionName}' has no cloud route yet.");
 
-                return await Cloud.LaravelApiClient.CallApiAsync(route, method, null, payload, queryParams);
+                return await Cloud.CloudApiClient.CallApiAsync(route, method, null, payload, queryParams);
             }
 
             if (Client == null)

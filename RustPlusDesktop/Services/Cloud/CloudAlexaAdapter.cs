@@ -10,23 +10,23 @@ using RustPlusDesk.Services.Auth;
 namespace RustPlusDesk.Services.Cloud
 {
     /// <summary>
-    /// Alexa + FCM linking against the Laravel API.
+    /// Alexa + FCM linking against the Cloud API.
     ///
     /// Two shape differences make this more than a route swap. Supabase keyed the
     /// active Alexa server by the client-side <c>"{host}-{port}"</c> string, whereas
-    /// Laravel references a <c>rust_servers</c> UUID — so the pairing list is used to
-    /// translate between them. And Laravel never returns the stored FCM config (it is
+    /// the platform references a <c>rust_servers</c> UUID — so the pairing list is used to
+    /// translate between them. And the API never returns the stored FCM config (it is
     /// encrypted at rest), so the Alexa PIN cannot be read-modify-written remotely;
     /// the local credentials file is the source of truth and is re-uploaded whole.
     /// </summary>
-    public static class LaravelAlexaAdapter
+    public static class CloudAlexaAdapter
     {
         private sealed record PairedServer(string ServerId, string Host, int Port);
 
         /// <summary>The client-side server key ("{host}-{port}") currently linked to Alexa, if any.</summary>
         public static async Task<string?> GetActiveServerKeyAsync()
         {
-            var body = await LaravelApiClient.CallApiAsync("me/alexa", HttpMethod.Get);
+            var body = await CloudApiClient.CallApiAsync("me/alexa", HttpMethod.Get);
 
             using var doc = JsonDocument.Parse(body);
             if (!doc.RootElement.TryGetProperty("data", out var data) ||
@@ -55,7 +55,7 @@ namespace RustPlusDesk.Services.Cloud
         /// </summary>
         public static async Task<bool> LinkServerAsync(string steamId, string host, int port, string? name, string playerToken)
         {
-            var pairBody = await LaravelApiClient.CallApiAsync("me/servers", HttpMethod.Post, payload: new
+            var pairBody = await CloudApiClient.CallApiAsync("me/servers", HttpMethod.Post, payload: new
             {
                 server_ip = host,
                 server_port = port,
@@ -67,7 +67,7 @@ namespace RustPlusDesk.Services.Cloud
             var serverId = ExtractServerId(pairBody);
             if (serverId == null) return false;
 
-            await LaravelApiClient.CallApiAsync("me/alexa", HttpMethod.Put, payload: new
+            await CloudApiClient.CallApiAsync("me/alexa", HttpMethod.Put, payload: new
             {
                 steam_id = steamId,
                 active_server_id = serverId,
@@ -77,7 +77,7 @@ namespace RustPlusDesk.Services.Cloud
         }
 
         public static Task RevokeAsync() =>
-            LaravelApiClient.CallApiAsync("me/alexa", HttpMethod.Delete);
+            CloudApiClient.CallApiAsync("me/alexa", HttpMethod.Delete);
 
         /// <summary>
         /// Stamp a short-lived Alexa PIN into the FCM config and re-upload it. The
@@ -93,7 +93,7 @@ namespace RustPlusDesk.Services.Cloud
             config["alexa_pin"] = pin;
             config["alexa_pin_expires"] = expiresUtc.ToString("O");
 
-            await LaravelApiClient.CallApiAsync("me/fcm", HttpMethod.Put, payload: new
+            await CloudApiClient.CallApiAsync("me/fcm", HttpMethod.Put, payload: new
             {
                 steam_id = steamId,
                 fcm_config = config,
@@ -107,7 +107,7 @@ namespace RustPlusDesk.Services.Cloud
         {
             try
             {
-                var body = await LaravelApiClient.CallApiAsync("me/fcm", HttpMethod.Get);
+                var body = await CloudApiClient.CallApiAsync("me/fcm", HttpMethod.Get);
                 using var doc = JsonDocument.Parse(body);
 
                 return doc.RootElement.TryGetProperty("data", out var data)
@@ -136,7 +136,7 @@ namespace RustPlusDesk.Services.Cloud
         {
             var servers = new List<PairedServer>();
 
-            var body = await LaravelApiClient.CallApiAsync("me/servers", HttpMethod.Get);
+            var body = await CloudApiClient.CallApiAsync("me/servers", HttpMethod.Get);
             using var doc = JsonDocument.Parse(body);
 
             if (!doc.RootElement.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)

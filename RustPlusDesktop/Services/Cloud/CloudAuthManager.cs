@@ -16,25 +16,25 @@ using RustPlusDesk.Services.Data;
 namespace RustPlusDesk.Services.Cloud
 {
     /// <summary>
-    /// Authenticates the desktop client against the Laravel backend and holds the
-    /// resulting Sanctum token used as the bearer for all API calls. Real accounts
+    /// Authenticates the desktop client against the cloud platform and holds the
+    /// resulting session token used as the bearer for all API calls. Real accounts
     /// only — Discord OAuth (browser loopback) or email + password. There is no
     /// anonymous/guest path.
     /// </summary>
-    public static class LaravelAuthManager
+    public static class CloudAuthManager
     {
-        private const string TokenCacheKey = "laravel_desktop_token";
+        private const string TokenCacheKey = "cloud_desktop_token";
 
         /// <summary>Loopback the browser is redirected back to after Discord SSO.</summary>
         private const string LoopbackUrl = "http://localhost:3000/callback/";
 
         private static readonly HttpClient Http = new();
 
-        /// <summary>The active Sanctum bearer token, or null when signed out.</summary>
+        /// <summary>The active bearer token, or null when signed out.</summary>
         public static string? CurrentToken { get; private set; }
 
         /// <summary>The signed-in account, or null when signed out.</summary>
-        public static LaravelUser? CurrentUser { get; private set; }
+        public static CloudUser? CurrentUser { get; private set; }
 
         public static bool IsAuthenticated => !string.IsNullOrEmpty(CurrentToken);
 
@@ -64,7 +64,7 @@ namespace RustPlusDesk.Services.Cloud
         /// <summary>
         /// Whether the account can sign in with the given provider ("discord", "email").
         /// The Supabase equivalent decoded the identity list out of the session JWT;
-        /// a Sanctum token is opaque, so this reads what the API reported instead.
+        /// a session token is opaque, so this reads what the API reported instead.
         /// </summary>
         public static bool HasProvider(string provider)
         {
@@ -77,7 +77,7 @@ namespace RustPlusDesk.Services.Cloud
         }
 
         /// <summary>
-        /// Confirm the desktop token is still good. Sanctum tokens are opaque and
+        /// Confirm the desktop token is still good. session tokens are opaque and
         /// cannot be refreshed, so there is nothing to renew: the check is whether the
         /// server still accepts it. A rejected token is cleared, which surfaces to the
         /// UI as a signed-out state — the same outcome as a failed Supabase refresh.
@@ -90,7 +90,7 @@ namespace RustPlusDesk.Services.Cloud
 
             if (TokenExpiresAt.HasValue && TokenExpiresAt.Value <= DateTime.UtcNow)
             {
-                SupabaseAuthManager.AppendLog("[Laravel/Auth] Desktop token expired; signing out.");
+                SupabaseAuthManager.AppendLog("[Cloud/Auth] Desktop token expired; signing out.");
                 Logout();
                 return false;
             }
@@ -105,11 +105,11 @@ namespace RustPlusDesk.Services.Cloud
                 if (DateTime.UtcNow - _lastValidatedUtc < ValidationInterval)
                     return IsAuthenticated;
 
-                var (status, body) = await LaravelApiClient.TryCallApiAsync("me", HttpMethod.Get);
+                var (status, body) = await CloudApiClient.TryCallApiAsync("me", HttpMethod.Get);
 
                 if (status == 401 || status == 403)
                 {
-                    SupabaseAuthManager.AppendLog($"[Laravel/Auth] Desktop token rejected ({status}); signing out.");
+                    SupabaseAuthManager.AppendLog($"[Cloud/Auth] Desktop token rejected ({status}); signing out.");
                     Logout();
                     return false;
                 }
@@ -118,7 +118,7 @@ namespace RustPlusDesk.Services.Cloud
                 {
                     // Server trouble or no network — keep the session and retry later
                     // rather than signing the user out over a transient failure.
-                    SupabaseAuthManager.AppendLog($"[Laravel/Auth] Session check inconclusive ({status}); keeping session.");
+                    SupabaseAuthManager.AppendLog($"[Cloud/Auth] Session check inconclusive ({status}); keeping session.");
                     return true;
                 }
 
@@ -143,7 +143,7 @@ namespace RustPlusDesk.Services.Cloud
             }
             catch (Exception ex)
             {
-                SupabaseAuthManager.AppendLog($"[Laravel/Auth] Session check failed: {ex.Message}");
+                SupabaseAuthManager.AppendLog($"[Cloud/Auth] Session check failed: {ex.Message}");
                 return true;
             }
             finally
@@ -160,7 +160,7 @@ namespace RustPlusDesk.Services.Cloud
                 ExpiresAt = TokenExpiresAt,
             });
 
-        /// <summary>Exchange email + password for a desktop Sanctum token.</summary>
+        /// <summary>Exchange email + password for a desktop session token.</summary>
         public static Task<(bool Success, string? Error)> LoginWithEmailAsync(string email, string password)
         {
             return ExchangeAsync("auth/token", new
@@ -173,7 +173,7 @@ namespace RustPlusDesk.Services.Cloud
 
         /// <summary>
         /// Run the Discord OAuth loopback flow: open the browser to the backend, catch
-        /// the one-time code on a local listener, and exchange it for a Sanctum token.
+        /// the one-time code on a local listener, and exchange it for a session token.
         /// </summary>
         public static async Task<(bool Success, string? Error)> LoginWithDiscordAsync()
         {
@@ -204,7 +204,7 @@ namespace RustPlusDesk.Services.Cloud
         {
             try
             {
-                var url = CloudBackend.ApiUrl(DataManager.LARAVEL_API_BASEURL, routePath);
+                var url = CloudBackend.ApiUrl(DataManager.CLOUD_API_BASEURL, routePath);
                 using var request = new HttpRequestMessage(HttpMethod.Post, url);
                 request.Headers.Add("X-Client-Version", Helpers.VersionHelper.GetClientVersion());
                 request.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
@@ -237,14 +237,14 @@ namespace RustPlusDesk.Services.Cloud
                 _lastValidatedUtc = DateTime.UtcNow;
                 Persist();
 
-                SupabaseAuthManager.AppendLog($"[Laravel/Auth] Signed in as {CurrentUser?.Email ?? CurrentUser?.Id ?? "user"}.");
+                SupabaseAuthManager.AppendLog($"[Cloud/Auth] Signed in as {CurrentUser?.Email ?? CurrentUser?.Id ?? "user"}.");
                 TeamSyncWebSocketService.Initialize();
                 AuthenticationChanged?.Invoke();
                 return (true, null);
             }
             catch (Exception ex)
             {
-                SupabaseAuthManager.AppendLog($"[Laravel/Auth] Sign-in failed: {ex.Message}");
+                SupabaseAuthManager.AppendLog($"[Cloud/Auth] Sign-in failed: {ex.Message}");
                 return (false, ex.Message);
             }
         }
@@ -266,7 +266,7 @@ namespace RustPlusDesk.Services.Cloud
 
             try
             {
-                var startUrl = $"{DataManager.LARAVEL_API_BASEURL.TrimEnd('/')}/desktop/auth/discord/redirect" +
+                var startUrl = $"{DataManager.CLOUD_API_BASEURL.TrimEnd('/')}/desktop/auth/discord/redirect" +
                                $"?redirect_uri={Uri.EscapeDataString(LoopbackUrl)}";
                 Process.Start(new ProcessStartInfo { FileName = startUrl, UseShellExecute = true });
 
@@ -334,7 +334,7 @@ namespace RustPlusDesk.Services.Cloud
             }
         }
 
-        private static LaravelUser ParseUser(JsonElement userEl)
+        private static CloudUser ParseUser(JsonElement userEl)
         {
             var providers = new List<string>();
             if (userEl.TryGetProperty("providers", out var providersEl) && providersEl.ValueKind == JsonValueKind.Array)
@@ -346,7 +346,7 @@ namespace RustPlusDesk.Services.Cloud
                 }
             }
 
-            return new LaravelUser
+            return new CloudUser
             {
                 Id = GetString(userEl, "id"),
                 Email = GetString(userEl, "email"),
@@ -362,7 +362,7 @@ namespace RustPlusDesk.Services.Cloud
                 ? value.GetString()
                 : null;
 
-        /// <summary>Pull a human-readable message out of a Laravel validation/error body.</summary>
+        /// <summary>Pull a human-readable message out of an API validation/error body.</summary>
         private static string ExtractError(string body)
         {
             try
@@ -390,7 +390,7 @@ namespace RustPlusDesk.Services.Cloud
             return "Sign-in failed. Please check your details and try again.";
         }
 
-        public sealed class LaravelUser
+        public sealed class CloudUser
         {
             public string? Id { get; set; }
             public string? Email { get; set; }
@@ -398,7 +398,7 @@ namespace RustPlusDesk.Services.Cloud
 
             /// <summary>
             /// Sign-in methods the account supports ("discord", "email", ...), as
-            /// reported by the API. Sanctum tokens carry no claims, so this cannot be
+            /// reported by the API. session tokens carry no claims, so this cannot be
             /// derived client-side the way Supabase identities were read from the JWT.
             /// </summary>
             public List<string> Providers { get; set; } = new();
@@ -409,7 +409,7 @@ namespace RustPlusDesk.Services.Cloud
         private sealed class TokenStore
         {
             public string? Token { get; set; }
-            public LaravelUser? User { get; set; }
+            public CloudUser? User { get; set; }
             public DateTime? ExpiresAt { get; set; }
         }
     }

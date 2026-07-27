@@ -3131,7 +3131,7 @@ private bool _overlayToolsVisible = false;
             var ids = TeamMembers.Select(tm => tm.SteamId.ToString()).ToList();
             if (ids.Count == 0) return;
 
-            var steamIds = RustPlusDesk.Services.Cloud.CloudBackend.UseLaravel
+            var steamIds = RustPlusDesk.Services.Cloud.CloudBackend.UsePlatform
                 ? await FetchOverlayOwnersFromApiAsync(serverKey)
                 : await FetchOverlayOwnersFromSupabaseAsync(serverKey, ids);
 
@@ -3158,7 +3158,7 @@ private bool _overlayToolsVisible = false;
     /// </summary>
     private static async Task<List<string>?> FetchOverlayOwnersFromApiAsync(string serverKey)
     {
-        var body = await RustPlusDesk.Services.Cloud.LaravelApiClient.CallApiAsync(
+        var body = await RustPlusDesk.Services.Cloud.CloudApiClient.CallApiAsync(
             "sync/team-overlays",
             System.Net.Http.HttpMethod.Get,
             queryParams: new Dictionary<string, string> { ["server_key"] = serverKey });

@@ -108,7 +108,7 @@ public partial class MainWindow
 
     /// <summary>
     /// The Discord guild linked to this account, via the cloud seam so it works on
-    /// either backend (Laravel derives the owner from the bearer token).
+    /// either backend (cloud derives the owner from the bearer token).
     /// </summary>
     private async Task<string?> ResolveDiscordGuildIdAsync()
     {
@@ -165,9 +165,9 @@ public partial class MainWindow
                 return false;
             }
 
-            // Laravel takes the screenshot as a multipart attachment on discord/send-map,
+            // cloud takes the screenshot as a multipart attachment on discord/send-map,
             // which additionally requires the guild that owns the channel.
-            if (RustPlusDesk.Services.Cloud.CloudBackend.UseLaravel)
+            if (RustPlusDesk.Services.Cloud.CloudBackend.UsePlatform)
             {
                 guildId ??= await ResolveDiscordGuildIdAsync();
                 if (string.IsNullOrEmpty(guildId))
@@ -177,7 +177,7 @@ public partial class MainWindow
                 }
 
                 content.Add(new StringContent(guildId), "guild_id");
-                return await RustPlusDesk.Services.Cloud.LaravelApiClient.PostMultipartAsync("discord/send-map", content);
+                return await RustPlusDesk.Services.Cloud.CloudApiClient.PostMultipartAsync("discord/send-map", content);
             }
 
             var url = $"{RustPlusDesk.Services.Data.DataManager.SUPABASE_URL.TrimEnd('/')}/functions/v1/discord-send-map";
