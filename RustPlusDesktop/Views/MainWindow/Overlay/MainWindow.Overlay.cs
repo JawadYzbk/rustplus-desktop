@@ -1110,7 +1110,7 @@ private bool _overlayToolsVisible = false;
         SaveOwnOverlayToJson();
 
         // 4. Expliziten Wipe in die Cloud pushen (explicitWipe=true umgeht den Wipe-Schutz)
-        if (TrackingService.CloudSyncEnabled && Services.Auth.SupabaseAuthManager.Client != null)
+        if (TrackingService.CloudSyncEnabled && Services.Cloud.CloudAuth.IsCloudAvailable)
         {
             var sk  = GetServerKey();
             var sid = _mySteamId;
@@ -2384,7 +2384,7 @@ private bool _overlayToolsVisible = false;
             var overlayByteSize = OverlayDataModule.CalculateUncompressedSize(data);
 
             // 4) Debounced Cloud upload if enabled (anon key works, no Discord needed)
-            if (TrackingService.CloudSyncEnabled && RustPlusDesk.Services.Auth.SupabaseAuthManager.Client != null)
+            if (TrackingService.CloudSyncEnabled && Services.Cloud.CloudAuth.IsCloudAvailable)
             {
                 if (IsOverlaySyncLimitExceeded(overlayByteSize))
                     return;
@@ -2794,7 +2794,7 @@ private bool _overlayToolsVisible = false;
                  || (localData.Devices?.Count ?? 0) > 0);
 
             OverlaySaveData? cloudData = null;
-            if (TrackingService.CloudSyncEnabled && Services.Auth.SupabaseAuthManager.Client != null)
+            if (TrackingService.CloudSyncEnabled && Services.Cloud.CloudAuth.IsCloudAvailable)
             {
                 try { cloudData = await OverlayDataModule.FetchOverlayFromServerAsync(serverKey, _mySteamId); }
                 catch { /* offline or error – ignore */ }
@@ -2814,7 +2814,7 @@ private bool _overlayToolsVisible = false;
             if (cloudData == null
                 && OverlayDataModule.LastFetchHadError
                 && TrackingService.CloudSyncEnabled
-                && Services.Auth.SupabaseAuthManager.Client != null)
+                && Services.Cloud.CloudAuth.IsCloudAvailable)
             {
                 AppendLog("[overlay/init] Cloud fetch failed; device autosync stays paused to avoid overwriting cloud data.");
                 return;
@@ -2886,7 +2886,7 @@ private bool _overlayToolsVisible = false;
         }
         finally
         {
-            if (!TrackingService.CloudSyncEnabled || Services.Auth.SupabaseAuthManager.Client == null)
+            if (!TrackingService.CloudSyncEnabled || !Services.Cloud.CloudAuth.IsCloudAvailable)
                 _ownCloudRestoreReady = true;
         }
     }

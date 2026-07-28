@@ -17,6 +17,17 @@ namespace RustPlusDesk.Services.Cloud
         public static bool IsAuthenticated =>
             UsePlatform ? CloudAuthManager.IsAuthenticated : SupabaseAuthManager.IsAuthenticated;
 
+        /// <summary>
+        /// True when cloud calls can actually be made on the active backend.
+        ///
+        /// Call sites used to test <c>SupabaseAuthManager.Client != null</c> for this,
+        /// which is only meaningful for the legacy backend — on the platform that
+        /// client is always null, so those checks silently disabled every cloud
+        /// operation they guarded. Ask this instead.
+        /// </summary>
+        public static bool IsCloudAvailable =>
+            UsePlatform ? CloudAuthManager.IsAuthenticated : SupabaseAuthManager.Client != null;
+
         /// <summary>Initialise the active backend (restore a persisted session/token).</summary>
         public static Task InitializeAsync()
         {

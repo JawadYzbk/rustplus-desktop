@@ -80,7 +80,7 @@ namespace RustPlusDesk.Services.Data
         public static async Task UploadPayloadAsync(ulong steamId, string serverKey, string overlayB64)
         {
             // If offline / no Supabase keys / not logged in -> Skip cloud sync or fallback
-            if (SupabaseAuthManager.Client == null || !SupabaseAuthManager.IsAuthenticated)
+            if (!Cloud.CloudAuth.IsCloudAvailable || !SupabaseAuthManager.IsAuthenticated)
             {
                 return;
             }
@@ -116,7 +116,7 @@ namespace RustPlusDesk.Services.Data
 
         public static async Task<string?> FetchPayloadAsync(ulong steamId, string serverKey)
         {
-            if (SupabaseAuthManager.Client == null)
+            if (!Cloud.CloudAuth.IsCloudAvailable)
             {
                 return null;
             }

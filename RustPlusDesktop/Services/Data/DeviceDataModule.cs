@@ -187,7 +187,7 @@ namespace RustPlusDesk.Services.Data
 
             // Freemium check
             var syncedCount = 0;
-            if (Auth.SupabaseAuthManager.Client != null)
+            if (Cloud.CloudAuth.IsCloudAvailable)
             {
                 if (!await Auth.SupabaseAuthManager.EnsureFreshSessionAsync()) return 0;
                 bool canUpload = TrackingService.CloudSyncEnabled

@@ -641,7 +641,7 @@ private void ListDevices_SelectedItemChanged(object sender, RoutedPropertyChange
                 SaveOwnOverlayToJson();
 
                 // Immediately upload new state to Cloud
-                if (TrackingService.CloudSyncEnabled && RustPlusDesk.Services.Auth.SupabaseAuthManager.Client != null)
+                if (TrackingService.CloudSyncEnabled && Services.Cloud.CloudAuth.IsCloudAvailable)
                 {
                     try
                     {
@@ -1408,7 +1408,7 @@ private async void BtnDeviceRefresh_Click(object sender, RoutedEventArgs e)
 
             _vm?.Save();
             SaveOwnOverlayToJson();
-            if (TrackingService.CloudSyncEnabled && RustPlusDesk.Services.Auth.SupabaseAuthManager.Client != null)
+            if (TrackingService.CloudSyncEnabled && Services.Cloud.CloudAuth.IsCloudAvailable)
             {
                 try
                 {
@@ -1536,7 +1536,7 @@ public List<ExportedDeviceDto> Devices { get; set; } = new();
 
             // 2) Cloud-Fetch (anon key genügt, kein Discord-Login nötig)
             //    Parallel für alle IDs – Fehler einzelner IDs werden ignoriert
-            if (Services.Auth.SupabaseAuthManager.Client != null && TrackingService.CloudSyncEnabled)
+            if (Services.Cloud.CloudAuth.IsCloudAvailable && TrackingService.CloudSyncEnabled)
             {
                 var fetchTasks = allSteamIds.Select(sid => TryFetchAndUpdateOverlayAsync(sid));
                 await Task.WhenAll(fetchTasks);
@@ -1554,7 +1554,7 @@ public List<ExportedDeviceDto> Devices { get; set; } = new();
                 OverlaySaveData? data = null;
 
                 // Zuerst Cloud versuchen
-                if (Services.Auth.SupabaseAuthManager.Client != null && TrackingService.CloudSyncEnabled)
+                if (Services.Cloud.CloudAuth.IsCloudAvailable && TrackingService.CloudSyncEnabled)
                 {
                     try { data = await OverlayDataModule.FetchOverlayFromServerAsync(GetServerKey(), sid); }
                     catch { /* Cloud nicht erreichbar – lokale Datei als Fallback */ }
@@ -2097,7 +2097,7 @@ private void DeviceRow_Click(object sender, MouseButtonEventArgs e)
 
                         // Save local and push sync
                         SaveOwnOverlayToJson();
-                        if (TrackingService.CloudSyncEnabled && RustPlusDesk.Services.Auth.SupabaseAuthManager.Client != null)
+                        if (TrackingService.CloudSyncEnabled && Services.Cloud.CloudAuth.IsCloudAvailable)
                         {
                             try
                             {

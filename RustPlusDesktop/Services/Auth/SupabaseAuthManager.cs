@@ -1179,7 +1179,12 @@ namespace RustPlusDesk.Services.Auth
         private static string? GetCloudSyncConsentIdentity()
         {
             string steamId = TrackingService.SteamId64;
-            string? userId = Client?.Auth?.CurrentUser?.Id;
+            string? userId = Cloud.CloudBackend.UsePlatform
+                ? Cloud.CloudAuthManager.CurrentUser?.Id
+                : Client?.Auth?.CurrentUser?.Id;
+
+            // Without an identity the consent is re-sent on every upload, and one
+            // failure pauses cloud sync — so this has to resolve on both backends.
             if (string.IsNullOrEmpty(steamId) || steamId == "0" || string.IsNullOrEmpty(userId))
                 return null;
 

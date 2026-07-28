@@ -1323,7 +1323,7 @@ namespace RustPlusDesk.Views
 
         private async void BtnSaveDiscordGuild_Click(object sender, RoutedEventArgs e)
         {
-            if (Services.Auth.SupabaseAuthManager.Client == null) return;
+            if (!Services.Cloud.CloudAuth.IsCloudAvailable) return;
             var vm = ParentWindow?.DataContext as RustPlusDesk.ViewModels.MainViewModel;
             var steamId = vm?.SteamId64;
             if (string.IsNullOrEmpty(steamId)) return;
@@ -1395,7 +1395,7 @@ namespace RustPlusDesk.Views
 
         private async void BtnSaveChannels_Click(object sender, RoutedEventArgs e)
         {
-            if (Services.Auth.SupabaseAuthManager.Client == null) return;
+            if (!Services.Cloud.CloudAuth.IsCloudAvailable) return;
             var guildId = TxtDiscordGuildId.Text?.Trim();
             if (string.IsNullOrEmpty(guildId))
             {
@@ -1477,7 +1477,7 @@ namespace RustPlusDesk.Views
 
         private async Task LoadDiscordBotSettingsAsync()
         {
-            if (Services.Auth.SupabaseAuthManager.Client == null || !Services.Auth.SupabaseAuthManager.IsPremium) return;
+            if (!Services.Cloud.CloudAuth.IsCloudAvailable || !Services.Auth.SupabaseAuthManager.IsPremium) return;
 
             try
             {
