@@ -563,6 +563,14 @@ public partial class MainWindow
             _ = SearchRustMapsAsync(false, connectedProfile.WipeTime);
             AppendLog($"Connection initialization complete. Server: {connectedProfile.Name}");
 
+            // Report what this server said about itself, so its cloud record carries
+            // a name and map details rather than just the key it is filed under.
+            _ = Services.Cloud.CloudServerInfo.ReportOnceAsync(
+                GetServerKey(),
+                connectedProfile.Name,
+                _worldSizeS,
+                connectedProfile.WipeTime);
+
             // Prime subscriptions for all devices to receive real-time updates.
             if (real != null && connectedProfile.Devices?.Any() == true)
             {

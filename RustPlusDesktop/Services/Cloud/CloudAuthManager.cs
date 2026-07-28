@@ -191,6 +191,7 @@ namespace RustPlusDesk.Services.Cloud
         public static void Logout()
         {
             TeamSyncWebSocketService.Shutdown();
+            CloudServerInfo.Reset();
             CurrentToken = null;
             CurrentUser = null;
             TokenExpiresAt = null;

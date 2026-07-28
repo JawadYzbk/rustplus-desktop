@@ -184,7 +184,7 @@ public class DiscordBotListenerService
     }
 
     /// <summary>
-    /// the realtime service equivalent of the postgres-changes subscription: the API broadcasts
+    /// Realtime equivalent of the postgres-changes subscription: the API broadcasts
     /// `command_queued` on the owning guild's private channel.
     /// </summary>
     private async Task SubscribeToGuildQueueViaRealtimeAsync(string guildId)

@@ -18,7 +18,7 @@ namespace RustPlusDesk.Services.Auth
     ///
     /// Two transports sit behind the same event handlers. Supabase Realtime discovers
     /// the current team by subscribing to postgres changes on the caller's presence
-    /// row, then joins <c>team_sync:{serverKey}:{teamKey}</c>. the realtime service has no
+    /// row, then joins <c>team_sync:{serverKey}:{teamKey}</c>. The platform has no
     /// database-change feed, so the team is instead learned from the heartbeat
     /// response (which returns the resolved team id) and the client subscribes to the
     /// private channel <c>team-sync.{teamId}</c>. Both deliver the same event names
@@ -38,7 +38,7 @@ namespace RustPlusDesk.Services.Auth
         private static readonly SemaphoreSlim BroadcastSubscriptionLock = new(1, 1);
         private static bool _initialized;
 
-        // cloud/the realtime service state.
+        // Platform realtime state.
         private static string? _currentTeamId;
         private static string? _realtimeChannel;
         private static bool _realtimeHandlerAttached;
@@ -57,7 +57,7 @@ namespace RustPlusDesk.Services.Auth
             {
                 AttachRealtimeHandler();
                 RealtimeClient.Shared.Start();
-                AppendLog("[TeamSyncWS] Service initialized (the realtime service). Awaiting team heartbeat.");
+                AppendLog("[TeamSyncWS] Service initialized (realtime). Awaiting team heartbeat.");
                 return;
             }
 
@@ -103,7 +103,7 @@ namespace RustPlusDesk.Services.Auth
                 }
                 catch (Exception ex)
                 {
-                    AppendLog($"[TeamSyncWS/Error] the realtime service handler error: {ex.Message}");
+                    AppendLog($"[TeamSyncWS/Error] Realtime handler error: {ex.Message}");
                 }
             };
         }
