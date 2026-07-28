@@ -47,17 +47,24 @@ namespace RustPlusDesk.Services.Cloud
 
         /// <summary>
         /// Take the Steam link for this account, moving it off whichever account
-        /// holds it. The server requires a server pairing as that Steam account,
-        /// so this fails cleanly when there is nothing to back the claim.
+        /// holds it. The server wants evidence that this machine really is that
+        /// Steam account, which the connected server's player token provides.
         /// </summary>
-        public static async Task<(bool Success, string? Error)> ClaimAsync(string steamId)
+        public static async Task<(bool Success, string? Error)> ClaimAsync(
+            string steamId,
+            string? serverKey = null,
+            string? playerToken = null)
         {
             if (string.IsNullOrWhiteSpace(steamId) || steamId == "0")
                 return (false, "No Steam account is connected yet.");
 
             try
             {
-                await CloudApiClient.CallApiAsync("me/steam/claim", HttpMethod.Post, payload: new { steam_id = steamId });
+                object payload = !string.IsNullOrWhiteSpace(serverKey) && !string.IsNullOrWhiteSpace(playerToken)
+                    ? new { steam_id = steamId, server_key = serverKey, player_token = playerToken }
+                    : (object) new { steam_id = steamId };
+
+                await CloudApiClient.CallApiAsync("me/steam/claim", HttpMethod.Post, payload: payload);
 
                 _conflictReported = false;
                 SupabaseAuthManager.AppendLog($"[Cloud/Auth] Steam account {steamId} is now linked to this account.");
@@ -103,18 +110,52 @@ namespace RustPlusDesk.Services.Cloud
         /// <summary>Allow the notice again, e.g. after signing in as someone else.</summary>
         public static void Reset() => _conflictReported = false;
 
+        /// <summary>
+        /// Explain the conflict and offer the fix, rather than leaving the user
+        /// to work out why syncing stopped.
+        /// </summary>
         private static void ShowConflictNotice()
         {
-            System.Windows.Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
+            System.Windows.Application.Current?.Dispatcher.BeginInvoke(new Action(async () =>
             {
-                if (System.Windows.Application.Current.MainWindow is Views.MainWindow window)
+                if (System.Windows.Application.Current.MainWindow is not Views.MainWindow window)
+                    return;
+
+                var steamId = TrackingService.SteamId64;
+
+                var dialog = new Wpf.Ui.Controls.MessageBox
                 {
+                    Title = "Cloud sync paused",
+                    Content =
+                        $"Your Steam account ({steamId}) is linked to a different cloud account, so nothing can be saved "
+                        + "to this one.\n\n"
+                        + "Either sign out and sign in with the account that owns it, or move the link to the account "
+                        + "you are signed in as now. Moving it unlinks the other account.",
+                    PrimaryButtonText = "Link to this account",
+                    CloseButtonText = "Not now",
+                };
+
+                if (await dialog.ShowDialogAsync() != Wpf.Ui.Controls.MessageBoxResult.Primary)
+                    return;
+
+                var (serverKey, playerToken) = window.GetCloudLinkEvidence();
+                var (ok, error) = await ClaimAsync(steamId, serverKey, playerToken);
+
+                if (ok)
+                {
+                    // The reason sync was paused is gone, so turn it back on.
+                    TrackingService.CloudSyncEnabled = true;
                     window.ShowInfoSnackbar(
-                        "Cloud sync paused",
-                        "This Steam account is linked to a different cloud account, so your data could not be saved. "
-                        + "Sign in with that account, or link this Steam account here to move it over.",
-                        Wpf.Ui.Controls.ControlAppearance.Caution);
+                        "Steam account linked",
+                        "This account now owns the Steam link. Cloud sync has been re-enabled.",
+                        Wpf.Ui.Controls.ControlAppearance.Success);
+                    return;
                 }
+
+                window.ShowInfoSnackbar(
+                    "Could not link Steam account",
+                    error ?? "The link could not be moved.",
+                    Wpf.Ui.Controls.ControlAppearance.Danger);
             }));
         }
     }

@@ -2423,6 +2423,17 @@ private bool _overlayToolsVisible = false;
         }
     }
 
+    /// <summary>
+    /// Server key and player token for the connected server, which the cloud
+    /// needs as evidence when moving a Steam link onto this account.
+    /// </summary>
+    public (string ServerKey, string? PlayerToken) GetCloudLinkEvidence()
+    {
+        var profile = _vm?.Selected;
+
+        return (GetServerKey(), profile?.PlayerToken);
+    }
+
     private string GetServerKey()
     {
         // simplest first pass: nimm Host-Port vom aktuell ausgewaehlten Server
