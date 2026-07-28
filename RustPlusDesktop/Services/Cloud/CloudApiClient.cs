@@ -125,7 +125,7 @@ namespace RustPlusDesk.Services.Cloud
             if (!response.IsSuccessStatusCode)
             {
                 SupabaseAuthManager.HandleUpgradeRequiredResponse(body);
-                throw new Exception($"Cloud API {routePath} returned {response.StatusCode}: {DescribeError(body)}");
+                throw new CloudApiException((int) response.StatusCode, routePath, DescribeError(body));
             }
 
             return body;

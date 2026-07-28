@@ -1227,6 +1227,15 @@ namespace RustPlusDesk.Services.Auth
             }
         }
 
+        /// <summary>
+        /// Stop uploading until the user resolves something a retry cannot fix.
+        /// Consent is left intact so they are not asked to accept it again.
+        /// </summary>
+        public static void PauseCloudSyncForConflict()
+        {
+            TrackingService.CloudSyncEnabled = false;
+        }
+
         private static void PauseCloudSyncAfterConsentFailure()
         {
             // Keep UploadConsentGiven so a temporary network/auth failure does

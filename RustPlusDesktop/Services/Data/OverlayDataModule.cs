@@ -204,6 +204,11 @@ namespace RustPlusDesk.Services.Data
             }
             catch (Exception ex)
             {
+                // A conflict means the account has no Steam link, which retrying
+                // cannot fix — it is reported once and sync pauses.
+                if (Cloud.CloudSteamLink.HandleSyncConflict(ex))
+                    return false;
+
                 AppendLog($"[overlay/cloud/err] UploadOverlay failed for {steamId}: {ex.Message}");
                 return false;
             }
