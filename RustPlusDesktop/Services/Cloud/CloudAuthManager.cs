@@ -250,7 +250,12 @@ namespace RustPlusDesk.Services.Cloud
             }
         }
 
-        /// <summary>Open the browser to the desktop Discord flow and await the loopback code.</summary>
+        /// <summary>
+        /// Open the browser to the website sign-in handoff and await the loopback code.
+        /// The website (/desktop/connect) owns login/registration — any method, including
+        /// Discord — and hands back a one-time code once the user is authenticated. The
+        /// desktop no longer drives an OAuth dance of its own.
+        /// </summary>
         private static async Task<(string? Code, string? Error)> AwaitDiscordCodeAsync()
         {
             using var listener = new HttpListener();
@@ -267,7 +272,7 @@ namespace RustPlusDesk.Services.Cloud
 
             try
             {
-                var startUrl = $"{DataManager.CLOUD_API_BASEURL.TrimEnd('/')}/desktop/auth/discord/redirect" +
+                var startUrl = $"{DataManager.CLOUD_API_BASEURL.TrimEnd('/')}/desktop/connect" +
                                $"?redirect_uri={Uri.EscapeDataString(LoopbackUrl)}";
                 Process.Start(new ProcessStartInfo { FileName = startUrl, UseShellExecute = true });
 
