@@ -40,7 +40,13 @@ namespace RustPlusDesk.Services.Cloud
                 SupabaseAuthManager.StartKeepAliveTimer();
                 SupabaseAuthManager.StartProfileUpdateTimer();
                 if (CloudAuthManager.IsAuthenticated)
+                {
                     _ = SupabaseAuthManager.FetchTierLimitsAsync(forceRefresh: true);
+                    // Re-read Discord roles on launch so premium follows the user's
+                    // current guild roles. No-ops for non-Discord accounts; the
+                    // server fetches the roles itself and refreshes the profile.
+                    _ = SupabaseAuthManager.SyncDiscordRolesAsync();
+                }
 
                 return Task.CompletedTask;
             }
@@ -54,7 +60,10 @@ namespace RustPlusDesk.Services.Cloud
             {
                 var result = await CloudAuthManager.LoginWithDiscordAsync();
                 if (result.Success)
+                {
                     await SupabaseAuthManager.FetchTierLimitsAsync(forceRefresh: true);
+                    _ = SupabaseAuthManager.SyncDiscordRolesAsync();
+                }
                 return result;
             }
 
@@ -68,7 +77,12 @@ namespace RustPlusDesk.Services.Cloud
             {
                 var result = await CloudAuthManager.LoginWithEmailAsync(email, password);
                 if (result.Success)
+                {
                     await SupabaseAuthManager.FetchTierLimitsAsync(forceRefresh: true);
+                    // An email-login account may still have a linked Discord — sync so
+                    // its role-based premium is applied too.
+                    _ = SupabaseAuthManager.SyncDiscordRolesAsync();
+                }
                 return result;
             }
 
