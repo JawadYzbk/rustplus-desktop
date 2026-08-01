@@ -1774,8 +1774,15 @@ namespace RustPlusDesk.Services.Auth
             }
         }
 
+        // A limit's "value" may be JSON null (an unlimited/gate-only limit).
+        // TryGetInt32 throws on a non-Number element, so guard the kind first —
+        // null becomes a null limit (treated as unlimited by the Get* helpers),
+        // and one null value no longer aborts the whole limits parse.
         private static int? cloudLimitValue(JsonElement feature, string key) =>
-            feature.TryGetProperty(key, out var k) && k.TryGetProperty("value", out var v) && v.TryGetInt32(out var n)
+            feature.TryGetProperty(key, out var k)
+            && k.TryGetProperty("value", out var v)
+            && v.ValueKind == JsonValueKind.Number
+            && v.TryGetInt32(out var n)
                 ? n
                 : (int?)null;
 
