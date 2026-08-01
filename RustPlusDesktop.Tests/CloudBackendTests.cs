@@ -19,6 +19,7 @@ public class CloudBackendTests
     [DataRow("user-profile/consent", "profile/consent")]
     [DataRow("user-profile", "profile")]
     [DataRow("discord-roles", "me/discord/sync-roles")]
+    [DataRow("team-member-overlay", "sync/team-member-overlay")]
     [DataRow("/user-profile/limits/", "me/limits")]
     public void MapEdgeFunctionToRoute_MapsKnownFunctions(string edge, string expected)
     {
