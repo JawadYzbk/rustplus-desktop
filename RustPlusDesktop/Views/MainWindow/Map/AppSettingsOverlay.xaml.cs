@@ -1721,18 +1721,30 @@ namespace RustPlusDesk.Views
         {
             if (!_isSettingsInitialized) return;
             TrackingService.DiscordWebhookUrl = TxtDiscordWebhookUrl.Text;
+            TriggerBackgroundFcmSync();
         }
 
         private void ChkFcmMention_Changed(object sender, RoutedEventArgs e)
         {
             if (!_isSettingsInitialized) return;
             TrackingService.DiscordWebhookMention = GetMentionFromCheckboxes(ChkFcmMentionEveryone, ChkFcmMentionHere);
+            TriggerBackgroundFcmSync();
         }
 
         private void TxtSmartHomeWebhookUrl_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (!_isSettingsInitialized) return;
             TrackingService.SmartHomeWebhookUrl = TxtSmartHomeWebhookUrl.Text;
+            TriggerBackgroundFcmSync();
+        }
+
+        private async void TriggerBackgroundFcmSync()
+        {
+            if (Services.Auth.SupabaseAuthManager.IsPremium && (Services.Cloud.CloudAuthManager.IsAuthenticated || Services.Auth.SupabaseAuthManager.IsAuthenticated))
+            {
+                await Task.Delay(500);
+                _ = Services.FcmSyncService.SyncFcmCredentialsAsync();
+            }
         }
 
         private async void BtnGenerateTelegramUrl_Click(object sender, RoutedEventArgs e)

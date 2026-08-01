@@ -56,21 +56,10 @@ namespace RustPlusDesk.Services
                 var jsonText = await File.ReadAllTextAsync(ConfigPath);
                 var fcmConfigObj = Newtonsoft.Json.Linq.JObject.Parse(jsonText);
 
-                if (!string.IsNullOrEmpty(TrackingService.DiscordWebhookUrl))
-                {
-                    fcmConfigObj["discord_webhook_url"] = TrackingService.DiscordWebhookUrl;
-                    fcmConfigObj["discord_webhook_mention"] = TrackingService.DiscordWebhookMention;
-                }
-
-                if (!string.IsNullOrEmpty(TrackingService.SmartHomeWebhookUrl))
-                {
-                    fcmConfigObj["smart_home_webhook_url"] = TrackingService.SmartHomeWebhookUrl;
-                }
-
-                if (!string.IsNullOrEmpty(TrackingService.TelegramCallWebhookUrl))
-                {
-                    fcmConfigObj["telegram_call_url"] = TrackingService.TelegramCallWebhookUrl;
-                }
+                fcmConfigObj["discord_webhook_url"] = TrackingService.DiscordWebhookUrl ?? "";
+                fcmConfigObj["discord_webhook_mention"] = TrackingService.DiscordWebhookMention ?? "";
+                fcmConfigObj["smart_home_webhook_url"] = TrackingService.SmartHomeWebhookUrl ?? "";
+                fcmConfigObj["telegram_call_url"] = TrackingService.TelegramCallWebhookUrl ?? "";
 
                 bool stored;
 
@@ -81,6 +70,20 @@ namespace RustPlusDesk.Services
                         steam_id = steamId,
                         fcm_config = fcmConfigObj,
                     });
+
+                    try
+                    {
+                        await CloudApiClient.CallApiAsync("me/notification-settings", HttpMethod.Put, payload: new
+                        {
+                            fcm_discord_webhook_url = TrackingService.DiscordWebhookUrl ?? "",
+                            fcm_discord_webhook_mention = TrackingService.DiscordWebhookMention ?? "",
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        SupabaseAuthManager.AppendLog($"[FcmSync] Notification settings sync info: {ex.Message}");
+                    }
+
                     stored = true;
                 }
                 else
