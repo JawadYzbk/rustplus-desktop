@@ -85,7 +85,7 @@ namespace RustPlusDesk.Services
 
                     try
                     {
-                        await CloudApiClient.CallApiAsync("me/notification-settings", HttpMethod.Put, payload: new
+                        await CloudApiClient.CallApiAsync("me/notification-settings", HttpMethod.Patch, payload: new
                         {
                             fcm_discord_webhook_url = TrackingService.DiscordWebhookUrl ?? "",
                             fcm_discord_webhook_mention = TrackingService.DiscordWebhookMention ?? "",
