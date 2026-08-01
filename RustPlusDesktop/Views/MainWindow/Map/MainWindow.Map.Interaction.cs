@@ -133,10 +133,7 @@ public partial class MainWindow
 
         if (_isShowingDeepSeaMap)
         {
-            double minX = -5975;
-            double maxX = -1925;
-            double minY = -300;
-            double maxY = 3750;
+            var (minX, maxX, minY, maxY) = GetDeepSeaWorldBox();
 
             double xx = Math.Clamp(x, minX, maxX);
             double yy = Math.Clamp(y, minY, maxY);
@@ -173,10 +170,10 @@ public partial class MainWindow
 
         if (_isShowingDeepSeaMap)
         {
-            double minX = -5975;
-            double maxX = -1925;
-            double minY = -300;
-            double maxY = 3750;
+            double minX = -6075;
+            double maxX = minX + 27 * 150.0;
+            double maxY = 3900;
+            double minY = maxY - 27 * 150.0;
 
             double x = minX + ((u - _worldRectPx.X) / _worldRectPx.Width) * (maxX - minX);
             double y = minY + (1.0 - (v - _worldRectPx.Y) / _worldRectPx.Height) * (maxY - minY);

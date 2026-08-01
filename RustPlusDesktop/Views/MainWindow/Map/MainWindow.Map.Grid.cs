@@ -25,17 +25,14 @@ public partial class MainWindow
             var dsStroke = Brushes.Black;
             double dsThin = 1.0;
 
-            double minX = -5975;
-            double maxX = -1925;
-            double minY = -300;
-            double maxY = 3750;
-
-            int dsCells = 27;
+            int dsCells = DeepSeaCells;
+            double cellSize = DeepSeaCellSize;
+            var (minX, maxX, minY, maxY) = GetDeepSeaWorldBox();
 
             // Draw vertical grid lines (columns A to AA, i.e., 27 cells)
             for (int col = 0; col <= dsCells; col++)
             {
-                double worldX = minX + col * 150.0;
+                double worldX = minX + col * cellSize;
                 var pTop = WorldToImagePx(worldX, maxY);
                 var pBottom = WorldToImagePx(worldX, minY);
 
@@ -54,7 +51,7 @@ public partial class MainWindow
             // Draw horizontal grid lines (rows 0 to 26)
             for (int row = 0; row <= dsCells; row++)
             {
-                double worldY = maxY - row * 150.0;
+                double worldY = maxY - row * cellSize;
                 var pLeft = WorldToImagePx(minX, worldY);
                 var pRight = WorldToImagePx(maxX, worldY);
 
@@ -74,11 +71,11 @@ public partial class MainWindow
             for (int col = 0; col < dsCells; col++)
             {
                 string colStr = ColumnLabel(col);
-                double cellX = minX + col * 150.0;
+                double cellX = minX + col * cellSize;
 
                 for (int row = 0; row < dsCells; row++)
                 {
-                    double cellY = maxY - row * 150.0;
+                    double cellY = maxY - row * cellSize;
 
                     var tb = new TextBlock
                     {
@@ -200,8 +197,9 @@ public partial class MainWindow
 
         if (x < -1000)
         {
-            int col = (int)Math.Floor((x - (-5975)) / 150.0);
-            int row = (int)Math.Floor((3750 - y) / 150.0);
+            var (dsMinX, _, _, dsMaxY) = GetDeepSeaWorldBox();
+            int col = (int)Math.Floor((x - dsMinX) / DeepSeaCellSize);
+            int row = (int)Math.Floor((dsMaxY - y) / DeepSeaCellSize);
             label = $"DS-{ColumnLabel(col)}{row}";
             return true;
         }

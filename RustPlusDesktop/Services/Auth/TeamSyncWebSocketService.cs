@@ -384,7 +384,17 @@ namespace RustPlusDesk.Services.Auth
                             string? ovData = payload["overlay_data"]?.ToString();
                             string? mkData = payload["marker_data"]?.ToString();
                             string? dvData = payload["device_data"]?.ToString();
-                            long ovUpdatedAt = payload["updated_at"]?.Value<long>() ?? 0;
+                            long ovUpdatedAt = 0;
+                            var updatedAtToken = payload["updated_at"];
+                            if (updatedAtToken != null)
+                            {
+                                if (updatedAtToken.Type == JTokenType.Integer)
+                                    ovUpdatedAt = updatedAtToken.Value<long>();
+                                else if (updatedAtToken.Type == JTokenType.Date)
+                                    ovUpdatedAt = new DateTimeOffset(updatedAtToken.Value<DateTime>()).ToUnixTimeMilliseconds();
+                                else if (long.TryParse(updatedAtToken.ToString(), out long parsed))
+                                    ovUpdatedAt = parsed;
+                            }
 
                             AppendLog($"[TeamSyncWS] overlay_data inline event for teammate: {ovSid}");
                             _ = ApplyInlineOverlayAsync(ovSid, ovServerKey, ovData, mkData, dvData, ovUpdatedAt);
@@ -412,6 +422,33 @@ namespace RustPlusDesk.Services.Auth
 
                         if (_hasBroadcastMasterState && state?.MasterSteamId == _lastBroadcastMasterSteamId)
                             break;
+
+                        // Guard against stale "no master" broadcast overwriting our own fresh heartbeat claim.
+                        // This happens on full connect: the channel fires current DB state before our heartbeat
+                        // has written the new master row. We skip it if WE are currently master and the broadcast
+                        // says the slot is empty — the heartbeat timer will sync reality within ≤60 s.
+                        var hasActiveMasterInBroadcast = state != null
+                            && !string.IsNullOrWhiteSpace(state.MasterSteamId)
+                            && (!state.ExpiresAt.HasValue || state.ExpiresAt.Value.ToUniversalTime() > DateTime.UtcNow);
+
+                        if (!hasActiveMasterInBroadcast)
+                        {
+                            // Check if we currently hold master – if so, ignore this stale empty broadcast.
+                            bool weAreMaster = false;
+                            if (Application.Current != null)
+                            {
+                                Application.Current.Dispatcher.Invoke(() =>
+                                {
+                                    if (Application.Current.MainWindow is Views.MainWindow mainWin)
+                                        weAreMaster = mainWin.IsChatFeatureMasterPublic;
+                                });
+                            }
+                            if (weAreMaster)
+                            {
+                                AppendLog($"[TeamSyncWS] Ignoring empty master_changed broadcast — we are active master (stale event on channel join).");
+                                break;
+                            }
+                        }
 
                         _hasBroadcastMasterState = true;
                         _lastBroadcastMasterSteamId = state?.MasterSteamId;
