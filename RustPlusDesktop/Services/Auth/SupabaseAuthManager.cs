@@ -1007,7 +1007,13 @@ namespace RustPlusDesk.Services.Auth
                     AppendLog($"[Cloud/Error] Failed to sync Discord roles: {ex.Message}");
                 }
 
+                // Re-read the reconciled plan so premium/limits reflect the new
+                // roles immediately — RefreshUserProfileAsync alone doesn't re-read
+                // me/limits (where the effective plan lives), which is why premium
+                // only applied after a restart. Then notify the UI to rebind.
                 await RefreshUserProfileAsync(forceRefresh: true);
+                await FetchTierLimitsAsync(forceRefresh: true);
+                NotifyAuthenticationChanged();
                 return;
             }
 
