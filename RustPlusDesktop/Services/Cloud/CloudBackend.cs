@@ -56,6 +56,8 @@ namespace RustPlusDesk.Services.Cloud
                 // A teammate's overlay/devices (team-membership authorized), used by
                 // the device-import flow. The plain "overlay" GET is self-scoped.
                 "team-member-overlay" => "sync/team-member-overlay",
+                // The whole team's devices, de-duplicated server-side, for import.
+                "team-devices" => "sync/team-devices",
                 "team-feature/heartbeat" => "team-feature/heartbeat",
                 "team-feature/master" => "team-feature/master",
                 "team-feature/has-master" => "team-feature/has-master",

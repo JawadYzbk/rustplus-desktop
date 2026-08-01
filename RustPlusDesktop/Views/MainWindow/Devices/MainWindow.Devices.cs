@@ -1545,46 +1545,61 @@ public List<ExportedDeviceDto> Devices { get; set; } = new();
             // 3) Import-Kandidaten sammeln (Cloud zuerst, Fallback auf lokale Datei)
             var items = new List<DeviceImportItem>();
 
-            foreach (var sid in allSteamIds)
+            // Cloud: one team-scoped call returns every teammate's devices already
+            // de-duplicated by entity id on the server, so the same device several
+            // teammates synced shows once (no client-side merge needed).
+            if (Services.Cloud.CloudAuth.IsCloudAvailable && TrackingService.CloudSyncEnabled)
             {
-                // TeamMember-VM für diesen SteamId (oder Dummy für eigene ID ohne VM-Eintrag)
-                var tm = TeamMembers.FirstOrDefault(t => t.SteamId == sid)
-                      ?? new TeamMemberVM { SteamId = sid, Name = sid == _mySteamId ? "Me" : sid.ToString() };
-
-                OverlaySaveData? data = null;
-
-                // Zuerst Cloud versuchen
-                if (Services.Cloud.CloudAuth.IsCloudAvailable && TrackingService.CloudSyncEnabled)
+                try
                 {
-                    try { data = await OverlayDataModule.FetchOverlayFromServerAsync(GetServerKey(), sid); }
-                    catch { /* Cloud nicht erreichbar – lokale Datei als Fallback */ }
-                }
-
-                // Fallback: lokale Datei
-                if (data == null)
-                {
-                    var path = GetOverlayJsonPathForPlayerServer(sid);
-                    if (File.Exists(path))
+                    var teamDevices = await DeviceDataModule.FetchTeamDevicesAsync(GetServerKey());
+                    foreach (var (dto, ownerSteamId, ownerName) in teamDevices)
                     {
-                        try
+                        var tm = new TeamMemberVM
                         {
-                            var json = File.ReadAllText(path);
-                            data = System.Text.Json.JsonSerializer.Deserialize<OverlaySaveData>(json);
-                        }
-                        catch (Exception ex)
-                        {
-                            AppendLog($"[dev/import] Can't parse local overlay for {sid}: {ex.Message}");
-                        }
+                            SteamId = ownerSteamId,
+                            Name = ownerSteamId == _mySteamId ? "Me" : ownerName,
+                        };
+                        AddDeviceToImportItems(items, dto, tm);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AppendLog($"[dev/import] Team device fetch failed: {ex.Message}");
+                }
+            }
+
+            // Fallback: local backups when the cloud returned nothing (offline, or
+            // nobody has synced). Dedup by entity id since local files can also carry
+            // the same device under several owners.
+            if (items.Count == 0)
+            {
+                foreach (var sid in allSteamIds)
+                {
+                    var tm = TeamMembers.FirstOrDefault(t => t.SteamId == sid)
+                          ?? new TeamMemberVM { SteamId = sid, Name = sid == _mySteamId ? "Me" : sid.ToString() };
+
+                    var path = GetOverlayJsonPathForPlayerServer(sid);
+                    if (!File.Exists(path))
+                        continue;
+
+                    try
+                    {
+                        var json = File.ReadAllText(path);
+                        var data = System.Text.Json.JsonSerializer.Deserialize<OverlaySaveData>(json);
+                        if (data?.Devices == null || data.Devices.Count == 0)
+                            continue;
+
+                        foreach (var d in data.Devices)
+                            CollectIndividualDevices(items, d, tm);
+                    }
+                    catch (Exception ex)
+                    {
+                        AppendLog($"[dev/import] Can't parse local overlay for {sid}: {ex.Message}");
                     }
                 }
 
-                if (data?.Devices == null || data.Devices.Count == 0)
-                    continue;
-
-                foreach (var d in data.Devices)
-                {
-                    CollectIndividualDevices(items, d, tm);
-                }
+                items = items.GroupBy(i => i.EntityId).Select(g => g.First()).ToList();
             }
 
             if (items.Count == 0)
