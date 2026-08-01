@@ -971,6 +971,35 @@ namespace RustPlusDesk.Services.Auth
         public static async Task SyncDiscordRolesAsync()
         {
             if (!IsDiscordAuthenticated) return;
+
+            // Cloud platform: the server reads the guild roles itself (bot token),
+            // maps them to a plan and reconciles the entitlement. The client only
+            // triggers it, then re-reads the profile so premium reflects the roles.
+            // No provider token is sent — the platform never trusts client roles.
+            if (Cloud.CloudBackend.UsePlatform)
+            {
+                if (IsUpgradeRequiredSnackbarShown)
+                {
+                    AppendLog("[Cloud] Skipping Discord role sync: application update is required.");
+                    return;
+                }
+
+                try
+                {
+                    AppendLog("[Cloud] Syncing Discord roles via me/discord/sync-roles...");
+                    await CallEdgeFunctionAsync("discord-roles", HttpMethod.Post);
+                }
+                catch (Exception ex)
+                {
+                    // A transient failure must not wipe premium; the server also
+                    // never downgrades on error. Re-read the profile regardless.
+                    AppendLog($"[Cloud/Error] Failed to sync Discord roles: {ex.Message}");
+                }
+
+                await RefreshUserProfileAsync(forceRefresh: true);
+                return;
+            }
+
             if (!await EnsureFreshSessionAsync()) return;
 
             try
