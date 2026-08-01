@@ -54,12 +54,24 @@ namespace RustPlusDesk.Services
                 }
 
                 var jsonText = await File.ReadAllTextAsync(ConfigPath);
-                var fcmConfigObj = Newtonsoft.Json.Linq.JObject.Parse(jsonText);
+                var fcmConfigDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(jsonText)
+                    ?? new Dictionary<string, object>();
 
-                fcmConfigObj["discord_webhook_url"] = TrackingService.DiscordWebhookUrl ?? "";
-                fcmConfigObj["discord_webhook_mention"] = TrackingService.DiscordWebhookMention ?? "";
-                fcmConfigObj["smart_home_webhook_url"] = TrackingService.SmartHomeWebhookUrl ?? "";
-                fcmConfigObj["telegram_call_url"] = TrackingService.TelegramCallWebhookUrl ?? "";
+                if (!string.IsNullOrEmpty(TrackingService.DiscordWebhookUrl))
+                {
+                    fcmConfigDict["discord_webhook_url"] = TrackingService.DiscordWebhookUrl;
+                    fcmConfigDict["discord_webhook_mention"] = TrackingService.DiscordWebhookMention ?? "";
+                }
+
+                if (!string.IsNullOrEmpty(TrackingService.SmartHomeWebhookUrl))
+                {
+                    fcmConfigDict["smart_home_webhook_url"] = TrackingService.SmartHomeWebhookUrl;
+                }
+
+                if (!string.IsNullOrEmpty(TrackingService.TelegramCallWebhookUrl))
+                {
+                    fcmConfigDict["telegram_call_url"] = TrackingService.TelegramCallWebhookUrl;
+                }
 
                 bool stored;
 
@@ -68,7 +80,7 @@ namespace RustPlusDesk.Services
                     await CloudApiClient.CallApiAsync("me/fcm", HttpMethod.Put, payload: new
                     {
                         steam_id = steamId,
-                        fcm_config = fcmConfigObj,
+                        fcm_config = fcmConfigDict,
                     });
 
                     try
@@ -92,7 +104,7 @@ namespace RustPlusDesk.Services
                     {
                         UserId = userId,
                         SteamId = steamId,
-                        FcmConfig = fcmConfigObj,
+                        FcmConfig = Newtonsoft.Json.Linq.JObject.FromObject(fcmConfigDict),
                         UpdatedAt = DateTime.UtcNow
                     };
 
