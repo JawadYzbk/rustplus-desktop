@@ -335,9 +335,12 @@ namespace RustPlusDesk.Services.Auth
                 AppendLog($"[Supabase] Init complete. IsDiscordAuthenticated={IsDiscordAuthenticated}, IsEmailAuthenticated={IsEmailAuthenticated}, IsPremium={IsPremium}");
                 NotifyAuthenticationChanged();
 
-                // Sync Discord roles on every launch when a Discord session is active,
-                // not just after a fresh OAuth login.
-                if (IsDiscordAuthenticated)
+                // Sync Discord roles on every launch, not just after a fresh OAuth
+                // login. On the platform the cached provider list can be stale (a
+                // migrated/web-linked Discord account), so always enter the sync when
+                // authenticated — it refreshes the identity and no-ops for accounts
+                // that turn out not to be Discord-linked.
+                if ((Cloud.CloudBackend.UsePlatform && Cloud.CloudAuthManager.IsAuthenticated) || IsDiscordAuthenticated)
                 {
                     _ = Task.Run(async () =>
                     {
@@ -970,19 +973,27 @@ namespace RustPlusDesk.Services.Auth
 
         public static async Task SyncDiscordRolesAsync()
         {
-            if (!IsDiscordAuthenticated) return;
-
             // Cloud platform: the server reads the guild roles itself (bot token),
             // maps them to a plan and reconciles the entitlement. The client only
             // triggers it, then re-reads the profile so premium reflects the roles.
             // No provider token is sent — the platform never trusts client roles.
             if (Cloud.CloudBackend.UsePlatform)
             {
+                if (!Cloud.CloudAuthManager.IsAuthenticated) return;
+
                 if (IsUpgradeRequiredSnackbarShown)
                 {
                     AppendLog("[Cloud] Skipping Discord role sync: application update is required.");
                     return;
                 }
+
+                // Refresh the cached identity first: a Discord link made on the web
+                // — or by the Supabase→cloud migration — may not be in the persisted
+                // provider list yet, so gating on a stale cache would skip the sync
+                // for exactly the users who need it.
+                await Cloud.CloudAuthManager.EnsureValidSessionAsync();
+
+                if (!IsDiscordAuthenticated) return;
 
                 try
                 {
@@ -1000,6 +1011,8 @@ namespace RustPlusDesk.Services.Auth
                 return;
             }
 
+            // Legacy Supabase path (rollback mode).
+            if (!IsDiscordAuthenticated) return;
             if (!await EnsureFreshSessionAsync()) return;
 
             try
