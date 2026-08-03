@@ -510,6 +510,7 @@ public partial class MainWindow
                 RefreshAllOverlayScales();
                 RefreshMonumentOverlayPositions();
                 RedrawDeathPins();
+                RedrawDeathHeatmap();
             }, DispatcherPriority.Loaded);
             if (!_monumentWatcher.HasAnyMonument)
             {
