@@ -48,6 +48,24 @@ namespace RustPlusDesk.Services.Deaths
             }
         }
 
+        /// <summary>Flush the team's cloud death log for a server (called on wipe). Premium-only.</summary>
+        public static async Task ClearCloudAsync(string? serverKey)
+        {
+            if (string.IsNullOrEmpty(serverKey) || !CloudBackend.UsePlatform || !SupabaseAuthManager.IsPremium)
+                return;
+
+            try
+            {
+                await CloudApiClient.TryCallApiAsync(
+                    "sync/deaths?server_key=" + Uri.EscapeDataString(serverKey),
+                    HttpMethod.Delete);
+            }
+            catch
+            {
+                // Best-effort: the local log is already cleared.
+            }
+        }
+
         /// <summary>Directory holding the per-server local death logs.</summary>
         public static string LogDirectory => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
