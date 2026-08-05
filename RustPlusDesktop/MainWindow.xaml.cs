@@ -842,7 +842,14 @@ public partial class MainWindow : WpfUi.FluentWindow
         _monumentWatcher.OnOilRigTriggered += (s, data) =>
         {
             if (!TrackingService.AnnounceSpawnsMaster || !TrackingService.AnnounceOilRig) return;
-            string timeStr = data.Duration >= 800 ? "~15m" : "~12:30m";
+
+            // Was two hardcoded strings, which was fine while only Chinook tracking could start
+            // a timer and its two durations were known. A Logic Engine rule sets its own length,
+            // so anything but the real number would announce a time nobody is counting down to.
+            var span = TimeSpan.FromSeconds(data.Duration);
+            string timeStr = span.Seconds == 0
+                ? $"{(int)span.TotalMinutes}m"
+                : $"~{(int)span.TotalMinutes}:{span.Seconds:D2}m";
             string rigName = data.Name == "Small Oil Rig" ? Properties.Resources.SmallOilRig :
                              data.Name == "Large Oil Rig" ? Properties.Resources.LargeOilRig :
                              data.Name;
@@ -1632,6 +1639,7 @@ public partial class MainWindow : WpfUi.FluentWindow
         _monumentWatcher.Reset();
         _deepSeaActive = false;
         _firstShopPollDone = false;
+        ResetShopDataAvailability();
         _deepSeaSpawnTime = null;
         _deepSeaDespawnTime = null;
         _deepSeaMidEvent = false;
@@ -2568,6 +2576,40 @@ private sealed record MarkerRef(System.Windows.Shapes.Ellipse Dot, double U_DIP,
         if (dev != null)
         {
             n = n with { DeviceName = dev.PureName };
+        }
+
+        // An alarm wired to an oil rig frequency is not a raid. It has already produced the
+        // event alert the player actually wants, and letting it through here as well would
+        // fire the popup, the raid sound and the raid webhook for a crate hack — the one
+        // false alarm that costs a team an actual base defence. Dropped once the device is
+        // identified, so it never reaches the notification centre either.
+        if (n.EntityId.HasValue && GetOilRigTriggerLabel(n.EntityId.Value) is string rigLabel)
+        {
+            // The rule still has to run — this alarm is the sensor that starts the timer, and
+            // for FCM the Logic Engine is triggered further down inside this very method. The
+            // WebSocket path already fired before ShowAlarmPopup was called, so only FCM needs
+            // it here; doing both would start the countdown twice.
+            if (source != "WS")
+            {
+                TriggerLogicEngineOnDeviceEvent(n.EntityId.Value, true);
+
+                // Same ten-second pulse the normal path gives, so the device still visibly
+                // reacts in the list. Only the noise is suppressed, not the feedback.
+                if (dev != null)
+                {
+                    dev.IsOn = true;
+                    var pulsed = dev;
+                    _ = Task.Run(async () =>
+                    {
+                        await Task.Delay(10000);
+                        await Dispatcher.InvokeAsync(() => pulsed.IsOn = false);
+                    });
+                }
+            }
+
+            AppendLog($"[alarm] Suppressed alarm from {rigLabel} trigger " +
+                      $"(entity {n.EntityId.Value}) — reported as an oil rig event instead.");
+            return;
         }
 
         // Add to Notification Center
@@ -6658,6 +6700,7 @@ private sealed record MarkerRef(System.Windows.Shapes.Ellipse Dot, double U_DIP,
         UpdateCloudSyncUI();
         ApplyMapPerformanceSettings();
         ApplyRustApiFeatureFlags();
+        ApplyShopDataAvailability();
     }
 
     internal void ShowInfoSnackbar(string title, string message, WpfUi.ControlAppearance appearance)

@@ -1200,6 +1200,13 @@ public partial class MainWindow
             dsTip = string.Format(Properties.Resources.DeepSeaEndedAgo, FormatAgo(dsInactive));
         }
         activeEvents.Add(new EventDockItem { Name = Properties.Resources.DeepSea, Icon = "pack://application:,,,/Assets/icons/ds_event.png", Active = _deepSeaActive, Id = 0, X = 0, Y = 0, Trackable = false, Type = 0, TimerText = dsTimer, ToolTip = dsTip });
+
+        // On a server without event markers everything above was built from data that no
+        // longer arrives. Replace it wholesale rather than patching each entry: the two
+        // sources have nothing in common but the item shape.
+        if (Services.EventCapabilities.IsCloudSourced)
+            activeEvents = BuildCloudEventDockItems();
+
         Dispatcher.Invoke(() =>
         {
             // Try to find existing dock or create one
@@ -1478,6 +1485,13 @@ public partial class MainWindow
                 itemRow.MouseLeftButtonDown -= EventItem_Click;
                 if (isClickable) itemRow.MouseLeftButtonDown += EventItem_Click;
             }
+
+            // Drop rows the list no longer has. The loop above overwrites existing rows in
+            // place and only appends when it runs out, so a shrinking list left the surplus
+            // behind showing whatever it held before — switching from the API's five events to
+            // the fallback's three kept a stale Travelling Vendor and a second Deep Sea.
+            while (stack.Children.Count > activeEvents.Count)
+                stack.Children.RemoveAt(stack.Children.Count - 1);
 
             // Sync events to 3D map if it is active
             if (_isMap3DActive && _map3DWebView?.CoreWebView2 != null)

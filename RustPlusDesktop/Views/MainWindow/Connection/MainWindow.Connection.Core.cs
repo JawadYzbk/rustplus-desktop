@@ -575,6 +575,10 @@ public partial class MainWindow
             _ = SearchRustMapsAsync(false, connectedProfile.WipeTime);
             AppendLog($"Connection initialization complete. Server: {connectedProfile.Name}");
 
+            _ = StartServerEventTrackingAsync();
+
+
+
             // Report what this server said about itself, so its cloud record carries
             // a name and map details rather than just the key it is filed under.
             _ = Services.Cloud.CloudServerInfo.ReportOnceAsync(

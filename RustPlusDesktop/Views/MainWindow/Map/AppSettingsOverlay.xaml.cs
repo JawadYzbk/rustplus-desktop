@@ -95,6 +95,36 @@ namespace RustPlusDesk.Views
             InitializeSettingsNavigation();
             Loaded += AppSettingsOverlay_Loaded;
             IsVisibleChanged += AppSettingsOverlay_IsVisibleChanged;
+
+            Loaded += (_, __) => ApplyEventCapabilities();
+            Services.EventCapabilities.Changed += OnEventCapabilitiesChanged;
+            Unloaded += (_, __) => Services.EventCapabilities.Changed -= OnEventCapabilitiesChanged;
+        }
+
+        private void OnEventCapabilitiesChanged() => Dispatcher.Invoke(ApplyEventCapabilities);
+
+        /// <summary>
+        /// Greys out the Discord shop-alerts channel on servers without vending data. Left in
+        /// place rather than hidden: the channel ID stays configured and works again elsewhere,
+        /// and a visibly disabled field answers "why do I get no shop alerts?" on its own.
+        /// </summary>
+        private void ApplyEventCapabilities()
+        {
+            bool shopsAvailable = !Services.EventCapabilities.IsCloudSourced;
+            string? hint = shopsAvailable ? null : Properties.Resources.AlertUnavailableOnServer;
+
+            if (ShopChannelLabel != null)
+            {
+                ShopChannelLabel.Opacity = shopsAvailable ? 1.0 : 0.45;
+                ShopChannelLabel.ToolTip = hint;
+            }
+
+            if (ShopChannelRow != null)
+            {
+                ShopChannelRow.IsEnabled = shopsAvailable;
+                ShopChannelRow.Opacity = shopsAvailable ? 1.0 : 0.45;
+                ShopChannelRow.ToolTip = hint;
+            }
         }
 
         private void AppSettingsOverlay_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -683,6 +713,10 @@ namespace RustPlusDesk.Views
             ChkStreamerModeMarkers.IsChecked  = TrackingService.MapAbbreviateNames;
             SliderPlayerIconScaleOverlay.Value = TrackingService.MapPlayerIconScale;
 
+            // Server events (audio fallback)
+            ChkListenForServerEvents.IsChecked = TrackingService.ListenForServerEvents;
+            ChkTrustOwnDetections.IsChecked = TrackingService.TrustOwnDetections;
+
             // Offline Death
             ChkOfflineDeathAlerts.IsChecked = TrackingService.OfflineDeathAlertsEnabled;
             TxtOfflineDeathSoundPath.Text = string.IsNullOrEmpty(TrackingService.OfflineDeathSoundPath) ? Properties.Resources.DefaultSoundLabel : System.IO.Path.GetFileName(TrackingService.OfflineDeathSoundPath);
@@ -864,6 +898,8 @@ namespace RustPlusDesk.Views
                 TrackingService.CloudSyncEnabled = ChkCloudSync.IsChecked == true;
             }
 
+            TrackingService.ListenForServerEvents = ChkListenForServerEvents.IsChecked == true;
+            TrackingService.TrustOwnDetections = ChkTrustOwnDetections.IsChecked == true;
             TrackingService.OfflineDeathAlertsEnabled = ChkOfflineDeathAlerts.IsChecked == true;
             TrackingService.OfflineDeathSoundLoopEnabled = ChkOfflineDeathSoundLoop.IsChecked == true;
             TrackingService.OfflineDeathDiscordEnabled = ChkOfflineDeathDiscord.IsChecked == true;

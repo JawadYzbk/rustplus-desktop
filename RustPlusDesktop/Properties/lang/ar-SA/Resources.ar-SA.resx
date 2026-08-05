@@ -5641,10 +5641,10 @@
     <value>أوقات تحميل أسرع، استخدام أقل بكثير لذاكرة الوصول العشوائي (RAM)، وإغلاق نظيف.</value>
   </data>
   <data name="Update800Title3" xml:space="preserve">
-    <value>تحسين البحث في المتجر</value>
+    <value>تنبيهات الأحداث الجديدة</value>
   </data>
   <data name="Update800Desc3" xml:space="preserve">
-    <value>فئات العناصر، وتصفية المعالم، ومطابقة أفضل.</value>
+    <value>عند الاتصال بخادم، يتم تتبع ظهور منصة النفط والبحر العميق وسفينة الشحن فقط.</value>
   </data>
   <data name="Update800Title4" xml:space="preserve">
     <value>المحرك المنطقي وواجهة المستخدم</value>
@@ -5660,5 +5660,158 @@
   </data>
   <data name="UiTrackClanMembers" xml:space="preserve">
     <value>تتبع أعضاء العشيرة وحالتهم وأدوارهم وملاحظاتهم</value>
+  </data>
+  <data name="OilRigCrateStatus" xml:space="preserve">
+    <value>حالة صناديق منصة النفط</value>
+  </data>
+  <data name="ListenForServerEvents" xml:space="preserve">
+    <value>الاستماع إلى أحداث الخادم</value>
+  </data>
+  <data name="ListenForServerEventsDesc" xml:space="preserve">
+    <value>يكتشف منصة النفط وسفينة الشحن والبحر العميق من صوت اللعبة على الخوادم التي لم تعد ترسل الأحداث. يعمل فقط أثناء تشغيل Rust.</value>
+  </data>
+  <data name="TrustOwnDetections" xml:space="preserve">
+    <value>الوثوق باكتشافاتي الخاصة</value>
+  </data>
+  <data name="TrustOwnDetectionsDesc" xml:space="preserve">
+    <value>يعرض الحدث بمجرد سماعه على هذا الجهاز، دون انتظار تأكيد لاعب آخر. لا يتغير الإبلاغ: ما يراه اللاعبون الآخرون لا يزال يحتاج إلى تأكيداتهم الخاصة.</value>
+  </data>
+  <data name="ServerEventsSection" xml:space="preserve">
+    <value>أحداث الخادم</value>
+  </data>
+  <data name="OilRigCrateSeen" xml:space="preserve">
+    <value>شوهد الصندوق</value>
+  </data>
+  <data name="EventNotDetected" xml:space="preserve">
+    <value>لم يتم اكتشافه بعد</value>
+  </data>
+  <data name="EventUnconfirmed" xml:space="preserve">
+    <value>غير مؤكد</value>
+  </data>
+  <data name="AlertUnavailableOnServer" xml:space="preserve">
+    <value>غير متاح على هذا الخادم</value>
+  </data>
+  <data name="CargoSpawnedAgo" xml:space="preserve">
+    <value>ظهرت سفينة الشحن قبل {0}</value>
+  </data>
+  <data name="CargoGoneAgo" xml:space="preserve">
+    <value>اختفت سفينة الشحن منذ {0}</value>
+  </data>
+  <data name="DeepSeaUpFor" xml:space="preserve">
+    <value>البحر العميق مفتوح منذ {0}</value>
+  </data>
+  <data name="AlertCargoSpawnedAudio" xml:space="preserve">
+    <value>ظهرت سفينة الشحن (تم اكتشافها بالصوت)</value>
+  </data>
+  <data name="AlertOilRigCrateUp" xml:space="preserve">
+    <value>صندوق منصة النفط متاح (تم اكتشافه بالصوت)</value>
+  </data>
+  <data name="ChatCmdCargoCloudActive" xml:space="preserve">
+    <value>ظهرت سفينة الشحن قبل {0}</value>
+  </data>
+  <data name="ChatCmdCargoCloudGone" xml:space="preserve">
+    <value>اختفت سفينة الشحن منذ {0}</value>
+  </data>
+  <data name="ChatCmdCargoCloudUnknown" xml:space="preserve">
+    <value>لم يتم اكتشاف ظهور سفينة الشحن بعد</value>
+  </data>
+  <data name="ChatCmdDeepSeaCloudActive" xml:space="preserve">
+    <value>البحر العميق مفتوح — يغلق خلال {0}</value>
+  </data>
+  <data name="ChatCmdDeepSeaCloudEnded" xml:space="preserve">
+    <value>أُغلق البحر العميق قبل {0}</value>
+  </data>
+  <data name="ChatCmdDeepSeaCloudUnknown" xml:space="preserve">
+    <value>لم يتم اكتشاف ظهور البحر العميق بعد</value>
+  </data>
+  <data name="ChatCmdOilRigCloudSeen" xml:space="preserve">
+    <value>آخر صناديق منصة النفط المكتشفة: {0}</value>
+  </data>
+  <data name="ChatCmdOilRigCloudNone" xml:space="preserve">
+    <value>لم يتم اكتشاف صناديق منصة النفط بعد</value>
+  </data>
+  <data name="AlertCargoSpawnedAudioName" xml:space="preserve">
+    <value>ظهور سفينة الشحن (صوت)</value>
+  </data>
+  <data name="AlertCargoSpawnedAudioDesc" xml:space="preserve">
+    <value>يُرسل عند سماع صوت ظهور سفينة الشحن على خادم بدون علامات أحداث.</value>
+  </data>
+  <data name="AlertOilRigCrateUpName" xml:space="preserve">
+    <value>صندوق منصة النفط (صوت)</value>
+  </data>
+  <data name="AlertOilRigCrateUpDesc" xml:space="preserve">
+    <value>يُرسل عند سماع صوت صندوق منصة النفط. لا يمكن تحديد أي منصة.</value>
+  </data>
+  <data name="EventNotTrackableOnServer" xml:space="preserve">
+    <value>لم يعد من الممكن تتبع هذا الحدث على هذا الخادم.</value>
+  </data>
+  <data name="AlertCrateUnlocksIn15Min" xml:space="preserve">
+    <value>[{0}] سيُفتح الصندوق خلال 15 دقيقة!</value>
+  </data>
+  <data name="AlertCrateUnlocksIn15MinName" xml:space="preserve">
+    <value>فتح الصندوق (15 د)</value>
+  </data>
+  <data name="AlertCrateUnlocksIn15MinDesc" xml:space="preserve">
+    <value>تحذير يُرسل قبل 15 دقيقة من فتح الصندوق.</value>
+  </data>
+  <data name="AlertCrateUnlocksIn15MinVars" xml:space="preserve">
+    <value>{0}: اسم المنصة</value>
+  </data>
+  <data name="ChatCmdOilRigHackRunning" xml:space="preserve">
+    <value>{0}: سيُفتح الصندوق خلال {1} د {2} ث</value>
+  </data>
+  <data name="UiStartTimer" xml:space="preserve">
+    <value>بدء مؤقت</value>
+  </data>
+  <data name="UiMinutes" xml:space="preserve">
+    <value>د</value>
+  </data>
+  <data name="UiTimerTargetCustom" xml:space="preserve">
+    <value>اسم مخصص</value>
+  </data>
+  <data name="UiLargeOilRigTrigger" xml:space="preserve">
+    <value>مُشغِّل Large Oilrig</value>
+  </data>
+  <data name="UiSmallOilRigTrigger" xml:space="preserve">
+    <value>مُشغِّل Small Oilrig</value>
+  </data>
+  <data name="UiShowCrateOnMap" xml:space="preserve">
+    <value>إظهار الصندوق على الخريطة</value>
+  </data>
+  <data name="UiTimerNamePlaceholder" xml:space="preserve">
+    <value>اسم المؤقت</value>
+  </data>
+  <data name="UiBadgeOilRigTooltip" xml:space="preserve">
+    <value>يستخدمه Logic Engine كمُشغِّل لمنصة النفط. تم كتم نافذة الإنذار وصوتها وتنبيهات الغارة — يُبلَّغ عنه كحدث منصة نفط بدلاً من ذلك.</value>
+  </data>
+  <data name="Tutorials.oilrig-crate-alerts.Title" xml:space="preserve">
+    <value>تنبيهات الصندوق لمنصات النفط</value>
+  </data>
+  <data name="Tutorials.oilrig-crate-alerts.Description" xml:space="preserve">
+    <value>استخدم مستقبل RF داخل اللعبة للحصول على عدّ تنازلي مباشر للصندوق على الخريطة، مع تحذيرات في دردشة الفريق وDiscord.</value>
+  </data>
+  <data name="Tutorials.Step.oilrigcrate.intro.Title" xml:space="preserve">
+    <value>لماذا يوجد هذا</value>
+  </data>
+  <data name="Tutorials.Step.oilrigcrate.intro.Description" xml:space="preserve">
+    <value>كان العدّ التنازلي للصندوق يُستنتج من علامات الشينوك، التي لم تعد واجهة Rust+ ترسلها. بدلاً من ذلك تبثّ اللعبة عملية الاختراق على تردد لاسلكي يمكنك استقباله بنفسك. تحتاج ثلاثة أشياء: مستقبل داخل اللعبة، وإنذار ذكي مقترن بالتطبيق، وقاعدة واحدة في Logic Engine.</value>
+  </data>
+  <data name="Tutorials.Step.oilrigcrate.wiring.Title" xml:space="preserve">
+    <value>التوصيل داخل اللعبة</value>
+  </data>
+  <data name="Tutorials.Step.oilrigcrate.wiring.Description" xml:space="preserve">
+    <value>ضع مستقبل RF واضبط تردده على المنصة التي تريدها: 4768 لمنصة Large Oil Rig و4765 لمنصة Small Oil Rig. زوّده بالطاقة وصِل مخرجه بإنذار ذكي مقترن بهذا التطبيق. عند بدء الاختراق تبثّ اللعبة على ذلك التردد، فيعمل المستقبل وينطلق الإنذار.</value>
+  </data>
+  <data name="Tutorials.Step.oilrigcrate.rule.Title" xml:space="preserve">
+    <value>أضف قاعدة Logic Engine</value>
+  </data>
+  <data name="Tutorials.Step.oilrigcrate.rule.Description" xml:space="preserve">
+    <value>افتح Logic Engine وأنشئ قاعدة يكون الإنذار الذكي مُشغِّلاً لها، ثم أضف خطوة «بدء مؤقت». اضبط الدقائق واختر مُشغِّل Large Oilrig أو Small Oilrig. اترك خيار «إظهار الصندوق على الخريطة» مفعّلاً لرسم الصندوق مع عدّه التنازلي؛ أما تحذيرات الدردشة وDiscord فتصل في الحالتين.</value>
+  </data>
+  <data name="Tutorials.Step.oilrigcrate.silence.Title" xml:space="preserve">
+    <value>لا تنبيه غارة من هذا الإنذار</value>
+  </data>
+  <data name="Tutorials.Step.oilrigcrate.silence.Description" xml:space="preserve">
+    <value>الإنذار المُعدّ بهذه الطريقة ليس غارة، لذا تُكتم نافذته وصوته وتنبيهات الغارة إلى Discord. يُبلَّغ عنه كحدث منصة نفط بدلاً من ذلك. تعرض قائمة الأجهزة شارة صغيرة (Large Oil) أو (Small Oil) ليكون هذا الصمت مرئياً لا غامضاً. أزل الجهاز من القاعدة ليعود فوراً إنذاراً عادياً. ولا يزال مفتاح Oil Rig ضمن تنبيهات الدردشة يوقف كل ذلك متى أردت الهدوء.</value>
   </data>
 </root>

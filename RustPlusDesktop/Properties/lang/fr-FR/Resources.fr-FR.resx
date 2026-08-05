@@ -5644,10 +5644,10 @@ Vous pouvez trouver plus d'informations sur le site officiel du serveur :
     <value>Temps de chargement plus rapides, consommation de RAM réduite et fermeture propre.</value>
   </data>
   <data name="Update800Title3" xml:space="preserve">
-    <value>Recherche en boutique améliorée</value>
+    <value>Nouvelles alertes d'événements</value>
   </data>
   <data name="Update800Desc3" xml:space="preserve">
-    <value>Catégories d'articles, filtres de monuments et meilleures correspondances.</value>
+    <value>Sur un serveur connecté, seules les apparitions d'Oil Rig, de Deep Sea et du Cargo sont suivies.</value>
   </data>
   <data name="Update800Title4" xml:space="preserve">
     <value>Moteur logique &amp; interface</value>
@@ -5663,5 +5663,158 @@ Vous pouvez trouver plus d'informations sur le site officiel du serveur :
   </data>
   <data name="UiTrackClanMembers" xml:space="preserve">
     <value>Suivez les membres du clan, leur statut, leurs rôles et leurs notes</value>
+  </data>
+  <data name="OilRigCrateStatus" xml:space="preserve">
+    <value>État des caisses Oil Rig</value>
+  </data>
+  <data name="ListenForServerEvents" xml:space="preserve">
+    <value>Écouter les événements du serveur</value>
+  </data>
+  <data name="ListenForServerEventsDesc" xml:space="preserve">
+    <value>Détecte Oil Rig, Cargo et Deep Sea via le son du jeu sur les serveurs qui n'envoient plus d'événements. Actif uniquement lorsque Rust est lancé.</value>
+  </data>
+  <data name="TrustOwnDetections" xml:space="preserve">
+    <value>Faire confiance à mes propres détections</value>
+  </data>
+  <data name="TrustOwnDetectionsDesc" xml:space="preserve">
+    <value>Affiche un événement dès que ce PC l'entend, sans attendre la confirmation d'un autre joueur. Le signalement reste inchangé : ce que voient les autres joueurs nécessite toujours leurs propres confirmations.</value>
+  </data>
+  <data name="ServerEventsSection" xml:space="preserve">
+    <value>Événements du serveur</value>
+  </data>
+  <data name="OilRigCrateSeen" xml:space="preserve">
+    <value>Caisse vue</value>
+  </data>
+  <data name="EventNotDetected" xml:space="preserve">
+    <value>Pas encore détecté</value>
+  </data>
+  <data name="EventUnconfirmed" xml:space="preserve">
+    <value>Non confirmé</value>
+  </data>
+  <data name="AlertUnavailableOnServer" xml:space="preserve">
+    <value>Non disponible sur ce serveur</value>
+  </data>
+  <data name="CargoSpawnedAgo" xml:space="preserve">
+    <value>Cargo apparu il y a {0}</value>
+  </data>
+  <data name="CargoGoneAgo" xml:space="preserve">
+    <value>Cargo parti depuis {0}</value>
+  </data>
+  <data name="DeepSeaUpFor" xml:space="preserve">
+    <value>Deep Sea ouvert depuis {0}</value>
+  </data>
+  <data name="AlertCargoSpawnedAudio" xml:space="preserve">
+    <value>Cargo apparu (détecté par le son)</value>
+  </data>
+  <data name="AlertOilRigCrateUp" xml:space="preserve">
+    <value>Une caisse d'Oil Rig est disponible (détectée par le son)</value>
+  </data>
+  <data name="ChatCmdCargoCloudActive" xml:space="preserve">
+    <value>Cargo apparu il y a {0}</value>
+  </data>
+  <data name="ChatCmdCargoCloudGone" xml:space="preserve">
+    <value>Cargo parti depuis {0}</value>
+  </data>
+  <data name="ChatCmdCargoCloudUnknown" xml:space="preserve">
+    <value>Aucune apparition de Cargo détectée pour l'instant</value>
+  </data>
+  <data name="ChatCmdDeepSeaCloudActive" xml:space="preserve">
+    <value>Deep Sea est ouvert — ferme dans {0}</value>
+  </data>
+  <data name="ChatCmdDeepSeaCloudEnded" xml:space="preserve">
+    <value>Deep Sea fermé il y a {0}</value>
+  </data>
+  <data name="ChatCmdDeepSeaCloudUnknown" xml:space="preserve">
+    <value>Aucune apparition de Deep Sea détectée pour l'instant</value>
+  </data>
+  <data name="ChatCmdOilRigCloudSeen" xml:space="preserve">
+    <value>Dernières caisses d'Oil Rig détectées : {0}</value>
+  </data>
+  <data name="ChatCmdOilRigCloudNone" xml:space="preserve">
+    <value>Aucune caisse d'Oil Rig détectée pour l'instant</value>
+  </data>
+  <data name="AlertCargoSpawnedAudioName" xml:space="preserve">
+    <value>Cargo apparu (audio)</value>
+  </data>
+  <data name="AlertCargoSpawnedAudioDesc" xml:space="preserve">
+    <value>Envoyé lorsque le son d'apparition du Cargo est détecté sur un serveur sans marqueurs d'événements.</value>
+  </data>
+  <data name="AlertOilRigCrateUpName" xml:space="preserve">
+    <value>Caisse d'Oil Rig (audio)</value>
+  </data>
+  <data name="AlertOilRigCrateUpDesc" xml:space="preserve">
+    <value>Envoyé lorsqu'un son de caisse d'Oil Rig est détecté. Impossible de savoir de quelle plateforme il s'agit.</value>
+  </data>
+  <data name="EventNotTrackableOnServer" xml:space="preserve">
+    <value>Cet événement ne peut plus être suivi sur ce serveur.</value>
+  </data>
+  <data name="AlertCrateUnlocksIn15Min" xml:space="preserve">
+    <value>[{0}] La caisse s’ouvre dans 15 minutes !</value>
+  </data>
+  <data name="AlertCrateUnlocksIn15MinName" xml:space="preserve">
+    <value>Caisse ouverte (15 min)</value>
+  </data>
+  <data name="AlertCrateUnlocksIn15MinDesc" xml:space="preserve">
+    <value>Avertissement envoyé 15 minutes avant l’ouverture de la caisse.</value>
+  </data>
+  <data name="AlertCrateUnlocksIn15MinVars" xml:space="preserve">
+    <value>{0} : nom du rig</value>
+  </data>
+  <data name="ChatCmdOilRigHackRunning" xml:space="preserve">
+    <value>{0} : caisse ouverte dans {1} min {2} s</value>
+  </data>
+  <data name="UiStartTimer" xml:space="preserve">
+    <value>Démarrer un minuteur</value>
+  </data>
+  <data name="UiMinutes" xml:space="preserve">
+    <value>min</value>
+  </data>
+  <data name="UiTimerTargetCustom" xml:space="preserve">
+    <value>Nom personnalisé</value>
+  </data>
+  <data name="UiLargeOilRigTrigger" xml:space="preserve">
+    <value>Déclencheur Large Oilrig</value>
+  </data>
+  <data name="UiSmallOilRigTrigger" xml:space="preserve">
+    <value>Déclencheur Small Oilrig</value>
+  </data>
+  <data name="UiShowCrateOnMap" xml:space="preserve">
+    <value>Afficher la caisse sur la carte</value>
+  </data>
+  <data name="UiTimerNamePlaceholder" xml:space="preserve">
+    <value>Nom du minuteur</value>
+  </data>
+  <data name="UiBadgeOilRigTooltip" xml:space="preserve">
+    <value>Utilisé par le Logic Engine comme déclencheur d’oil rig. Sa fenêtre d’alarme, son son et ses alertes de raid sont supprimés — il est signalé comme un événement oil rig.</value>
+  </data>
+  <data name="Tutorials.oilrig-crate-alerts.Title" xml:space="preserve">
+    <value>Alertes de caisse pour les Oil Rigs</value>
+  </data>
+  <data name="Tutorials.oilrig-crate-alerts.Description" xml:space="preserve">
+    <value>Utilisez un récepteur RF en jeu pour obtenir un compte à rebours de caisse sur la carte, ainsi que des avertissements dans le chat d’équipe et sur Discord.</value>
+  </data>
+  <data name="Tutorials.Step.oilrigcrate.intro.Title" xml:space="preserve">
+    <value>Pourquoi cela existe</value>
+  </data>
+  <data name="Tutorials.Step.oilrigcrate.intro.Description" xml:space="preserve">
+    <value>Les comptes à rebours de caisse étaient déduits des marqueurs Chinook, que l’API Rust+ n’envoie plus. Rust diffuse le piratage sur une fréquence radio, que vous pouvez recevoir vous-même. Trois choses sont nécessaires : un récepteur en jeu, une alarme intelligente appairée à l’application et une règle du Logic Engine.</value>
+  </data>
+  <data name="Tutorials.Step.oilrigcrate.wiring.Title" xml:space="preserve">
+    <value>Câblage en jeu</value>
+  </data>
+  <data name="Tutorials.Step.oilrigcrate.wiring.Description" xml:space="preserve">
+    <value>Placez un récepteur RF et réglez sa fréquence sur le rig voulu : 4768 pour le Large Oil Rig, 4765 pour le Small Oil Rig. Alimentez-le et reliez sa sortie à une alarme intelligente appairée à cette application. Au début du piratage, Rust émet sur cette fréquence, le récepteur s’active et l’alarme se déclenche.</value>
+  </data>
+  <data name="Tutorials.Step.oilrigcrate.rule.Title" xml:space="preserve">
+    <value>Ajouter la règle du Logic Engine</value>
+  </data>
+  <data name="Tutorials.Step.oilrigcrate.rule.Description" xml:space="preserve">
+    <value>Ouvrez le Logic Engine, créez une règle ayant l’alarme intelligente pour déclencheur et ajoutez une étape Démarrer un minuteur. Réglez les minutes et choisissez Déclencheur Large Oilrig ou Small Oilrig. Laissez « Afficher la caisse sur la carte » coché pour dessiner la caisse et son compte à rebours ; les avertissements chat et Discord arrivent dans les deux cas.</value>
+  </data>
+  <data name="Tutorials.Step.oilrigcrate.silence.Title" xml:space="preserve">
+    <value>Aucune alerte de raid depuis cette alarme</value>
+  </data>
+  <data name="Tutorials.Step.oilrigcrate.silence.Description" xml:space="preserve">
+    <value>Une alarme configurée ainsi n’est pas un raid : sa fenêtre, son son et ses alertes de raid vers Discord sont supprimés. Elle est signalée comme un événement oil rig. La liste des appareils affiche un petit badge (Large Oil) ou (Small Oil), pour que ce silence soit visible et non mystérieux. Retirez l’appareil de la règle et il redevient aussitôt une alarme ordinaire. Le commutateur Oil Rig des alertes de chat coupe toujours l’ensemble si vous voulez le calme.</value>
   </data>
 </root>

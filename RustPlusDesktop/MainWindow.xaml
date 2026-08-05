@@ -1903,7 +1903,27 @@
                                                                     <Grid.ColumnDefinitions>
                                                                         <ColumnDefinition Width="Auto" />
                                                                         <ColumnDefinition Width="*" MinWidth="0" />
+                                                                        <ColumnDefinition Width="Auto" />
                                                                     </Grid.ColumnDefinitions>
+
+                                                                    <!--  Oil rig trigger: this alarm's own notifications are suppressed  -->
+                                                                    <Border
+                                                                        Grid.Column="2"
+                                                                        Margin="6,0,0,0"
+                                                                        Padding="5,1"
+                                                                        CornerRadius="3"
+                                                                        Background="#302E9BD6"
+                                                                        BorderBrush="#602E9BD6"
+                                                                        BorderThickness="1"
+                                                                        VerticalAlignment="Center"
+                                                                        ToolTip="{DynamicResource UiBadgeOilRigTooltip}"
+                                                                        Visibility="{Binding HasOilRigBadge, Converter={StaticResource Vis}}">
+                                                                        <TextBlock
+                                                                            Text="{Binding OilRigBadge}"
+                                                                            FontSize="10"
+                                                                            FontWeight="SemiBold"
+                                                                            Foreground="#7FD3FF" />
+                                                                    </Border>
                                                                     <ui:SymbolIcon
                                                                         Grid.Column="0"
                                                                         Symbol="Warning20"
@@ -4833,7 +4853,7 @@
                                                              Tag="Vendor" />
                                                          <MenuItem
                                                              Click="Alert_MenuItem_Click"
-                                                             Header="{DynamicResource OilRig}"
+                                                             Header="{DynamicResource OilRigCrateStatus}"
                                                              IsCheckable="True"
                                                              StaysOpenOnClick="True"
                                                              Style="{StaticResource DarkMenuItem}"
@@ -5001,7 +5021,7 @@
                                                      </MenuItem>
 
                                                       <!-- Column 3: Shops & Actions -->
-                                                      <MenuItem Header="{DynamicResource Shops}" BorderThickness="0,0,1,0">
+                                                      <MenuItem x:Name="AlertsShopsColumn" Header="{DynamicResource Shops}" BorderThickness="0,0,1,0">
                                                           <MenuItem.Style>
                                                               <Style TargetType="MenuItem">
                                                                   <Setter Property="Template">
@@ -5284,7 +5304,10 @@
                                 Orientation="Horizontal"
                                 HorizontalAlignment="Right"
                                 VerticalAlignment="Center">
-                                <!-- Deep Sea Toggle Button -->
+                                <!--  Deep Sea Toggle Button — always visible. It used to be revealed by the
+                                      Casino Bar Shopkeeper shop marker, but vending data is going away from
+                                      the Rust+ feed; without the button players auto-switched into the Deep
+                                      Sea view on entry and had no way back to the main map.  -->
                                 <ui:Button
                                     x:Name="BtnDeepSeaToggle"
                                     Width="32"
@@ -5293,8 +5316,7 @@
                                     CornerRadius="6"
                                     Margin="0,0,0,0"
                                     Click="BtnDeepSeaToggle_Click"
-                                    ToolTip="Deep Sea Map"
-                                    Visibility="Collapsed">
+                                    ToolTip="Deep Sea Map">
                                     <ContentControl x:Name="ContentDeepSeaToggle">
                                         <Image Source="pack://application:,,,/Assets/icons/ds_event.png" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality" />
                                     </ContentControl>
