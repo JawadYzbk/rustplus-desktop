@@ -77,6 +77,44 @@ public sealed record TrackerSummary(
     int Deaths,
     IReadOnlyList<MonumentVisit> MonumentVisits);
 
+public sealed record TrackerPoint(
+    DateTime TimestampUtc,
+    double X,
+    double Y,
+    PlayerActivityState State,
+    TrackerLocationType LocationType,
+    string? LocationName,
+    string? Grid,
+    string? Event,
+    string SessionId);
+
+public sealed record CloudArchivePlayer(string SteamId, int DayCount);
+
+public sealed record CloudArchiveSummary(
+    string Id,
+    string ServerKey,
+    string ServerName,
+    string WipeKey,
+    DateTime? WipeStartedAtUtc,
+    DateTime? FirstObservedAtUtc,
+    DateTime? LastObservedAtUtc,
+    int? PlayerCount,
+    long? StoredBytes,
+    IReadOnlyList<CloudArchivePlayer> Players);
+
+public sealed record CloudRestoreDay(
+    string PlayerSteamId,
+    string? PlayerName,
+    string Day,
+    CloudTrackerDayPayload Payload);
+
+public sealed record CloudRestoreResult(
+    string ArchiveId,
+    int Players,
+    int Days,
+    int Observations,
+    bool IsCurrentWipe);
+
 public sealed record TrackerPersistedObservation(
     int SchemaVersion,
     string Kind,

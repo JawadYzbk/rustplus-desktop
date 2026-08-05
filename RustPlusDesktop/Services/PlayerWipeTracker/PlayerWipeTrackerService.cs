@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace RustPlusDesk.Services.PlayerWipeTracker;
@@ -31,7 +33,9 @@ public sealed class PlayerWipeTrackerService : IAsyncDisposable
 
     public bool Enabled { get; set; }
     public bool CloudBackupEnabled { get; set; }
+    public string? CurrentServerKey => _serverKey;
     public string? CurrentWipeKey => _wipeKey;
+    public DateTime? CurrentWipeStartedAtUtc => _wipeStartedAtUtc;
     public string? CurrentSessionId => _sessionId;
     public IReadOnlyCollection<ulong> TrackedPlayers => _engines.Keys.ToArray();
     public PlayerWipeTrackerCapabilities Capabilities => _capabilities.Current;
@@ -105,6 +109,75 @@ public sealed class PlayerWipeTrackerService : IAsyncDisposable
 
     public IReadOnlyList<TrackerSegment> GetSegments(ulong steamId)
         => _engines.TryGetValue(steamId, out var engine) ? engine.Segments : Array.Empty<TrackerSegment>();
+
+    public IReadOnlyList<PlayerObservation> GetObservations(ulong steamId)
+        => _serverKey is null || _wipeKey is null
+            ? Array.Empty<PlayerObservation>()
+            : _store.Load(_serverKey, _wipeKey, steamId)
+                .Where(item => item.Kind == "observation")
+                .Select(item => item.Observation)
+                .OrderBy(item => item.TimestampUtc)
+                .ToArray();
+
+    public string GetPlayerName(ulong steamId)
+        => GetObservations(steamId).LastOrDefault()?.Name ?? steamId.ToString(CultureInfo.InvariantCulture);
+
+    public async Task<IReadOnlyList<CloudArchiveSummary>> GetCloudArchivesAsync(CancellationToken cancellationToken = default)
+    {
+        if (!Capabilities.CanUseCloudSync)
+            return Array.Empty<CloudArchiveSummary>();
+        return await _cloudClient.GetArchiveSummariesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<CloudRestoreResult> RestoreCloudArchiveAsync(
+        string archiveId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Capabilities.CanUseCloudSync)
+            throw new InvalidOperationException("Cloud restore is available on premium plans only.");
+
+        var archive = await _cloudClient.GetArchiveDetailsAsync(archiveId, cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException("The cloud archive could not be loaded.");
+        if (string.IsNullOrWhiteSpace(archive.ServerKey) || string.IsNullOrWhiteSpace(archive.WipeKey))
+            throw new InvalidOperationException("The cloud archive is missing its server or wipe identity.");
+
+        var players = 0;
+        var days = 0;
+        var observations = 0;
+        var restoredSteamIds = new HashSet<ulong>();
+        foreach (var player in archive.Players)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!ulong.TryParse(player.SteamId, NumberStyles.None, CultureInfo.InvariantCulture, out var steamId) || steamId == 0)
+                continue;
+
+            var playerDays = await _cloudClient.GetRestoreDaysAsync(archive.Id, player.SteamId, cancellationToken).ConfigureAwait(false);
+            if (playerDays.Count == 0)
+                continue;
+
+            players++;
+            restoredSteamIds.Add(steamId);
+            days += playerDays.Count;
+            foreach (var day in playerDays)
+            {
+                observations += await ImportCloudDayAsync(archive, steamId, day, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        await _store.FlushAsync(cancellationToken).ConfigureAwait(false);
+        var isCurrent = string.Equals(_serverKey, archive.ServerKey, StringComparison.Ordinal) &&
+            string.Equals(_wipeKey, archive.WipeKey, StringComparison.Ordinal);
+        if (isCurrent)
+        {
+            foreach (var steamId in restoredSteamIds)
+            {
+                if (_capabilities.Current.CanTrackPlayer(steamId, _ownSteamId))
+                    _engines[steamId] = LoadEngine(steamId);
+            }
+        }
+
+        return new CloudRestoreResult(archive.Id, players, days, observations, isCurrent);
+    }
 
     public long StorageBytes => _store.StorageBytes;
 
@@ -191,6 +264,76 @@ public sealed class PlayerWipeTrackerService : IAsyncDisposable
             engine.Observe(item.Observation);
         return engine;
     }
+
+    private async Task<int> ImportCloudDayAsync(
+        CloudArchiveSummary archive,
+        ulong steamId,
+        CloudRestoreDay day,
+        CancellationToken cancellationToken)
+    {
+        var sessionId = day.Payload.ObservationSessions.FirstOrDefault(session => !string.IsNullOrWhiteSpace(session))
+            ?? $"cloud:{archive.Id}:{day.Day}";
+        var playerName = string.IsNullOrWhiteSpace(day.PlayerName) ? steamId.ToString(CultureInfo.InvariantCulture) : day.PlayerName!;
+        var imported = 0;
+        foreach (var point in day.Payload.Observations)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!DateTimeOffset.TryParse(point.Timestamp, CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var parsed))
+                continue;
+
+            var timestamp = parsed.UtcDateTime;
+            var state = ParseState(point.State);
+            var connected = state != PlayerActivityState.Unknown;
+            var observation = new PlayerObservation(
+                steamId,
+                playerName,
+                timestamp,
+                sessionId,
+                connected,
+                connected,
+                state is not PlayerActivityState.Offline and not PlayerActivityState.Unknown,
+                state == PlayerActivityState.Dead,
+                state == PlayerActivityState.Afk,
+                point.X,
+                point.Y,
+                ParseLocation(point.LocationType),
+                point.LocationName,
+                point.Grid,
+                null,
+                null);
+
+            await _store.AppendAsync(
+                archive.ServerKey,
+                archive.WipeKey,
+                steamId,
+                new TrackerPersistedObservation(1, "observation", observation),
+                cancellationToken).ConfigureAwait(false);
+            imported++;
+        }
+
+        return imported;
+    }
+
+    private static PlayerActivityState ParseState(string? value)
+        => value?.Trim().ToLowerInvariant() switch
+        {
+            "moving" => PlayerActivityState.Moving,
+            "stationary" => PlayerActivityState.Stationary,
+            "afk" => PlayerActivityState.Afk,
+            "dead" => PlayerActivityState.Dead,
+            "offline" => PlayerActivityState.Offline,
+            _ => PlayerActivityState.Unknown,
+        };
+
+    private static TrackerLocationType ParseLocation(string? value)
+        => value?.Trim().ToLowerInvariant() switch
+        {
+            "monument" => TrackerLocationType.Monument,
+            "base" => TrackerLocationType.Base,
+            "open" => TrackerLocationType.Open,
+            _ => TrackerLocationType.Unknown,
+        };
 
     private async Task QueueCloudDayAsync(ulong steamId, DateTime timestampUtc, string playerName)
     {

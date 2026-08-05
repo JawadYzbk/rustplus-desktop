@@ -53,6 +53,18 @@ public sealed class PlayerWipeTrackerStore : IAsyncDisposable
         return _queue.Writer.TryWrite(queued);
     }
 
+    public async Task AppendAsync(
+        string serverKey,
+        string wipeKey,
+        ulong steamId,
+        TrackerPersistedObservation item,
+        CancellationToken cancellationToken = default)
+    {
+        var path = FilePath(serverKey, wipeKey, steamId);
+        var line = JsonSerializer.Serialize(item, _json);
+        await _queue.Writer.WriteAsync(new WriteItem(path, line), cancellationToken).ConfigureAwait(false);
+    }
+
     public IReadOnlyList<TrackerPersistedObservation> Load(string serverKey, string wipeKey, ulong steamId)
     {
         var path = FilePath(serverKey, wipeKey, steamId);
