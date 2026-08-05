@@ -118,6 +118,14 @@ public readonly record struct TrackerMapProjection(
     }
 }
 
+public sealed record TrackerWipeMap(
+    byte[] PngBytes,
+    int WorldSize,
+    double WorldRectX,
+    double WorldRectY,
+    double WorldRectWidth,
+    double WorldRectHeight);
+
 public sealed record CloudArchivePlayer(string SteamId, int DayCount);
 
 public sealed record CloudArchiveSummary(

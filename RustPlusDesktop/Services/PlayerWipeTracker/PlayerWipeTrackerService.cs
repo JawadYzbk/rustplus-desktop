@@ -180,6 +180,16 @@ public sealed class PlayerWipeTrackerService : IAsyncDisposable
     }
 
     public long StorageBytes => _store.StorageBytes;
+    public bool HasCurrentWipeMap => _serverKey is not null && _wipeKey is not null && _store.HasWipeMap(_serverKey, _wipeKey);
+
+    public void SaveCurrentWipeMap(TrackerWipeMap map)
+    {
+        if (_serverKey is not null && _wipeKey is not null && !HasCurrentWipeMap)
+            _store.SaveWipeMap(_serverKey, _wipeKey, map);
+    }
+
+    public TrackerWipeMap? LoadCurrentWipeMap()
+        => _serverKey is null || _wipeKey is null ? null : _store.LoadWipeMap(_serverKey, _wipeKey);
 
     public CloudDayUploadRequest? BuildCloudDay(ulong steamId, DateOnly day, string? playerName)
     {

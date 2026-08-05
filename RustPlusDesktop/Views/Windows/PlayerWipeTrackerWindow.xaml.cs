@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
@@ -28,6 +29,10 @@ public partial class PlayerWipeTrackerWindow : Window
     private double _replaySpeed = 1;
     private int _replayIndex;
     private bool _refreshing;
+    private Grid? _dragViewport;
+    private TranslateTransform? _dragTranslate;
+    private Point _dragStart;
+    private Point _dragOrigin;
 
     public PlayerWipeTrackerWindow(
         PlayerWipeTrackerService tracker,
@@ -47,6 +52,7 @@ public partial class PlayerWipeTrackerWindow : Window
         InitializeComponent();
         ReplayMapImage.Source = _wipeMapImage;
         HeatmapMapImage.Source = _wipeMapImage;
+        CompareMapImage.Source = _wipeMapImage;
         Refresh();
     }
 
@@ -316,24 +322,93 @@ public partial class PlayerWipeTrackerWindow : Window
         if (!IsLoaded || !CompareCanvas.IsVisible)
             return;
         CompareCanvas.Children.Clear();
-        DrawGrid(CompareCanvas);
+        if (!TryGetMapProjection(CompareCanvas, out var projection))
+        {
+            AddEmptyState(CompareCanvas, "Load the current wipe map to compare routes.");
+            CompareSummaryText.Text = "Wipe map unavailable";
+            return;
+        }
+        DrawWipeGrid(CompareCanvas, projection);
         var a = SelectedPlayerId(CompareASelector) ?? _ownSteamId;
         var b = SelectedPlayerId(CompareBSelector) ?? a;
         var pointsA = ToPoints(_tracker.GetObservations(a));
         var pointsB = ToPoints(_tracker.GetObservations(b));
         var all = pointsA.Concat(pointsB).ToArray();
-        if (!TryGetBounds(all, out var bounds))
+        if (all.Length == 0)
         {
             AddEmptyState(CompareCanvas, "Two recorded routes are needed for a comparison.");
             CompareSummaryText.Text = "No comparison data";
             return;
         }
 
-        DrawTrack(CompareCanvas, pointsA, point => MapPoint(CompareCanvas, bounds, point.X, point.Y), Color.FromRgb(96, 205, 255), 3, 1);
-        DrawTrack(CompareCanvas, pointsB, point => MapPoint(CompareCanvas, bounds, point.X, point.Y), Color.FromRgb(255, 175, 69), 3, 1);
-        DrawEventMarkers(CompareCanvas, pointsA, point => MapPoint(CompareCanvas, bounds, point.X, point.Y), Color.FromRgb(96, 205, 255));
-        DrawEventMarkers(CompareCanvas, pointsB, point => MapPoint(CompareCanvas, bounds, point.X, point.Y), Color.FromRgb(255, 175, 69));
+        DrawTrack(CompareCanvas, pointsA, point => Project(projection, point.X, point.Y), Color.FromRgb(96, 205, 255), 3, 1);
+        DrawTrack(CompareCanvas, pointsB, point => Project(projection, point.X, point.Y), Color.FromRgb(255, 175, 69), 3, 1);
+        DrawEventMarkers(CompareCanvas, pointsA, point => Project(projection, point.X, point.Y), Color.FromRgb(96, 205, 255));
+        DrawEventMarkers(CompareCanvas, pointsB, point => Project(projection, point.X, point.Y), Color.FromRgb(255, 175, 69));
         CompareSummaryText.Text = $"{ShortName(a)} {pointsA.Count:N0} pts / {Distance(pointsA):N0}u   ·   {ShortName(b)} {pointsB.Count:N0} pts / {Distance(pointsB):N0}u";
+    }
+
+    private static bool TryGetMapTransforms(Grid viewport, out ScaleTransform scale, out TranslateTransform translate)
+    {
+        var surface = viewport.Children.OfType<Grid>().FirstOrDefault();
+        if (surface?.RenderTransform is TransformGroup group && group.Children.Count >= 2 &&
+            group.Children[0] is ScaleTransform foundScale && group.Children[1] is TranslateTransform foundTranslate)
+        {
+            scale = foundScale;
+            translate = foundTranslate;
+            return true;
+        }
+        scale = null!;
+        translate = null!;
+        return false;
+    }
+
+    private void MapViewport_MouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (sender is not Grid viewport || !TryGetMapTransforms(viewport, out var scale, out var translate))
+            return;
+        var next = Math.Clamp(scale.ScaleX * (e.Delta > 0 ? 1.15 : 1 / 1.15), 1, 8);
+        var pointer = e.GetPosition(viewport);
+        var ratio = next / scale.ScaleX;
+        translate.X = pointer.X - (pointer.X - translate.X) * ratio;
+        translate.Y = pointer.Y - (pointer.Y - translate.Y) * ratio;
+        scale.ScaleX = scale.ScaleY = next;
+        if (next == 1)
+            translate.X = translate.Y = 0;
+        e.Handled = true;
+    }
+
+    private void MapViewport_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not Grid viewport || !TryGetMapTransforms(viewport, out var scale, out var translate))
+            return;
+        if (e.ClickCount == 2)
+        {
+            scale.ScaleX = scale.ScaleY = 1;
+            translate.X = translate.Y = 0;
+            return;
+        }
+        _dragViewport = viewport;
+        _dragTranslate = translate;
+        _dragStart = e.GetPosition(viewport);
+        _dragOrigin = new Point(translate.X, translate.Y);
+        viewport.CaptureMouse();
+    }
+
+    private void MapViewport_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (_dragViewport is null || _dragTranslate is null || !_dragViewport.IsMouseCaptured)
+            return;
+        var delta = e.GetPosition(_dragViewport) - _dragStart;
+        _dragTranslate.X = _dragOrigin.X + delta.X;
+        _dragTranslate.Y = _dragOrigin.Y + delta.Y;
+    }
+
+    private void MapViewport_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        _dragViewport?.ReleaseMouseCapture();
+        _dragViewport = null;
+        _dragTranslate = null;
     }
 
     private void CloudRestoreTab_Click(object sender, RoutedEventArgs e)
@@ -545,38 +620,6 @@ public partial class PlayerWipeTrackerWindow : Window
         return distance;
     }
 
-    private static bool TryGetBounds(IEnumerable<TrackerPoint> points, out MapBounds bounds)
-    {
-        var list = points.ToArray();
-        if (list.Length == 0)
-        {
-            bounds = default;
-            return false;
-        }
-        var minX = list.Min(point => point.X);
-        var maxX = list.Max(point => point.X);
-        var minY = list.Min(point => point.Y);
-        var maxY = list.Max(point => point.Y);
-        var width = Math.Max(1, maxX - minX);
-        var height = Math.Max(1, maxY - minY);
-        var padX = width * 0.08;
-        var padY = height * 0.08;
-        bounds = new MapBounds(minX - padX, maxX + padX, minY - padY, maxY + padY);
-        return true;
-    }
-
-    private static Point Normalize(MapBounds bounds, double x, double y)
-        => new((x - bounds.MinX) / Math.Max(1, bounds.MaxX - bounds.MinX),
-            (bounds.MaxY - y) / Math.Max(1, bounds.MaxY - bounds.MinY));
-
-    private static Point MapPoint(Canvas canvas, MapBounds bounds, double x, double y)
-    {
-        var normalized = Normalize(bounds, x, y);
-        var width = Math.Max(1, canvas.ActualWidth - 32);
-        var height = Math.Max(1, canvas.ActualHeight - 32);
-        return new Point(16 + normalized.X * width, 16 + normalized.Y * height);
-    }
-
     private bool TryGetMapProjection(Canvas canvas, out TrackerMapProjection projection)
     {
         var imageWidth = _wipeMapImage?.Width ?? 0;
@@ -660,19 +703,6 @@ public partial class PlayerWipeTrackerWindow : Window
         return label;
     }
 
-    private static void DrawGrid(Canvas canvas)
-    {
-        var width = Math.Max(1, canvas.ActualWidth);
-        var height = Math.Max(1, canvas.ActualHeight);
-        for (var i = 1; i < 5; i++)
-        {
-            var x = width * i / 5;
-            var y = height * i / 5;
-            canvas.Children.Add(new Line { X1 = x, X2 = x, Y1 = 0, Y2 = height, Stroke = new SolidColorBrush(Color.FromArgb(35, 130, 180, 200)), StrokeThickness = 1 });
-            canvas.Children.Add(new Line { X1 = 0, X2 = width, Y1 = y, Y2 = y, Stroke = new SolidColorBrush(Color.FromArgb(35, 130, 180, 200)), StrokeThickness = 1 });
-        }
-    }
-
     private static void DrawTrack(Canvas canvas, IReadOnlyList<TrackerPoint> points, Func<TrackerPoint, Point> mapPoint, Color color, double thickness, double opacity, bool dashed = false)
     {
         if (points.Count < 2)
@@ -752,8 +782,6 @@ public partial class PlayerWipeTrackerWindow : Window
 
     private static string FormatBytes(long bytes)
         => bytes >= 1024 * 1024 ? $"{bytes / 1024d / 1024d:N1} MB" : $"{bytes / 1024d:N1} KB";
-
-    private readonly record struct MapBounds(double MinX, double MaxX, double MinY, double MaxY);
 
     private sealed record PlayerItem(ulong SteamId, string Name)
     {

@@ -327,9 +327,12 @@
                         </Grid>
                     </Border>
                     <Border Grid.Row="1" Style="{StaticResource Panel}" Padding="10">
-                        <Grid Background="#101820" ClipToBounds="True">
-                            <Image x:Name="ReplayMapImage" Stretch="Uniform" Opacity="0.78" IsHitTestVisible="False" />
-                            <Canvas x:Name="ReplayCanvas" Background="Transparent" SizeChanged="Canvas_SizeChanged" />
+                        <Grid Background="#101820" ClipToBounds="True" Cursor="SizeAll" ToolTip="Mouse wheel to zoom · drag to pan · double-click to reset" MouseWheel="MapViewport_MouseWheel" MouseLeftButtonDown="MapViewport_MouseLeftButtonDown" MouseLeftButtonUp="MapViewport_MouseLeftButtonUp" MouseMove="MapViewport_MouseMove">
+                            <Grid x:Name="ReplayMapSurface">
+                                <Grid.RenderTransform><TransformGroup><ScaleTransform /><TranslateTransform /></TransformGroup></Grid.RenderTransform>
+                                <Image x:Name="ReplayMapImage" Stretch="Uniform" Opacity="0.78" IsHitTestVisible="False" />
+                                <Canvas x:Name="ReplayCanvas" Background="Transparent" SizeChanged="Canvas_SizeChanged" />
+                            </Grid>
                             <Border HorizontalAlignment="Left" VerticalAlignment="Top" Background="#CC101820" BorderBrush="#335A7482" BorderThickness="1" CornerRadius="5" Padding="8" Margin="12">
                                 <StackPanel><TextBlock Text="ROUTE REPLAY" Foreground="{DynamicResource Accent}" FontSize="10" FontWeight="Bold" /><TextBlock x:Name="ReplayStateText" Margin="0,3,0,0" /></StackPanel>
                             </Border>
@@ -342,9 +345,12 @@
                 <Grid Margin="0,12,0,0">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="260" /></Grid.ColumnDefinitions>
                     <Border Style="{StaticResource Panel}" Padding="10" Margin="0,0,10,0">
-                        <Grid Background="#101820" ClipToBounds="True">
-                            <Image x:Name="HeatmapMapImage" Stretch="Uniform" Opacity="0.72" IsHitTestVisible="False" />
-                            <Canvas x:Name="HeatmapCanvas" Background="Transparent" SizeChanged="Canvas_SizeChanged" />
+                        <Grid Background="#101820" ClipToBounds="True" Cursor="SizeAll" ToolTip="Mouse wheel to zoom · drag to pan · double-click to reset" MouseWheel="MapViewport_MouseWheel" MouseLeftButtonDown="MapViewport_MouseLeftButtonDown" MouseLeftButtonUp="MapViewport_MouseLeftButtonUp" MouseMove="MapViewport_MouseMove">
+                            <Grid x:Name="HeatmapMapSurface">
+                                <Grid.RenderTransform><TransformGroup><ScaleTransform /><TranslateTransform /></TransformGroup></Grid.RenderTransform>
+                                <Image x:Name="HeatmapMapImage" Stretch="Uniform" Opacity="0.72" IsHitTestVisible="False" />
+                                <Canvas x:Name="HeatmapCanvas" Background="Transparent" SizeChanged="Canvas_SizeChanged" />
+                            </Grid>
                         </Grid>
                     </Border>
                     <Border Grid.Column="1" Style="{StaticResource Panel}" Padding="14">
@@ -374,7 +380,15 @@
                     <Border Grid.Row="1" Style="{StaticResource Panel}" Padding="12" Margin="0,0,0,10">
                         <TextBlock Text="Cyan is Player A · amber is Player B. Comparison stays honest: it overlays only recorded coordinates and leaves missing periods blank." Foreground="{DynamicResource TextSubtle}" />
                     </Border>
-                    <Border Grid.Row="2" Style="{StaticResource Panel}" Padding="10"><Canvas x:Name="CompareCanvas" Background="#101820" SizeChanged="Canvas_SizeChanged" /></Border>
+                    <Border Grid.Row="2" Style="{StaticResource Panel}" Padding="10">
+                        <Grid Background="#101820" ClipToBounds="True" Cursor="SizeAll" ToolTip="Mouse wheel to zoom · drag to pan · double-click to reset" MouseWheel="MapViewport_MouseWheel" MouseLeftButtonDown="MapViewport_MouseLeftButtonDown" MouseLeftButtonUp="MapViewport_MouseLeftButtonUp" MouseMove="MapViewport_MouseMove">
+                            <Grid x:Name="CompareMapSurface">
+                                <Grid.RenderTransform><TransformGroup><ScaleTransform /><TranslateTransform /></TransformGroup></Grid.RenderTransform>
+                                <Image x:Name="CompareMapImage" Stretch="Uniform" Opacity="0.76" IsHitTestVisible="False" />
+                                <Canvas x:Name="CompareCanvas" Background="Transparent" SizeChanged="Canvas_SizeChanged" />
+                            </Grid>
+                        </Grid>
+                    </Border>
                 </Grid>
             </TabItem>
 

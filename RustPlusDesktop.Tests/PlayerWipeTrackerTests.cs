@@ -96,4 +96,22 @@ public sealed class PlayerWipeTrackerTests
         store.DeleteAll();
         Assert.AreEqual(0, store.StorageBytes);
     }
+
+    [TestMethod]
+    public async Task Store_KeepsMapInsideItsWipeDirectory()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"tracker-map-{Guid.NewGuid():N}");
+        await using var store = new PlayerWipeTrackerStore(directory);
+        var expected = new TrackerWipeMap(new byte[] { 1, 2, 3 }, 4500, 10, 20, 900, 900);
+
+        store.SaveWipeMap("server", "wipe-a", expected);
+
+        var actual = store.LoadWipeMap("server", "wipe-a");
+        Assert.IsNotNull(actual);
+        CollectionAssert.AreEqual(expected.PngBytes, actual.PngBytes);
+        Assert.AreEqual(expected.WorldSize, actual.WorldSize);
+        Assert.AreEqual(expected.WorldRectWidth, actual.WorldRectWidth);
+        Assert.IsNull(store.LoadWipeMap("server", "wipe-b"));
+        store.DeleteAll();
+    }
 }

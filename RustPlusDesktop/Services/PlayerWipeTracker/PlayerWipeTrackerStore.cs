@@ -103,8 +103,38 @@ public sealed class PlayerWipeTrackerStore : IAsyncDisposable
     }
 
     public long StorageBytes => Directory.Exists(_root)
-        ? Directory.EnumerateFiles(_root, "*.jsonl", SearchOption.AllDirectories).Sum(path => new FileInfo(path).Length)
+        ? Directory.EnumerateFiles(_root, "*", SearchOption.AllDirectories).Sum(path => new FileInfo(path).Length)
         : 0;
+
+    public bool HasWipeMap(string serverKey, string wipeKey)
+        => File.Exists(Path.Combine(WipeDirectory(serverKey, wipeKey), "map.png"))
+            && File.Exists(Path.Combine(WipeDirectory(serverKey, wipeKey), "map.json"));
+
+    public void SaveWipeMap(string serverKey, string wipeKey, TrackerWipeMap map)
+    {
+        var directory = WipeDirectory(serverKey, wipeKey);
+        Directory.CreateDirectory(directory);
+        File.WriteAllBytes(Path.Combine(directory, "map.png"), map.PngBytes);
+        File.WriteAllText(Path.Combine(directory, "map.json"), JsonSerializer.Serialize(map with { PngBytes = Array.Empty<byte>() }, _json));
+    }
+
+    public TrackerWipeMap? LoadWipeMap(string serverKey, string wipeKey)
+    {
+        var directory = WipeDirectory(serverKey, wipeKey);
+        var imagePath = Path.Combine(directory, "map.png");
+        var metadataPath = Path.Combine(directory, "map.json");
+        if (!File.Exists(imagePath) || !File.Exists(metadataPath))
+            return null;
+        try
+        {
+            var metadata = JsonSerializer.Deserialize<TrackerWipeMap>(File.ReadAllText(metadataPath), _json);
+            return metadata is null ? null : metadata with { PngBytes = File.ReadAllBytes(imagePath) };
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        {
+            return null;
+        }
+    }
 
     public IReadOnlyList<ulong> LoadPlayerIds(string serverKey, string wipeKey)
     {
@@ -159,7 +189,10 @@ public sealed class PlayerWipeTrackerStore : IAsyncDisposable
     }
 
     private string FilePath(string serverKey, string wipeKey, ulong steamId)
-        => Path.Combine(_root, Safe(serverKey), Safe(wipeKey), $"{steamId}.jsonl");
+        => Path.Combine(WipeDirectory(serverKey, wipeKey), $"{steamId}.jsonl");
+
+    private string WipeDirectory(string serverKey, string wipeKey)
+        => Path.Combine(_root, Safe(serverKey), Safe(wipeKey));
 
     private static string Safe(string value)
     {

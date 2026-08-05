@@ -116,6 +116,7 @@ public partial class MainWindow
         ImgMap.Source = bmp;               // zunaechst nackte Map
         SetupMapScene(bmp);
         RedrawGrid();
+        Dispatcher.BeginInvoke(new System.Action(SaveCurrentPlayerWipeMap), System.Windows.Threading.DispatcherPriority.Background);
     }
 
     public void ApplyMapPerformanceSettings()

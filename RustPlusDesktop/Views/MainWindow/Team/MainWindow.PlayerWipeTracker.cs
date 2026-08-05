@@ -2,6 +2,9 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using RustPlusDesk.Services;
 using RustPlusDesk.Services.PlayerWipeTracker;
 
@@ -27,6 +30,7 @@ public partial class MainWindow
             (profile.WipeTime ?? profile.RustMapsWipeTime)?.ToUniversalTime(),
             profile.RustMapsMapId,
             _mySteamId);
+        SaveCurrentPlayerWipeMap();
     }
 
     private void StopPlayerWipeTrackerSession()
@@ -104,17 +108,73 @@ public partial class MainWindow
     {
         try
         {
+            SaveCurrentPlayerWipeMap();
+            var storedMap = _playerWipeTracker.LoadCurrentWipeMap();
+            var mapImage = ImgMap.Source ?? DecodeMap(storedMap?.PngBytes);
+            var worldSize = _worldSizeS > 0 ? _worldSizeS : storedMap?.WorldSize ?? 0;
+            var worldRect = _worldRectPx.Width > 0 && _worldRectPx.Height > 0
+                ? _worldRectPx
+                : storedMap is null
+                    ? Rect.Empty
+                    : new Rect(storedMap.WorldRectX, storedMap.WorldRectY, storedMap.WorldRectWidth, storedMap.WorldRectHeight);
             var window = new RustPlusDesk.Views.Windows.PlayerWipeTrackerWindow(
                 _playerWipeTracker,
                 _mySteamId,
-                ImgMap.Source,
-                _worldSizeS,
-                _worldRectPx)
+                mapImage,
+                worldSize,
+                worldRect)
             {
                 Owner = this,
             };
             window.Show();
         }
         catch { }
+    }
+
+    private void SaveCurrentPlayerWipeMap()
+    {
+        if (_playerWipeTracker.HasCurrentWipeMap || ImgMap.Source is not BitmapSource bitmap ||
+            _worldSizeS <= 0 || _worldRectPx.Width <= 0 || _worldRectPx.Height <= 0)
+            return;
+
+        try
+        {
+            using var stream = new MemoryStream();
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bitmap));
+            encoder.Save(stream);
+            _playerWipeTracker.SaveCurrentWipeMap(new TrackerWipeMap(
+                stream.ToArray(),
+                _worldSizeS,
+                _worldRectPx.X,
+                _worldRectPx.Y,
+                _worldRectPx.Width,
+                _worldRectPx.Height));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            AppendLog($"[Player Wipe Tracker] Could not save wipe map: {ex.Message}");
+        }
+    }
+
+    private static BitmapImage? DecodeMap(byte[]? bytes)
+    {
+        if (bytes is not { Length: > 0 })
+            return null;
+        try
+        {
+            using var stream = new MemoryStream(bytes);
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.StreamSource = stream;
+            bitmap.EndInit();
+            bitmap.Freeze();
+            return bitmap;
+        }
+        catch (NotSupportedException)
+        {
+            return null;
+        }
     }
 }
