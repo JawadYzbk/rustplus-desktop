@@ -65,6 +65,8 @@ namespace RustPlusDesk.Services.Cloud
                 // entitlement routes are UUID keyed, so these get their own surface.
                 "admin/users" => "admin/desktop-users",
                 "admin/set-supporter" => "admin/desktop-users/supporter",
+                "server-events" => "server-events",
+                "server-events/report" => "server-events/report",
                 _ => null,
             };
         }
