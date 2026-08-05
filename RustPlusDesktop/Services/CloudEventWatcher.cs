@@ -458,7 +458,8 @@ public sealed class CloudEventWatcher
         await _subscribeLock.WaitAsync();
         try
         {
-            var channel = $"private-server-events.{serverKey}";
+            var channelKey = serverKey.Replace('.', '_');
+            var channel = $"private-server-events.{channelKey}";
 
             if (_realtimeChannel == channel && RealtimeClient.Shared.IsSubscribed(channel))
                 return;
