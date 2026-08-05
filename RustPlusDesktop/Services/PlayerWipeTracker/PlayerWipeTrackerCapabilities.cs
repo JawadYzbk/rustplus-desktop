@@ -22,6 +22,9 @@ public sealed record PlayerWipeTrackerCapabilities(
     public static PlayerWipeTrackerCapabilities Free(DateTime? fetchedUtc = null) => new(
         "free", true, false, false, false, false, false, 1, 1, 0, fetchedUtc ?? DateTime.UtcNow);
 
+    public static PlayerWipeTrackerCapabilities Development(DateTime? fetchedUtc = null) => new(
+        "development", true, true, true, true, true, true, 32, 12, 365, fetchedUtc ?? DateTime.UtcNow);
+
     public bool CanTrackPlayer(ulong steamId, ulong ownSteamId)
         => steamId != 0 && (steamId == ownSteamId || CanTrackTeam) &&
            (steamId == ownSteamId || MaxTrackedPlayers > 1);
@@ -39,7 +42,21 @@ public sealed class PlayerWipeTrackerCapabilityService
         _lastSuccessful = DataManager.LoadCache<PlayerWipeTrackerCapabilities>(CacheKey) ?? PlayerWipeTrackerCapabilities.Free();
     }
 
-    public PlayerWipeTrackerCapabilities Current => Effective(DateTime.UtcNow);
+    public PlayerWipeTrackerCapabilities Current
+    {
+        get
+        {
+#if DEBUG
+            var development = PlayerWipeTrackerCapabilities.Development();
+            System.Diagnostics.Debug.Assert(
+                development.IsTrackerAvailable && development.CanTrackTeam && development.CanUseCloudSync &&
+                development.CanUseAdvancedViews && development.CanUseRouteReplay && development.CanExport);
+            return development;
+#else
+            return Effective(DateTime.UtcNow);
+#endif
+        }
+    }
 
     public PlayerWipeTrackerCapabilities Update(JsonElement bootstrap)
     {
