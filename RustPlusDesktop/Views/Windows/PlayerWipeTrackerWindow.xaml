@@ -24,9 +24,43 @@
             <Setter Property="FontSize" Value="18" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
-        <Style TargetType="TabItem">
-            <Setter Property="Padding" Value="14,8" />
-            <Setter Property="Margin" Value="0,0,4,0" />
+        <Style x:Key="TrackerListView" TargetType="ListView">
+            <Setter Property="Background" Value="#151B23" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+                        <Setter Property="Padding" Value="8,6" />
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <Setter Property="BorderBrush" Value="Transparent" />
+                        <Setter Property="BorderThickness" Value="0,0,0,1" />
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#1C2A35" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#203B4A" />
+                                <Setter Property="Foreground" Value="White" />
+                                <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="TrackerColumnHeader" TargetType="GridViewColumnHeader">
+            <Setter Property="Background" Value="#1D2630" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSubtle}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+            <Setter Property="BorderThickness" Value="0,0,1,1" />
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
         </Style>
     </Window.Resources>
     <Grid Margin="18">
@@ -101,8 +135,8 @@
                         <Grid>
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                             <TextBlock Text="Observation timeline" FontSize="14" FontWeight="SemiBold" Margin="2,0,0,8" />
-                            <ListView Grid.Row="1" x:Name="TimelineList">
-                                <ListView.View><GridView>
+                            <ListView Grid.Row="1" x:Name="TimelineList" Style="{StaticResource TrackerListView}">
+                                <ListView.View><GridView ColumnHeaderContainerStyle="{StaticResource TrackerColumnHeader}">
                                     <GridViewColumn Header="Start" DisplayMemberBinding="{Binding Start}" Width="145" />
                                     <GridViewColumn Header="End" DisplayMemberBinding="{Binding End}" Width="145" />
                                     <GridViewColumn Header="State" DisplayMemberBinding="{Binding State}" Width="90" />
@@ -115,8 +149,8 @@
                         <Grid>
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                             <TextBlock Text="Monument visits" FontSize="14" FontWeight="SemiBold" Margin="2,0,0,8" />
-                            <ListView Grid.Row="1" x:Name="VisitsList">
-                                <ListView.View><GridView>
+                            <ListView Grid.Row="1" x:Name="VisitsList" Style="{StaticResource TrackerListView}">
+                                <ListView.View><GridView ColumnHeaderContainerStyle="{StaticResource TrackerColumnHeader}">
                                     <GridViewColumn Header="Monument" DisplayMemberBinding="{Binding Name}" Width="160" />
                                     <GridViewColumn Header="Duration" DisplayMemberBinding="{Binding Duration}" Width="120" />
                                 </GridView></ListView.View>
@@ -216,7 +250,7 @@
                     <Border Style="{StaticResource Panel}" Padding="12" Margin="0,0,10,0">
                         <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                             <TextBlock Text="Cloud archives" FontSize="16" FontWeight="SemiBold" Margin="2,0,0,8" />
-                            <ListView Grid.Row="1" x:Name="CloudArchiveSelector" SelectionChanged="CloudArchive_Changed" />
+                            <ListView Grid.Row="1" x:Name="CloudArchiveSelector" Style="{StaticResource TrackerListView}" SelectionChanged="CloudArchive_Changed" />
                         </Grid>
                     </Border>
                     <Border Grid.Column="1" Style="{StaticResource Panel}" Padding="16">
