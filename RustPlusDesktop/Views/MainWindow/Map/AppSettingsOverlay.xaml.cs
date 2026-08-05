@@ -675,6 +675,8 @@ namespace RustPlusDesk.Views
 
             // Cloud Sync Setting load
             ChkCloudSync.IsChecked = TrackingService.CloudSyncEnabled;
+            ChkPlayerWipeTracker.IsChecked = TrackingService.PlayerWipeTrackerEnabled;
+            ChkPlayerWipeCloud.IsChecked = TrackingService.PlayerWipeTrackerCloudBackupEnabled;
 
             // Team marker settings
             ChkShowProfileMarkers.IsChecked  = TrackingService.MapShowSteamMarkers;
@@ -863,6 +865,9 @@ namespace RustPlusDesk.Views
             {
                 TrackingService.CloudSyncEnabled = ChkCloudSync.IsChecked == true;
             }
+
+            TrackingService.PlayerWipeTrackerEnabled = ChkPlayerWipeTracker.IsChecked == true;
+            TrackingService.PlayerWipeTrackerCloudBackupEnabled = ChkPlayerWipeCloud.IsChecked == true;
 
             TrackingService.OfflineDeathAlertsEnabled = ChkOfflineDeathAlerts.IsChecked == true;
             TrackingService.OfflineDeathSoundLoopEnabled = ChkOfflineDeathSoundLoop.IsChecked == true;

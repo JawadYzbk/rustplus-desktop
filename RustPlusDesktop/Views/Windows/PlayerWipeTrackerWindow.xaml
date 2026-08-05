@@ -1,0 +1,72 @@
+<Window x:Class="RustPlusDesk.Views.Windows.PlayerWipeTrackerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Player Wipe Tracker"
+        Width="940" Height="700"
+        Background="{DynamicResource AppBg}"
+        Foreground="{DynamicResource TextPrimary}"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <DockPanel Grid.Row="0" Margin="0,0,0,12">
+            <StackPanel>
+                <TextBlock Text="Player Wipe Tracker" FontSize="22" FontWeight="SemiBold" />
+                <TextBlock Text="Observed Rust+ activity only. Disconnected periods are Unknown; distances and durations are estimates."
+                           Foreground="{DynamicResource TextSubtle}" Margin="0,4,0,0" />
+            </StackPanel>
+            <Button DockPanel.Dock="Right" Content="Refresh" Click="Refresh_Click" Padding="14,6" />
+        </DockPanel>
+        <Border Grid.Row="1" Background="{DynamicResource SurfaceAlt}" BorderBrush="{DynamicResource CardBorder}"
+                BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
+            <StackPanel>
+                <TextBlock x:Name="PremiumBanner" Foreground="{DynamicResource Accent}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                <WrapPanel>
+                <TextBlock Text="Player: " FontWeight="SemiBold" />
+                <ComboBox x:Name="PlayerSelector" Width="170" SelectionChanged="PlayerSelector_Changed" />
+                <TextBlock Text="  Coverage: " FontWeight="SemiBold" Margin="18,0,0,0" />
+                <TextBlock x:Name="CoverageText" />
+                <TextBlock Text="  Unknown: " FontWeight="SemiBold" Margin="18,0,0,0" />
+                <TextBlock x:Name="UnknownText" />
+                <TextBlock Text="  Estimated distance: " FontWeight="SemiBold" Margin="18,0,0,0" />
+                <TextBlock x:Name="DistanceText" />
+                <TextBlock Text="  Deaths: " FontWeight="SemiBold" Margin="18,0,0,0" />
+                <TextBlock x:Name="DeathsText" />
+                <TextBlock Text="  Local storage: " FontWeight="SemiBold" Margin="18,0,0,0" />
+                <TextBlock x:Name="StorageText" />
+                </WrapPanel>
+            </StackPanel>
+        </Border>
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <GroupBox Header="Timeline" Margin="0,0,10,0">
+                <ListView x:Name="TimelineList">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="Start" DisplayMemberBinding="{Binding Start}" Width="145" />
+                            <GridViewColumn Header="End" DisplayMemberBinding="{Binding End}" Width="145" />
+                            <GridViewColumn Header="State" DisplayMemberBinding="{Binding State}" Width="90" />
+                            <GridViewColumn Header="Location" DisplayMemberBinding="{Binding Location}" Width="150" />
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </GroupBox>
+            <GroupBox Grid.Column="1" Header="Monument visits">
+                <ListView x:Name="VisitsList">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="Monument" DisplayMemberBinding="{Binding Name}" Width="145" />
+                            <GridViewColumn Header="Estimated duration" DisplayMemberBinding="{Binding Duration}" Width="125" />
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </GroupBox>
+        </Grid>
+    </Grid>
+</Window>

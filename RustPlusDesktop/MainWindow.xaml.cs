@@ -3289,6 +3289,11 @@ private sealed record MarkerRef(System.Windows.Shapes.Ellipse Dot, double U_DIP,
                 await NotifyTeamFeatureAppClosingAsync();
             }
             catch { }
+            try
+            {
+                await DisposePlayerWipeTrackerAsync();
+            }
+            catch { }
             finally
             {
                 Dispatcher.Invoke(() =>

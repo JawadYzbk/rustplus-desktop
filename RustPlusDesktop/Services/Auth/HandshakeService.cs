@@ -32,6 +32,7 @@ namespace RustPlusDesk.Services.Auth
         private class HandshakeResponse
         {
             public string? Token { get; set; }
+            public long? ExpiresAt { get; set; }
             public string? RecoveryCode { get; set; }
             public string? NewRecoveryCode { get; set; }
             public string? Error { get; set; }
@@ -100,15 +101,12 @@ namespace RustPlusDesk.Services.Auth
             {
                 var (publicKeyB64, privateKeyPem) = GenerateKeyPair();
                 var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
-                var secretHex = DataManager.OVERLAY_SYNC_SECRET_HEX;
                 var clientHash = GetClientHash();
-                var hmacSig = DataManager.HmacSha256Hex(secretHex, $"{steamId}{timestamp}{publicKeyB64}{clientHash}");
 
                 var payload = new
                 {
                     steam_id = steamId,
                     client_public_key = publicKeyB64,
-                    hmac_signature = hmacSig,
                     timestamp,
                     client_hash = clientHash
                 };
@@ -132,7 +130,7 @@ namespace RustPlusDesk.Services.Auth
                 });
 
                 // Save JWT
-                SaveJwt(response.Token);
+                SaveJwt(response.Token, response.ExpiresAt ?? 0);
                 GuestJwt = response.Token;
 
                 return (true, null, response.RecoveryCode);
@@ -178,7 +176,7 @@ namespace RustPlusDesk.Services.Auth
                 if (string.IsNullOrEmpty(response.Token))
                     return (false, "Server returned no token");
 
-                SaveJwt(response.Token);
+                SaveJwt(response.Token, response.ExpiresAt ?? 0);
                 GuestJwt = response.Token;
                 return (true, null);
             }
@@ -228,7 +226,7 @@ namespace RustPlusDesk.Services.Auth
                     PublicKeyB64 = newPublicKeyB64
                 });
 
-                SaveJwt(response.Token);
+                SaveJwt(response.Token, response.ExpiresAt ?? 0);
                 GuestJwt = response.Token;
 
                 return (true, null, response.NewRecoveryCode);
@@ -241,35 +239,26 @@ namespace RustPlusDesk.Services.Auth
 
         private static async Task<HandshakeResponse?> CallEdgeFunctionAsync(object payload)
         {
-            if (SupabaseAuthManager.IsUpgradeRequiredSnackbarShown)
-                return null;
-
             var json = JsonSerializer.Serialize(payload);
-            var url = $"{DataManager.SUPABASE_URL.TrimEnd('/')}/functions/v1/auth-handshake";
+            var url = "https://rustplusdesktop.cloud/api/v1/desktop-auth/handshake";
             var request = new HttpRequestMessage(HttpMethod.Post, url);
-            request.Headers.Add("apikey", DataManager.SUPABASE_ANON_KEY);
-            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", DataManager.SUPABASE_ANON_KEY);
             request.Headers.Add("X-Client-Version", Helpers.VersionHelper.GetClientVersion());
             request.Content = new StringContent(json, Encoding.UTF8, "application/json");
 
             var response = await _http.SendAsync(request);
             var body = await response.Content.ReadAsStringAsync();
 
-            if (!response.IsSuccessStatusCode)
-            {
-                if (SupabaseAuthManager.HandleUpgradeRequiredResponse(body))
-                    return null;
-            }
-
-            return JsonSerializer.Deserialize<HandshakeResponse>(body);
+            var result = JsonSerializer.Deserialize<HandshakeResponse>(body);
+            if (result is not null && !response.IsSuccessStatusCode && string.IsNullOrWhiteSpace(result.Error))
+                result.Error = $"Handshake failed ({(int)response.StatusCode})";
+            return result;
         }
 
-        private static void SaveJwt(string token)
+        private static void SaveJwt(string token, long expiresAt = 0)
         {
             // Parse JWT payload (2nd segment) to get expiration
             var parts = token.Split('.');
-            long expiresAt = 0;
-            if (parts.Length == 3)
+            if (expiresAt <= 0 && parts.Length == 3)
             {
                 try
                 {

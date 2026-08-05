@@ -245,6 +245,8 @@ public partial class MainWindow
     private void StartTeamPolling()
     {
         _teamConnectionSessionId++;
+        StartPlayerWipeTrackerSession();
+        _ = RefreshPlayerWipeTrackerCapabilitiesAsync();
         if (_teamTimer != null) return;
         _teamTimer = new System.Windows.Threading.DispatcherTimer
         {
@@ -265,6 +267,7 @@ public partial class MainWindow
     private void StopTeamPolling()
     {
         NotifyTeamFeatureServerDisconnected(_teamConnectionSessionId);
+        StopPlayerWipeTrackerSession();
 
         var t = _teamTimer;
         if (t != null)
@@ -606,6 +609,8 @@ public partial class MainWindow
                     _ = AnnouncePresenceChangeAsync(vm, prev, now);
                 }
             }
+
+            ObservePlayerWipeTracker(team);
 
             for (int i = TeamMembers.Count - 1; i >= 0; i--)
                 if (TeamMembers[i].MissingCount > 2)
