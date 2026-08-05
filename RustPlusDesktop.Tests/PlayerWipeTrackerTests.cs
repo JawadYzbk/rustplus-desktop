@@ -55,6 +55,29 @@ public sealed class PlayerWipeTrackerTests
     }
 
     [TestMethod]
+    public void MapProjection_AlignsWorldCornersWithPaddedUniformImage()
+    {
+        var projection = new TrackerMapProjection(
+            ViewWidth: 800,
+            ViewHeight: 500,
+            ImageWidth: 1000,
+            ImageHeight: 1000,
+            WorldRectX: 100,
+            WorldRectY: 100,
+            WorldRectWidth: 800,
+            WorldRectHeight: 800,
+            WorldSize: 4000);
+
+        var northWest = projection.Project(0, 4000);
+        var southEast = projection.Project(4000, 0);
+
+        Assert.AreEqual(200, northWest.X, 0.001);
+        Assert.AreEqual(50, northWest.Y, 0.001);
+        Assert.AreEqual(600, southEast.X, 0.001);
+        Assert.AreEqual(450, southEast.Y, 0.001);
+    }
+
+    [TestMethod]
     public async Task JsonLinesStore_SkipsCorruptLinesAndDeduplicates()
     {
         var directory = Path.Combine(Path.GetTempPath(), $"tracker-{Guid.NewGuid():N}");

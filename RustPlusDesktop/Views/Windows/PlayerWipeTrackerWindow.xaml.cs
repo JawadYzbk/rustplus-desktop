@@ -20,20 +20,33 @@ public partial class PlayerWipeTrackerWindow : Window
 {
     private readonly PlayerWipeTrackerService _tracker;
     private readonly ulong _ownSteamId;
+    private readonly ImageSource? _wipeMapImage;
+    private readonly int _worldSize;
+    private readonly Rect _worldRectPixels;
     private readonly DispatcherTimer _replayTimer;
     private IReadOnlyList<TrackerPoint> _points = Array.Empty<TrackerPoint>();
     private double _replaySpeed = 1;
     private int _replayIndex;
     private bool _refreshing;
 
-    public PlayerWipeTrackerWindow(PlayerWipeTrackerService tracker, ulong ownSteamId)
+    public PlayerWipeTrackerWindow(
+        PlayerWipeTrackerService tracker,
+        ulong ownSteamId,
+        ImageSource? wipeMapImage,
+        int worldSize,
+        Rect worldRectPixels)
     {
         _tracker = tracker ?? throw new ArgumentNullException(nameof(tracker));
         _ownSteamId = ownSteamId;
+        _wipeMapImage = wipeMapImage;
+        _worldSize = worldSize;
+        _worldRectPixels = worldRectPixels;
         _replayTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
         _replayTimer.Tick += ReplayTimer_Tick;
 
         InitializeComponent();
+        ReplayMapImage.Source = _wipeMapImage;
+        HeatmapMapImage.Source = _wipeMapImage;
         Refresh();
     }
 
@@ -192,8 +205,16 @@ public partial class PlayerWipeTrackerWindow : Window
         if (!IsLoaded || !ReplayCanvas.IsVisible)
             return;
         ReplayCanvas.Children.Clear();
-        DrawGrid(ReplayCanvas);
-        if (_points.Count == 0 || !TryGetBounds(_points, out var bounds))
+        if (!TryGetMapProjection(ReplayCanvas, out var projection))
+        {
+            AddEmptyState(ReplayCanvas, "Load the current wipe map to view route replay.");
+            ReplayStateText.Text = "Wipe map unavailable";
+            ReplayTimeText.Text = "No map context";
+            return;
+        }
+
+        DrawWipeGrid(ReplayCanvas, projection);
+        if (_points.Count == 0)
         {
             AddEmptyState(ReplayCanvas, "No valid coordinates recorded yet.");
             ReplayStateText.Text = "Waiting for a valid coordinate";
@@ -201,13 +222,13 @@ public partial class PlayerWipeTrackerWindow : Window
             return;
         }
 
-        DrawTrack(ReplayCanvas, _points, bounds, Color.FromArgb(55, 96, 205, 255), 2, 1, dashed: true);
+        DrawTrack(ReplayCanvas, _points, point => Project(projection, point.X, point.Y), Color.FromArgb(55, 96, 205, 255), 2, 1, dashed: true);
         var visible = _points.Take(Math.Min(_replayIndex + 1, _points.Count)).ToArray();
-        DrawTrack(ReplayCanvas, visible, bounds, Color.FromRgb(96, 205, 255), 3, 1);
-        DrawEventMarkers(ReplayCanvas, _points, bounds, Color.FromRgb(255, 90, 54));
+        DrawTrack(ReplayCanvas, visible, point => Project(projection, point.X, point.Y), Color.FromRgb(96, 205, 255), 3, 1);
+        DrawEventMarkers(ReplayCanvas, _points, point => Project(projection, point.X, point.Y), Color.FromRgb(255, 90, 54));
         if (visible.Length > 0)
         {
-            var point = MapPoint(ReplayCanvas, bounds, visible[^1].X, visible[^1].Y);
+            var point = Project(projection, visible[^1].X, visible[^1].Y);
             var marker = new Ellipse { Width = 16, Height = 16, Fill = new SolidColorBrush(Color.FromRgb(255, 184, 76)), Stroke = Brushes.White, StrokeThickness = 2 };
             Canvas.SetLeft(marker, point.X - marker.Width / 2);
             Canvas.SetTop(marker, point.Y - marker.Height / 2);
@@ -223,46 +244,65 @@ public partial class PlayerWipeTrackerWindow : Window
         if (!IsLoaded || !HeatmapCanvas.IsVisible)
             return;
         HeatmapCanvas.Children.Clear();
-        DrawGrid(HeatmapCanvas);
-        if (_points.Count == 0 || !TryGetBounds(_points, out var bounds))
+        if (!TryGetMapProjection(HeatmapCanvas, out var projection))
+        {
+            AddEmptyState(HeatmapCanvas, "Load the current wipe map to view movement density.");
+            HeatmapText.Text = "Wipe map unavailable";
+            return;
+        }
+
+        DrawWipeGrid(HeatmapCanvas, projection);
+        if (_points.Count == 0)
         {
             AddEmptyState(HeatmapCanvas, "No coordinates recorded yet.");
             HeatmapText.Text = "0 coordinate observations";
             return;
         }
 
-        const int columns = 20;
-        const int rows = 14;
+        const double gridSize = 150;
+        var columns = Math.Max(1, (int)Math.Ceiling(_worldSize / gridSize));
+        var rows = columns;
         var cells = new Dictionary<(int X, int Y), int>();
         foreach (var point in _points)
         {
-            var mapped = Normalize(bounds, point.X, point.Y);
-            var cell = (Math.Clamp((int)(mapped.X * columns), 0, columns - 1), Math.Clamp((int)(mapped.Y * rows), 0, rows - 1));
+            var cell = (
+                Math.Clamp((int)Math.Floor(point.X / gridSize), 0, columns - 1),
+                Math.Clamp((int)Math.Floor((_worldSize - point.Y) / gridSize), 0, rows - 1));
             cells[cell] = cells.TryGetValue(cell, out var count) ? count + 1 : 1;
         }
 
         var max = cells.Values.DefaultIfEmpty(1).Max();
-        var width = Math.Max(1, HeatmapCanvas.ActualWidth - 32);
-        var height = Math.Max(1, HeatmapCanvas.ActualHeight - 32);
+        var cellTopLeft = Project(projection, 0, _worldSize);
+        var cellBottomRight = Project(projection, Math.Min(gridSize, _worldSize), Math.Max(0, _worldSize - gridSize));
+        var cellWidth = Math.Max(10, Math.Abs(cellBottomRight.X - cellTopLeft.X) * 1.4);
+        var cellHeight = Math.Max(10, Math.Abs(cellBottomRight.Y - cellTopLeft.Y) * 1.4);
         foreach (var (cell, count) in cells)
         {
             var ratio = (double)count / max;
+            var cellWest = cell.X * gridSize;
+            var cellEast = Math.Min(_worldSize, cellWest + gridSize);
+            var cellNorthOffset = cell.Y * gridSize;
+            var cellSouthOffset = Math.Min(_worldSize, cellNorthOffset + gridSize);
+            var center = Project(
+                projection,
+                (cellWest + cellEast) / 2,
+                _worldSize - (cellNorthOffset + cellSouthOffset) / 2);
             var ellipse = new Ellipse
             {
-                Width = Math.Max(16, width / columns * 1.35),
-                Height = Math.Max(16, height / rows * 1.35),
+                Width = cellWidth,
+                Height = cellHeight,
                 Fill = new SolidColorBrush(HeatColor(ratio)),
                 Opacity = 0.3 + ratio * 0.58,
                 IsHitTestVisible = false,
             };
-            Canvas.SetLeft(ellipse, 16 + cell.X * width / columns + width / columns / 2 - ellipse.Width / 2);
-            Canvas.SetTop(ellipse, 16 + cell.Y * height / rows + height / rows / 2 - ellipse.Height / 2);
+            Canvas.SetLeft(ellipse, center.X - ellipse.Width / 2);
+            Canvas.SetTop(ellipse, center.Y - ellipse.Height / 2);
             Panel.SetZIndex(ellipse, 2);
             HeatmapCanvas.Children.Add(ellipse);
         }
 
-        DrawTrack(HeatmapCanvas, _points, bounds, Color.FromArgb(110, 255, 255, 255), 1, 0.65, dashed: true);
-        HeatmapText.Text = $"{_points.Count:N0} coordinate observations · hottest cell {max:N0} revisits";
+        DrawTrack(HeatmapCanvas, _points, point => Project(projection, point.X, point.Y), Color.FromArgb(110, 255, 255, 255), 1, 0.65, dashed: true);
+        HeatmapText.Text = $"{_points.Count:N0} coordinate observations · hottest 150u grid {max:N0} revisits";
     }
 
     private void CompareSelector_Changed(object sender, SelectionChangedEventArgs e)
@@ -289,10 +329,10 @@ public partial class PlayerWipeTrackerWindow : Window
             return;
         }
 
-        DrawTrack(CompareCanvas, pointsA, bounds, Color.FromRgb(96, 205, 255), 3, 1);
-        DrawTrack(CompareCanvas, pointsB, bounds, Color.FromRgb(255, 175, 69), 3, 1);
-        DrawEventMarkers(CompareCanvas, pointsA, bounds, Color.FromRgb(96, 205, 255));
-        DrawEventMarkers(CompareCanvas, pointsB, bounds, Color.FromRgb(255, 175, 69));
+        DrawTrack(CompareCanvas, pointsA, point => MapPoint(CompareCanvas, bounds, point.X, point.Y), Color.FromRgb(96, 205, 255), 3, 1);
+        DrawTrack(CompareCanvas, pointsB, point => MapPoint(CompareCanvas, bounds, point.X, point.Y), Color.FromRgb(255, 175, 69), 3, 1);
+        DrawEventMarkers(CompareCanvas, pointsA, point => MapPoint(CompareCanvas, bounds, point.X, point.Y), Color.FromRgb(96, 205, 255));
+        DrawEventMarkers(CompareCanvas, pointsB, point => MapPoint(CompareCanvas, bounds, point.X, point.Y), Color.FromRgb(255, 175, 69));
         CompareSummaryText.Text = $"{ShortName(a)} {pointsA.Count:N0} pts / {Distance(pointsA):N0}u   ·   {ShortName(b)} {pointsB.Count:N0} pts / {Distance(pointsB):N0}u";
     }
 
@@ -537,6 +577,89 @@ public partial class PlayerWipeTrackerWindow : Window
         return new Point(16 + normalized.X * width, 16 + normalized.Y * height);
     }
 
+    private bool TryGetMapProjection(Canvas canvas, out TrackerMapProjection projection)
+    {
+        var imageWidth = _wipeMapImage?.Width ?? 0;
+        var imageHeight = _wipeMapImage?.Height ?? 0;
+        var worldRect = _worldRectPixels.Width > 0 && _worldRectPixels.Height > 0
+            ? _worldRectPixels
+            : new Rect(0, 0, imageWidth, imageHeight);
+        projection = new TrackerMapProjection(
+            canvas.ActualWidth,
+            canvas.ActualHeight,
+            imageWidth,
+            imageHeight,
+            worldRect.X,
+            worldRect.Y,
+            worldRect.Width,
+            worldRect.Height,
+            _worldSize);
+        return projection.IsValid;
+    }
+
+    private static Point Project(TrackerMapProjection projection, double worldX, double worldY)
+    {
+        var point = projection.Project(worldX, worldY);
+        return new Point(point.X, point.Y);
+    }
+
+    private void DrawWipeGrid(Canvas canvas, TrackerMapProjection projection)
+    {
+        const double gridSize = 150;
+        var cells = Math.Max(1, (int)Math.Ceiling(_worldSize / gridSize));
+        var gridBrush = new SolidColorBrush(Color.FromArgb(100, 225, 240, 245));
+        var labelBrush = new SolidColorBrush(Color.FromArgb(210, 240, 248, 250));
+
+        for (var i = 0; i <= cells; i++)
+        {
+            var world = Math.Min(_worldSize, i * gridSize);
+            var verticalTop = Project(projection, world, _worldSize);
+            var verticalBottom = Project(projection, world, 0);
+            var horizontalLeft = Project(projection, 0, _worldSize - world);
+            var horizontalRight = Project(projection, _worldSize, _worldSize - world);
+            canvas.Children.Add(new Line { X1 = verticalTop.X, X2 = verticalBottom.X, Y1 = verticalTop.Y, Y2 = verticalBottom.Y, Stroke = gridBrush, StrokeThickness = 0.7, IsHitTestVisible = false });
+            canvas.Children.Add(new Line { X1 = horizontalLeft.X, X2 = horizontalRight.X, Y1 = horizontalLeft.Y, Y2 = horizontalRight.Y, Stroke = gridBrush, StrokeThickness = 0.7, IsHitTestVisible = false });
+        }
+
+        var firstCell = Project(projection, 0, _worldSize);
+        var secondCell = Project(projection, Math.Min(gridSize, _worldSize), Math.Max(0, _worldSize - gridSize));
+        var displayedCellSize = Math.Min(Math.Abs(secondCell.X - firstCell.X), Math.Abs(secondCell.Y - firstCell.Y));
+        var labelStep = displayedCellSize < 20 ? 3 : displayedCellSize < 30 ? 2 : 1;
+        for (var column = 0; column < cells; column += labelStep)
+        {
+            for (var row = 0; row < cells; row += labelStep)
+            {
+                var position = Project(
+                    projection,
+                    Math.Min(_worldSize, column * gridSize + 5),
+                    Math.Max(0, _worldSize - row * gridSize - 5));
+                var label = new TextBlock
+                {
+                    Text = $"{ColumnLabel(column)}{row}",
+                    Foreground = labelBrush,
+                    FontSize = 9,
+                    FontWeight = FontWeights.SemiBold,
+                    IsHitTestVisible = false,
+                };
+                Canvas.SetLeft(label, position.X + 2);
+                Canvas.SetTop(label, position.Y + 1);
+                Panel.SetZIndex(label, 1);
+                canvas.Children.Add(label);
+            }
+        }
+    }
+
+    private static string ColumnLabel(int index)
+    {
+        var label = string.Empty;
+        for (index++; index > 0; index /= 26)
+        {
+            index--;
+            label = (char)('A' + index % 26) + label;
+        }
+        return label;
+    }
+
     private static void DrawGrid(Canvas canvas)
     {
         var width = Math.Max(1, canvas.ActualWidth);
@@ -550,7 +673,7 @@ public partial class PlayerWipeTrackerWindow : Window
         }
     }
 
-    private static void DrawTrack(Canvas canvas, IReadOnlyList<TrackerPoint> points, MapBounds bounds, Color color, double thickness, double opacity, bool dashed = false)
+    private static void DrawTrack(Canvas canvas, IReadOnlyList<TrackerPoint> points, Func<TrackerPoint, Point> mapPoint, Color color, double thickness, double opacity, bool dashed = false)
     {
         if (points.Count < 2)
             return;
@@ -563,7 +686,7 @@ public partial class PlayerWipeTrackerWindow : Window
                 AddPolyline(canvas, batch, color, thickness, opacity, dashed);
                 batch.Clear();
             }
-            batch.Add(MapPoint(canvas, bounds, point.X, point.Y));
+            batch.Add(mapPoint(point));
             previous = point;
         }
         AddPolyline(canvas, batch, color, thickness, opacity, dashed);
@@ -588,12 +711,12 @@ public partial class PlayerWipeTrackerWindow : Window
         canvas.Children.Add(line);
     }
 
-    private static void DrawEventMarkers(Canvas canvas, IReadOnlyList<TrackerPoint> points, MapBounds bounds, Color color)
+    private static void DrawEventMarkers(Canvas canvas, IReadOnlyList<TrackerPoint> points, Func<TrackerPoint, Point> mapPoint, Color color)
     {
         foreach (var point in points.Where(point => point.Event == "death"))
         {
             var marker = new Ellipse { Width = 9, Height = 9, Fill = new SolidColorBrush(color), Stroke = Brushes.White, StrokeThickness = 1, IsHitTestVisible = false };
-            var position = MapPoint(canvas, bounds, point.X, point.Y);
+            var position = mapPoint(point);
             Canvas.SetLeft(marker, position.X - marker.Width / 2);
             Canvas.SetTop(marker, position.Y - marker.Height / 2);
             Panel.SetZIndex(marker, 5);

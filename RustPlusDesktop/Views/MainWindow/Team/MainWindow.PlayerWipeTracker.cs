@@ -104,7 +104,12 @@ public partial class MainWindow
     {
         try
         {
-            var window = new RustPlusDesk.Views.Windows.PlayerWipeTrackerWindow(_playerWipeTracker, _mySteamId)
+            var window = new RustPlusDesk.Views.Windows.PlayerWipeTrackerWindow(
+                _playerWipeTracker,
+                _mySteamId,
+                ImgMap.Source,
+                _worldSizeS,
+                _worldRectPx)
             {
                 Owner = this,
             };

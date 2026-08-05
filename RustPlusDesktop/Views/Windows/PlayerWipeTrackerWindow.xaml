@@ -327,8 +327,9 @@
                         </Grid>
                     </Border>
                     <Border Grid.Row="1" Style="{StaticResource Panel}" Padding="10">
-                        <Grid>
-                            <Canvas x:Name="ReplayCanvas" Background="#101820" SizeChanged="Canvas_SizeChanged" />
+                        <Grid Background="#101820" ClipToBounds="True">
+                            <Image x:Name="ReplayMapImage" Stretch="Uniform" Opacity="0.78" IsHitTestVisible="False" />
+                            <Canvas x:Name="ReplayCanvas" Background="Transparent" SizeChanged="Canvas_SizeChanged" />
                             <Border HorizontalAlignment="Left" VerticalAlignment="Top" Background="#CC101820" BorderBrush="#335A7482" BorderThickness="1" CornerRadius="5" Padding="8" Margin="12">
                                 <StackPanel><TextBlock Text="ROUTE REPLAY" Foreground="{DynamicResource Accent}" FontSize="10" FontWeight="Bold" /><TextBlock x:Name="ReplayStateText" Margin="0,3,0,0" /></StackPanel>
                             </Border>
@@ -340,7 +341,12 @@
             <TabItem x:Name="HeatmapTab" Header="Heatmap · Premium">
                 <Grid Margin="0,12,0,0">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="260" /></Grid.ColumnDefinitions>
-                    <Border Style="{StaticResource Panel}" Padding="10" Margin="0,0,10,0"><Canvas x:Name="HeatmapCanvas" Background="#101820" SizeChanged="Canvas_SizeChanged" /></Border>
+                    <Border Style="{StaticResource Panel}" Padding="10" Margin="0,0,10,0">
+                        <Grid Background="#101820" ClipToBounds="True">
+                            <Image x:Name="HeatmapMapImage" Stretch="Uniform" Opacity="0.72" IsHitTestVisible="False" />
+                            <Canvas x:Name="HeatmapCanvas" Background="Transparent" SizeChanged="Canvas_SizeChanged" />
+                        </Grid>
+                    </Border>
                     <Border Grid.Column="1" Style="{StaticResource Panel}" Padding="14">
                         <StackPanel>
                             <TextBlock Text="Movement density" FontSize="16" FontWeight="SemiBold" />

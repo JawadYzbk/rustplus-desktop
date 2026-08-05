@@ -88,6 +88,36 @@ public sealed record TrackerPoint(
     string? Event,
     string SessionId);
 
+public readonly record struct TrackerMapProjection(
+    double ViewWidth,
+    double ViewHeight,
+    double ImageWidth,
+    double ImageHeight,
+    double WorldRectX,
+    double WorldRectY,
+    double WorldRectWidth,
+    double WorldRectHeight,
+    double WorldSize)
+{
+    public bool IsValid => ViewWidth > 0 && ViewHeight > 0
+        && ImageWidth > 0 && ImageHeight > 0
+        && WorldRectWidth > 0 && WorldRectHeight > 0
+        && WorldSize > 0;
+
+    public (double X, double Y) Project(double worldX, double worldY)
+    {
+        if (!IsValid)
+            return (0, 0);
+
+        var scale = Math.Min(ViewWidth / ImageWidth, ViewHeight / ImageHeight);
+        var imageLeft = (ViewWidth - ImageWidth * scale) / 2;
+        var imageTop = (ViewHeight - ImageHeight * scale) / 2;
+        var sourceX = WorldRectX + worldX / WorldSize * WorldRectWidth;
+        var sourceY = WorldRectY + (1 - worldY / WorldSize) * WorldRectHeight;
+        return (imageLeft + sourceX * scale, imageTop + sourceY * scale);
+    }
+}
+
 public sealed record CloudArchivePlayer(string SteamId, int DayCount);
 
 public sealed record CloudArchiveSummary(
