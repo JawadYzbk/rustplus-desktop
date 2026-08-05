@@ -9,6 +9,101 @@
         WindowStartupLocation="CenterOwner"
         Loaded="Window_Loaded">
     <Window.Resources>
+        <!-- This window intentionally owns its palette and templates. It uses only native WPF controls. -->
+        <SolidColorBrush x:Key="AppBg" Color="#151A20" />
+        <SolidColorBrush x:Key="SurfaceAlt" Color="#202832" />
+        <SolidColorBrush x:Key="CardBorder" Color="#3B4B59" />
+        <SolidColorBrush x:Key="Accent" Color="#62D6FF" />
+        <SolidColorBrush x:Key="TextPrimary" Color="#F4F7FA" />
+        <SolidColorBrush x:Key="TextSubtle" Color="#A7B3BE" />
+
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#263542" />
+            <Setter Property="BorderBrush" Value="#4B6575" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonChrome" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonChrome" Property="Background" Value="#315064" /></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonChrome" Property="Background" Value="#1A2731" /></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="ButtonChrome" Property="Opacity" Value="0.45" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#18232C" />
+            <Setter Property="BorderBrush" Value="#4B6575" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="Padding" Value="8,5" />
+        </Style>
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="#18232C" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="Padding" Value="8,6" />
+        </Style>
+        <Style TargetType="Slider">
+            <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+            <Setter Property="Background" Value="#344552" />
+            <Setter Property="Height" Value="22" />
+        </Style>
+        <Style TargetType="ScrollBar">
+            <Setter Property="Background" Value="#18232C" />
+            <Setter Property="Foreground" Value="#526D7D" />
+            <Setter Property="Width" Value="10" />
+        </Style>
+
+        <Style TargetType="TabControl">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid KeyboardNavigation.TabNavigation="Local">
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                            <TabPanel Grid.Row="0" IsItemsHost="True" Margin="0,0,0,8" KeyboardNavigation.TabIndex="1" />
+                            <Border Grid.Row="1" Background="#182129" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" CornerRadius="7" Padding="12">
+                                <ContentPresenter ContentSource="SelectedContent" />
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="TabItem">
+            <Setter Property="Background" Value="#1B2730" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSubtle}" />
+            <Setter Property="BorderBrush" Value="#304552" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="Margin" Value="0,0,5,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="TabChrome" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="TabChrome" Property="Background" Value="#263C4A" /><Setter Property="Foreground" Value="White" /></Trigger>
+                            <Trigger Property="IsSelected" Value="True"><Setter TargetName="TabChrome" Property="Background" Value="#2A495B" /><Setter TargetName="TabChrome" Property="BorderBrush" Value="{DynamicResource Accent}" /><Setter Property="Foreground" Value="White" /><Setter Property="FontWeight" Value="SemiBold" /></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="TabChrome" Property="Opacity" Value="0.45" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="Panel" TargetType="Border">
             <Setter Property="Background" Value="{DynamicResource SurfaceAlt}" />
             <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
