@@ -33,6 +33,45 @@
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel x:Name="PatchNotesContent" Margin="0,0,0,12">
                     <!-- ============================================== -->
+                    <!-- NEW v8.0.2 HOTFIX PATCH NOTES -->
+                    <!-- ============================================== -->
+                    <Border Background="{DynamicResource SurfaceAlt}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" CornerRadius="10" Padding="10" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="v8.0.2 | Clan Chat &amp; Server Switching Hotfix" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,8" Foreground="{DynamicResource Accent}"/>
+
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; Clan chat stopped arriving after switching servers:</Run>
+                                Returning to a server you had already been connected to in the same session broke the live sync, in the app and in Discord, until the app was restarted. Realtime channels are cached by name inside the Supabase client, so asking for the same channel again handed back the one that was already registered &#x2014; and registering it a second time is not allowed. Channels are now removed from the client rather than only unsubscribed, including when a subscription fails, which is why a single failure used to last for the rest of the session.
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; Same fix applied to audio events and the Discord bot:</Run>
+                                Both used the identical pattern and would have failed the same way &#x2014; one on returning to a previous server, the other on listening to the same Discord guild twice.
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6" Foreground="#D0D0D0">
+                                Thanks to <Run FontWeight="Bold">Makuko</Run> for finding this one and sending in the analysis.
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ============================================== -->
+                    <!-- NEW v8.0.1 HOTFIX PATCH NOTES -->
+                    <!-- ============================================== -->
+                    <Border Background="{DynamicResource SurfaceAlt}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" CornerRadius="10" Padding="10" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="v8.0.1 | Update Download Hotfix" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,8" Foreground="{DynamicResource Accent}"/>
+
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; Large updates could never finish downloading:</Run>
+                                The update download had no time limit of its own and fell back on the 100-second default, which covers the entire transfer rather than just the connection. With 8.0.0 at roughly 500&#xA0;MB split into four parts, that required about 40&#xA0;Mbit/s sustained just to avoid being cancelled mid-download &#x2014; anyone slower could never finish, however long they waited. The limit is gone; cancelling and pausing work exactly as before.
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; A failed download now says why:</Run>
+                                The timeout was reported as if you had pressed cancel, so nothing appeared in the log and the message read only &quot;Download failed&quot;. Real failures are now separated from cancellations and the reason is shown and logged.
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ============================================== -->
                     <!-- NEW v8.0.0 PATCH NOTES -->
                     <!-- ============================================== -->
                     <Border Background="{DynamicResource SurfaceAlt}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" CornerRadius="10" Padding="10" Margin="0,0,0,10">
@@ -101,6 +140,30 @@
                             <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
                                 <Run FontWeight="Bold">&#x2022; Recycler Calculator:</Run>
                                 Recycler calculator improvements.
+                            </TextBlock>
+
+                            <TextBlock Text="⚙️ Device Automations" FontWeight="SemiBold" FontSize="14" Margin="0,4,0,8" Foreground="{DynamicResource Accent}"/>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; React to where your team actually is:</Run>
+                                A new rule type switches devices based on player proximity. Pick a paired device as the anchor &#x2014; its real in-game position is used &#x2014; set a radius, and choose who counts: anyone online, everyone online, a specific team-mate, or the same conditions inverted. Turrets that arm themselves when the last person leaves, lights that come on when someone comes home.
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; React to in-game time:</Run>
+                                Rules can also run on a game-time window, so devices follow the Rust day rather than yours. Each rule sets what to do when the condition matches and what to do when it stops &#x2014; both are yours to choose, so a rule can arm, disarm, or only ever do one of the two.
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; Positions are approximate:</Run>
+                                Anchors use the location a device was paired at, and player positions come from the team map, so treat radii as rough. Leave a margin rather than cutting it fine.
+                            </TextBlock>
+
+                            <TextBlock Text="💀 Death Stats" FontWeight="SemiBold" FontSize="14" Margin="0,4,0,8" Foreground="{DynamicResource Accent}"/>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; Every death, logged and classified:</Run>
+                                A new window collects your team's deaths with total count, average and longest survival, deadliest place and deadliest grid. Deaths are matched to the monument they happened at using the map's own names, and base deaths are recognised from your in-game team map notes.
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; Filter, search and see the pattern:</Run>
+                                Live search, per-player filtering, location and time filters, and a deaths-per-day sparkline. A death heatmap layer puts the same data straight on the map, so the places that keep costing you become obvious.
                             </TextBlock>
 
                             <TextBlock Text="🔔 App, Privacy &amp; Smart Home" FontWeight="SemiBold" FontSize="14" Margin="0,4,0,8" Foreground="{DynamicResource Accent}"/>

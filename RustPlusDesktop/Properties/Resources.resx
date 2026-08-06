@@ -5818,12 +5818,45 @@ You can find more information on the server&apos;s official website:
     <value>Add the Logic Engine rule</value>
   </data>
   <data name="Tutorials.Step.oilrigcrate.rule.Description" xml:space="preserve">
-    <value>Open the Logic Engine, create a rule with the Smart Alarm as its trigger, and add a Start Timer step. Set the minutes and choose Large Oilrig Trigger or Small Oilrig Trigger. Leave Show Crate on map ticked to draw the crate with its countdown; the chat and Discord warnings arrive either way.</value>
+    <value>Open the Logic Engine and click the Oil Rig Template button to instantly add a pre-configured rule (or click + Add Rule). Select your paired Smart Alarm as the trigger, and choose either Large Oilrig Trigger or Small Oilrig Trigger as the timer target. Leave Show Crate on map ticked to draw the crate with its live countdown; chat and Discord warnings arrive automatically. Optionally fill in Alarm text with the UPPER line from the alarm in-game so push notifications match when offline.</value>
   </data>
   <data name="Tutorials.Step.oilrigcrate.silence.Title" xml:space="preserve">
     <value>No raid alert from that alarm</value>
   </data>
   <data name="Tutorials.Step.oilrigcrate.silence.Description" xml:space="preserve">
     <value>An alarm set up this way is not a raid, so its popup, sound and raid alerts to Discord are suppressed. It reports as an oil rig event instead. The device list shows a small (Large Oil) or (Small Oil) badge so the silence is visible rather than mysterious. Remove the device from the rule and it behaves like an ordinary alarm again, at once. The Oil Rig switch under Chat Alerts still turns all of it off whenever you want quiet.</value>
+  </data>
+  <data name="UiAlarmTextHint" xml:space="preserve">
+    <value>Alarm text (upper line)</value>
+  </data>
+  <data name="UiAlarmTextHintTooltip" xml:space="preserve">
+    <value>Optional. The UPPER of the two lines on the alarm in-game — that is the one Rust sends with the notification; the lower line is not usable for this. Push notifications carry no device ID, so this text is the only way to recognise the alarm when the app is not connected to that server, at startup for instance. Leave it empty and the app fills it in itself the first time the alarm fires while connected. A line left at Rust’s default is ignored, because every unrenamed alarm shares it.</value>
+  </data>
+  <data name="UiSetAsSmallOilRigTrigger" xml:space="preserve">
+    <value>Set as Small Oil Rig Trigger</value>
+  </data>
+  <data name="UiRemoveAsSmallOilRigTrigger" xml:space="preserve">
+    <value>Remove as Small Oil Rig Trigger</value>
+  </data>
+  <data name="UiSetAsLargeOilRigTrigger" xml:space="preserve">
+    <value>Set as Large Oil Rig Trigger</value>
+  </data>
+  <data name="UiRemoveAsLargeOilRigTrigger" xml:space="preserve">
+    <value>Remove as Large Oil Rig Trigger</value>
+  </data>
+  <data name="UiInGameAlarmTitle" xml:space="preserve">
+    <value>In-game alarm text (upper line)</value>
+  </data>
+  <data name="Tutorials.Step.offlinealerts.alarmnames.Title" xml:space="preserve">
+    <value>Give each alarm its own name in Rust</value>
+  </data>
+  <data name="Tutorials.Step.offlinealerts.alarmnames.Description" xml:space="preserve">
+    <value>A Smart Alarm push tells us the server and nothing else — no device id, no device name. The one thing that differs between two alarms is the text you set on the alarm in-game, and only the UPPER of its two lines is sent. Leave them all at the default and Alexa cannot tell which alarm went off; a routine will then run for whichever one happens to be first.</value>
+  </data>
+  <data name="Tutorials.Step.offlinealerts.alarmlearn.Title" xml:space="preserve">
+    <value>Trigger it once so the app learns it</value>
+  </data>
+  <data name="Tutorials.Step.offlinealerts.alarmlearn.Description" xml:space="preserve">
+    <value>After pairing, set the alarm off once while the app is running. The app sees the notification and the device event at the same moment and records the name by itself. Prefer not to wait? Right-click the alarm in this list and type it in. Either way it is separate from the name you give the device here — that one is yours to choose freely and has no effect on Alexa.</value>
   </data>
 </root>

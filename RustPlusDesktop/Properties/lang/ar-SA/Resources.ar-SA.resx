@@ -5806,12 +5806,33 @@
     <value>أضف قاعدة Logic Engine</value>
   </data>
   <data name="Tutorials.Step.oilrigcrate.rule.Description" xml:space="preserve">
-    <value>افتح Logic Engine وأنشئ قاعدة يكون الإنذار الذكي مُشغِّلاً لها، ثم أضف خطوة «بدء مؤقت». اضبط الدقائق واختر مُشغِّل Large Oilrig أو Small Oilrig. اترك خيار «إظهار الصندوق على الخريطة» مفعّلاً لرسم الصندوق مع عدّه التنازلي؛ أما تحذيرات الدردشة وDiscord فتصل في الحالتين.</value>
+    <value>افتح Logic Engine، وأنشئ قاعدة يكون الإنذار الذكي مُشغِّلاً لها، ثم أضف خطوة «بدء مؤقت». اضبط الدقائق واختر مُشغِّل Large Oilrig أو Small Oilrig. اترك خيار «إظهار الصندوق على الخريطة» مفعّلاً لرسم الصندوق مع عدّه التنازلي؛ أما تحذيرات الدردشة وDiscord فتصل في الحالتين. وفي خانة نص الإنذار اكتب السطر العلوي من سطري الإنذار داخل اللعبة: فإشعارات الدفع لا تحمل معرّف الجهاز، وهذا السطر هو ما يتيح للتطبيق التعرّف على الإنذار كمُشغِّل منصة عندما لا يكون متصلاً بالخادم. اتركه فارغاً وسيتعلّمه التطبيق عند أول انطلاق للإنذار وهو متصل.</value>
   </data>
   <data name="Tutorials.Step.oilrigcrate.silence.Title" xml:space="preserve">
     <value>لا تنبيه غارة من هذا الإنذار</value>
   </data>
   <data name="Tutorials.Step.oilrigcrate.silence.Description" xml:space="preserve">
     <value>الإنذار المُعدّ بهذه الطريقة ليس غارة، لذا تُكتم نافذته وصوته وتنبيهات الغارة إلى Discord. يُبلَّغ عنه كحدث منصة نفط بدلاً من ذلك. تعرض قائمة الأجهزة شارة صغيرة (Large Oil) أو (Small Oil) ليكون هذا الصمت مرئياً لا غامضاً. أزل الجهاز من القاعدة ليعود فوراً إنذاراً عادياً. ولا يزال مفتاح Oil Rig ضمن تنبيهات الدردشة يوقف كل ذلك متى أردت الهدوء.</value>
+  </data>
+  <data name="UiAlarmTextHint" xml:space="preserve">
+    <value>نص الإنذار (السطر العلوي)</value>
+  </data>
+  <data name="UiAlarmTextHintTooltip" xml:space="preserve">
+    <value>اختياري. السطر العلوي من سطري الإنذار داخل اللعبة — فهو الذي ترسله اللعبة مع الإشعار؛ أما السطر السفلي فلا يصلح لذلك. إشعارات الدفع لا تحمل معرّف الجهاز، لذا فهذا النص هو الطريقة الوحيدة للتعرّف على الإنذار عندما لا يكون التطبيق متصلاً بذلك الخادم — عند بدء التشغيل مثلاً. اتركه فارغاً وسيملأه التطبيق بنفسه عند أول انطلاق للإنذار وهو متصل. ويُتجاهل السطر الافتراضي لأن كل إنذار لم يُعاد تسميته يشترك فيه.</value>
+  </data>
+  <data name="UiInGameAlarmTitle" xml:space="preserve">
+    <value>نص الإنذار داخل اللعبة (السطر العلوي)</value>
+  </data>
+  <data name="Tutorials.Step.offlinealerts.alarmnames.Title" xml:space="preserve">
+    <value>أعطِ كل إنذار اسماً خاصاً به داخل Rust</value>
+  </data>
+  <data name="Tutorials.Step.offlinealerts.alarmnames.Description" xml:space="preserve">
+    <value>إشعار الإنذار الذكي يذكر الخادم فقط — دون معرّف أو اسم جهاز. الشيء الوحيد الذي يفرّق بين إنذارين هو النص الذي تضبطه داخل اللعبة، ويُرسل السطر العلوي فقط. إذا تركتها جميعاً على الوضع الافتراضي فلن تعرف Alexa أيّها انطلق، وستعمل الروتين لأيّ واحد منها.</value>
+  </data>
+  <data name="Tutorials.Step.offlinealerts.alarmlearn.Title" xml:space="preserve">
+    <value>شغّله مرة واحدة ليتعلّمه التطبيق</value>
+  </data>
+  <data name="Tutorials.Step.offlinealerts.alarmlearn.Description" xml:space="preserve">
+    <value>بعد الإقتران، شغّل الإنذار مرة واحدة والتطبيق يعمل. سيرى الإشعار وحدث الجهاز في اللحظة نفسها ويسجّل الاسم تلقائياً. لا تريد الانتظار؟ انقر بزر الفأرة الأيمن على الإنذار في هذه القائمة واكتبه. وفي الحالتين هو مستقل عن الاسم الذي تمنحه للجهاز هنا — فذلك اختيارك ولا يؤثر على Alexa.</value>
   </data>
 </root>

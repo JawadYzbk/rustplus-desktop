@@ -526,6 +526,10 @@ public partial class MainWindow : WpfUi.FluentWindow
         WebViewHost.Focusable = true;
         DataContext = _vm;
         _vm.Load();
+
+        // Before the push listener exists: a backlog of alarms can land within seconds of
+        // launch, and suppressing rig triggers must not wait for a server connection.
+        RebuildOilRigTriggerRegistry();
         InitializeTutorials();
         TeamMembers.CollectionChanged += (s, e) => UpdateClanMembersTeamStatus();
         // NEU: einmalig auf die aktuell ausgewÃƒÂ¤hlte Server-Instanz Ã¢â‚¬Å¾umsteckenÃ¢â‚¬Å“
@@ -2583,13 +2587,47 @@ private sealed record MarkerRef(System.Windows.Shapes.Ellipse Dot, double U_DIP,
         // fire the popup, the raid sound and the raid webhook for a crate hack — the one
         // false alarm that costs a team an actual base defence. Dropped once the device is
         // identified, so it never reaches the notification centre either.
-        if (n.EntityId.HasValue && GetOilRigTriggerLabel(n.EntityId.Value) is string rigLabel)
+        // Record the alarm's in-game text on the device itself, while we can still prove which
+        // device it is. This is the only moment both halves exist at once: the push carries the
+        // title but no entity id, and pairing carries the id under the generic name "Smart
+        // Alarm". The cloud worker that drives Alexa only ever sees the push, so without this
+        // it cannot tell two alarms apart at all.
+        if (dev != null && !string.IsNullOrWhiteSpace(n.Title)
+            && !string.Equals(dev.InGameAlarmTitle, n.Title.Trim(), StringComparison.Ordinal))
+        {
+            dev.InGameAlarmTitle = n.Title.Trim();
+            AppendLog($"[alarm] Learned in-game title for {dev.PureName} (#{dev.EntityId}): \"{dev.InGameAlarmTitle}\".");
+
+            // Straight to the cloud: the worker is the consumer, and it is not running in this
+            // process. Waiting for the next routine sync would leave Alexa guessing meanwhile.
+            try { _vm.Save(); } catch { }
+            _ = UploadDevicesSnapshotForCurrentServerAsync();
+        }
+
+        // Learn what this alarm actually says, while we can still prove which device it is.
+        // Push notifications carry no entity ID of their own; the one we have here was
+        // recovered from a WebSocket event, which only happens on the connected server. That
+        // makes this the only reliable chance to record the text for the times there is no
+        // such event — a queued push at startup, or an alarm on another paired server.
+        if (n.EntityId.HasValue
+            && OilRigTriggerRegistry.LearnAlarmText(_vm.Servers, n.EntityId.Value, n.Title))
+        {
+            AppendLog($"[alarm] Learned alarm text for entity {n.EntityId.Value}: \"{n.Title}\".");
+            try { _vm.Save(); } catch { }
+            RebuildOilRigTriggerRegistry();
+        }
+
+        // Text matching is the fallback, never the first answer, and Lookup only reaches it
+        // when there is no entity ID. Texts left at Rust's default are refused outright: every
+        // unrenamed alarm shares them, and swallowing a real raid alert is far worse than
+        // letting one rig alarm through.
+        if (OilRigTriggerRegistry.Lookup(n.EntityId, n.Title, n.Message) is string rigLabel)
         {
             // The rule still has to run — this alarm is the sensor that starts the timer, and
             // for FCM the Logic Engine is triggered further down inside this very method. The
             // WebSocket path already fired before ShowAlarmPopup was called, so only FCM needs
             // it here; doing both would start the countdown twice.
-            if (source != "WS")
+            if (source != "WS" && n.EntityId.HasValue)
             {
                 TriggerLogicEngineOnDeviceEvent(n.EntityId.Value, true);
 
@@ -2608,7 +2646,7 @@ private sealed record MarkerRef(System.Windows.Shapes.Ellipse Dot, double U_DIP,
             }
 
             AppendLog($"[alarm] Suppressed alarm from {rigLabel} trigger " +
-                      $"(entity {n.EntityId.Value}) — reported as an oil rig event instead.");
+                      $"(entity {n.EntityId?.ToString() ?? "unknown"}) — reported as an oil rig event instead.");
             return;
         }
 
@@ -3085,7 +3123,13 @@ private sealed record MarkerRef(System.Windows.Shapes.Ellipse Dot, double U_DIP,
         
         string srvName = string.IsNullOrWhiteSpace(current.Notification.Server) ? "Unknown Server" : current.Notification.Server;
         AlarmOverlayServerTxt.Text = $"{srvName} - {current.Notification.Timestamp:HH:mm}";
-        AlarmOverlayNameTxt.Text = current.Device?.PureName ?? Properties.Resources.SmartAlarm;
+        // The title is what Rust actually sent for this alarm — the upper line the player set
+        // on it. Preferring it over a paired device name, and both over the word "Smart Alarm",
+        // means the overlay says which alarm went off instead of merely that one did.
+        AlarmOverlayNameTxt.Text =
+            !string.IsNullOrWhiteSpace(current.Notification.Title) ? current.Notification.Title!
+            : !string.IsNullOrWhiteSpace(current.Device?.PureName) ? current.Device!.PureName
+            : Properties.Resources.SmartAlarm;
         AlarmOverlayMsgTxt.Text = current.Notification.Message ?? Properties.Resources.AlarmActivated;
         
         AlarmOverlayPagingTxt.Text = $"{_overlayAlarmIndex + 1}/{_overlayAlarms.Count}";
@@ -7317,6 +7361,7 @@ private sealed record MarkerRef(System.Windows.Shapes.Ellipse Dot, double U_DIP,
             ProfitTradesPanel.Visibility = Visibility.Collapsed;
             BuyXForYPanel.Visibility = Visibility.Collapsed;
             DeviceAutomationPanel.Visibility = Visibility.Collapsed;
+            LogicEnginePanel.RefreshListBindings();
             LogicEnginePanel.Visibility = Visibility.Visible;
         }
     }
@@ -7443,7 +7488,18 @@ private sealed record MarkerRef(System.Windows.Shapes.Ellipse Dot, double U_DIP,
 
             if (path == null)
             {
-                ShowInfoSnackbar(Properties.Resources.GetString("UpdateTitle"), Properties.Resources.GetString("DownloadFailed"), WpfUi.ControlAppearance.Danger);
+                // The reason, when there is one. A bare "Download failed" tells neither the
+                // user nor us whether it was the network, the disk or something else.
+                string reason = _updateService.LastDownloadError;
+                if (!string.IsNullOrWhiteSpace(reason))
+                    AppendLog("❌ Update download failed: " + reason);
+
+                ShowInfoSnackbar(
+                    Properties.Resources.GetString("UpdateTitle"),
+                    string.IsNullOrWhiteSpace(reason)
+                        ? Properties.Resources.GetString("DownloadFailed")
+                        : string.Format(Properties.Resources.GetString("FormatDownloadFailed"), reason),
+                    WpfUi.ControlAppearance.Danger);
                 return;
             }
 

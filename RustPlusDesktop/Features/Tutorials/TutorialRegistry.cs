@@ -248,7 +248,7 @@ public sealed class TutorialRegistry : ITutorialRegistry
             Step("oilrigcrate.intro", placement: TutorialPlacement.Center),
             Step("oilrigcrate.wiring", placement: TutorialPlacement.Center,
                  image: "pack://application:,,,/Assets/Screenshots/8.0/SmartAlarmOilrig.png"),
-            Step("oilrigcrate.rule", "Automation.Open", "devices", TutorialPlacement.Top),
+            Step("oilrigcrate.rule", "Automation.CreateOilRigRule", "logic", TutorialPlacement.Bottom),
             Step("oilrigcrate.silence", placement: TutorialPlacement.Center)),
 
         Def("bases-screenshots", 210, "Maps", false,
@@ -266,6 +266,12 @@ public sealed class TutorialRegistry : ITutorialRegistry
             Step("offlinealerts.overview", "Settings.OfflineAlerts", "settings", TutorialPlacement.Right),
             Step("offlinealerts.sync", "Settings.OfflineAlerts", "settings", TutorialPlacement.Right),
             Step("offlinealerts.telegram", "Settings.OfflineAlerts", "settings", TutorialPlacement.Right),
-            Step("offlinealerts.alexa", "Settings.Alexa", "settings", TutorialPlacement.Right))
+            Step("offlinealerts.alexa", "Settings.Alexa", "settings", TutorialPlacement.Right),
+
+            // Two short steps rather than one long one: the first says what to do in Rust, the
+            // second what the app does with it. Both point at the device list, because that is
+            // where the result becomes visible.
+            Step("offlinealerts.alarmnames", "Devices.List", "devices", TutorialPlacement.Right),
+            Step("offlinealerts.alarmlearn", "Devices.Item.FirstAvailable", "devices", TutorialPlacement.Right))
     ];
 }
