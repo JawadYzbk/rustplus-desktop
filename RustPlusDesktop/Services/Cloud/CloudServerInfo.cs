@@ -19,6 +19,7 @@ namespace RustPlusDesk.Services.Cloud
     public static class CloudServerInfo
     {
         private static readonly ConcurrentDictionary<string, byte> Reported = new();
+        private static readonly ConcurrentDictionary<string, byte> Paired = new();
 
         /// <summary>
         /// Report the connected server's details. Failures are swallowed and the
@@ -49,7 +50,42 @@ namespace RustPlusDesk.Services.Cloud
             }
         }
 
+        /// <summary>
+        /// Register the connected server as a per-user pairing (with its encrypted
+        /// player token) so it shows up in the web dashboard and its smart devices can
+        /// be controlled from the cloud. Previously this only happened when linking
+        /// Alexa, so servers paired after the cloud migration never became controllable.
+        ///
+        /// Idempotent and sent once per server per session; a token is required (there
+        /// is nothing to control without one). Failures are swallowed and the server is
+        /// left unmarked so the next connection retries.
+        /// </summary>
+        public static async Task EnsurePairedOnceAsync(string serverKey, string? host, int port, string? name, string? playerToken, ulong steamId)
+        {
+            if (!CloudBackend.UsePlatform) return;
+            if (string.IsNullOrWhiteSpace(serverKey)) return;
+            if (string.IsNullOrWhiteSpace(host)) return;
+            if (!CloudAuthManager.IsAuthenticated) return;
+            if (string.IsNullOrWhiteSpace(playerToken)) return;
+            if (steamId == 0) return;
+            if (!Paired.TryAdd(serverKey, 0)) return;
+
+            try
+            {
+                await CloudAlexaAdapter.PairServerAsync(steamId.ToString(), host, port, name, playerToken);
+            }
+            catch (Exception ex)
+            {
+                Paired.TryRemove(serverKey, out _);
+                SupabaseAuthManager.AppendLog($"[Cloud/Debug] Server pairing not registered: {ex.Message}");
+            }
+        }
+
         /// <summary>Forget what has been reported, e.g. after signing out.</summary>
-        public static void Reset() => Reported.Clear();
+        public static void Reset()
+        {
+            Reported.Clear();
+            Paired.Clear();
+        }
     }
 }

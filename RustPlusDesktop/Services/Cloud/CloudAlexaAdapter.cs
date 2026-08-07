@@ -50,13 +50,20 @@ namespace RustPlusDesk.Services.Cloud
         }
 
         /// <summary>
-        /// Pair the server (idempotent) and point Alexa at it. Returns false when the
-        /// pairing response carried no server id to link.
+        /// Register (idempotently) the per-user pairing for a server so the platform
+        /// holds its encrypted player token — this is what makes the server appear in
+        /// the web dashboard and its smart devices controllable from the cloud.
+        /// Returns the server id, or null when the response carried none.
+        ///
+        /// The <c>server_key</c> ("{host}-{port}") is sent so the pairing resolves to
+        /// the same rust_servers row the device/overlay sync files under; sending only
+        /// ip+port can create a second row and split the token from the devices.
         /// </summary>
-        public static async Task<bool> LinkServerAsync(string steamId, string host, int port, string? name, string playerToken)
+        public static async Task<string?> PairServerAsync(string steamId, string host, int port, string? name, string playerToken)
         {
             var pairBody = await CloudApiClient.CallApiAsync("me/servers", HttpMethod.Post, payload: new
             {
+                server_key = $"{host}-{port}",
                 server_ip = host,
                 server_port = port,
                 name,
@@ -64,7 +71,16 @@ namespace RustPlusDesk.Services.Cloud
                 steam_id = steamId,
             });
 
-            var serverId = ExtractServerId(pairBody);
+            return ExtractServerId(pairBody);
+        }
+
+        /// <summary>
+        /// Pair the server (idempotent) and point Alexa at it. Returns false when the
+        /// pairing response carried no server id to link.
+        /// </summary>
+        public static async Task<bool> LinkServerAsync(string steamId, string host, int port, string? name, string playerToken)
+        {
+            var serverId = await PairServerAsync(steamId, host, port, name, playerToken);
             if (serverId == null) return false;
 
             await CloudApiClient.CallApiAsync("me/alexa", HttpMethod.Put, payload: new
