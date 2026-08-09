@@ -33,6 +33,100 @@
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel x:Name="PatchNotesContent" Margin="0,0,0,12">
                     <!-- ============================================== -->
+                    <!-- NEW v8.0.4 HOTFIX PATCH NOTES -->
+                    <!-- ============================================== -->
+                    <Border Background="{DynamicResource SurfaceAlt}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" CornerRadius="10" Padding="10" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="v8.0.4 | Oil Rig False Alarm Hotfix" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,8" Foreground="{DynamicResource Accent}"/>
+
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; Electric furnaces reported as an Oil Rig:</Run>
+                                Standing next to electric furnaces matched the Oil Rig cue continuously, and fourteen reports in forty-one seconds used up the hourly limit &#x2014; so a genuine Oil Rig in that same hour was refused as well. That was the real damage: the false alarms were rejected, but they took the real one with them.
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; Two changes, because one is not enough:</Run>
+                                Oil Rig now needs a clearly higher score than the other cues, since it has the narrowest margin of the three. And a genuine announcement is only ever reported once &#x2014; twice if both rigs fire together &#x2014; so anything still matching after that is treated as a continuous sound and ignored until it stops. Score alone could not separate them: machinery matches at a fresh alignment every time and slips straight past the duplicate check.
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6" Foreground="#D0D0D0">
+                                The higher bar has a price worth naming: the faintest Oil Rig cue we ever confirmed would no longer clear it. Missing one distant announcement is the better trade, because the rig calls again on its cycle &#x2014; while an exhausted limit silences everything for an hour.
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ============================================== -->
+                    <!-- NEW v8.0.3 HOTFIX PATCH NOTES -->
+                    <!-- ============================================== -->
+                    <Border Background="{DynamicResource SurfaceAlt}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" CornerRadius="10" Padding="10" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="v8.0.3 | Smart Alarm &amp; Oil Rig Hotfix" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,8" Foreground="{DynamicResource Accent}"/>
+
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; Smart Alarm socket subscription on pair:</Run>
+                                Freshly paired Smart Alarms are now subscribed and queried immediately on the active WebSocket connection. This ensures oil-rig triggers and custom alerts recognize entity IDs straight away without needing to wait for a reconnect.
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; Cleanup of Oil Rig rules on alarm deletion:</Run>
+                                Deleting a Smart Alarm now automatically cleans up any associated oil-rig timer rules in the Logic Engine, preventing orphaned rules from keeping rig timer status active.
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ============================================== -->
+                    <!-- NEW v8.0.2 HOTFIX PATCH NOTES -->
+                    <!-- ============================================== -->
+                    <Border Background="{DynamicResource SurfaceAlt}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" CornerRadius="10" Padding="10" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="v8.0.2 | Clan Chat &amp; Server Switching Hotfix" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,8" Foreground="{DynamicResource Accent}"/>
+
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; Clan chat stopped arriving after switching servers:</Run>
+                                Returning to a server you had already been connected to in the same session broke the live sync, in the app and in Discord, until the app was restarted. Realtime channels are cached by name inside the Supabase client, so asking for the same channel again handed back the one that was already registered &#x2014; and registering it a second time is not allowed. Channels are now removed from the client rather than only unsubscribed, including when a subscription fails, which is why a single failure used to last for the rest of the session.
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; Same fix applied to audio events and the Discord bot:</Run>
+                                Both used the identical pattern and would have failed the same way &#x2014; one on returning to a previous server, the other on listening to the same Discord guild twice.
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; Camera picture was half black:</Run>
+                                Rust doubled the camera resolution to 320&#xD7;180 without sending more ray data, so the renderer &#x2014; which built every frame from a fixed ten packets, a number chosen when cameras were 160&#xD7;90 &#x2014; could only fill about half the pixels. The pixel buffer now persists and fills in progressively, the way the official Rust+ app does it, which also means a frame decodes one packet instead of ten.
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; Pairing without Google Chrome:</Run>
+                                Pairing needs a Chromium-based browser and only ever looked for Chrome where Chrome usually is. Without it a console window flashed for two seconds and nothing happened. Chrome, Edge, Brave, Vivaldi, Opera and Chromium are now all found, including installations in unusual locations, and the log says which one is being used.
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; Recovering from antivirus quarantine:</Run>
+                                Windows Defender sometimes removes individual files from the pairing runtime while leaving the folder behind. The app only checked that the folder existed, so it never repaired itself and pairing stayed broken until the folder was deleted by hand. It now checks the files that have to be there and re-extracts them on the next start.
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; Oil Rig triggers no longer call your phone:</Run>
+                                A Smart Alarm used as an oil rig trigger stopped raising a raid alert in the app, but the cloud service knew nothing about it and still placed a Telegram call for a crate hack. Which alarms are rig triggers is now shared with it, along with the text each alarm sends, so a crate hack reaches Discord labelled as one and leaves the phone alone.
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6" Foreground="#D0D0D0">
+                                Thanks to <Run FontWeight="Bold">Makuko</Run> for finding the server-switching bug and sending in the analysis.
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ============================================== -->
+                    <!-- NEW v8.0.1 HOTFIX PATCH NOTES -->
+                    <!-- ============================================== -->
+                    <Border Background="{DynamicResource SurfaceAlt}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" CornerRadius="10" Padding="10" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="v8.0.1 | Update Download Hotfix" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,8" Foreground="{DynamicResource Accent}"/>
+
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; Large updates could never finish downloading:</Run>
+                                The update download had no time limit of its own and fell back on the 100-second default, which covers the entire transfer rather than just the connection. With 8.0.0 at roughly 500&#xA0;MB split into four parts, that required about 40&#xA0;Mbit/s sustained just to avoid being cancelled mid-download &#x2014; anyone slower could never finish, however long they waited. The limit is gone; cancelling and pausing work exactly as before.
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; A failed download now says why:</Run>
+                                The timeout was reported as if you had pressed cancel, so nothing appeared in the log and the message read only &quot;Download failed&quot;. Real failures are now separated from cancellations and the reason is shown and logged.
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ============================================== -->
                     <!-- NEW v8.0.0 PATCH NOTES -->
                     <!-- ============================================== -->
                     <Border Background="{DynamicResource SurfaceAlt}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" CornerRadius="10" Padding="10" Margin="0,0,0,10">
@@ -75,14 +169,18 @@
                                 Improved player-marker size and visibility, custom markers now correctly appear above monument icons, and fixed the day and night indicator.
                             </TextBlock>
 
-                            <TextBlock Text="🛒 Shop and Vending Machine improvements" FontWeight="SemiBold" FontSize="14" Margin="0,4,0,8" Foreground="{DynamicResource Accent}"/>
+                            <TextBlock Text="📡 New Event Trackers" FontWeight="SemiBold" FontSize="14" Margin="0,4,0,8" Foreground="{DynamicResource Accent}"/>
                             <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
-                                <Run FontWeight="Bold">&#x2022; Advanced Search &amp; Filters:</Run>
-                                Added item-category filtering (with custom icons), monument-shop filtering, custom ordering (cheapest first, closest first), and improved exact item matches.
+                                <Run FontWeight="Bold">&#x2022; Event tracking without the API:</Run>
+                                The new Rust+ API no longer supports shop polling or event tracking. When connected to a server you can still send event notifications to team chat and Discord for Oil Rig heartbeats, Cargo spawns and Deep Sea spawns.
                             </TextBlock>
                             <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
-                                <Run FontWeight="Bold">&#x2022; UI Improvements:</Run>
-                                Improved the layout of the shop window and vendor markers.
+                                <Run FontWeight="Bold">&#x2022; Your own Oil Rig crate timers:</Run>
+                                Tune an RF receiver to a rig's frequency in-game and wire it to a Smart Alarm, then add a <Run FontStyle="Italic">Start Timer</Run> step in the Logic Engine. The crate is drawn on the rig with a live countdown, and 15/10/5-minute warnings go to team chat and Discord exactly as they did over the API. Alarms used this way no longer raise raid alerts &#x2014; they are marked with a small badge in the device list instead. See the new <Run FontStyle="Italic">Crate Alerts for Oil Rigs</Run> tutorial for the wiring.
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; Adjusted interface:</Run>
+                                Event dock, chat alerts and chat commands have been adjusted accordingly to align with these changes.
                             </TextBlock>
 
                             <TextBlock Text="💻 Logic engine and calculators" FontWeight="SemiBold" FontSize="14" Margin="0,4,0,8" Foreground="{DynamicResource Accent}"/>
@@ -97,6 +195,30 @@
                             <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
                                 <Run FontWeight="Bold">&#x2022; Recycler Calculator:</Run>
                                 Recycler calculator improvements.
+                            </TextBlock>
+
+                            <TextBlock Text="⚙️ Device Automations" FontWeight="SemiBold" FontSize="14" Margin="0,4,0,8" Foreground="{DynamicResource Accent}"/>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; React to where your team actually is:</Run>
+                                A new rule type switches devices based on player proximity. Pick a paired device as the anchor &#x2014; its real in-game position is used &#x2014; set a radius, and choose who counts: anyone online, everyone online, a specific team-mate, or the same conditions inverted. Turrets that arm themselves when the last person leaves, lights that come on when someone comes home.
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; React to in-game time:</Run>
+                                Rules can also run on a game-time window, so devices follow the Rust day rather than yours. Each rule sets what to do when the condition matches and what to do when it stops &#x2014; both are yours to choose, so a rule can arm, disarm, or only ever do one of the two.
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; Positions are approximate:</Run>
+                                Anchors use the location a device was paired at, and player positions come from the team map, so treat radii as rough. Leave a margin rather than cutting it fine.
+                            </TextBlock>
+
+                            <TextBlock Text="💀 Death Stats" FontWeight="SemiBold" FontSize="14" Margin="0,4,0,8" Foreground="{DynamicResource Accent}"/>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; Every death, logged and classified:</Run>
+                                A new window collects your team's deaths with total count, average and longest survival, deadliest place and deadliest grid. Deaths are matched to the monument they happened at using the map's own names, and base deaths are recognised from your in-game team map notes.
+                            </TextBlock>
+                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,6">
+                                <Run FontWeight="Bold">&#x2022; Filter, search and see the pattern:</Run>
+                                Live search, per-player filtering, location and time filters, and a deaths-per-day sparkline. A death heatmap layer puts the same data straight on the map, so the places that keep costing you become obvious.
                             </TextBlock>
 
                             <TextBlock Text="🔔 App, Privacy &amp; Smart Home" FontWeight="SemiBold" FontSize="14" Margin="0,4,0,8" Foreground="{DynamicResource Accent}"/>
@@ -134,6 +256,7 @@
                             <views:ImageGallery>
                                 <views:GalleryItem ImagePath="pack://application:,,,/Assets/Screenshots/8.0/clan_chat.jpg" Description="Redesigned Clan sidebar with a list/tile view switcher, roles, online status, last seen stats, Steam IDs, notes, full Clan Chat integration, and Discord forwarding"/>
                                 <views:GalleryItem ImagePath="pack://application:,,,/Assets/Screenshots/8.0/DeepSea.png" Description="Full virtual Deep Sea map support with automatic view toggling, Floating City tracking, and precise grid coordinate mapping"/>
+                                <views:GalleryItem ImagePath="pack://application:,,,/Assets/Screenshots/8.0/Oilrig-Trigger.png" Description="Own Oil Rig crate timers: an RF receiver wired to a Smart Alarm starts a live countdown on the rig, with 15/10/5-minute warnings to team chat and Discord — and no raid alert from that alarm"/>
                                 <views:GalleryItem ImagePath="pack://application:,,,/Assets/Screenshots/8.0/tutorials.png" Description="New fully localised guided tutorial system"/>
                                 <views:GalleryItem ImagePath="pack://application:,,,/Assets/Screenshots/8.0/new-ui.png" Description="Redesigned left sidebar workspace and modernized UI"/>
                                 <views:GalleryItem ImagePath="pack://application:,,,/Assets/Screenshots/8.0/Raid-calculator.png" Description="Brand new Raid Calculator workspace"/>

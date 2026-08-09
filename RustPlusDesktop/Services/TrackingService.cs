@@ -98,6 +98,25 @@ public class TrackingSettings
     public bool AnnounceVendor { get; set; } = false;
     public bool AnnounceOilRig { get; set; } = false;
     public bool AnnounceDeepSea { get; set; } = false;
+
+    /// <summary>
+    /// Listen to the game's audio for server-wide monument cues on servers that no longer
+    /// send event markers over Rust+. On by default: without it those servers show nothing at
+    /// all, and the listener only runs while Rust itself is running.
+    /// </summary>
+    public bool ListenForServerEvents { get; set; } = true;
+
+    /// <summary>
+    /// Treat a cue this client heard itself as true, without waiting for another player to
+    /// corroborate it.
+    ///
+    /// On by default, because the alternative is refusing to show someone an event they
+    /// personally just heard. Corroboration exists to stop one client speaking for a whole
+    /// server; it was never meant to stop a client speaking for itself. Reporting is
+    /// unaffected — the backend still applies its own rules to what everyone else sees.
+    /// </summary>
+    public bool TrustOwnDetections { get; set; } = true;
+
     public bool AnnouncePlayerOnline { get; set; } = false;
     public bool AnnouncePlayerOffline { get; set; } = false;
     public bool AnnouncePlayerAfk { get; set; } = false;
@@ -127,7 +146,8 @@ public class TrackingSettings
     public bool AnnounceCargoEgress { get; set; } = false;
     public bool AnnounceCargoArrival { get; set; } = false;
     public bool AnnounceSmartAlerts { get; set; } = false;
-    public bool GenericAlarmPopupEnabled { get; set; } = true;
+    /// <summary>Off by default: see SmartDevice.PopupEnabled. Same reasoning, same interruption.</summary>
+    public bool GenericAlarmPopupEnabled { get; set; } = false;
     public bool GenericAlarmOverlayEnabled { get; set; } = true;
     public bool GenericAlarmAudioEnabled { get; set; } = true;
     public string GenericAlarmAudioFilePath { get; set; } = string.Empty;
@@ -642,6 +662,16 @@ public static class TrackingService
     {
         get => _settings.AnnounceCargo;
         set { _settings.AnnounceCargo = value; SaveDB(); }
+    }
+    public static bool ListenForServerEvents
+    {
+        get => _settings.ListenForServerEvents;
+        set { _settings.ListenForServerEvents = value; SaveDB(); }
+    }
+    public static bool TrustOwnDetections
+    {
+        get => _settings.TrustOwnDetections;
+        set { _settings.TrustOwnDetections = value; SaveDB(); }
     }
     public static bool AnnounceHeli
     {

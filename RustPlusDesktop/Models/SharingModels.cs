@@ -10,6 +10,17 @@ namespace RustPlusDesk.Models
     public class OverlaySaveData
     {
         public long LastUpdatedUnix { get; set; } = 0; // Unix seconds
+
+        /// <summary>
+        /// The server wipe these entity IDs belong to, in Unix seconds. Zero for snapshots
+        /// written before this was recorded.
+        ///
+        /// Rust hands out a fresh net ID to every deployable on a wipe, so a snapshot from an
+        /// earlier one lists devices that no longer exist. The server key is ip-port and does
+        /// not change across a wipe, so nothing else distinguishes the two — the devices import
+        /// happily and then sit there red, which is what sent us looking for a bug in sharing.
+        /// </summary>
+        public long WipeTimeUnix { get; set; } = 0;
         public List<SavedStroke> Strokes { get; set; } = new();
         public List<SavedIcon> Icons { get; set; } = new();
         public List<SavedText> Texts { get; set; } = new();
@@ -26,6 +37,13 @@ namespace RustPlusDesk.Models
         public List<ExportedDeviceDto>? Children { get; set; }
         public int? CustomIconId { get; set; }
         public string? CustomIconShortName { get; set; }
+
+        /// <summary>In-game alarm text. The cloud worker matches pushes against this.</summary>
+        public string? InGameAlarmTitle { get; set; }
+
+        /// <summary>"SmallOilRig"/"LargeOilRig" when a rule uses this alarm as a rig trigger.
+        /// Lets the cloud worker tell a crate hack from a raid while the app is closed.</summary>
+        public string? OilRigTrigger { get; set; }
     }
 
     [JsonConverter(typeof(SavedStrokeJsonConverter))]

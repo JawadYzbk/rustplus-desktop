@@ -9,6 +9,71 @@ public class SmartDevice : INotifyPropertyChanged
 {
 
 
+    /// <summary>
+    /// "Small Oil" or "Large Oil" while a Logic Engine rule uses this alarm as an oil rig
+    /// trigger, otherwise null.
+    ///
+    /// Derived state, never persisted: the rules are the truth, and a badge left behind in
+    /// the save file would outlive the rule that earned it. Recomputed whenever rules change,
+    /// so pulling the device out of the Logic Engine restores normal alarm behaviour by
+    /// itself.
+    /// </summary>
+    [JsonIgnore]
+    private string? _oilRigBadge;
+
+    [JsonIgnore]
+    public string? OilRigBadge
+    {
+        get => _oilRigBadge;
+        set { if (_oilRigBadge != value) { _oilRigBadge = value; OnProp(); OnProp(nameof(HasOilRigBadge)); } }
+    }
+
+    [JsonIgnore]
+    public bool HasOilRigBadge => !string.IsNullOrEmpty(_oilRigBadge);
+
+    /// <summary>
+    /// "SmallOilRig" or "LargeOilRig" while a rule uses this alarm as a rig trigger.
+    ///
+    /// The badge above is a translated label and useless to anything outside the UI. This is
+    /// the stable key, and it is the one that gets synced: the cloud worker has to know that a
+    /// firing alarm is a crate hack rather than a raid, and it can only learn that from here.
+    /// Derived from the rules like the badge, never persisted locally.
+    /// </summary>
+    [JsonIgnore]
+    private string? _oilRigTriggerTarget;
+
+    [JsonIgnore]
+    public string? OilRigTriggerTarget
+    {
+        get => _oilRigTriggerTarget;
+        set { if (_oilRigTriggerTarget != value) { _oilRigTriggerTarget = value; OnProp(); } }
+    }
+
+    /// <summary>
+    /// The upper line of the alarm's message as set in-game — the text Rust puts in the push
+    /// notification title.
+    ///
+    /// The only thing that identifies which alarm fired: an alarm push carries server details
+    /// and nothing else, no entity id and no entity name. Pairing is the mirror image, giving
+    /// the id with a generic "Smart Alarm" as its name. Neither is usable alone, so this is
+    /// learned when both arrive together — the WebSocket event names the entity while the push
+    /// carries the title.
+    ///
+    /// Persisted and synced to the cloud, because the worker that drives Alexa only ever sees
+    /// the push and has no other way to tell two alarms apart. Editable by hand for anyone who
+    /// would rather not trigger every alarm once to teach it.
+    /// </summary>
+    private string? _inGameAlarmTitle;
+    public string? InGameAlarmTitle
+    {
+        get => _inGameAlarmTitle;
+        set
+        {
+            var trimmed = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+            if (_inGameAlarmTitle != trimmed) { _inGameAlarmTitle = trimmed; OnProp(); }
+        }
+    }
+
     private uint _entityId;
     public uint EntityId
     {
@@ -229,7 +294,10 @@ public class SmartDevice : INotifyPropertyChanged
         set { if (_alias != value) { _alias = value; OnProp(); OnProp(nameof(PureName)); OnProp(nameof(DisplayName)); OnProp(nameof(AutomationDisplayName)); } }
     }
 
-    private bool _popupEnabled = true;
+    // Off by default. The alarm window steals Windows focus, and during an actual raid that
+    // is the worst possible moment to have the game pulled out from under you. The in-app
+    // overlay and the sound still fire; this is for people who explicitly want the interruption.
+    private bool _popupEnabled = false;
     public bool PopupEnabled
     {
         get => _popupEnabled;

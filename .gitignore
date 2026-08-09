@@ -97,3 +97,6 @@ env
 build_secrets*.zip
 .gemini/
 Corel Auto-Preserve/
+
+# Local .env backups (contain secrets)
+.env.bak*

@@ -1666,6 +1666,42 @@
                                                         Padding="8,7"
                                                         CornerRadius="8"
                                                         HorizontalAlignment="Left">
+                                                        <Border.ContextMenu>
+                                                            <ContextMenu Opened="DeviceContextMenu_Opened"
+                                                                         DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
+                                                                         Style="{StaticResource DarkContextMenu}">
+                                                                <MenuItem Click="Device_Rename_Click" Header="{DynamicResource RenameDevice}" />
+                                                                <MenuItem x:Name="MenuSetSmallOilRig" Click="Device_SetSmallOilRig_Click" Header="{DynamicResource UiSetAsSmallOilRigTrigger}" />
+                                                                <MenuItem x:Name="MenuSetLargeOilRig" Click="Device_SetLargeOilRig_Click" Header="{DynamicResource UiSetAsLargeOilRigTrigger}" />
+                                                                <MenuItem x:Name="MenuEditAlarmTitle" Click="Device_EditAlarmTitle_Click" Header="{DynamicResource UiInGameAlarmTitle}">
+                                                                    <MenuItem.Style>
+                                                                        <Style TargetType="MenuItem" BasedOn="{StaticResource DarkMenuItem}">
+                                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding Kind}" Value="SmartAlarm">
+                                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </MenuItem.Style>
+                                                                </MenuItem>
+                                                                <MenuItem Click="SwitchCommand_Edit_Click" Header="{DynamicResource UiChangeCommand}">
+                                                                    <MenuItem.Style>
+                                                                        <Style TargetType="MenuItem" BasedOn="{StaticResource DarkMenuItem}">
+                                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding Kind}" Value="SmartSwitch">
+                                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                                </DataTrigger>
+                                                                                <DataTrigger Binding="{Binding Kind}" Value="Smart Switch">
+                                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </MenuItem.Style>
+                                                                </MenuItem>
+                                                            </ContextMenu>
+                                                        </Border.ContextMenu>
                                                         <Border.Width>
                                                             <MultiBinding Converter="{StaticResource DeviceTreeItemWidthConverter}" ConverterParameter="36,26,220">
                                                                 <Binding ElementName="ListDevices" Path="ActualWidth" />
@@ -1913,7 +1949,27 @@
                                                                     <Grid.ColumnDefinitions>
                                                                         <ColumnDefinition Width="Auto" />
                                                                         <ColumnDefinition Width="*" MinWidth="0" />
+                                                                        <ColumnDefinition Width="Auto" />
                                                                     </Grid.ColumnDefinitions>
+
+                                                                    <!--  Oil rig trigger: this alarm's own notifications are suppressed  -->
+                                                                    <Border
+                                                                        Grid.Column="2"
+                                                                        Margin="6,0,0,0"
+                                                                        Padding="5,1"
+                                                                        CornerRadius="3"
+                                                                        Background="#302E9BD6"
+                                                                        BorderBrush="#602E9BD6"
+                                                                        BorderThickness="1"
+                                                                        VerticalAlignment="Center"
+                                                                        ToolTip="{DynamicResource UiBadgeOilRigTooltip}"
+                                                                        Visibility="{Binding HasOilRigBadge, Converter={StaticResource Vis}}">
+                                                                        <TextBlock
+                                                                            Text="{Binding OilRigBadge}"
+                                                                            FontSize="10"
+                                                                            FontWeight="SemiBold"
+                                                                            Foreground="#7FD3FF" />
+                                                                    </Border>
                                                                     <ui:SymbolIcon
                                                                         Grid.Column="0"
                                                                         Symbol="Warning20"
@@ -1956,28 +2012,6 @@
                                                                                     </Style.Triggers>
                                                                                 </Style>
                                                                             </TextBlock.Style>
-                                                                            <TextBlock.ContextMenu>
-                                                                                <ContextMenu
-                                                                                    DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"
-                                                                                    Style="{StaticResource DarkContextMenu}">
-                                                                                    <MenuItem Click="Device_Rename_Click" Header="{DynamicResource RenameDevice}" />
-                                                                                    <MenuItem Click="SwitchCommand_Edit_Click" Header="{DynamicResource UiChangeCommand}">
-                                                                                        <MenuItem.Style>
-                                                                                            <Style TargetType="MenuItem" BasedOn="{StaticResource DarkMenuItem}">
-                                                                                                <Setter Property="Visibility" Value="Collapsed" />
-                                                                                                <Style.Triggers>
-                                                                                                    <DataTrigger Binding="{Binding Kind}" Value="SmartSwitch">
-                                                                                                        <Setter Property="Visibility" Value="Visible" />
-                                                                                                    </DataTrigger>
-                                                                                                    <DataTrigger Binding="{Binding Kind}" Value="Smart Switch">
-                                                                                                        <Setter Property="Visibility" Value="Visible" />
-                                                                                                    </DataTrigger>
-                                                                                                </Style.Triggers>
-                                                                                            </Style>
-                                                                                        </MenuItem.Style>
-                                                                                    </MenuItem>
-                                                                                </ContextMenu>
-                                                                            </TextBlock.ContextMenu>
                                                                         </TextBlock>
                                                                         
                                                                         <ui:TextBox
@@ -4843,7 +4877,7 @@
                                                              Tag="Vendor" />
                                                          <MenuItem
                                                              Click="Alert_MenuItem_Click"
-                                                             Header="{DynamicResource OilRig}"
+                                                             Header="{DynamicResource OilRigCrateStatus}"
                                                              IsCheckable="True"
                                                              StaysOpenOnClick="True"
                                                              Style="{StaticResource DarkMenuItem}"
@@ -5011,7 +5045,7 @@
                                                      </MenuItem>
 
                                                       <!-- Column 3: Shops & Actions -->
-                                                      <MenuItem Header="{DynamicResource Shops}" BorderThickness="0,0,1,0">
+                                                      <MenuItem x:Name="AlertsShopsColumn" Header="{DynamicResource Shops}" BorderThickness="0,0,1,0">
                                                           <MenuItem.Style>
                                                               <Style TargetType="MenuItem">
                                                                   <Setter Property="Template">
@@ -5294,7 +5328,10 @@
                                 Orientation="Horizontal"
                                 HorizontalAlignment="Right"
                                 VerticalAlignment="Center">
-                                <!-- Deep Sea Toggle Button -->
+                                <!--  Deep Sea Toggle Button — always visible. It used to be revealed by the
+                                      Casino Bar Shopkeeper shop marker, but vending data is going away from
+                                      the Rust+ feed; without the button players auto-switched into the Deep
+                                      Sea view on entry and had no way back to the main map.  -->
                                 <ui:Button
                                     x:Name="BtnDeepSeaToggle"
                                     Width="32"
@@ -5303,8 +5340,7 @@
                                     CornerRadius="6"
                                     Margin="0,0,0,0"
                                     Click="BtnDeepSeaToggle_Click"
-                                    ToolTip="Deep Sea Map"
-                                    Visibility="Collapsed">
+                                    ToolTip="Deep Sea Map">
                                     <ContentControl x:Name="ContentDeepSeaToggle">
                                         <Image Source="pack://application:,,,/Assets/icons/ds_event.png" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality" />
                                     </ContentControl>

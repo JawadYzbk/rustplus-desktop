@@ -632,6 +632,7 @@ private void ListDevices_SelectedItemChanged(object sender, RoutedPropertyChange
             {
                 RemoveDeviceAndChildrenFromHotkeys(dev);
                 RemoveDeviceFromHierarchy(_vm.Selected.Devices, dev);
+                RemoveOwnedOilRigRulesForDevice(dev);
                 _vm.Selected.NotifyFlatDevicesChanged();
                 _vm.NotifyDevicesChanged();
                 _vm.Save();
@@ -641,7 +642,7 @@ private void ListDevices_SelectedItemChanged(object sender, RoutedPropertyChange
                 SaveOwnOverlayToJson();
 
                 // Immediately upload new state to Cloud
-                if (TrackingService.CloudSyncEnabled && RustPlusDesk.Services.Auth.SupabaseAuthManager.Client != null)
+                if (TrackingService.CloudSyncEnabled && Services.Cloud.CloudAuth.IsCloudAvailable)
                 {
                     try
                     {
@@ -1265,6 +1266,280 @@ private async void BtnDeviceRefresh_Click(object sender, RoutedEventArgs e)
         dev.IsEditing = true;
     }
 
+    private bool IsOilRigAlarmAssigned(string rigTarget)
+    {
+        var profile = _vm?.Selected;
+        if (profile?.LogicRules == null) return false;
+
+        return profile.LogicRules.Any(rule =>
+            rule.TriggerType == "SmartAlarm" &&
+            rule.TriggerEntityId != 0 &&
+            rule.Steps.Any(s => s.StepType == "StartTimer" && s.TimerTarget == rigTarget));
+    }
+
+    private void DeviceContextMenu_Opened(object sender, RoutedEventArgs e)
+    {
+        if (sender is not ContextMenu menu) return;
+        if (menu.DataContext is not SmartDevice dev) return;
+
+        bool isAlarm = string.Equals(dev.Kind, "SmartAlarm", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(dev.Kind, "Smart Alarm", StringComparison.OrdinalIgnoreCase);
+
+        MenuItem? menuSmall = null;
+        MenuItem? menuLarge = null;
+
+        foreach (var item in menu.Items.OfType<MenuItem>())
+        {
+            if (item.Name == "MenuSetSmallOilRig") menuSmall = item;
+            else if (item.Name == "MenuSetLargeOilRig") menuLarge = item;
+        }
+
+        if (!isAlarm)
+        {
+            if (menuSmall != null) menuSmall.Visibility = Visibility.Collapsed;
+            if (menuLarge != null) menuLarge.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var profile = _vm?.Selected;
+        var ruleSmall = profile?.LogicRules?.FirstOrDefault(r =>
+            r.TriggerType == "SmartAlarm" &&
+            r.Steps.Any(s => s.StepType == "StartTimer" && s.TimerTarget == "SmallOilRig"));
+
+        var ruleLarge = profile?.LogicRules?.FirstOrDefault(r =>
+            r.TriggerType == "SmartAlarm" &&
+            r.Steps.Any(s => s.StepType == "StartTimer" && s.TimerTarget == "LargeOilRig"));
+
+        bool isThisSmall = ruleSmall != null && ruleSmall.TriggerEntityId == dev.EntityId && dev.EntityId != 0;
+        bool isThisLarge = ruleLarge != null && ruleLarge.TriggerEntityId == dev.EntityId && dev.EntityId != 0;
+
+        bool isAnySmall = ruleSmall != null && ruleSmall.TriggerEntityId != 0;
+        bool isAnyLarge = ruleLarge != null && ruleLarge.TriggerEntityId != 0;
+
+        if (menuSmall != null)
+        {
+            if (isThisSmall)
+            {
+                menuSmall.Header = Properties.Resources.GetString("UiRemoveAsSmallOilRigTrigger");
+                menuSmall.Tag = "REMOVE";
+                menuSmall.Visibility = Visibility.Visible;
+            }
+            else if (isThisLarge || isAnySmall)
+            {
+                menuSmall.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                menuSmall.Header = Properties.Resources.GetString("UiSetAsSmallOilRigTrigger");
+                menuSmall.Tag = "SET";
+                menuSmall.Visibility = Visibility.Visible;
+            }
+        }
+
+        if (menuLarge != null)
+        {
+            if (isThisLarge)
+            {
+                menuLarge.Header = Properties.Resources.GetString("UiRemoveAsLargeOilRigTrigger");
+                menuLarge.Tag = "REMOVE";
+                menuLarge.Visibility = Visibility.Visible;
+            }
+            else if (isThisSmall || isAnyLarge)
+            {
+                menuLarge.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                menuLarge.Header = Properties.Resources.GetString("UiSetAsLargeOilRigTrigger");
+                menuLarge.Tag = "SET";
+                menuLarge.Visibility = Visibility.Visible;
+            }
+        }
+    }
+
+    private void Device_SetSmallOilRig_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem item || item.DataContext is not SmartDevice dev) return;
+
+        if (string.Equals(item.Tag as string, "REMOVE", StringComparison.OrdinalIgnoreCase))
+            RemoveDeviceAsOilRigTrigger(dev, "SmallOilRig");
+        else
+            SetDeviceAsOilRigTrigger(dev, "SmallOilRig");
+    }
+
+    private void Device_SetLargeOilRig_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem item || item.DataContext is not SmartDevice dev) return;
+
+        if (string.Equals(item.Tag as string, "REMOVE", StringComparison.OrdinalIgnoreCase))
+            RemoveDeviceAsOilRigTrigger(dev, "LargeOilRig");
+        else
+            SetDeviceAsOilRigTrigger(dev, "LargeOilRig");
+    }
+
+    /// <summary>
+    /// Shows and edits the alarm's in-game text.
+    ///
+    /// The app fills this in by itself the first time an alarm fires while it is running, but
+    /// that means triggering every alarm once before Alexa can tell them apart. Typing it is
+    /// the shortcut, and seeing what is stored is the only way to check whether the automatic
+    /// route worked.
+    /// </summary>
+    private void Device_EditAlarmTitle_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem item || item.DataContext is not SmartDevice dev) return;
+
+        var dlg = new Views.Windows.PromptDialog(
+            Properties.Resources.UiInGameAlarmTitle, dev.InGameAlarmTitle ?? "")
+        {
+            Owner = this
+        };
+
+        if (dlg.ShowDialog() != true) return;
+
+        string entered = (dlg.InputText ?? "").Trim();
+        if (string.Equals(entered, dev.InGameAlarmTitle ?? "", StringComparison.Ordinal)) return;
+
+        dev.InGameAlarmTitle = entered;
+        AppendLog(string.IsNullOrEmpty(entered)
+            ? $"[alarm] Cleared in-game title for {dev.PureName} (#{dev.EntityId})."
+            : $"[alarm] In-game title for {dev.PureName} (#{dev.EntityId}) set to \"{entered}\".");
+
+        try { _vm.Save(); } catch { }
+
+        // The cloud worker is the consumer and runs elsewhere, so push it now rather than
+        // waiting for the next routine sync.
+        _ = UploadDevicesSnapshotForCurrentServerAsync();
+    }
+
+    private void RemoveDeviceAsOilRigTrigger(SmartDevice dev, string rigTarget)
+    {
+        var profile = _vm?.Selected;
+        if (profile?.LogicRules == null) return;
+
+        var rulesToRemove = profile.LogicRules.Where(r =>
+            r.TriggerType == "SmartAlarm" &&
+            (r.TriggerEntityId == dev.EntityId || r.TriggerEntityId == 0) &&
+            r.Steps.Any(s => s.StepType == "StartTimer" && s.TimerTarget == rigTarget)).ToList();
+
+        foreach (var rule in rulesToRemove)
+        {
+            profile.LogicRules.Remove(rule);
+        }
+
+        RefreshOilRigTimerCapability();
+        LogicEnginePanel?.RefreshListBindings();
+        _vm?.NotifyDevicesChanged();
+        _vm?.Save();
+        AppendLog($"[Devices] Deleted {rigTarget} rule for alarm #{dev.EntityId} ({dev.DisplayName}).");
+    }
+
+    /// <summary>
+    /// Sweeps up the oil-rig timer rules an alarm owned when the alarm itself is deleted.
+    ///
+    /// Setting an alarm as an oil-rig trigger creates a Logic Engine rule keyed to that alarm's
+    /// entity id (see <see cref="SetDeviceAsOilRigTrigger"/>). Deleting the device used to leave
+    /// that rule behind: a trigger pointing at an entity that no longer exists, still counting as
+    /// a rig timer for the crate command and still badging nothing. This removes only the rules
+    /// this feature owns — an oil-rig StartTimer keyed to the exact device (or one of its
+    /// children, which the delete takes with it). A rule left at TriggerEntityId 0 belongs to no
+    /// device and is never swept up here.
+    /// </summary>
+    private void RemoveOwnedOilRigRulesForDevice(SmartDevice dev)
+    {
+        var profile = _vm?.Selected;
+        if (profile?.LogicRules == null) return;
+
+        var ids = new HashSet<uint>();
+        void Collect(SmartDevice d)
+        {
+            ids.Add(d.EntityId);
+            if (d.Children != null)
+                foreach (var child in d.Children) Collect(child);
+        }
+        Collect(dev);
+
+        var owned = profile.LogicRules.Where(r =>
+            r.TriggerType == "SmartAlarm" &&
+            r.TriggerEntityId != 0 &&
+            ids.Contains(r.TriggerEntityId) &&
+            EnumerateSteps(r).Any(s => s.StepType == "StartTimer" && s.IsOilRigTimer)).ToList();
+
+        if (owned.Count == 0) return;
+
+        foreach (var rule in owned) profile.LogicRules.Remove(rule);
+
+        RefreshOilRigTimerCapability();
+        LogicEnginePanel?.RefreshListBindings();
+        AppendLog($"[Devices] Removed {owned.Count} orphaned oil-rig rule(s) owned by deleted alarm #{dev.EntityId}.");
+    }
+
+    private void SetDeviceAsOilRigTrigger(SmartDevice dev, string rigTarget)
+    {
+        var profile = _vm?.Selected;
+        if (profile == null) return;
+
+        profile.LogicRules ??= new List<LogicRule>();
+
+        var rule = profile.LogicRules.FirstOrDefault(r =>
+            r.TriggerType == "SmartAlarm" &&
+            r.Steps.Any(s => s.StepType == "StartTimer" && s.TimerTarget == rigTarget));
+
+        if (rule != null)
+        {
+            rule.IsEnabled = true;
+            rule.TriggerEntityId = dev.EntityId;
+        }
+        else
+        {
+            rule = new LogicRule
+            {
+                Id = Guid.NewGuid().ToString(),
+                Name = rigTarget == "SmallOilRig" ? "Small Oil Rig Chat/Timer" : "Large Oil Rig Chat/Timer",
+                CustomIconId = -1768880890,
+                CustomIconShortName = "fish.smallshark",
+                IsEnabled = true,
+                IsLoopEnabled = false,
+                LoopCount = 1,
+                IsExpanded = true,
+                TriggerType = "SmartAlarm",
+                TriggerEntityId = dev.EntityId,
+                TriggerCommand = "rulecommand",
+                TriggerRuleId = "",
+                TriggerState = true,
+                ConditionOperator = "NONE",
+                ConditionDeviceEntityId = 0,
+                ConditionDeviceState = true,
+                Steps = new System.Collections.ObjectModel.ObservableCollection<LogicStep>
+                {
+                    new LogicStep
+                    {
+                        StepType = "StartTimer",
+                        TimerMinutes = 15,
+                        TimerTarget = rigTarget,
+                        TimerName = "",
+                        ShowCrateOnMap = true,
+                        AlarmTextHint = "",
+                        WaitSeconds = 10,
+                        TargetEntityId = 0,
+                        TargetGroupName = "",
+                        ToggleState = null,
+                        ConditionOperator = "ALL_OFFLINE",
+                        ConditionDeviceIdsCsv = "",
+                        ConditionalSteps = new System.Collections.ObjectModel.ObservableCollection<LogicStep>()
+                    }
+                }
+            };
+            profile.LogicRules.Add(rule);
+        }
+
+        RefreshOilRigTimerCapability();
+        LogicEnginePanel?.RefreshListBindings();
+        _vm?.NotifyDevicesChanged();
+        _vm?.Save();
+        AppendLog($"[Devices] Set alarm #{dev.EntityId} ({dev.DisplayName}) as {rigTarget} trigger.");
+    }
+
     private void DeviceName_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ClickCount == 2 && sender is TextBlock tb && tb.DataContext is SmartDevice dev)
@@ -1408,7 +1683,7 @@ private async void BtnDeviceRefresh_Click(object sender, RoutedEventArgs e)
 
             _vm?.Save();
             SaveOwnOverlayToJson();
-            if (TrackingService.CloudSyncEnabled && RustPlusDesk.Services.Auth.SupabaseAuthManager.Client != null)
+            if (TrackingService.CloudSyncEnabled && Services.Cloud.CloudAuth.IsCloudAvailable)
             {
                 try
                 {
@@ -1536,7 +1811,7 @@ public List<ExportedDeviceDto> Devices { get; set; } = new();
 
             // 2) Cloud-Fetch (anon key genügt, kein Discord-Login nötig)
             //    Parallel für alle IDs – Fehler einzelner IDs werden ignoriert
-            if (Services.Auth.SupabaseAuthManager.Client != null && TrackingService.CloudSyncEnabled)
+            if (Services.Cloud.CloudAuth.IsCloudAvailable && TrackingService.CloudSyncEnabled)
             {
                 var fetchTasks = allSteamIds.Select(sid => TryFetchAndUpdateOverlayAsync(sid));
                 await Task.WhenAll(fetchTasks);
@@ -1545,45 +1820,61 @@ public List<ExportedDeviceDto> Devices { get; set; } = new();
             // 3) Import-Kandidaten sammeln (Cloud zuerst, Fallback auf lokale Datei)
             var items = new List<DeviceImportItem>();
 
-            foreach (var sid in allSteamIds)
+            // Cloud: one team-scoped call returns every teammate's devices already
+            // de-duplicated by entity id on the server, so the same device several
+            // teammates synced shows once (no client-side merge needed).
+            if (Services.Cloud.CloudAuth.IsCloudAvailable && TrackingService.CloudSyncEnabled)
             {
-                // TeamMember-VM für diesen SteamId (oder Dummy für eigene ID ohne VM-Eintrag)
-                var tm = TeamMembers.FirstOrDefault(t => t.SteamId == sid)
-                      ?? new TeamMemberVM { SteamId = sid, Name = sid == _mySteamId ? "Me" : sid.ToString() };
-
-                OverlaySaveData? data = null;
-
-                // Zuerst Cloud versuchen
-                if (Services.Auth.SupabaseAuthManager.Client != null && TrackingService.CloudSyncEnabled)
+                try
                 {
-                    try { data = await OverlayDataModule.FetchOverlayFromServerAsync(GetServerKey(), sid); }
-                    catch { /* Cloud nicht erreichbar – lokale Datei als Fallback */ }
-                }
-
-                // Fallback: lokale Datei
-                if (data == null)
-                {
-                    var path = GetOverlayJsonPathForPlayerServer(sid);
-                    if (File.Exists(path))
+                    var teamDevices = await DeviceDataModule.FetchTeamDevicesAsync(GetServerKey());
+                    foreach (var (dto, ownerSteamId, ownerName) in teamDevices)
                     {
-                        try
+                        var tm = new TeamMemberVM
                         {
-                            var json = File.ReadAllText(path);
-                            data = System.Text.Json.JsonSerializer.Deserialize<OverlaySaveData>(json);
-                        }
-                        catch (Exception ex)
-                        {
-                            AppendLog($"[dev/import] Can't parse local overlay for {sid}: {ex.Message}");
-                        }
+                            SteamId = ownerSteamId,
+                            Name = ownerSteamId == _mySteamId ? "Me" : ownerName,
+                        };
+                        AddDeviceToImportItems(items, dto, tm);
                     }
                 }
+                catch (Exception ex)
+                {
+                    AppendLog($"[dev/import] Team device fetch failed: {ex.Message}");
+                }
+            }
 
-                if (data?.Devices == null || data.Devices.Count == 0)
-                    continue;
+            // Fallback: local backups when the cloud returned nothing (offline, or
+            // nobody has synced). Dedup by entity id since local files can also carry
+            // the same device under several owners.
+            if (items.Count == 0)
+            {
+                foreach (var sid in allSteamIds)
+                {
+                    var tm = TeamMembers.FirstOrDefault(t => t.SteamId == sid)
+                          ?? new TeamMemberVM { SteamId = sid, Name = sid == _mySteamId ? "Me" : sid.ToString() };
+
+                    var path = GetOverlayJsonPathForPlayerServer(sid);
+                    if (!File.Exists(path))
+                        continue;
+
+                    try
+                    {
+                        var json = File.ReadAllText(path);
+                        var data = System.Text.Json.JsonSerializer.Deserialize<OverlaySaveData>(json);
+                        if (data?.Devices == null || data.Devices.Count == 0)
+                            continue;
+
+                // Entity IDs are handed out fresh on every wipe, while the server key is
+                // ip-port and survives one unchanged. A snapshot written before the current
+                // wipe therefore lists devices that no longer exist — they import without
+                // complaint and then sit there red, which is exactly what looked like broken
+                // device sharing.
+                bool fromPreviousWipe = IsSnapshotFromPreviousWipe(data);
 
                 foreach (var d in data.Devices)
                 {
-                    CollectIndividualDevices(items, d, tm);
+                    CollectIndividualDevices(items, d, tm, fromPreviousWipe);
                 }
             }
 
@@ -1733,7 +2024,7 @@ public List<ExportedDeviceDto> Devices { get; set; } = new();
 
     }
 
-    private void AddDeviceToImportItems(List<DeviceImportItem> items, ExportedDeviceDto d, TeamMemberVM tm)
+    private void AddDeviceToImportItems(List<DeviceImportItem> items, ExportedDeviceDto d, TeamMemberVM tm, bool fromPreviousWipe = false)
     {
         bool already = _vm.Selected?.Devices != null && FindDeviceById(_vm.Selected.Devices, d.EntityId) != null;
 
@@ -1746,7 +2037,10 @@ public List<ExportedDeviceDto> Devices { get; set; } = new();
             Name = d.Name,
             Alias = d.Alias,
             AlreadyPresent = already,
-            IsSelected = !already,
+            FromPreviousWipe = fromPreviousWipe,
+            // Stale entries stay in the list so the reason is visible, but nobody imports
+            // dead devices by accident.
+            IsSelected = !already && !fromPreviousWipe,
             ExistsState = already ? "local" : "?",
             ServerName = _vm.Selected?.Name ?? string.Empty,
             OriginalDto = d // <- Hier speichern wir das volle DTO inklusive Children!
@@ -1754,7 +2048,26 @@ public List<ExportedDeviceDto> Devices { get; set; } = new();
         items.Add(item);
     }
 
-    private void CollectIndividualDevices(List<DeviceImportItem> items, ExportedDeviceDto d, TeamMemberVM tm)
+    /// <summary>
+    /// Whether a saved snapshot predates the wipe currently running on this server.
+    ///
+    /// WipeTimeUnix is the exact answer but only exists on snapshots written since it was
+    /// added. For everything older the write timestamp is the next best thing: a snapshot last
+    /// written before the wipe began cannot describe anything that exists now.
+    /// </summary>
+    private bool IsSnapshotFromPreviousWipe(OverlaySaveData? data)
+    {
+        var wipe = _vm?.Selected?.WipeTime;
+        if (data == null || !wipe.HasValue) return false;
+
+        long wipeUnix = new DateTimeOffset(DateTime.SpecifyKind(wipe.Value, DateTimeKind.Utc)).ToUnixTimeSeconds();
+
+        if (data.WipeTimeUnix > 0) return data.WipeTimeUnix != wipeUnix;
+
+        return data.LastUpdatedUnix > 0 && data.LastUpdatedUnix < wipeUnix;
+    }
+
+    private void CollectIndividualDevices(List<DeviceImportItem> items, ExportedDeviceDto d, TeamMemberVM tm, bool fromPreviousWipe = false)
     {
         if (d.IsGroup)
         {
@@ -1762,13 +2075,13 @@ public List<ExportedDeviceDto> Devices { get; set; } = new();
             {
                 foreach (var child in d.Children)
                 {
-                    CollectIndividualDevices(items, child, tm);
+                    CollectIndividualDevices(items, child, tm, fromPreviousWipe);
                 }
             }
         }
         else
         {
-            AddDeviceToImportItems(items, d, tm);
+            AddDeviceToImportItems(items, d, tm, fromPreviousWipe);
         }
     }
 
@@ -2097,7 +2410,7 @@ private void DeviceRow_Click(object sender, MouseButtonEventArgs e)
 
                         // Save local and push sync
                         SaveOwnOverlayToJson();
-                        if (TrackingService.CloudSyncEnabled && RustPlusDesk.Services.Auth.SupabaseAuthManager.Client != null)
+                        if (TrackingService.CloudSyncEnabled && Services.Cloud.CloudAuth.IsCloudAvailable)
                         {
                             try
                             {
