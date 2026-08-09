@@ -1865,16 +1865,17 @@ public List<ExportedDeviceDto> Devices { get; set; } = new();
                         if (data?.Devices == null || data.Devices.Count == 0)
                             continue;
 
-                        foreach (var d in data.Devices)
-                            CollectIndividualDevices(items, d, tm);
-                    }
-                    catch (Exception ex)
-                    {
-                        AppendLog($"[dev/import] Can't parse local overlay for {sid}: {ex.Message}");
-                    }
-                }
+                // Entity IDs are handed out fresh on every wipe, while the server key is
+                // ip-port and survives one unchanged. A snapshot written before the current
+                // wipe therefore lists devices that no longer exist — they import without
+                // complaint and then sit there red, which is exactly what looked like broken
+                // device sharing.
+                bool fromPreviousWipe = IsSnapshotFromPreviousWipe(data);
 
-                items = items.GroupBy(i => i.EntityId).Select(g => g.First()).ToList();
+                foreach (var d in data.Devices)
+                {
+                    CollectIndividualDevices(items, d, tm, fromPreviousWipe);
+                }
             }
 
             if (items.Count == 0)
@@ -2023,7 +2024,7 @@ public List<ExportedDeviceDto> Devices { get; set; } = new();
 
     }
 
-    private void AddDeviceToImportItems(List<DeviceImportItem> items, ExportedDeviceDto d, TeamMemberVM tm)
+    private void AddDeviceToImportItems(List<DeviceImportItem> items, ExportedDeviceDto d, TeamMemberVM tm, bool fromPreviousWipe = false)
     {
         bool already = _vm.Selected?.Devices != null && FindDeviceById(_vm.Selected.Devices, d.EntityId) != null;
 
@@ -2036,7 +2037,10 @@ public List<ExportedDeviceDto> Devices { get; set; } = new();
             Name = d.Name,
             Alias = d.Alias,
             AlreadyPresent = already,
-            IsSelected = !already,
+            FromPreviousWipe = fromPreviousWipe,
+            // Stale entries stay in the list so the reason is visible, but nobody imports
+            // dead devices by accident.
+            IsSelected = !already && !fromPreviousWipe,
             ExistsState = already ? "local" : "?",
             ServerName = _vm.Selected?.Name ?? string.Empty,
             OriginalDto = d // <- Hier speichern wir das volle DTO inklusive Children!
@@ -2044,7 +2048,26 @@ public List<ExportedDeviceDto> Devices { get; set; } = new();
         items.Add(item);
     }
 
-    private void CollectIndividualDevices(List<DeviceImportItem> items, ExportedDeviceDto d, TeamMemberVM tm)
+    /// <summary>
+    /// Whether a saved snapshot predates the wipe currently running on this server.
+    ///
+    /// WipeTimeUnix is the exact answer but only exists on snapshots written since it was
+    /// added. For everything older the write timestamp is the next best thing: a snapshot last
+    /// written before the wipe began cannot describe anything that exists now.
+    /// </summary>
+    private bool IsSnapshotFromPreviousWipe(OverlaySaveData? data)
+    {
+        var wipe = _vm?.Selected?.WipeTime;
+        if (data == null || !wipe.HasValue) return false;
+
+        long wipeUnix = new DateTimeOffset(DateTime.SpecifyKind(wipe.Value, DateTimeKind.Utc)).ToUnixTimeSeconds();
+
+        if (data.WipeTimeUnix > 0) return data.WipeTimeUnix != wipeUnix;
+
+        return data.LastUpdatedUnix > 0 && data.LastUpdatedUnix < wipeUnix;
+    }
+
+    private void CollectIndividualDevices(List<DeviceImportItem> items, ExportedDeviceDto d, TeamMemberVM tm, bool fromPreviousWipe = false)
     {
         if (d.IsGroup)
         {
@@ -2052,13 +2075,13 @@ public List<ExportedDeviceDto> Devices { get; set; } = new();
             {
                 foreach (var child in d.Children)
                 {
-                    CollectIndividualDevices(items, child, tm);
+                    CollectIndividualDevices(items, child, tm, fromPreviousWipe);
                 }
             }
         }
         else
         {
-            AddDeviceToImportItems(items, d, tm);
+            AddDeviceToImportItems(items, d, tm, fromPreviousWipe);
         }
     }
 
