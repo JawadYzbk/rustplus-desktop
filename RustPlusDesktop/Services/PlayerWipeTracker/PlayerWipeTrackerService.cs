@@ -40,7 +40,7 @@ public sealed class PlayerWipeTrackerService : IAsyncDisposable
     public IReadOnlyCollection<ulong> TrackedPlayers => _engines.Keys.ToArray();
     public PlayerWipeTrackerCapabilities Capabilities => _capabilities.Current;
 
-    public void UpdateCapabilities(JsonElement bootstrap) => _capabilities.Update(bootstrap);
+    public PlayerWipeTrackerCapabilities UpdateCapabilities(JsonElement bootstrap) => _capabilities.Update(bootstrap);
 
     public void StartConnection(string serverKey, DateTime? wipeTimeUtc, string? mapIdentity, ulong ownSteamId, string? sessionId = null)
     {
@@ -109,6 +109,14 @@ public sealed class PlayerWipeTrackerService : IAsyncDisposable
 
     public IReadOnlyList<TrackerSegment> GetSegments(ulong steamId)
         => _engines.TryGetValue(steamId, out var engine) ? engine.Segments : Array.Empty<TrackerSegment>();
+
+    /// <summary>Derives glance-value intel (current status, patterns, blind spots) for one player.</summary>
+    public TrackerInsights GetInsights(ulong steamId, DateTime? nowUtc = null)
+        => TrackerInsightsBuilder.Build(
+            GetObservations(steamId),
+            GetSegments(steamId),
+            GetSummary(steamId),
+            nowUtc ?? DateTime.UtcNow);
 
     public IReadOnlyList<PlayerObservation> GetObservations(ulong steamId)
         => _serverKey is null || _wipeKey is null

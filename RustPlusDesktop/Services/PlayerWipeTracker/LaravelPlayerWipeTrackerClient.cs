@@ -125,7 +125,7 @@ public sealed class LaravelPlayerWipeTrackerClient
     private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, object? payload, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(method, $"{BaseUrl.TrimEnd('/')}/{path}");
-        var token = HandshakeService.GuestJwt;
+        var token = RustPlusDesk.Services.Cloud.CloudAuthManager.CurrentToken;
         if (!string.IsNullOrWhiteSpace(token))
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         request.Headers.Add("X-Client-Version", Helpers.VersionHelper.GetClientVersion());

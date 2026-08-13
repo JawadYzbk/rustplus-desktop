@@ -10,6 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using Microsoft.Win32;
@@ -21,14 +22,17 @@ public partial class PlayerWipeTrackerWindow : Window
 {
     private readonly PlayerWipeTrackerService _tracker;
     private readonly ulong _ownSteamId;
-    private readonly ImageSource? _wipeMapImage;
-    private readonly int _worldSize;
-    private readonly Rect _worldRectPixels;
+    private ImageSource? _wipeMapImage;
+    private int _worldSize;
+    private Rect _worldRectPixels;
+    private string? _loadedWipeKey;
     private readonly DispatcherTimer _replayTimer;
+    private readonly DispatcherTimer _liveTimer;
     private IReadOnlyList<TrackerPoint> _points = Array.Empty<TrackerPoint>();
     private double _replaySpeed = 1;
     private int _replayIndex;
     private bool _refreshing;
+    private bool _showUnknown;
     private Grid? _dragViewport;
     private TranslateTransform? _dragTranslate;
     private Point _dragStart;
@@ -46,17 +50,86 @@ public partial class PlayerWipeTrackerWindow : Window
         _wipeMapImage = wipeMapImage;
         _worldSize = worldSize;
         _worldRectPixels = worldRectPixels;
+        _loadedWipeKey = tracker.CurrentWipeKey;
         _replayTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
         _replayTimer.Tick += ReplayTimer_Tick;
+        _liveTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
+        _liveTimer.Tick += LiveTimer_Tick;
 
         InitializeComponent();
-        ReplayMapImage.Source = _wipeMapImage;
-        HeatmapMapImage.Source = _wipeMapImage;
-        CompareMapImage.Source = _wipeMapImage;
+        ApplyWipeMapImage();
+        Activated += (_, _) => LiveTimer_Tick(this, EventArgs.Empty);
+        Closed += (_, _) => { _liveTimer.Stop(); _replayTimer.Stop(); };
         Refresh();
     }
 
-    private void Window_Loaded(object sender, RoutedEventArgs e) => Refresh();
+    private void Window_Loaded(object sender, RoutedEventArgs e)
+    {
+        _liveTimer.Start();
+        Refresh();
+    }
+
+    // Live tick keeps the window current with the running session and, critically, with
+    // server switches: reconnecting to another server re-keys the tracker, and Refresh()
+    // reloads that wipe's map, players, and data. It backs off while a route replay plays
+    // so it never fights the user's scrub position.
+    private void LiveTimer_Tick(object? sender, EventArgs e)
+    {
+        if (_replayTimer.IsEnabled || ReferenceEquals(TrackerTabs.SelectedItem, ReplayTab))
+            return;
+        Refresh();
+    }
+
+    // Pulls the current wipe's stored map from the tracker so the window follows a server
+    // switch instead of keeping the map it was opened with.
+    private void ReloadWipeContextFromService()
+    {
+        var wipeKey = _tracker.CurrentWipeKey;
+        if (string.Equals(wipeKey, _loadedWipeKey, StringComparison.Ordinal) && _wipeMapImage is not null)
+            return;
+
+        var map = _tracker.LoadCurrentWipeMap();
+        if (map is null)
+            return; // Map for this wipe not saved yet; retry on a later tick.
+
+        var image = DecodeMap(map.PngBytes);
+        if (image is null)
+            return;
+
+        _loadedWipeKey = wipeKey;
+        _wipeMapImage = image;
+        _worldSize = map.WorldSize;
+        _worldRectPixels = new Rect(map.WorldRectX, map.WorldRectY, map.WorldRectWidth, map.WorldRectHeight);
+        ApplyWipeMapImage();
+    }
+
+    private void ApplyWipeMapImage()
+    {
+        ReplayMapImage.Source = _wipeMapImage;
+        HeatmapMapImage.Source = _wipeMapImage;
+        CompareMapImage.Source = _wipeMapImage;
+    }
+
+    private static BitmapImage? DecodeMap(byte[]? bytes)
+    {
+        if (bytes is not { Length: > 0 })
+            return null;
+        try
+        {
+            using var stream = new MemoryStream(bytes);
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.StreamSource = stream;
+            bitmap.EndInit();
+            bitmap.Freeze();
+            return bitmap;
+        }
+        catch (NotSupportedException)
+        {
+            return null;
+        }
+    }
 
     private void Canvas_SizeChanged(object sender, SizeChangedEventArgs e)
     {
@@ -75,6 +148,7 @@ public partial class PlayerWipeTrackerWindow : Window
 
     private void Refresh()
     {
+        ReloadWipeContextFromService();
         var capabilities = _tracker.Capabilities;
         PremiumBanner.Text = capabilities.CanUseAdvancedViews
             ? $"{capabilities.PlanCode.ToUpperInvariant()} FIELD CONSOLE · Cloud backup is opt-in. Route replay, heatmap, comparison, export, and restore are enabled."
@@ -124,7 +198,7 @@ public partial class PlayerWipeTrackerWindow : Window
             .Select(segment => new
             {
                 Start = segment.StartUtc.ToLocalTime().ToString("g"),
-                End = segment.EndUtc.ToLocalTime().ToString("g"),
+                Duration = Format(segment.EndUtc - segment.StartUtc),
                 State = segment.State.ToString(),
                 Location = segment.LocationName ?? segment.LocationType.ToString(),
             }).ToArray();
@@ -132,6 +206,10 @@ public partial class PlayerWipeTrackerWindow : Window
             .OrderByDescending(visit => visit.StartUtc)
             .Select(visit => new { visit.Name, Duration = Format(visit.EstimatedDuration) })
             .ToArray();
+
+        RenderActivityRibbon(steamId);
+        RenderStateBreakdown(summary);
+        PopulateInsights(steamId);
 
         _replayTimer.Stop();
         _replayIndex = Math.Max(0, _points.Count - 1);
@@ -347,6 +425,344 @@ public partial class PlayerWipeTrackerWindow : Window
         DrawEventMarkers(CompareCanvas, pointsB, point => Project(projection, point.X, point.Y), Color.FromRgb(255, 175, 69));
         CompareSummaryText.Text = $"{ShortName(a)} {pointsA.Count:N0} pts / {Distance(pointsA):N0}u   ·   {ShortName(b)} {pointsB.Count:N0} pts / {Distance(pointsB):N0}u";
     }
+
+    private void ActivityCanvas_SizeChanged(object sender, SizeChangedEventArgs e)
+        => RenderActivityRibbon(SelectedPlayerId(PlayerSelector) ?? _ownSteamId);
+
+    private void ToggleUnknown_Click(object sender, RoutedEventArgs e)
+    {
+        _showUnknown = !_showUnknown;
+        ToggleUnknownButton.Content = _showUnknown ? "Hide unknown" : "Show unknown";
+        var steamId = SelectedPlayerId(PlayerSelector) ?? _ownSteamId;
+        RenderActivityRibbon(steamId);
+        RenderStateBreakdown(_tracker.GetSummary(steamId));
+    }
+
+    private void RenderActivityRibbon(ulong steamId)
+    {
+        if (!IsLoaded && !ActivityRibbonCanvas.IsLoaded)
+            return;
+
+        ActivityRibbonCanvas.Children.Clear();
+        BuildStateLegend(ActivityLegend);
+
+        var segments = _tracker.GetSegments(steamId)
+            .Where(segment => segment.EndUtc > segment.StartUtc)
+            .OrderBy(segment => segment.StartUtc)
+            .ToArray();
+
+        var width = ActivityRibbonCanvas.ActualWidth;
+        var height = ActivityRibbonCanvas.ActualHeight;
+        if (segments.Length == 0)
+        {
+            RibbonSpanText.Text = "No activity recorded yet.";
+            if (width > 20 && height > 10)
+                AddCanvasCenterText(ActivityRibbonCanvas, "Connect to the server to start recording this player's wipe.");
+            return;
+        }
+
+        var spanStart = segments[0].StartUtc;
+        var spanEnd = segments[^1].EndUtc;
+        var total = (spanEnd - spanStart).TotalSeconds;
+        RibbonSpanText.Text = total <= 0
+            ? string.Empty
+            : $"{spanStart.ToLocalTime():g}  →  {spanEnd.ToLocalTime():g}   ·   {Format(spanEnd - spanStart)} tracked";
+
+        if (width <= 20 || height <= 10 || total <= 0)
+            return;
+
+        const double axisHeight = 16;
+        var barHeight = height - axisHeight;
+
+        foreach (var segment in segments)
+        {
+            if (!_showUnknown && segment.State == PlayerActivityState.Unknown)
+                continue;
+            var x = (segment.StartUtc - spanStart).TotalSeconds / total * width;
+            var w = Math.Max(1, (segment.EndUtc - segment.StartUtc).TotalSeconds / total * width);
+            var rect = new Rectangle
+            {
+                Width = w,
+                Height = barHeight,
+                Fill = new SolidColorBrush(StateColor(segment.State)),
+                ToolTip = $"{StateLabel(segment.State)} · {segment.LocationName ?? segment.LocationType.ToString()}\n" +
+                          $"{segment.StartUtc.ToLocalTime():g} → {segment.EndUtc.ToLocalTime():g}  ({Format(segment.EndUtc - segment.StartUtc)})",
+            };
+            if (segment.State == PlayerActivityState.Unknown)
+                rect.Opacity = 0.5;
+            Canvas.SetLeft(rect, x);
+            Canvas.SetTop(rect, 0);
+            ActivityRibbonCanvas.Children.Add(rect);
+        }
+
+        DrawRibbonAxis(spanStart, spanEnd, width, barHeight, axisHeight);
+    }
+
+    private void DrawRibbonAxis(DateTime spanStart, DateTime spanEnd, double width, double barHeight, double axisHeight)
+    {
+        var totalHours = (spanEnd - spanStart).TotalHours;
+        var stepHours = totalHours switch
+        {
+            <= 6 => 1,
+            <= 14 => 2,
+            <= 30 => 6,
+            <= 80 => 12,
+            _ => 24,
+        };
+
+        var localStart = spanStart.ToLocalTime();
+        var tick = new DateTime(localStart.Year, localStart.Month, localStart.Day, localStart.Hour, 0, 0, DateTimeKind.Local);
+        if (tick < localStart)
+            tick = tick.AddHours(1);
+        while ((tick.Hour % stepHours) != 0)
+            tick = tick.AddHours(1);
+
+        var axisBrush = new SolidColorBrush(Color.FromArgb(70, 200, 220, 230));
+        var labelBrush = new SolidColorBrush(Color.FromArgb(190, 190, 205, 214));
+        var spanSeconds = (spanEnd - spanStart).TotalSeconds;
+        var localSpanEnd = spanEnd.ToLocalTime();
+        for (; tick <= localSpanEnd; tick = tick.AddHours(stepHours))
+        {
+            var x = (tick.ToUniversalTime() - spanStart).TotalSeconds / spanSeconds * width;
+            if (x < 0 || x > width)
+                continue;
+            ActivityRibbonCanvas.Children.Add(new Line
+            {
+                X1 = x, X2 = x, Y1 = 0, Y2 = barHeight,
+                Stroke = axisBrush, StrokeThickness = 0.7, IsHitTestVisible = false,
+            });
+            var label = new TextBlock
+            {
+                Text = stepHours >= 24 ? tick.ToString("M/d") : tick.ToString("HH:mm"),
+                Foreground = labelBrush, FontSize = 9, IsHitTestVisible = false,
+            };
+            Canvas.SetLeft(label, Math.Min(width - 30, x + 2));
+            Canvas.SetTop(label, barHeight + 1);
+            ActivityRibbonCanvas.Children.Add(label);
+        }
+    }
+
+    private void RenderStateBreakdown(TrackerSummary summary)
+    {
+        BreakdownBar.ColumnDefinitions.Clear();
+        BreakdownBar.Children.Clear();
+        BreakdownLegend.Children.Clear();
+
+        var buckets = new List<(PlayerActivityState State, TimeSpan Duration)>
+        {
+            (PlayerActivityState.Moving, summary.Moving),
+            (PlayerActivityState.Stationary, summary.Stationary),
+            (PlayerActivityState.Afk, summary.Afk),
+            (PlayerActivityState.Dead, summary.Dead),
+            (PlayerActivityState.Offline, summary.Offline),
+        };
+        if (_showUnknown)
+            buckets.Add((PlayerActivityState.Unknown, summary.Unknown));
+        var total = buckets.Sum(bucket => bucket.Duration.TotalSeconds);
+        if (total <= 0)
+        {
+            BreakdownBar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            var placeholder = new Border { Background = new SolidColorBrush(StateColor(PlayerActivityState.Unknown)), Opacity = 0.4 };
+            Grid.SetColumn(placeholder, 0);
+            BreakdownBar.Children.Add(placeholder);
+            BreakdownLegend.Children.Add(new TextBlock
+            {
+                Text = "No classified time yet.",
+                Foreground = (Brush)FindResource("TextSubtle"),
+                FontSize = 11,
+            });
+            return;
+        }
+
+        var column = 0;
+        foreach (var (state, duration) in buckets)
+        {
+            if (duration.TotalSeconds <= 0)
+                continue;
+            var share = duration.TotalSeconds / total;
+            BreakdownBar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(duration.TotalSeconds, GridUnitType.Star) });
+            var cell = new Border
+            {
+                Background = new SolidColorBrush(StateColor(state)),
+                ToolTip = $"{StateLabel(state)} · {Format(duration)} ({share:P0})",
+            };
+            if (state == PlayerActivityState.Unknown)
+                cell.Opacity = 0.5;
+            Grid.SetColumn(cell, column++);
+            BreakdownBar.Children.Add(cell);
+            BreakdownLegend.Children.Add(BuildLegendChip(StateColor(state), $"{StateLabel(state)}  {share:P0}", $"({Format(duration)})"));
+        }
+    }
+
+    private void PopulateInsights(ulong steamId)
+    {
+        InsightsPanel.Children.Clear();
+        var insights = _tracker.GetInsights(steamId);
+        UpdateStatusChip(insights);
+
+        if (insights.FirstSeenUtc is null)
+        {
+            InsightsPanel.Children.Add(new TextBlock
+            {
+                Text = "No observations recorded for this player yet.",
+                Foreground = (Brush)FindResource("TextSubtle"),
+                TextWrapping = TextWrapping.Wrap,
+                FontSize = 12,
+            });
+            return;
+        }
+
+        AddInsightRow("Currently", $"{StateLabel(insights.CurrentState)}"
+            + (string.IsNullOrWhiteSpace(insights.CurrentLocationName) ? string.Empty : $" · {insights.CurrentLocationName}"));
+        AddInsightRow("First seen", insights.FirstSeenUtc?.ToLocalTime().ToString("g") ?? "—");
+        AddInsightRow("Last seen", insights.LastSeenUtc is null
+            ? "—"
+            : $"{insights.LastSeenUtc.Value.ToLocalTime():g} ({Ago(insights.LastSeenUtc.Value)})");
+        AddInsightRow("Play sessions", insights.SessionCount.ToString("N0"));
+        AddInsightRow("Favourite spot", insights.TopMonument is null
+            ? "—"
+            : $"{insights.TopMonument} · {Format(insights.TopMonumentDuration)} over {insights.TopMonumentVisits} visit(s)");
+        AddInsightRow("Peak hours", insights.PeakHourLocal is null
+            ? "—"
+            : $"{insights.PeakHourLocal:00}:00–{(insights.PeakHourLocal + 1) % 24:00}:00 local ({Format(insights.PeakHourActive)})");
+        AddInsightRow("Longest blind gap", insights.LongestBlindGap <= TimeSpan.Zero
+            ? "—"
+            : $"{Format(insights.LongestBlindGap)}" + (insights.LongestBlindGapStartUtc is null ? string.Empty : $" from {insights.LongestBlindGapStartUtc.Value.ToLocalTime():t}"));
+    }
+
+    private void UpdateStatusChip(TrackerInsights insights)
+    {
+        if (insights.CurrentAsOfUtc is null)
+        {
+            StatusChipDot.Fill = new SolidColorBrush(StateColor(PlayerActivityState.Unknown));
+            StatusChipText.Text = "No data";
+            StatusChipSubText.Text = string.Empty;
+            return;
+        }
+
+        var live = insights.IsLikelyOnline;
+        StatusChipDot.Fill = new SolidColorBrush(live ? StateColor(insights.CurrentState) : StateColor(PlayerActivityState.Offline));
+        StatusChipText.Text = live ? StateLabel(insights.CurrentState) : "Last seen";
+        var where = string.IsNullOrWhiteSpace(insights.CurrentLocationName)
+            ? (string.IsNullOrWhiteSpace(insights.CurrentGrid) ? null : insights.CurrentGrid)
+            : insights.CurrentLocationName;
+        StatusChipSubText.Text = live
+            ? (where is null ? "live" : $"· {where}")
+            : Ago(insights.CurrentAsOfUtc.Value);
+    }
+
+    private void AddInsightRow(string label, string value)
+    {
+        var grid = new Grid { Margin = new Thickness(0, 0, 0, 8) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(112) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        var labelBlock = new TextBlock
+        {
+            Text = label,
+            Foreground = (Brush)FindResource("TextSubtle"),
+            FontSize = 11,
+            VerticalAlignment = VerticalAlignment.Top,
+        };
+        var valueBlock = new TextBlock
+        {
+            Text = value,
+            Foreground = (Brush)FindResource("TextPrimary"),
+            FontSize = 12,
+            FontWeight = FontWeights.SemiBold,
+            TextWrapping = TextWrapping.Wrap,
+        };
+        Grid.SetColumn(labelBlock, 0);
+        Grid.SetColumn(valueBlock, 1);
+        grid.Children.Add(labelBlock);
+        grid.Children.Add(valueBlock);
+        InsightsPanel.Children.Add(grid);
+    }
+
+    private void BuildStateLegend(WrapPanel panel)
+    {
+        panel.Children.Clear();
+        var states = new List<PlayerActivityState>
+        {
+            PlayerActivityState.Moving, PlayerActivityState.Stationary, PlayerActivityState.Afk,
+            PlayerActivityState.Dead, PlayerActivityState.Offline,
+        };
+        if (_showUnknown)
+            states.Add(PlayerActivityState.Unknown);
+        foreach (var state in states)
+            panel.Children.Add(BuildLegendChip(StateColor(state), StateLabel(state), null));
+    }
+
+    private FrameworkElement BuildLegendChip(Color color, string label, string? suffix)
+    {
+        var panel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 16, 4) };
+        panel.Children.Add(new Border
+        {
+            Width = 11, Height = 11, CornerRadius = new CornerRadius(3),
+            Background = new SolidColorBrush(color), VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 6, 0),
+        });
+        panel.Children.Add(new TextBlock
+        {
+            Text = label, FontSize = 11, Foreground = (Brush)FindResource("TextPrimary"), VerticalAlignment = VerticalAlignment.Center,
+        });
+        if (!string.IsNullOrWhiteSpace(suffix))
+        {
+            panel.Children.Add(new TextBlock
+            {
+                Text = suffix, FontSize = 11, Foreground = (Brush)FindResource("TextSubtle"),
+                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 0, 0),
+            });
+        }
+        return panel;
+    }
+
+    private static void AddCanvasCenterText(Canvas canvas, string message)
+    {
+        var text = new TextBlock
+        {
+            Text = message,
+            Foreground = new SolidColorBrush(Color.FromArgb(170, 200, 212, 220)),
+            FontSize = 12,
+        };
+        text.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        Canvas.SetLeft(text, Math.Max(12, (canvas.ActualWidth - text.DesiredSize.Width) / 2));
+        Canvas.SetTop(text, Math.Max(8, (canvas.ActualHeight - text.DesiredSize.Height) / 2));
+        canvas.Children.Add(text);
+    }
+
+    private static string Ago(DateTime utc)
+    {
+        var delta = DateTime.UtcNow - utc.ToUniversalTime();
+        if (delta < TimeSpan.Zero)
+            delta = TimeSpan.Zero;
+        if (delta.TotalMinutes < 1)
+            return "just now";
+        if (delta.TotalHours < 1)
+            return $"{(int)delta.TotalMinutes}m ago";
+        if (delta.TotalDays < 1)
+            return $"{(int)delta.TotalHours}h {delta.Minutes}m ago";
+        return $"{(int)delta.TotalDays}d {delta.Hours}h ago";
+    }
+
+    internal static Color StateColor(PlayerActivityState state) => state switch
+    {
+        PlayerActivityState.Moving => Color.FromRgb(0x5B, 0xE7, 0xA9),
+        PlayerActivityState.Stationary => Color.FromRgb(0x62, 0xD6, 0xFF),
+        PlayerActivityState.Afk => Color.FromRgb(0xC9, 0xA6, 0xFF),
+        PlayerActivityState.Dead => Color.FromRgb(0xFF, 0x6B, 0x57),
+        PlayerActivityState.Offline => Color.FromRgb(0x5B, 0x6B, 0x78),
+        _ => Color.FromRgb(0x33, 0x41, 0x4D),
+    };
+
+    internal static string StateLabel(PlayerActivityState state) => state switch
+    {
+        PlayerActivityState.Moving => "Moving",
+        PlayerActivityState.Stationary => "Stationary",
+        PlayerActivityState.Afk => "AFK",
+        PlayerActivityState.Dead => "Dead",
+        PlayerActivityState.Offline => "Offline",
+        _ => "Unknown",
+    };
 
     private static bool TryGetMapTransforms(Grid viewport, out ScaleTransform scale, out TranslateTransform translate)
     {

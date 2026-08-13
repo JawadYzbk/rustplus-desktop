@@ -98,6 +98,51 @@ public sealed class PlayerWipeTrackerTests
     }
 
     [TestMethod]
+    public void Insights_DeriveFavouriteSpotBlindGapAndCurrentState()
+    {
+        var engine = new PlayerWipeTrackerEngine();
+        var observations = new List<PlayerObservation>();
+        var start = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+        void Observe(int seconds, double x, TrackerLocationType location, string? name)
+        {
+            var observation = Observation(start.AddSeconds(seconds), x: x, y: 100, location: location, locationName: name);
+            observations.Add(observation);
+            engine.Observe(observation);
+        }
+
+        // ~60s inside a monument, moving each snapshot so every one persists.
+        Observe(0, 100, TrackerLocationType.Monument, "Launch Site");
+        Observe(10, 112, TrackerLocationType.Monument, "Launch Site");
+        Observe(20, 124, TrackerLocationType.Monument, "Launch Site");
+        Observe(30, 136, TrackerLocationType.Monument, "Launch Site");
+        Observe(40, 148, TrackerLocationType.Monument, "Launch Site");
+        // Step out into the open (two snapshots close the monument visit).
+        Observe(50, 400, TrackerLocationType.Open, null);
+        Observe(60, 412, TrackerLocationType.Open, null);
+        // A 120s gap in Rust+ visibility becomes an Unknown (blind) segment.
+        Observe(180, 420, TrackerLocationType.Open, null);
+        Observe(190, 432, TrackerLocationType.Open, null);
+
+        var insights = TrackerInsightsBuilder.Build(observations, engine.Segments, engine.Summarize(), start.AddSeconds(200));
+
+        Assert.AreEqual(start, insights.FirstSeenUtc);
+        Assert.AreEqual("Launch Site", insights.TopMonument);
+        Assert.AreEqual(1, insights.TopMonumentVisits);
+        Assert.IsTrue(insights.TopMonumentDuration >= TimeSpan.FromSeconds(30), $"visit was {insights.TopMonumentDuration}");
+        Assert.IsTrue(insights.LongestBlindGap >= TimeSpan.FromSeconds(100), $"gap was {insights.LongestBlindGap}");
+        Assert.AreEqual(PlayerActivityState.Stationary, insights.CurrentState);
+        Assert.IsNotNull(insights.PeakHourLocal);
+    }
+
+    [TestMethod]
+    public void Insights_WithoutObservationsAreEmpty()
+    {
+        var summary = new PlayerWipeTrackerEngine().Summarize();
+        Assert.AreEqual(TrackerInsights.Empty, TrackerInsightsBuilder.Build(
+            System.Array.Empty<PlayerObservation>(), System.Array.Empty<TrackerSegment>(), summary, DateTime.UtcNow));
+    }
+
+    [TestMethod]
     public async Task Store_KeepsMapInsideItsWipeDirectory()
     {
         var directory = Path.Combine(Path.GetTempPath(), $"tracker-map-{Guid.NewGuid():N}");

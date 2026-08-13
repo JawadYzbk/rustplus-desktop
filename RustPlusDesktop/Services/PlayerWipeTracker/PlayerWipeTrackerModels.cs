@@ -77,6 +77,30 @@ public sealed record TrackerSummary(
     int Deaths,
     IReadOnlyList<MonumentVisit> MonumentVisits);
 
+/// <summary>Derived, read-at-a-glance intel for one player over the current wipe.</summary>
+public sealed record TrackerInsights(
+    DateTime? FirstSeenUtc,
+    DateTime? LastSeenUtc,
+    int SessionCount,
+    string? TopMonument,
+    TimeSpan TopMonumentDuration,
+    int TopMonumentVisits,
+    TimeSpan LongestBlindGap,
+    DateTime? LongestBlindGapStartUtc,
+    int? PeakHourLocal,
+    TimeSpan PeakHourActive,
+    PlayerActivityState CurrentState,
+    TrackerLocationType CurrentLocationType,
+    string? CurrentLocationName,
+    string? CurrentGrid,
+    DateTime? CurrentAsOfUtc,
+    bool IsLikelyOnline)
+{
+    public static TrackerInsights Empty { get; } = new(
+        null, null, 0, null, TimeSpan.Zero, 0, TimeSpan.Zero, null, null,
+        TimeSpan.Zero, PlayerActivityState.Unknown, TrackerLocationType.Unknown, null, null, null, false);
+}
+
 public sealed record TrackerPoint(
     DateTime TimestampUtc,
     double X,

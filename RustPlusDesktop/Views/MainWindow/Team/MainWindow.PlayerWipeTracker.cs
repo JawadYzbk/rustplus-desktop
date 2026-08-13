@@ -93,14 +93,24 @@ public partial class MainWindow
     {
         try
         {
+            var hasToken = !string.IsNullOrWhiteSpace(RustPlusDesk.Services.Cloud.CloudAuthManager.CurrentToken);
             var client = new LaravelPlayerWipeTrackerClient();
             using var response = await client.GetBootstrapAsync().ConfigureAwait(false);
-            if (response is not null)
-                _playerWipeTracker.UpdateCapabilities(response.RootElement);
+            if (response is null)
+            {
+                AppendLog(hasToken
+                    ? "[Player Wipe Tracker] Capability sync failed: the cloud backend rejected the request. Premium features stay locked until the next successful sync."
+                    : "[Player Wipe Tracker] Not signed in to the cloud backend, so premium tracker features cannot be unlocked. Sign in from the Cloud account window.");
+                return;
+            }
+
+            var caps = _playerWipeTracker.UpdateCapabilities(response.RootElement);
+            AppendLog($"[Player Wipe Tracker] Plan '{caps.PlanCode}' · tracker {(caps.IsTrackerAvailable ? "on" : "off")}, team {(caps.CanTrackTeam ? "on" : "off")}, advanced views {(caps.CanUseAdvancedViews ? "on" : "off")}, cloud sync {(caps.CanUseCloudSync ? "on" : "off")}.");
         }
-        catch
+        catch (Exception ex)
         {
             // Capability outages must not affect Rust+ polling.
+            AppendLog($"[Player Wipe Tracker] Capability refresh error: {ex.Message}");
         }
     }
 
@@ -108,6 +118,9 @@ public partial class MainWindow
     {
         try
         {
+            // Re-pull entitlements so a user who upgraded (or just signed in) sees premium
+            // tabs unlock without reconnecting; the window re-reads capabilities as it refreshes.
+            _ = RefreshPlayerWipeTrackerCapabilitiesAsync();
             SaveCurrentPlayerWipeMap();
             var storedMap = _playerWipeTracker.LoadCurrentWipeMap();
             var mapImage = ImgMap.Source ?? DecodeMap(storedMap?.PngBytes);

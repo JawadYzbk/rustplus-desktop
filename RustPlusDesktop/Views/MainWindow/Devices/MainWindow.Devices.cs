@@ -1865,16 +1865,22 @@ public List<ExportedDeviceDto> Devices { get; set; } = new();
                         if (data?.Devices == null || data.Devices.Count == 0)
                             continue;
 
-                // Entity IDs are handed out fresh on every wipe, while the server key is
-                // ip-port and survives one unchanged. A snapshot written before the current
-                // wipe therefore lists devices that no longer exist — they import without
-                // complaint and then sit there red, which is exactly what looked like broken
-                // device sharing.
-                bool fromPreviousWipe = IsSnapshotFromPreviousWipe(data);
+                        // Entity IDs are handed out fresh on every wipe, while the server key is
+                        // ip-port and survives one unchanged. A snapshot written before the current
+                        // wipe therefore lists devices that no longer exist — they import without
+                        // complaint and then sit there red, which is exactly what looked like broken
+                        // device sharing.
+                        bool fromPreviousWipe = IsSnapshotFromPreviousWipe(data);
 
-                foreach (var d in data.Devices)
-                {
-                    CollectIndividualDevices(items, d, tm, fromPreviousWipe);
+                        foreach (var d in data.Devices)
+                        {
+                            CollectIndividualDevices(items, d, tm, fromPreviousWipe);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        AppendLog($"[dev/import] Can't parse local overlay for {sid}: {ex.Message}");
+                    }
                 }
             }
 

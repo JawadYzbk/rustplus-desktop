@@ -33,6 +33,13 @@ public sealed record PlayerWipeTrackerCapabilities(
 /// <summary>Fail-closed interpreter and 72-hour offline cache for backend limits.</summary>
 public sealed class PlayerWipeTrackerCapabilityService
 {
+    // TEMPORARY DEV OVERRIDE — the backend plan-limit rows for `player_wipe_tracker` are not
+    // merged to main yet, so production `client/bootstrap` reports the feature off and this
+    // service fails closed to the free tier. While set to true, every build (Debug *and*
+    // Release) reports the full premium capability set so the tracker can be developed.
+    // REVERT to false before shipping / once the backend seeder is merged.
+    public static bool ForceDevelopmentCapabilities = true;
+
     private const string CacheKey = "player_wipe_tracker_capabilities";
     private static readonly TimeSpan OfflineGrace = TimeSpan.FromHours(72);
     private PlayerWipeTrackerCapabilities _lastSuccessful = PlayerWipeTrackerCapabilities.Free();
@@ -46,6 +53,8 @@ public sealed class PlayerWipeTrackerCapabilityService
     {
         get
         {
+            if (ForceDevelopmentCapabilities)
+                return PlayerWipeTrackerCapabilities.Development();
 #if DEBUG
             var development = PlayerWipeTrackerCapabilities.Development();
             System.Diagnostics.Debug.Assert(
