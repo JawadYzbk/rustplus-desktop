@@ -1,0 +1,16 @@
+{
+  "name": "rustplusdesk-electron",
+  "private": true,
+  "version": "8.1.0",
+  "description": "RustPlus Desktop — Electron workspace (migration of the C#/.NET WPF app)",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @rpd/desktop dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "smoke": "pnpm --filter @rpd/desktop smoke"
+  }
+}
