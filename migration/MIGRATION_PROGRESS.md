@@ -17,7 +17,7 @@
 | # | Stage | Scope (parity matrix refs) | Status | Exit criteria |
 |---|---|---|---|---|
 | 1 | Audit & planning docs | — | **DONE** | 10 audits persisted; contract transcribed; 6 planning docs committed |
-| 2 | Electron foundation | workspace scaffold, secure main/preload/renderer skeleton, IPC framework + zod, theme tokens, shell layout (rail/sidebar/titlebar/map pane), routing incl. workspace takeover semantics, logging | PLANNED | App boots empty shell; IPC contract tests green; theme matches token audit; matrix rows 1.x scaffolded |
+| 2 | Electron foundation | workspace scaffold, secure main/preload/renderer skeleton, IPC framework + zod, theme tokens, shell layout (rail/sidebar/titlebar/map pane), routing incl. workspace takeover semantics, logging | **IN PROGRESS** | ✅ pnpm workspace + electron-vite build green · ✅ typed IPC registry w/ zod both directions (12 tests green) · ✅ smoke boot verified end-to-end (main→preload→renderer round-trip, exit 0) · ⏳ visual token-parity pass vs legacy screenshots pending |
 | 3 | Settings & data stores | versioned stores w/ atomic writes, settings hub (~100 keys), profiles store + safeStorage, backup/restore upgraded crypto, granular reset, legacy migrator M3 + migration UX route | PLANNED | CLOUD_MIGRATION acceptance tests 1–7 pass; stores round-trip legacy fixtures |
 | 4 | Rust+ connectivity core | ConnectionManager (option A/C), pairing listener + consumer, rate limiter/backoff/watchdog, subscriptions/poke, chat priming, server-switch teardown orchestrator, A2S service, device cache hydration | PLANNED | Golden tests for timing contracts; live-server manual checklist passes; matrix rows 3.1–3.16 |
 | 5 | Devices & automation | device tree UI, import/export, Logic Engine core+UI, Device Automation core+UI, timers, alert templates service, oil-rig registry | PLANNED | All §8 quirk fixtures pass; MSTest trio ported; profiles.json round-trip contract tests |
@@ -70,3 +70,7 @@
 | session | Central EventDispatcher consolidates ~15 alert call sites preserving routing matrix | SOCIAL audit finding |
 | session | safeStorage for session token, PlayerToken, webhook URLs | master prompt security intent + audit gaps |
 | session | Workspace `electron/` dir (root package.json gitignored) | repo gitignore constraints |
+| stage 2 | pnpm 11 requires build-script approval via `allowBuilds` in pnpm-workspace.yaml | install failure log |
+| stage 2 | CJS bundles for main/preload (`__dirname` + sandboxed preload compatibility); no `type: module` in desktop package | electron-vite conventions |
+| stage 2 | IPC registry: literal channel keys mandatory; computed keys collapse types to index signatures | typecheck iteration |
+| stage 2 | Smoke mode = RPD_SMOKE=1 env → quit after did-finish-load w/ 20 s failsafe; GPU child needs --no-sandbox under DSH shell only | smoke runs 21:58–21:59 |
