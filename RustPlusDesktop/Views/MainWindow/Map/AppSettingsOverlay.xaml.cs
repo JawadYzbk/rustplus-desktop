@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using System;
+using RustPlusDesk.Helpers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -13,8 +14,8 @@ using System.Net.Http;
 using System.Text.Json;
 using RustPlusDesk.Services;
 using RustPlusDesk.Models;
-using WpfUi = Wpf.Ui.Controls;
 
+using RustPlusDesk.Views.Windows;
 namespace RustPlusDesk.Views
 {
     public partial class AppSettingsOverlay : UserControl
@@ -573,7 +574,7 @@ namespace RustPlusDesk.Views
 
         private void SettingsSearchResult_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not WpfUi.Button { Tag: SettingsOptionResult result })
+            if (sender is not Button { Tag: SettingsOptionResult result })
             {
                 return;
             }
@@ -750,7 +751,6 @@ namespace RustPlusDesk.Views
             if (isDiscord)
             {
                 TxtDiscordBtnLabel.Text = T("AuthDiscordDisconnectButton", "Disconnect Discord");
-                BtnDiscordConnect.Appearance = Wpf.Ui.Controls.ControlAppearance.Caution;
 
                 int maxBytes = Services.Auth.SupabaseAuthManager.GetMaxOverlayBytes();
                 string maxOverlay = maxBytes == int.MaxValue ? "unlimited" : $"{maxBytes / 1024} KB";
@@ -772,7 +772,6 @@ namespace RustPlusDesk.Views
             {
                 var email = Services.Auth.SupabaseAuthManager.Client?.Auth?.CurrentUser?.Email ?? "";
                 TxtDiscordBtnLabel.Text = RustPlusDesk.Properties.Resources.GetString("CloudLoginPromptDiscordButton");
-                BtnDiscordConnect.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
 
                 int maxBytes = Services.Auth.SupabaseAuthManager.GetMaxOverlayBytes();
                 string maxOverlay = maxBytes == int.MaxValue ? "unlimited" : $"{maxBytes / 1024} KB";
@@ -793,7 +792,6 @@ namespace RustPlusDesk.Views
             else
             {
                 TxtDiscordBtnLabel.Text = RustPlusDesk.Properties.Resources.GetString("CloudLoginPromptDiscordButton");
-                BtnDiscordConnect.Appearance = Wpf.Ui.Controls.ControlAppearance.Secondary;
                 TxtAuthStatus.Text = T("AuthNotConnectedStatus", "Not connected - sign in to use Cloud Sync and backups");
                 TxtAuthStatus.Foreground = new System.Windows.Media.SolidColorBrush(
                     System.Windows.Media.Color.FromRgb(0x88, 0x88, 0x88));
@@ -1251,13 +1249,7 @@ namespace RustPlusDesk.Views
         private async void BtnFcmHelp_Click(object sender, RoutedEventArgs e)
         {
             var msg = "With Webhooks, we can automatically send FCM notifications (Offline Death and Raid Alerts) to Discord or other Smart Home solutions like IFTTT to e.g. trigger smart lights or be called when a raid happens.";
-            var msgBox = new Wpf.Ui.Controls.MessageBox
-            {
-                Title = Properties.Resources.GetString("OfflineCloudAlertsTitle"),
-                Content = msg,
-                PrimaryButtonText = Properties.Resources.OK
-            };
-            await msgBox.ShowDialogAsync();
+            await MaterialDialog.ShowAsync(ParentWindow, Properties.Resources.GetString("OfflineCloudAlertsTitle"), msg, Properties.Resources.OK);
         }
 
         private async void BtnAlexaHelp_Click(object sender, RoutedEventArgs e)
@@ -1271,13 +1263,7 @@ namespace RustPlusDesk.Views
                       "Smart Switches and Smart Alerts will then appear in Alexa as Smart Devices. Smart Alerts are created as motion sensors in the device list of the linked server with their name. Routines can then be created for these. e.g. If triggered, announce on all Alexa devices and send a push notification and turn on my lights.\n\n" +
                       "Switches can be turned on and off via Alexa as usual, renamed and activated by their name. e.g. \"Alexa, turn on Turrets\".\n\n" +
                       "If new devices are added later, they can easily be found in Alexa via the device search. After a wipe, simply delete the old devices from the Alexa App.";
-            var msgBox = new Wpf.Ui.Controls.MessageBox
-            {
-                Title = Properties.Resources.GetString("AlexaSmartHomeTitle"),
-                Content = msg,
-                PrimaryButtonText = Properties.Resources.OK
-            };
-            await msgBox.ShowDialogAsync();
+            await MaterialDialog.ShowAsync(ParentWindow, Properties.Resources.GetString("AlexaSmartHomeTitle"), msg, Properties.Resources.OK);
         }
 
         private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
@@ -1296,7 +1282,7 @@ namespace RustPlusDesk.Views
 
         private async void BtnSyncFcm_Click(object sender, RoutedEventArgs e)
         {
-            var btn = sender as WpfUi.Button;
+            var btn = sender as Button;
             if (btn != null) btn.IsEnabled = false;
 
             try
@@ -1310,7 +1296,6 @@ namespace RustPlusDesk.Views
                     if (btn != null)
                     {
                         btn.Content = RustPlusDesk.Properties.Resources.GetString("CodeUiSynced");
-                        btn.Icon = new WpfUi.SymbolIcon { Symbol = WpfUi.SymbolRegular.Checkmark24 };
                         btn.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#4CAF50"));
                     }
                 }
@@ -1327,7 +1312,7 @@ namespace RustPlusDesk.Views
 
         private async void BtnRevokeFcm_Click(object sender, RoutedEventArgs e)
         {
-            var btn = sender as WpfUi.Button;
+            var btn = sender as Button;
             if (btn != null) btn.IsEnabled = false;
 
             try
@@ -1336,8 +1321,7 @@ namespace RustPlusDesk.Views
                 if (success)
                 {
                     BtnSyncFcm.Content = RustPlusDesk.Properties.Resources.GetString("UiSyncCloudConnection");
-                    BtnSyncFcm.Icon = new WpfUi.SymbolIcon { Symbol = WpfUi.SymbolRegular.CloudArrowUp24 };
-                    BtnSyncFcm.ClearValue(WpfUi.Button.ForegroundProperty);
+                    BtnSyncFcm.ClearValue(System.Windows.Controls.Control.ForegroundProperty);
                     MessageBox.Show(RustPlusDesk.Properties.Resources.GetString("CodeUiCloudAccessHasBeenRevokedAndYourCredentialsHaveBeenDelD83B833612"), RustPlusDesk.Properties.Resources.GetString("CodeUiAccessRevoked"), MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
@@ -1736,11 +1720,23 @@ namespace RustPlusDesk.Views
                 Grid.SetColumn(serverDetails, 0);
                 grid.Children.Add(serverDetails);
 
-                var btn = new WpfUi.Button
+                var unmuteContent = new StackPanel { Orientation = Orientation.Horizontal };
+                unmuteContent.Children.Add(new MaterialDesignThemes.Wpf.PackIcon
                 {
-                    Content = Properties.Resources.UnmuteServer,
-                    Icon = new WpfUi.SymbolIcon { Symbol = WpfUi.SymbolRegular.AlertOn24 },
-                    Appearance = WpfUi.ControlAppearance.Secondary,
+                    Kind = MaterialDesignThemes.Wpf.PackIconKind.BellRing,
+                    Width = 14,
+                    Height = 14,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 6, 0)
+                });
+                unmuteContent.Children.Add(new TextBlock
+                {
+                    Text = Properties.Resources.UnmuteServer,
+                    VerticalAlignment = VerticalAlignment.Center
+                });
+                var btn = new Button
+                {
+                    Content = unmuteContent,
                     Height = 30,
                     Padding = new Thickness(10, 4, 10, 4),
                     FontSize = 11,
@@ -1749,7 +1745,7 @@ namespace RustPlusDesk.Views
                 };
                 btn.Click += (s, e) =>
                 {
-                    if (s is WpfUi.Button { Tag: string key })
+                    if (s is Button { Tag: string key })
                     {
                         TrackingService.UnmuteServer(key);
                         PopulateMutedServers();
@@ -1821,13 +1817,7 @@ namespace RustPlusDesk.Views
             bool success = await RustPlusDesk.Services.FcmSyncService.SyncFcmCredentialsAsync();
             if (success)
             {
-                var msgBox = new Wpf.Ui.Controls.MessageBox
-                {
-                    Title = Properties.Resources.GetString("CodeUiSuccess"),
-                    Content = "Telegram Call URL generated and synced to the cloud worker successfully!",
-                    PrimaryButtonText = Properties.Resources.OK
-                };
-                await msgBox.ShowDialogAsync();
+                await MaterialDialog.ShowAsync(ParentWindow, Properties.Resources.GetString("CodeUiSuccess"), "Telegram Call URL generated and synced to the cloud worker successfully!", Properties.Resources.OK);
             }
             else
             {
@@ -2011,13 +2001,7 @@ namespace RustPlusDesk.Views
                 bool syncSuccess = await RustPlusDesk.Services.FcmSyncService.SyncFcmCredentialsAsync();
                 if (!syncSuccess)
                 {
-                    var msgBox = new Wpf.Ui.Controls.MessageBox
-                    {
-                        Title = Properties.Resources.GetString("CodeUiCloudSyncFailed"),
-                        Content = "Failed to sync FCM connection. Ensure you are logged in, have an active Premium/Supporter tier, and your connection in Rust+ Companion is active.",
-                        PrimaryButtonText = Properties.Resources.OK
-                    };
-                    await msgBox.ShowDialogAsync();
+                    await MaterialDialog.ShowAsync(ParentWindow, Properties.Resources.GetString("CodeUiCloudSyncFailed"), "Failed to sync FCM connection. Ensure you are logged in, have an active Premium/Supporter tier, and your connection in Rust+ Companion is active.", Properties.Resources.OK);
                     return;
                 }
 
@@ -2054,24 +2038,12 @@ namespace RustPlusDesk.Views
                         _ = Services.Data.DeviceDataModule.UploadDevicesSnapshotAsync(serverKey, steamIdUlong, serverProfile.Devices, currentOverlay, false);
                     }
 
-                    var msgBox = new Wpf.Ui.Controls.MessageBox
-                    {
-                        Title = Properties.Resources.GetString("CodeUiSuccess"),
-                        Content = "Alexa Server linked successfully! Alexa will now control devices from this server and receive Smart Alarms.",
-                        PrimaryButtonText = Properties.Resources.OK
-                    };
-                    await msgBox.ShowDialogAsync();
+                    await MaterialDialog.ShowAsync(ParentWindow, Properties.Resources.GetString("CodeUiSuccess"), "Alexa Server linked successfully! Alexa will now control devices from this server and receive Smart Alarms.", Properties.Resources.OK);
                 }
             }
             catch (Exception ex)
             {
-                var msgBox = new Wpf.Ui.Controls.MessageBox
-                {
-                    Title = Properties.Resources.GetString("ErrorTitle"),
-                    Content = $"Failed to link Alexa Server: {ex.Message}",
-                    PrimaryButtonText = Properties.Resources.OK
-                };
-                await msgBox.ShowDialogAsync();
+                await MaterialDialog.ShowAsync(ParentWindow, Properties.Resources.GetString("ErrorTitle"), $"Failed to link Alexa Server: {ex.Message}", Properties.Resources.OK);
             }
             finally
             {

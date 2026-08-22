@@ -1,7 +1,6 @@
 <Window x:Class="RustPlusDesk.Views.Windows.DeathMarkerSettingsDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:p="clr-namespace:RustPlusDesk.Properties"
         Title="{DynamicResource UiDeathMarkerSettings}"
         Height="220" Width="400"
@@ -49,10 +48,10 @@
         </StackPanel>
         
         <Grid Grid.Row="2" Margin="0,16,0,0">
-            <ui:Button Content="{DynamicResource WipeDeathMarkers}" Appearance="Danger" HorizontalAlignment="Left" Click="BtnWipe_Click"/>
+            <Button Content="{DynamicResource WipeDeathMarkers}" HorizontalAlignment="Left" Click="BtnWipe_Click"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <ui:Button Content="{x:Static p:Resources.Cancel}" Appearance="Secondary" Margin="0,0,8,0" Click="BtnCancel_Click"/>
-                <ui:Button Content="{x:Static p:Resources.Save}" Appearance="Primary" Click="BtnSave_Click"/>
+                <Button Content="{x:Static p:Resources.Cancel}" Margin="0,0,8,0" Click="BtnCancel_Click"/>
+                <Button Content="{x:Static p:Resources.Save}" Click="BtnSave_Click"/>
             </StackPanel>
         </Grid>
     </Grid>

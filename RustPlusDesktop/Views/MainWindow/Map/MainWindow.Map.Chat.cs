@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using RustPlusDesk.Helpers;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
@@ -12,7 +13,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using RustPlusDesk.Models;
 using RustPlusDesk.Services;
-using WpfUi = Wpf.Ui.Controls;
 
 namespace RustPlusDesk.Views;
 
@@ -493,13 +493,13 @@ public partial class MainWindow
     {
         if (_rust is not RustPlusClientReal real)
         {
-            ShowInfoSnackbar(Properties.Resources.SnackbarTitleConnection, Properties.Resources.NotConnectedError, WpfUi.ControlAppearance.Caution);
+            ShowInfoSnackbar(Properties.Resources.SnackbarTitleConnection, Properties.Resources.NotConnectedError, SnackbarSeverity.Warning);
             return;
         }
 
         if (!(_vm.Selected?.IsConnected ?? false))
         {
-            ShowInfoSnackbar(Properties.Resources.SnackbarTitleChat, Properties.Resources.PleaseConnectFirst, WpfUi.ControlAppearance.Info);
+            ShowInfoSnackbar(Properties.Resources.SnackbarTitleChat, Properties.Resources.PleaseConnectFirst, SnackbarSeverity.Info);
             return;
         }
 
@@ -511,13 +511,13 @@ public partial class MainWindow
         }
         catch (InvalidOperationException)
         {
-            ShowInfoSnackbar(Properties.Resources.SnackbarTitleChat, Properties.Resources.PleaseConnectFirst, WpfUi.ControlAppearance.Info);
+            ShowInfoSnackbar(Properties.Resources.SnackbarTitleChat, Properties.Resources.PleaseConnectFirst, SnackbarSeverity.Info);
             return;
         }
         catch (Exception ex)
         {
             AppendLog("PrimeChat failed: " + ex.Message);
-            ShowInfoSnackbar(Properties.Resources.SnackbarTitleChat, Properties.Resources.ChatNotAvailable, WpfUi.ControlAppearance.Danger);
+            ShowInfoSnackbar(Properties.Resources.SnackbarTitleChat, Properties.Resources.ChatNotAvailable, SnackbarSeverity.Danger);
             return;
         }
 

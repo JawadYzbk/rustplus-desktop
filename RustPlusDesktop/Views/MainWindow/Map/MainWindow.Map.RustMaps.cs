@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
-using Wpf.Ui.Controls;
 using Microsoft.Web.WebView2.Wpf;
 using Microsoft.Web.WebView2.Core;
 using System.Text.Json.Nodes;
@@ -1395,7 +1394,7 @@ namespace RustPlusDesk.Views
             }
 
             // Update active heatmap badge
-            var badge = FindName("ActiveHeatmapBadge") as Badge;
+            var badge = FindName("ActiveHeatmapBadge") as System.Windows.Controls.Border;
             var label = FindName("ActiveHeatmapLabel") as System.Windows.Controls.TextBlock;
             bool hasActive = _currentActiveHeatmap != null && HeatmapLabels.ContainsKey(_currentActiveHeatmap);
             if (badge != null && label != null)

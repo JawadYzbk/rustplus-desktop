@@ -9,11 +9,10 @@ using System.Windows;
 using System.Windows.Data;
 using RustPlusDesk.Models;
 using RustPlusDesk.Services;
-using WpfUi = Wpf.Ui.Controls;
 
 namespace RustPlusDesk.Views
 {
-    public partial class DeviceImportWindow : WpfUi.FluentWindow, INotifyPropertyChanged
+    public partial class DeviceImportWindow : Window, INotifyPropertyChanged
     {
         public ObservableCollection<DeviceImportItem> Devices { get; } = new();
         private readonly Func<uint, Task<EntityProbeResult>> _probe;

@@ -48,7 +48,7 @@ namespace RustPlusDesk.Views.Windows
             TxtSubtitle.Text = subtitle;
             Title = title;
 
-            TxtSearch.PlaceholderText = GetString("SearchIconsPlaceholder", "Search icons (e.g. turret, switch)...");
+            MaterialDesignThemes.Wpf.HintAssist.SetHint(TxtSearch, GetString("SearchIconsPlaceholder", "Search icons (e.g. turret, switch)..."));
             BtnReset.Content = GetString("ResetToDefaultIcon", "Reset to Default Icon");
             BtnSave.Content = RustPlusDesk.Properties.Resources.Save;
             BtnCancel.Content = RustPlusDesk.Properties.Resources.Cancel;

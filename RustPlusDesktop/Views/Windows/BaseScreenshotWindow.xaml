@@ -1,7 +1,6 @@
 <Window x:Class="RustPlusDesk.Views.Windows.BaseScreenshotWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="{DynamicResource BaseAddScreenshot}"
         Width="480" Height="460"
         WindowStartupLocation="CenterOwner"
@@ -50,8 +49,8 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <TextBlock x:Name="TxtImageInfo" Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextSubtle}" FontSize="11" FontStyle="Italic"/>
-                <ui:Button x:Name="BtnSave" Grid.Column="1" Content="{DynamicResource Save}" Appearance="Primary" Width="100" Height="32" Margin="0,0,8,0" Click="BtnSave_Click" IsEnabled="False"/>
-                <ui:Button x:Name="BtnCancel" Grid.Column="2" Content="{DynamicResource Cancel}" Appearance="Secondary" Width="100" Height="32" Click="BtnCancel_Click"/>
+                <Button x:Name="BtnSave" Grid.Column="1" Content="{DynamicResource Save}" Width="100" Height="32" Margin="0,0,8,0" Click="BtnSave_Click" IsEnabled="False"/>
+                <Button x:Name="BtnCancel" Grid.Column="2" Content="{DynamicResource Cancel}" Width="100" Height="32" Click="BtnCancel_Click"/>
             </Grid>
  
             <!-- Main Content -->
@@ -65,7 +64,7 @@
                     <Grid>
                         <!-- Instruction text / placeholder icon -->
                         <StackPanel x:Name="PlaceholderPanel" VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <ui:SymbolIcon Symbol="Camera24" FontSize="48" Foreground="{DynamicResource TextSubtle}" Margin="0,0,0,12"/>
+                            <materialDesign:PackIcon  Kind="Camera" FontSize="48" Foreground="{DynamicResource TextSubtle}" Margin="0,0,0,12" />
                             <TextBlock x:Name="TxtDropHint" Text="{DynamicResource BaseScreenshotDragDrop}" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold" TextAlignment="Center" Margin="0,0,0,4"/>
                             <TextBlock x:Name="TxtPasteHint" Text="{DynamicResource BaseScreenshotPasteHint}" Foreground="{DynamicResource TextSubtle}" FontSize="12" TextAlignment="Center"/>
                         </StackPanel>

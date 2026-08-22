@@ -11,7 +11,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using RustPlusDesk.Services.Data;
-using WpfUi = Wpf.Ui.Controls;
 using Supabase;
 using Supabase.Gotrue;
 using Supabase.Gotrue.Interfaces;

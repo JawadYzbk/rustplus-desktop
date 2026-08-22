@@ -1,8 +1,7 @@
 <UserControl x:Class="RustPlusDesk.Views.RaidCalculatorView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:conv="clr-namespace:RustPlusDesk.Converters"
-    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:conv="clr-namespace:RustPlusDesk.Converters" xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
     xmlns:tutorials="clr-namespace:RustPlusDesk.Features.Tutorials"
     xmlns:vm="clr-namespace:RustPlusDesk.ViewModels"
     Loaded="RaidCalculatorView_Loaded"
@@ -107,9 +106,9 @@
                     <TextBlock Foreground="{DynamicResource Accent}" FontWeight="SemiBold" Text="{Binding PlanCountCaption, Mode=OneWay}" />
                 </Border>
                 <CheckBox Margin="0,0,8,0" VerticalAlignment="Center" Content="{DynamicResource UiDetails}" IsChecked="{Binding ShowDetails}" ToolTip="{DynamicResource UiShowDamageOverkillAndIngredientBreakdowns}" />
-                <ui:Button Appearance="Secondary" Click="CopySummary_Click" Icon="{ui:SymbolIcon Symbol=Copy24}" ToolTip="{DynamicResource UiCopyADiscordReadySummary}" AutomationProperties.Name="{DynamicResource UiCopyRaidSummary}" />
-                <ui:Button x:Name="ClearPlanButton" tutorials:Tutorial.TargetId="Raid.Clear" Margin="8,0,0,0" Appearance="Secondary" Click="ClearPlan_Click" Icon="{ui:SymbolIcon Symbol=Delete24}" ToolTip="{DynamicResource UiClearRaidPlan}" AutomationProperties.Name="{DynamicResource UiClearRaidPlan}" IsEnabled="{Binding HasPlan}" />
-                <ui:Button Margin="8,0,0,0" Appearance="Secondary" Click="Close_Click" Icon="{ui:SymbolIcon Symbol=Dismiss24}" ToolTip="{DynamicResource UiCloseRaidCalculator}" AutomationProperties.Name="{DynamicResource UiCloseRaidCalculator}" />
+                <Button Click="CopySummary_Click" ToolTip="{DynamicResource UiCopyADiscordReadySummary}" AutomationProperties.Name="{DynamicResource UiCopyRaidSummary}" />
+                <Button x:Name="ClearPlanButton" tutorials:Tutorial.TargetId="Raid.Clear" Margin="8,0,0,0" Click="ClearPlan_Click" ToolTip="{DynamicResource UiClearRaidPlan}" AutomationProperties.Name="{DynamicResource UiClearRaidPlan}" IsEnabled="{Binding HasPlan}" />
+                <Button Margin="8,0,0,0" Click="Close_Click" ToolTip="{DynamicResource UiCloseRaidCalculator}" AutomationProperties.Name="{DynamicResource UiCloseRaidCalculator}" />
             </StackPanel>
         </Grid>
 
@@ -185,7 +184,7 @@
                         </ListBox>
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"
                                     Visibility="{Binding IsCatalogueEmpty, Converter={StaticResource RaidBoolToVisibility}}">
-                            <ui:SymbolIcon Symbol="Search24" FontSize="28" Foreground="{DynamicResource TextCaption}" />
+                            <materialDesign:PackIcon  Kind="Magnify" FontSize="28" Foreground="{DynamicResource TextCaption}"  />
                             <TextBlock Margin="0,8,0,2" HorizontalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource UiNoMatchingTargets}" />
                             <TextBlock HorizontalAlignment="Center" Foreground="{DynamicResource TextSubtle}" Text="{DynamicResource UiTryAnotherSearchOrCategory}" />
                         </StackPanel>
@@ -225,7 +224,7 @@
                     </Grid>
                     <Grid Grid.Row="1">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding IsPlanEmpty, Converter={StaticResource RaidBoolToVisibility}}">
-                            <ui:SymbolIcon Symbol="TargetArrow24" FontSize="36" Foreground="{DynamicResource TextCaption}" />
+                            <materialDesign:PackIcon  Kind="CrosshairsGps" FontSize="36" Foreground="{DynamicResource TextCaption}"  />
                             <TextBlock Margin="0,10,0,2" HorizontalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource UiNoTargetsSelected}" />
                             <TextBlock Foreground="{DynamicResource TextSubtle}" Text="{DynamicResource UiChooseATargetFromTheCatalogue}" />
                         </StackPanel>
@@ -248,12 +247,12 @@
                                                     <TextBlock FontSize="10" Foreground="{DynamicResource TextSubtle}"><Run Text="{Binding Category, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding HealthText, Mode=OneWay}" /></TextBlock>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="2" Orientation="Horizontal">
-                                                    <Button Style="{StaticResource RaidIconButton}" Click="Decrement_Click" ToolTip="{DynamicResource UiDecreaseQuantity}" AutomationProperties.Name="{DynamicResource UiDecreaseTargetQuantity}"><ui:SymbolIcon Symbol="Subtract20" FontSize="15" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" /></Button>
+                                                    <Button Style="{StaticResource RaidIconButton}" Click="Decrement_Click" ToolTip="{DynamicResource UiDecreaseQuantity}" AutomationProperties.Name="{DynamicResource UiDecreaseTargetQuantity}"><materialDesign:PackIcon  Kind="Minus" FontSize="15" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"  /></Button>
                                                     <TextBox Width="46" Height="30" Margin="4,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Text="{Binding Quantity, UpdateSourceTrigger=LostFocus}"
                                                              PreviewTextInput="Quantity_PreviewTextInput" DataObject.Pasting="Quantity_Pasting" AutomationProperties.Name="{DynamicResource UiTargetQuantity}" />
-                                                    <Button Style="{StaticResource RaidIconButton}" Click="Increment_Click" ToolTip="{DynamicResource UiIncreaseQuantity}" AutomationProperties.Name="{DynamicResource UiIncreaseTargetQuantity}"><ui:SymbolIcon Symbol="Add20" FontSize="15" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" /></Button>
-                                                    <Button Style="{StaticResource RaidIconButton}" Margin="8,0,0,0" Click="Duplicate_Click" ToolTip="{DynamicResource UiDuplicateTarget}" AutomationProperties.Name="{DynamicResource UiDuplicateTarget}"><ui:SymbolIcon Symbol="Copy20" FontSize="15" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" /></Button>
-                                                    <Button Style="{StaticResource RaidIconButton}" Margin="4,0,0,0" Click="Remove_Click" ToolTip="{DynamicResource UiRemoveTarget}" AutomationProperties.Name="{DynamicResource UiRemoveTarget}"><ui:SymbolIcon Symbol="Dismiss20" FontSize="15" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" /></Button>
+                                                    <Button Style="{StaticResource RaidIconButton}" Click="Increment_Click" ToolTip="{DynamicResource UiIncreaseQuantity}" AutomationProperties.Name="{DynamicResource UiIncreaseTargetQuantity}"><materialDesign:PackIcon  Kind="Plus" FontSize="15" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"  /></Button>
+                                                    <Button Style="{StaticResource RaidIconButton}" Margin="8,0,0,0" Click="Duplicate_Click" ToolTip="{DynamicResource UiDuplicateTarget}" AutomationProperties.Name="{DynamicResource UiDuplicateTarget}"><materialDesign:PackIcon  Kind="ContentCopy" FontSize="15" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"  /></Button>
+                                                    <Button Style="{StaticResource RaidIconButton}" Margin="4,0,0,0" Click="Remove_Click" ToolTip="{DynamicResource UiRemoveTarget}" AutomationProperties.Name="{DynamicResource UiRemoveTarget}"><materialDesign:PackIcon  Kind="Close" FontSize="15" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"  /></Button>
                                                 </StackPanel>
                                             </Grid>
                                             <ComboBox Grid.Row="1" Margin="0,9,0,0" Style="{StaticResource RaidComboBox}" ItemsSource="{Binding Methods}" SelectedItem="{Binding SelectedMethod, Mode=TwoWay}"
@@ -292,7 +291,7 @@
                         <StackPanel>
                             <StackPanel Margin="0,28,0,0" HorizontalAlignment="Center"
                                         Visibility="{Binding IsPlanEmpty, Converter={StaticResource RaidBoolToVisibility}}">
-                                <ui:SymbolIcon Symbol="TargetArrow24" FontSize="30" Foreground="{DynamicResource TextCaption}" />
+                                <materialDesign:PackIcon  Kind="CrosshairsGps" FontSize="30" Foreground="{DynamicResource TextCaption}"  />
                                 <TextBlock Margin="0,8,0,2" HorizontalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Text="{DynamicResource UiNothingToTotalYet}" />
                                 <TextBlock HorizontalAlignment="Center" Foreground="{DynamicResource TextSubtle}" Text="{DynamicResource UiAddATargetToSeeRaidCosts}" />
                             </StackPanel>

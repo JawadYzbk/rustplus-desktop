@@ -12,7 +12,6 @@ using Microsoft.Web.WebView2.Wpf;
 using RustPlusDesk.Helpers;
 using RustPlusDesk.Models;
 using RustPlusDesk.Services;
-using WpfUi = Wpf.Ui.Controls;
 
 namespace RustPlusDesk.Views;
 
@@ -692,7 +691,8 @@ public partial class MainWindow
         Grid.SetRow(nameLabel, 1);
         grid.Children.Add(nameLabel);
 
-        var nameInput = new WpfUi.TextBox { PlaceholderText = Properties.Resources.EnterGroupNamePlaceholder };
+        var nameInput = new TextBox();
+        MaterialDesignThemes.Wpf.HintAssist.SetHint(nameInput, Properties.Resources.EnterGroupNamePlaceholder);
         Grid.SetRow(nameInput, 2);
         grid.Children.Add(nameInput);
         
@@ -720,11 +720,10 @@ public partial class MainWindow
 
         foreach(var g in existingGroups)
         {
-            var gBtn = new WpfUi.Button { 
+            var gBtn = new Button { 
                 Content = g, 
                 Margin = new Thickness(0,0,4,4), 
-                Padding = new Thickness(8,4,8,4),
-                Appearance = WpfUi.ControlAppearance.Secondary
+                Padding = new Thickness(8,4,8,4)
             };
             gBtn.Click += (s, e) => {
                 nameInput.Text = g;
@@ -752,8 +751,8 @@ public partial class MainWindow
         grid.Children.Add(scroll);
 
         var btnPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-        var okBtn = new WpfUi.Button { Content = "Save Group", Width = 120, Margin = new Thickness(0, 0, 12, 0), Appearance = WpfUi.ControlAppearance.Primary };
-        var cancelBtn = new WpfUi.Button { Content = "Cancel", Width = 90 };
+        var okBtn = new Button { Content = "Save Group", Width = 120, Margin = new Thickness(0, 0, 12, 0) };
+        var cancelBtn = new Button { Content = "Cancel", Width = 90 };
 
         bool saved = false;
         okBtn.Click += (s, e) => { 
@@ -822,10 +821,11 @@ public partial class MainWindow
         stack.Children.Add(new TextBlock { Text = $"Group Settings: {player.Name}", FontSize = 20, FontWeight = FontWeights.Bold, Margin = new Thickness(0,0,0,16) });
         
         stack.Children.Add(new TextBlock { Text = RustPlusDesk.Properties.Resources.GetString("GroupName"), Foreground = (Brush)FindResource("TextSubtle") });
-        var input = new WpfUi.TextBox { 
-            Text = player.GroupName, 
-            PlaceholderText = Properties.Resources.EnterGroupNamePlaceholder
+        var input = new TextBox
+        {
+            Text = player.GroupName,
         };
+        MaterialDesignThemes.Wpf.HintAssist.SetHint(input, Properties.Resources.EnterGroupNamePlaceholder);
         stack.Children.Add(input);
 
         stack.Children.Add(new TextBlock { Text = RustPlusDesk.Properties.Resources.GetString("GroupColor"), Margin = new Thickness(0, 8, 0, 0), Foreground = (Brush)FindResource("TextSubtle") });
@@ -836,10 +836,10 @@ public partial class MainWindow
         
         (string, string)? result = null;
 
-        var saveBtn = new WpfUi.Button { Content = "Save Changes", Appearance = WpfUi.ControlAppearance.Primary, Width = 130, Margin = new Thickness(0,0,12,0) };
+        var saveBtn = new Button { Content = "Save Changes", Width = 130, Margin = new Thickness(0,0,12,0) };
         saveBtn.Click += (s, e) => { result = (input.Text.Trim(), colorSelector.Getter()); win.DialogResult = true; };
 
-        var cancelBtn = new WpfUi.Button { Content = "Cancel", Width = 90 };
+        var cancelBtn = new Button { Content = "Cancel", Width = 90 };
         cancelBtn.Click += (s, e) => { win.DialogResult = false; };
 
         btnPanel.Children.Add(saveBtn);
@@ -979,11 +979,13 @@ public partial class MainWindow
         }
 
         var onlineHeaderPanel = new StackPanel { Orientation = Orientation.Horizontal };
-        var onlineIcon = new WpfUi.SymbolIcon(WpfUi.SymbolRegular.PeopleCommunity24)
+        var onlineIcon = new MaterialDesignThemes.Wpf.PackIcon
         {
+            Kind = MaterialDesignThemes.Wpf.PackIconKind.AccountGroup,
             Margin = new Thickness(0, 0, 6, 0),
             VerticalAlignment = VerticalAlignment.Center,
-            FontSize = 14
+            Width = 15,
+            Height = 15
         };
         var onlineForegroundBinding = new System.Windows.Data.Binding("Foreground") { Source = onlineTab };
         onlineIcon.SetBinding(Control.ForegroundProperty, onlineForegroundBinding);
@@ -1005,11 +1007,13 @@ public partial class MainWindow
         }
 
         var trackedHeaderPanel = new StackPanel { Orientation = Orientation.Horizontal };
-        var trackedIcon = new WpfUi.SymbolIcon(WpfUi.SymbolRegular.Radar20)
+        var trackedIcon = new MaterialDesignThemes.Wpf.PackIcon
         {
+            Kind = MaterialDesignThemes.Wpf.PackIconKind.Radar,
             Margin = new Thickness(0, 0, 6, 0),
             VerticalAlignment = VerticalAlignment.Center,
-            FontSize = 14
+            Width = 15,
+            Height = 15
         };
         var trackedForegroundBinding = new System.Windows.Data.Binding("Foreground") { Source = trackedTab };
         trackedIcon.SetBinding(Control.ForegroundProperty, trackedForegroundBinding);
@@ -1120,12 +1124,11 @@ public partial class MainWindow
                     row.Children.Add(pt);
                 }
 
-                var btnTrack = new WpfUi.Button
+                var btnTrack = new Button
                 {
                     Content = p.IsTracked ? "Details" : "Track",
                     Padding = new Thickness(6, 2, 6, 2),
                     FontSize = 11,
-                    Appearance = p.IsTracked ? WpfUi.ControlAppearance.Primary : WpfUi.ControlAppearance.Secondary,
                     Tag = p.BMId,
                 };
                 Grid.SetColumn(btnTrack, 2);
@@ -1143,7 +1146,6 @@ public partial class MainWindow
                         var srvName = TrackingService.LastServer.name ?? "Unknown";
                         TrackingService.TrackPlayer(capturedBmId, capturedName, srvName);
                         btnTrack.Content = RustPlusDesk.Properties.Resources.GetString("UiDetails");
-                        btnTrack.Appearance = WpfUi.ControlAppearance.Primary;
                     }
                 };
 
@@ -1288,12 +1290,11 @@ public partial class MainWindow
                         // Action button: BM-only → "View on BM" opens BM browser; native → "View" opens Analysis
                         string capturedBmId2 = p.BMId;
                         bool capturedIsBmOnly = p.IsBMOnly;
-                        var actionBtn = new WpfUi.Button
+                        var actionBtn = new Button
                         {
                             Content = capturedIsBmOnly ? "View on BM" : "View",
                             Padding = new Thickness(6, 2, 6, 2),
                             FontSize = 11,
-                            Appearance = capturedIsBmOnly ? WpfUi.ControlAppearance.Secondary : WpfUi.ControlAppearance.Primary,
                             Margin = new Thickness(6, 0, 0, 0),
                             VerticalAlignment = VerticalAlignment.Center,
                         };

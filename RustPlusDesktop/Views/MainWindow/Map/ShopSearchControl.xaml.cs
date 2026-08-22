@@ -5,8 +5,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using Wpf.Ui;
-using Wpf.Ui.Controls;
 using RustPlusDesk.Services;
 
 using TextBlock = System.Windows.Controls.TextBlock;

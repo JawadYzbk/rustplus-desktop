@@ -1,7 +1,6 @@
 <Window x:Class="RustPlusDesk.Views.Windows.Map3DConsentWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="{DynamicResource UiBuild3DMap}"
         Width="520"
         SizeToContent="Height"
@@ -25,7 +24,7 @@
                         Cursor="Hand" Click="BtnCancel_Click"/>
             </Grid>
 
-            <ui:SymbolIcon Symbol="Cube24" FontSize="42" Foreground="#FF8C00" HorizontalAlignment="Center" Margin="0,8,0,14"/>
+            <materialDesign:PackIcon  Kind="Cube" FontSize="42" Foreground="#FF8C00" HorizontalAlignment="Center" Margin="0,8,0,14" />
             <TextBlock Text="{DynamicResource UiBuildLocal3DMap}" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,8"/>
             <TextBlock TextWrapping="Wrap" TextAlignment="Center" FontSize="12" Foreground="#B8BDC7" Margin="32,0,32,18" LineHeight="20"
                        Text="{DynamicResource UiWeCanAutomaticallyLocateTheMapInYourSteamInstallationFoldeEBF810A65E}"/>
@@ -36,9 +35,9 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <ui:Button Grid.Column="0" Content="{DynamicResource Cancel}" Appearance="Secondary" Margin="0,0,8,0" Height="38" Click="BtnCancel_Click"/>
-                <ui:Button Grid.Column="1" Content="{DynamicResource Accept}" Appearance="Secondary" Margin="0,0,8,0" Height="38" Click="BtnAccept_Click"/>
-                <ui:Button Grid.Column="2" Content="{DynamicResource UiAcceptAndRemember}" Appearance="Primary" Height="38" Click="BtnAcceptRemember_Click"/>
+                <Button Grid.Column="0" Content="{DynamicResource Cancel}" Margin="0,0,8,0" Height="38" Click="BtnCancel_Click"/>
+                <Button Grid.Column="1" Content="{DynamicResource Accept}" Margin="0,0,8,0" Height="38" Click="BtnAccept_Click"/>
+                <Button Grid.Column="2" Content="{DynamicResource UiAcceptAndRemember}" Height="38" Click="BtnAcceptRemember_Click"/>
             </Grid>
         </StackPanel>
     </Border>

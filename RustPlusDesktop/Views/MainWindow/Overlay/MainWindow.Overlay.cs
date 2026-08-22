@@ -3981,7 +3981,7 @@ private bool _overlayToolsVisible = false;
         string[] shapes = { "pin", "dollar", "gun", "home", "loot", "parachute", "rock", "scope", "shield", "skull", "sleep", "zzz" };
 
         // Section label
-        var header = new Wpf.Ui.Controls.TextBlock
+        var header = new TextBlock
         {
             Text        = "Change Icon",
             FontSize    = 10,
@@ -4059,7 +4059,7 @@ private bool _overlayToolsVisible = false;
             ("cyan",    Color.FromRgb(0x06, 0xED, 0xC2)),
         };
 
-        var header = new Wpf.Ui.Controls.TextBlock
+        var header = new TextBlock
         {
             Text       = "Change Color",
             FontSize   = 10,
@@ -4092,13 +4092,14 @@ private bool _overlayToolsVisible = false;
             // Show a checkmark on the selected swatch
             if (isCurrent)
             {
-                pill.Child = new Wpf.Ui.Controls.SymbolIcon
+                pill.Child = new MaterialDesignThemes.Wpf.PackIcon
                 {
-                    Symbol             = Wpf.Ui.Controls.SymbolRegular.Checkmark12,
-                    Foreground         = Brushes.White,
+                    Kind                = MaterialDesignThemes.Wpf.PackIconKind.Check,
+                    Foreground          = Brushes.White,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment   = VerticalAlignment.Center,
-                    FontSize           = 14,
+                    Width               = 14,
+                    Height              = 14,
                 };
             }
             pill.MouseLeftButtonDown += (_, __) =>
@@ -4135,7 +4136,7 @@ private bool _overlayToolsVisible = false;
         bool isColorableMarker = meta.CustomIconPath?.StartsWith("rust-marker://") == true;
         int maxLen = isColorableMarker ? 10 : 100;
 
-        var header = new Wpf.Ui.Controls.TextBlock
+        var header = new TextBlock
         {
             Text       = isColorableMarker ? $"Note (max {maxLen} chars)" : "Note",
             FontSize   = 10,
@@ -4165,7 +4166,7 @@ private bool _overlayToolsVisible = false;
         };
 
         // Character counter for colorable markers
-        var charCounter = new Wpf.Ui.Controls.TextBlock
+        var charCounter = new TextBlock
         {
             Text       = $"{tb.Text.Length}/{maxLen}",
             FontSize   = 9,
@@ -4185,12 +4186,13 @@ private bool _overlayToolsVisible = false;
         Border? panel = null;
         Border? dismissLayer = null;
 
-        // Save button with WPF UI icon
+        // Save button with Material icon
         var saveBtnContent = new StackPanel { Orientation = Orientation.Horizontal };
-        saveBtnContent.Children.Add(new Wpf.Ui.Controls.SymbolIcon
+        saveBtnContent.Children.Add(new MaterialDesignThemes.Wpf.PackIcon
         {
-            Symbol   = Wpf.Ui.Controls.SymbolRegular.Save16,
-            FontSize = 13,
+            Kind     = MaterialDesignThemes.Wpf.PackIconKind.ContentSave,
+            Width    = 14,
+            Height   = 14,
             Margin   = new Thickness(0, 0, 5, 0),
         });
         saveBtnContent.Children.Add(new System.Windows.Controls.TextBlock { Text = Properties.Resources.Save, VerticalAlignment = VerticalAlignment.Center });

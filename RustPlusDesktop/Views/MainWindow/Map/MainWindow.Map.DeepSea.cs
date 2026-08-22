@@ -145,10 +145,10 @@ public partial class MainWindow
                 if (ImgMap != null) ImgMap.Visibility = Visibility.Collapsed;
                 if (_scene != null) _scene.Background = new SolidColorBrush(Color.FromRgb(24, 43, 73)); // Deep sea blue
                 
-                // Update toggle button icon to Map icon (Wpf.Ui Map symbol)
+                // Update toggle button icon to Map icon (Material Map symbol)
                 if (ContentDeepSeaToggle != null)
                 {
-                    ContentDeepSeaToggle.Content = new Wpf.Ui.Controls.SymbolIcon(Wpf.Ui.Controls.SymbolRegular.Map20);
+                    ContentDeepSeaToggle.Content = new MaterialDesignThemes.Wpf.PackIcon { Kind = MaterialDesignThemes.Wpf.PackIconKind.Map };
                 }
             }
             else

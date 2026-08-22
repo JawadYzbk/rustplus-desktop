@@ -1,8 +1,7 @@
 <UserControl
     x:Class="RustPlusDesk.Views.DeleteConfirmationOverlay"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
     <Grid
         x:Name="DeleteConfirmationRoot"
         Panel.ZIndex="10000"
@@ -24,10 +23,10 @@
                         Width="64"
                         Height="64"
                         Fill="#26FF4B4B" />
-                    <ui:SymbolIcon
+                    <materialDesign:PackIcon
                         FontSize="32"
                         Foreground="#FFFF4B4B"
-                        Symbol="Delete24" />
+                         Kind="Delete"  />
                 </Grid>
                 <TextBlock
                     FontSize="20"
@@ -50,17 +49,16 @@
                         <ColumnDefinition Width="16" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <ui:Button
+                    <Button
                         Grid.Column="0"
                         Padding="12"
                         HorizontalAlignment="Stretch"
                         Click="BtnCancel_Click"
                         Content="{DynamicResource Cancel}" />
-                    <ui:Button
+                    <Button
                         Grid.Column="2"
                         Padding="12"
                         HorizontalAlignment="Stretch"
-                        Appearance="Primary"
                         Background="#FFFF4B4B"
                         BorderBrush="#FFFF4B4B"
                         Click="BtnConfirm_Click"

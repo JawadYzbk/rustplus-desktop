@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using RustPlusDesk.Helpers;
 using System.Media;
 using System.Threading.Tasks;
 using System.Windows;
@@ -7,7 +8,6 @@ using System.Windows.Controls;
 using RustPlusDesk.Models;
 using RustPlusDesk.Services;
 using RustPlusDesk.Services.Auth;
-using WpfUi = Wpf.Ui.Controls;
 
 namespace RustPlusDesk.Views;
 
@@ -385,7 +385,7 @@ public partial class MainWindow
                 string.Format(
                     TeamFeatureText("ChatFeatureMasterBlockedMessage", "{0} is controlling Chat Alerts and Chat Commands for this team."),
                     _chatFeatureMasterName),
-                WpfUi.ControlAppearance.Caution);
+                SnackbarSeverity.Warning);
         }
     }
 
@@ -457,16 +457,6 @@ public partial class MainWindow
 
         if (RootSnackbar == null) return;
 
-        var snackbar = new WpfUi.Snackbar(RootSnackbar)
-        {
-            Title = TeamFeatureText("ChatFeatureMasterAssignedTitle", "You are Chat Master"),
-            Appearance = WpfUi.ControlAppearance.Success,
-            Icon = new WpfUi.SymbolIcon(WpfUi.SymbolRegular.Info24),
-            Timeout = TimeSpan.FromSeconds(10),
-            MaxWidth = 380,
-            HorizontalAlignment = HorizontalAlignment.Right
-        };
-
         var stack = new StackPanel { Orientation = Orientation.Vertical };
         stack.Children.Add(new TextBlock
         {
@@ -528,10 +518,9 @@ public partial class MainWindow
         countdownTimer.Start();
 
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-        var deny = new WpfUi.Button
+        var deny = new Button
         {
-            Content = TeamFeatureText("ChatFeatureMasterDeny", "Deny"),
-            Appearance = WpfUi.ControlAppearance.Secondary
+            Content = TeamFeatureText("ChatFeatureMasterDeny", "Deny")
         };
         deny.Click += (_, _) =>
         {
@@ -540,7 +529,7 @@ public partial class MainWindow
             _isChatFeatureMaster = false;
             ApplyChatFeatureMasterUiState();
             countdownTimer.Stop();
-            snackbar.Visibility = Visibility.Collapsed;
+            MaterialSnackbar.Hide(RootSnackbar);
             _ = SyncTeamFeatureMasterAsync();
         };
 
@@ -548,8 +537,7 @@ public partial class MainWindow
         DockPanel.SetDock(buttons, Dock.Right);
         footer.Children.Add(buttons);
         stack.Children.Add(footer);
-        snackbar.Content = stack;
-        snackbar.Show();
+        MaterialSnackbar.ShowCustom(RootSnackbar, TeamFeatureText("ChatFeatureMasterAssignedTitle", "You are Chat Master"), stack, SnackbarSeverity.Success, TimeSpan.FromSeconds(10));
     }
 
     private void PlayChatMasterSound()

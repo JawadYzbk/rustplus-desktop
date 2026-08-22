@@ -1,7 +1,6 @@
 <Window x:Class="RustPlusDesk.Views.ResetDataWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="{DynamicResource ResetDataTitle}" 
         Width="480" Height="440"
         WindowStartupLocation="CenterOwner"
@@ -44,8 +43,8 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <ui:Button x:Name="BtnConfirm" Grid.Column="1" Content="{DynamicResource ConfirmReset}" Appearance="Caution" Width="130" Height="32" Margin="0,0,8,0" Click="BtnConfirm_Click"/>
-                <ui:Button x:Name="BtnCancel" Grid.Column="2" Content="{DynamicResource Cancel}" Appearance="Secondary" Width="100" Height="32" Click="BtnCancel_Click"/>
+                <Button x:Name="BtnConfirm" Grid.Column="1" Content="{DynamicResource ConfirmReset}" Width="130" Height="32" Margin="0,0,8,0" Click="BtnConfirm_Click"/>
+                <Button x:Name="BtnCancel" Grid.Column="2" Content="{DynamicResource Cancel}" Width="100" Height="32" Click="BtnCancel_Click"/>
             </Grid>
  
             <!-- Main Content -->
@@ -72,7 +71,7 @@
                     <!-- Warning banner -->
                     <Border Background="#26D32A2A" BorderBrush="#50D32A2A" BorderThickness="1" CornerRadius="6" Padding="10">
                         <StackPanel Orientation="Horizontal">
-                            <ui:SymbolIcon Symbol="Warning24" Foreground="#FF6262" Margin="0,0,10,0" VerticalAlignment="Center" FontSize="18"/>
+                            <materialDesign:PackIcon  Kind="Alert" Foreground="#FF6262" Margin="0,0,10,0" VerticalAlignment="Center" FontSize="18" />
                             <TextBlock Text="{DynamicResource ResetDataWarning}" 
                                        Foreground="#FF6D6D" 
                                        FontSize="11" 

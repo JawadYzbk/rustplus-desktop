@@ -1,7 +1,6 @@
 <UserControl x:Class="RustPlusDesk.Views.Windows.CustomAlertsEditor"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Background="Transparent">
     <StackPanel>
         <TextBlock Text="{DynamicResource CustomAlertsDesc}"
@@ -29,7 +28,7 @@
                                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource TextPrimary}" />
                                             <TextBlock Text="{Binding Description}" FontSize="11" Foreground="{DynamicResource TextSubtle}" Margin="0,2,0,8" TextWrapping="Wrap"/>
                                             
-                                            <ui:TextBox Text="{Binding CurrentText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                            <TextBox Text="{Binding CurrentText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                                                         Background="#11FFFFFF" 
                                                         Foreground="{DynamicResource TextPrimary}"
                                                         BorderBrush="{DynamicResource CardBorder}"
@@ -46,18 +45,14 @@
                                         <!-- Actions Row -->
                                         <StackPanel Grid.Column="1" Orientation="Vertical" VerticalAlignment="Center">
                                             <!-- Save Button -->
-                                            <ui:Button Click="BtnSave_Click" Appearance="Primary" Padding="8" Margin="0,0,0,8" ToolTip="{DynamicResource Save}" AutomationProperties.Name="{DynamicResource Save}">
-                                                <ui:Button.Icon>
-                                                    <ui:SymbolIcon Symbol="Save24" />
-                                                </ui:Button.Icon>
-                                            </ui:Button>
+                                            <Button Click="BtnSave_Click" Padding="8" Margin="0,0,0,8" ToolTip="{DynamicResource Save}" AutomationProperties.Name="{DynamicResource Save}">
+<materialDesign:PackIcon  Kind="ContentSave"  />
+                                            </Button>
 
                                             <!-- Reset Button -->
-                                            <ui:Button Click="BtnReset_Click" Appearance="Secondary" Padding="8" ToolTip="{DynamicResource Reset}" AutomationProperties.Name="{DynamicResource Reset}">
-                                                <ui:Button.Icon>
-                                                    <ui:SymbolIcon Symbol="ArrowUndo24" />
-                                                </ui:Button.Icon>
-                                            </ui:Button>
+                                            <Button Click="BtnReset_Click" Padding="8" ToolTip="{DynamicResource Reset}" AutomationProperties.Name="{DynamicResource Reset}">
+<materialDesign:PackIcon  Kind="Undo"  />
+                                            </Button>
                                         </StackPanel>
                                     </Grid>
                                 </Border>

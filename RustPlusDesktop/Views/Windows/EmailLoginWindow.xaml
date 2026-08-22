@@ -1,7 +1,6 @@
 <Window x:Class="RustPlusDesk.Views.Windows.EmailLoginWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="{DynamicResource EmailLoginWindowTitle}"
         Width="460" SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
@@ -124,7 +123,7 @@
             <Border Background="#1A1D21" CornerRadius="10,10,0,0" Padding="20,16">
                 <Grid>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <ui:SymbolIcon Symbol="Person24" FontSize="18" Foreground="#E8612C" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <materialDesign:PackIcon  Kind="Account" FontSize="18" Foreground="#E8612C" Margin="0,0,10,0" VerticalAlignment="Center" />
                         <TextBlock x:Name="TxtHeaderTitle" Text="{DynamicResource CloudAccountTitle}" FontSize="15" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
                     </StackPanel>
                     <Button Content="&#x00D7;" Style="{StaticResource GhostBtn}" HorizontalAlignment="Right"
@@ -189,7 +188,7 @@
                         Background="#1A1D21" CornerRadius="6" Padding="12,10">
                     <StackPanel>
                         <StackPanel x:Name="PanelLoading" Orientation="Horizontal" Visibility="Collapsed" Margin="0,0,0,8">
-                            <ui:ProgressRing Width="18" Height="18" IsIndeterminate="True" Margin="0,0,10,0"/>
+                            <ProgressBar Style="{StaticResource MaterialDesignCircularProgressBar}" Value="60" Width="18" Height="18" IsIndeterminate="True" Margin="0,0,10,0"/>
                             <TextBlock x:Name="TxtLoadingMsg" Text="{DynamicResource PleaseWait}" Foreground="#CCC" FontSize="12" VerticalAlignment="Center"/>
                         </StackPanel>
                         <TextBlock x:Name="TxtStatusMsg" Foreground="#CCC" FontSize="12" TextWrapping="Wrap"/>
@@ -202,13 +201,13 @@
                         BorderBrush="#2A6B3A" BorderThickness="1">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                            <ui:SymbolIcon Symbol="Mail24" FontSize="16" Foreground="#4CAF50" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <materialDesign:PackIcon  Kind="Email" FontSize="16" Foreground="#4CAF50" Margin="0,0,8,0" VerticalAlignment="Center" />
                             <TextBlock x:Name="TxtAwaitTitle" Text="{DynamicResource EmailConfirmationSentTitle}" FontSize="13" FontWeight="SemiBold" Foreground="#4CAF50" VerticalAlignment="Center"/>
                         </StackPanel>
                         <TextBlock x:Name="TxtAwaitMsg" FontSize="12" Foreground="#CCC" TextWrapping="Wrap" Margin="0,0,0,10"
                                    Text="{DynamicResource EmailConfirmationSentMessage}"/>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <ui:ProgressRing Width="14" Height="14" IsIndeterminate="True" Margin="0,0,8,0"/>
+                            <ProgressBar Style="{StaticResource MaterialDesignCircularProgressBar}" Value="60" Width="14" Height="14" IsIndeterminate="True" Margin="0,0,8,0"/>
                             <TextBlock x:Name="TxtPollCount" Text="{DynamicResource EmailWaitingForConfirmation}" Foreground="#888" FontSize="11" VerticalAlignment="Center"/>
                         </StackPanel>
                         <Button x:Name="BtnCancelPolling" Content="{DynamicResource Cancel}" Style="{StaticResource GhostBtn}"

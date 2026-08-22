@@ -5,7 +5,6 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using WpfUi = Wpf.Ui.Controls;
 
 namespace RustPlusDesk.Views;
 
@@ -148,10 +147,9 @@ public static class HowToTrackWindow
             VerticalAlignment = VerticalAlignment.Center,
         });
 
-        var closeBtn = new WpfUi.Button
+        var closeBtn = new Button
         {
             Content = Properties.Resources.Close ?? "Close",
-            Appearance = WpfUi.ControlAppearance.Secondary,
             Padding = new Thickness(20, 6, 20, 6),
         };
         closeBtn.Click += (_, _) => win.Close();

@@ -10,6 +10,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
+using RustPlusDesk.Views.Windows;
 namespace RustPlusDesk.Views;
 
 public partial class MainWindow
@@ -148,16 +149,11 @@ internal readonly HashSet<string> _camBusy = new(StringComparer.OrdinalIgnoreCas
     {
         if (_vm.Selected?.IsFullConnected != true)
         {
-            var prompt = new Wpf.Ui.Controls.MessageBox
-            {
-                Title = Properties.Resources.GetString("Tutorials.Step.minimap.intro.Title") ?? "Serververbindung erforderlich",
-                Content = Properties.Resources.GetString("Tutorials.Step.minimap.intro.Description") ?? "Bitte verbinde dich zuerst mit einem Server, um die Mini-Map zu nutzen.",
-                CloseButtonText = "OK",
-                ShowTitle = true,
-                Owner = this,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner
-            };
-            await prompt.ShowDialogAsync();
+            await MaterialDialog.ShowAsync(
+                this,
+                Properties.Resources.GetString("Tutorials.Step.minimap.intro.Title") ?? "Serververbindung erforderlich",
+                Properties.Resources.GetString("Tutorials.Step.minimap.intro.Description") ?? "Bitte verbinde dich zuerst mit einem Server, um die Mini-Map zu nutzen.",
+                "OK");
             return;
         }
 

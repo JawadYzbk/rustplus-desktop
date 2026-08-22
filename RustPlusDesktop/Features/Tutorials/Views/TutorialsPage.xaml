@@ -1,7 +1,6 @@
 <UserControl x:Class="RustPlusDesk.Features.Tutorials.Views.TutorialsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
     Background="{DynamicResource AppBg}">
     <UserControl.Resources><BooleanToVisibilityConverter x:Key="BoolToVisibility" /></UserControl.Resources>
     <Grid Margin="28">
@@ -13,22 +12,20 @@
                 <TextBlock Margin="0,7,0,0" Text="{DynamicResource Tutorials.Center.Description}" FontSize="13"
                            Foreground="{DynamicResource TextSubtle}" TextWrapping="Wrap" />
             </StackPanel>
-            <ui:Button Grid.Column="1" Width="36" Height="36" Appearance="Transparent" Click="Close_Click"
-                       Icon="{ui:SymbolIcon Symbol=Dismiss24}" AutomationProperties.Name="{DynamicResource Close}" />
+            <Button Grid.Column="1" Width="36" Height="36" Click="Close_Click" AutomationProperties.Name="{DynamicResource Close}" />
         </Grid>
 
         <WrapPanel Grid.Row="1" Margin="0,20,0,18">
-            <ui:Button Margin="0,0,8,8" Appearance="Primary" Click="StartRecommended_Click"
-                       Content="{DynamicResource Tutorials.Center.StartRecommended}" Icon="{ui:SymbolIcon Symbol=Play24}" />
-            <ui:Button Margin="0,0,8,8" Appearance="Secondary" Click="ContinueLast_Click"
+            <Button Margin="0,0,8,8" Click="StartRecommended_Click"><StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="Play" VerticalAlignment="Center" /><ContentPresenter Margin="6,0,0,0" VerticalAlignment="Center" Content="{DynamicResource Tutorials.Center.StartRecommended}" /></StackPanel></Button>
+            <Button Margin="0,0,8,8" Click="ContinueLast_Click"
                        Content="{DynamicResource Tutorials.Center.ContinueLast}" />
-            <ui:Button Margin="0,0,8,8" Appearance="Secondary" Click="RestartAll_Click"
+            <Button Margin="0,0,8,8" Click="RestartAll_Click"
                        Content="{DynamicResource Tutorials.Center.RestartAll}" />
-            <ui:Button Margin="0,0,16,8" Appearance="Transparent" Click="ResetAll_Click"
+            <Button Margin="0,0,16,8" Click="ResetAll_Click"
                        Content="{DynamicResource Tutorials.Center.ResetProgress}" />
-            <ui:ToggleSwitch x:Name="AutoBasicToggle" Margin="0,0,16,8" Click="Preferences_Changed"
+            <ToggleButton Style="{StaticResource MaterialDesignSwitchToggleButton}" x:Name="AutoBasicToggle" Margin="0,0,16,8" Click="Preferences_Changed"
                              Content="{DynamicResource Tutorials.Center.AutoBasic}" />
-            <ui:ToggleSwitch x:Name="AutoFeaturesToggle" Margin="0,0,0,8" Click="Preferences_Changed"
+            <ToggleButton Style="{StaticResource MaterialDesignSwitchToggleButton}" x:Name="AutoFeaturesToggle" Margin="0,0,0,8" Click="Preferences_Changed"
                              Content="{DynamicResource Tutorials.Center.AutoFeatures}" />
         </WrapPanel>
 
@@ -44,12 +41,12 @@
                 </ItemsControl.GroupStyle>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <ui:Card Width="390" MinHeight="190" Margin="0,0,14,14" Padding="18">
+                        <materialDesign:Card Width="390" MinHeight="190" Margin="0,0,14,14" Padding="18">
                             <Grid>
                                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                                 <Grid>
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <ui:SymbolIcon Symbol="Book24" FontSize="25" Foreground="{DynamicResource Accent}" Margin="0,0,11,0" />
+                                    <materialDesign:PackIcon  Kind="Book" FontSize="25" Foreground="{DynamicResource Accent}" Margin="0,0,11,0"  />
                                     <TextBlock Grid.Column="1" Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" />
                                     <StackPanel Grid.Column="2">
                                         <Border Padding="7,3" Background="#2638A3DB" CornerRadius="8" Visibility="{Binding IsNewFeature, Converter={StaticResource BoolToVisibility}}">
@@ -66,12 +63,12 @@
                                     <ProgressBar Height="6" Margin="0,6,0,0" Minimum="0" Maximum="100" Value="{Binding ProgressPercent, Mode=OneWay}" />
                                 </StackPanel>
                                 <StackPanel Grid.Row="3" Margin="0,14,0,0" Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <ui:Button Margin="0,0,8,0" Appearance="Transparent" Tag="{Binding Id}" Click="Reset_Click" Content="{DynamicResource Tutorials.Common.Reset}" />
-                                    <ui:Button Margin="0,0,8,0" Appearance="Secondary" Tag="{Binding Id}" Click="Restart_Click" Content="{DynamicResource Tutorials.Common.Restart}" />
-                                    <ui:Button Appearance="Primary" Tag="{Binding Id}" Click="Start_Click" Content="{Binding PrimaryActionLabel}" />
+                                    <Button Margin="0,0,8,0" Tag="{Binding Id}" Click="Reset_Click" Content="{DynamicResource Tutorials.Common.Reset}" />
+                                    <Button Margin="0,0,8,0" Tag="{Binding Id}" Click="Restart_Click" Content="{DynamicResource Tutorials.Common.Restart}" />
+                                    <Button Tag="{Binding Id}" Click="Start_Click" Content="{Binding PrimaryActionLabel}" />
                                 </StackPanel>
                             </Grid>
-                        </ui:Card>
+                        </materialDesign:Card>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>

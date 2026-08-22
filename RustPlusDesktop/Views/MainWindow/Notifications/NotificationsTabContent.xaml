@@ -1,8 +1,7 @@
 <UserControl
     x:Class="RustPlusDesk.Views.NotificationsTabContent"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
     xmlns:conv="clr-namespace:RustPlusDesk.Converters"
     xmlns:tutorials="clr-namespace:RustPlusDesk.Features.Tutorials"
     xmlns:services="clr-namespace:RustPlusDesk.Services">
@@ -56,13 +55,12 @@
                 </Setter>
             </Style>
 
-            <Style x:Key="NotificationServerButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+            <Style x:Key="NotificationServerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                 <Setter Property="Visibility" Value="Collapsed"/>
                 <Setter Property="Padding" Value="6,2"/>
                 <Setter Property="Height" Value="22"/>
                 <Setter Property="MinWidth" Value="0"/>
                 <Setter Property="MaxWidth" Value="260"/>
-                <Setter Property="Appearance" Value="Secondary"/>
                 <Setter Property="HorizontalAlignment" Value="Left"/>
                 <Style.Triggers>
                     <DataTrigger Binding="{Binding ServerIp, Converter={StaticResource NotNull}}" Value="True">
@@ -90,29 +88,21 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <ui:TextBox x:Name="TxtSearch" 
+                    <TextBox x:Name="TxtSearch" 
                                 tutorials:Tutorial.TargetId="Notifications.Search"
                                 Margin="0,0,8,0" 
-                                PlaceholderText="{DynamicResource SearchNotificationsPlaceholder}" 
                                 TextChanged="TxtSearch_TextChanged"
-                                Icon="{ui:SymbolIcon Symbol=Search24}"
                                 VerticalAlignment="Center"
-                                Height="28"/>
+                                Height="28" materialDesign:HintAssist.Hint="{DynamicResource SearchNotificationsPlaceholder}" />
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" tutorials:Tutorial.TargetId="Notifications.Actions">
-                        <ui:Button Click="BtnMarkAllRead_Click" 
-                                   Content="{DynamicResource MarkAllAsRead}" 
-                                   Appearance="Secondary"
-                                   Icon="{ui:SymbolIcon Symbol=MailRead24}"
+                        <Button Click="BtnMarkAllRead_Click"
                                    Height="28" 
-                                   FontSize="11"/>
-                        <ui:Button Click="BtnClearHistory_Click" 
-                                   Content="{DynamicResource ClearNotifications}" 
-                                   Appearance="Secondary"
-                                   Icon="{ui:SymbolIcon Symbol=Delete24}"
+                                   FontSize="11"><StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="Email" VerticalAlignment="Center" /><ContentPresenter Margin="6,0,0,0" VerticalAlignment="Center" Content="{DynamicResource MarkAllAsRead}" /></StackPanel></Button>
+                        <Button Click="BtnClearHistory_Click"
                                    Height="28" 
                                    FontSize="11" 
-                                   Margin="6,0,0,0"/>
+                                   Margin="6,0,0,0"><StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="Delete" VerticalAlignment="Center" /><ContentPresenter Margin="6,0,0,0" VerticalAlignment="Center" Content="{DynamicResource ClearNotifications}" /></StackPanel></Button>
                     </StackPanel>
                 </Grid>
             </StackPanel>
@@ -125,7 +115,7 @@
                         VerticalAlignment="Center" 
                         HorizontalAlignment="Center"
                         Visibility="Collapsed">
-                <ui:SymbolIcon Symbol="Mail24" FontSize="48" Foreground="#8C96A8" Margin="0,0,0,12"/>
+                <materialDesign:PackIcon  Kind="Email" FontSize="48" Foreground="#8C96A8" Margin="0,0,0,12" />
                 <TextBlock Text="{DynamicResource NoNotificationsTitle}" 
                            FontSize="16" 
                            FontWeight="SemiBold" 
@@ -231,30 +221,30 @@
                                 <!-- Notification Type Icon -->
                                 <Grid Grid.RowSpan="2" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0">
                                     <!-- Standard SymbolIcon depending on Type -->
-                                    <ui:SymbolIcon FontSize="18">
-                                        <ui:SymbolIcon.Style>
-                                            <Style TargetType="ui:SymbolIcon">
+                                    <materialDesign:PackIcon FontSize="18">
+                                        <materialDesign:PackIcon.Style>
+                                            <Style TargetType="materialDesign:PackIcon">
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding Type}" Value="Alarm">
-                                                        <Setter Property="Symbol" Value="Warning24" />
+                                                        <Setter Property="Kind" Value="Alert" />
                                                         <Setter Property="Foreground" Value="#EF5350" />
                                                     </DataTrigger>
                                                     <DataTrigger Binding="{Binding Type}" Value="Death">
-                                                        <Setter Property="Symbol" Value="HeartPulse24" />
+                                                        <Setter Property="Kind" Value="Heart" />
                                                         <Setter Property="Foreground" Value="#FF7043" />
                                                     </DataTrigger>
                                                     <DataTrigger Binding="{Binding Type}" Value="Chat">
-                                                        <Setter Property="Symbol" Value="Mail24" />
+                                                        <Setter Property="Kind" Value="Email" />
                                                         <Setter Property="Foreground" Value="#42A5F5" />
                                                     </DataTrigger>
                                                     <DataTrigger Binding="{Binding Type}" Value="Pairing">
-                                                        <Setter Property="Symbol" Value="BluetoothConnected24" />
+                                                        <Setter Property="Kind" Value="BluetoothConnected" />
                                                         <Setter Property="Foreground" Value="#66BB6A" />
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
-                                        </ui:SymbolIcon.Style>
-                                    </ui:SymbolIcon>
+                                        </materialDesign:PackIcon.Style>
+                                    </materialDesign:PackIcon>
                                     
                                     <!-- Unread blue dot -->
                                     <Ellipse Width="6" Height="6" 
@@ -303,33 +293,31 @@
                                                Margin="0,0,6,0"/>
 
                                     <!-- Action Button: Mute server -->
-                                    <ui:Button Grid.Column="1"
+                                    <Button Grid.Column="1"
                                                Click="BtnMuteServer_Click"
                                                Tag="{Binding}"
-                                               Appearance="Transparent"
                                                Width="28" Height="28"
                                                Padding="0"
                                                VerticalAlignment="Center"
                                                ToolTip="{DynamicResource UiMuteNotificationsFromThisServer}"
                                                AutomationProperties.Name="{DynamicResource UiMuteNotificationsFromThisServer}"
                                                Style="{StaticResource NotificationServerButton}">
-                                        <ui:SymbolIcon Symbol="SpeakerMute24" FontSize="14" Foreground="IndianRed"/>
-                                    </ui:Button>
+                                        <materialDesign:PackIcon  Kind="VolumeOff" FontSize="14" Foreground="IndianRed" />
+                                    </Button>
 
                                     <!-- Action Button: Delete -->
-                                    <ui:Button Grid.Column="2"
+                                    <Button Grid.Column="2"
                                                 Click="BtnDelete_Click" 
                                                 Tag="{Binding Id}"
-                                                Appearance="Transparent"
                                                 Width="28" Height="28"
                                                 Padding="0"
                                                 VerticalAlignment="Center">
-                                         <ui:SymbolIcon Symbol="Delete24" FontSize="14" Foreground="#8C96A8"/>
-                                     </ui:Button>
+                                         <materialDesign:PackIcon  Kind="Delete" FontSize="14" Foreground="#8C96A8" />
+                                     </Button>
                                 </Grid>
 
                                 <!-- Server Tag (if available) -->
-                                <ui:Button Grid.Row="1" Grid.Column="2"
+                                <Button Grid.Row="1" Grid.Column="2"
                                            Click="BtnServerTag_Click"
                                            Tag="{Binding}"
                                            Margin="10,8,12,0"
@@ -355,7 +343,7 @@
                                             Text="{DynamicResource UiSERVERHIDDEN}"
                                             Visibility="{Binding IsStreamerMode, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Vis}}" />
                                     </Grid>
-                                </ui:Button>
+                                </Button>
                             </Grid>
                         </Border>
                     </DataTemplate>

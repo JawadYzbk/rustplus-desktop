@@ -1,5 +1,6 @@
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
+using RustPlusDesk.Helpers;
 using RustPlusDesk.Models;
 using RustPlusDesk.Services;
 using System;
@@ -13,7 +14,6 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Threading;
-using WpfUi = Wpf.Ui.Controls;
 
 namespace RustPlusDesk.Views;
 
@@ -429,7 +429,7 @@ public partial class MainWindow
 
         if (_vm.Selected is null)
         {
-            if (!silent) ShowInfoSnackbar(Properties.Resources.SnackbarTitleConnection, Properties.Resources.PleaseSelectServerFirst, WpfUi.ControlAppearance.Info);
+            if (!silent) ShowInfoSnackbar(Properties.Resources.SnackbarTitleConnection, Properties.Resources.PleaseSelectServerFirst, SnackbarSeverity.Info);
             return false;
         }
 
@@ -648,14 +648,14 @@ public partial class MainWindow
                     ShowInfoSnackbar(
                         Properties.Resources.ConnectionFailedRustPlusUnreachable,
                         Properties.Resources.ConnectionFailedRustPlusUnreachableComment,
-                        WpfUi.ControlAppearance.Danger);
+                        SnackbarSeverity.Danger);
                 }
                 else
                 {
                     ShowInfoSnackbar(
                         Properties.Resources.SnackbarTitleConnection,
                         $"{Properties.Resources.ErrorPrefix}{ex.Message}",
-                        WpfUi.ControlAppearance.Danger);
+                        SnackbarSeverity.Danger);
                 }
             }
             return false;

@@ -2,8 +2,7 @@
     x:Class="RustPlusDesk.Views.PlayersTabContent"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:tutorials="clr-namespace:RustPlusDesk.Features.Tutorials"
-    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    xmlns:tutorials="clr-namespace:RustPlusDesk.Features.Tutorials" xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
     <TabControl
         tutorials:Tutorial.TargetId="Players.Center"
         Margin="0,10,0,0"
@@ -27,16 +26,13 @@
                         Margin="0"
                         Panel.ZIndex="1"
                         IsItemsHost="True" />
-                    <ui:Button
+                    <Button
                         Grid.Row="0" Grid.Column="1"
                         Margin="0,0,12,0"
                         Padding="8,4"
                         VerticalAlignment="Center"
-                        Appearance="Secondary"
                         Click="BtnHowToTrack_Click"
-                        ToolTip="{DynamicResource LearnHowTrackingWorks}"
-                        Icon="{ui:SymbolIcon Symbol=QuestionCircle24}"
-                        Content="{DynamicResource HowToTrack}" />
+                        ToolTip="{DynamicResource LearnHowTrackingWorks}"><StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="HelpCircle" VerticalAlignment="Center" /><ContentPresenter Margin="6,0,0,0" VerticalAlignment="Center" Content="{DynamicResource HowToTrack}" /></StackPanel></Button>
                     <ContentPresenter
                         Grid.Row="1" Grid.ColumnSpan="2"
                         Margin="0,8,0,0"
@@ -49,7 +45,7 @@
         <TabItem Style="{StaticResource PrettyTabItem}">
             <TabItem.Header>
                 <StackPanel Orientation="Horizontal">
-                    <ui:SymbolIcon Symbol="PeopleCommunity24" Margin="0,0,6,0" VerticalAlignment="Center" FontSize="14" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}" />
+                    <materialDesign:PackIcon  Kind="AccountMultiple" Margin="0,0,6,0" VerticalAlignment="Center" FontSize="14" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}"  />
                     <TextBlock VerticalAlignment="Center" Text="{DynamicResource OnlineTab}" />
                 </StackPanel>
             </TabItem.Header>
@@ -80,47 +76,40 @@
                             FontWeight="Bold"
                             Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                             Text="{DynamicResource OnlinePlayers}" />
-                        <ui:Button
+                        <Button
                             Grid.Column="2"
                             Padding="8,4"
-                            Appearance="Secondary"
-                            Click="BtnShowOnline_Click"
-                            Content="{DynamicResource Refresh}"
-                            Icon="{ui:SymbolIcon Symbol=ArrowClockwise24}" />
-                        <ui:Button
+                            Click="BtnShowOnline_Click"><StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="Redo" VerticalAlignment="Center" /><ContentPresenter Margin="6,0,0,0" VerticalAlignment="Center" Content="{DynamicResource Refresh}" /></StackPanel></Button>
+                        <Button
                             x:Name="BtnPopoutPlayers"
                             Grid.Column="3"
                             Margin="4,0,0,0"
                             Padding="8,4"
-                            Appearance="Secondary"
                             Click="BtnPopoutPlayers_Click"
                             ToolTip="{DynamicResource OpenPlayersSeparateWindow}"
                             Content="{DynamicResource Popout}" />
                     </Grid>
                     <DockPanel x:Name="PnlManualTrack" x:FieldModifier="public" Grid.Row="1" Margin="0,0,0,8" tutorials:Tutorial.TargetId="Players.Track">
-                        <ui:Button
+                        <Button
                             x:Name="BtnAddManual"
                             x:FieldModifier="public"
                             Margin="4,0,0,0"
                             Padding="8,4"
-                            Appearance="Primary"
                             Click="BtnAddManual_Click"
                             Content="{DynamicResource Track}"
                             DockPanel.Dock="Right" />
-                        <ui:TextBox
+                        <TextBox
                             x:Name="TxtManualBMId"
-                            x:FieldModifier="public"
-                            PlaceholderText="{DynamicResource ManualTrackPlaceholder}" />
+                            x:FieldModifier="public" materialDesign:HintAssist.Hint="{DynamicResource ManualTrackPlaceholder}" />
                     </DockPanel>
-                    <ui:TextBox
+                    <TextBox
                         x:Name="TxtOnlineFilter"
                         tutorials:Tutorial.TargetId="Players.Search"
                         x:FieldModifier="public"
                         Grid.Row="2"
                         Margin="0,0,0,8"
-                        PlaceholderText="{DynamicResource FilterPlayersPlaceholder}"
                         TextChanged="TxtOnlineFilter_TextChanged"
-                        Visibility="Collapsed" />
+                        Visibility="Collapsed" materialDesign:HintAssist.Hint="{DynamicResource FilterPlayersPlaceholder}" />
                     <Grid
                         x:Name="PnlOnlineStatus"
                         x:FieldModifier="public"
@@ -141,7 +130,7 @@
                             </ContextMenu>
                         </Grid.ContextMenu>
                         <StackPanel>
-                            <ui:ProgressRing
+                            <ProgressBar Style="{StaticResource MaterialDesignCircularProgressBar}" Value="60"
                                 x:Name="PbOnlineLoading"
                                 x:FieldModifier="public"
                                 Width="32"
@@ -199,13 +188,12 @@
                                         FontSize="11"
                                         Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                         Text="{Binding PlayTimeStr}" />
-                                    <ui:Button
+                                    <Button
                                         x:Name="BtnAction"
                                         Grid.Column="3"
                                         Width="60"
                                         Margin="0"
                                         Padding="6,2"
-                                        Appearance="Secondary"
                                         Click="BtnTrackPlayer_Click"
                                         Content="{DynamicResource Track}"
                                         FontSize="11"
@@ -215,7 +203,6 @@
                                     <DataTrigger Binding="{Binding IsTracked}" Value="True">
                                         <Setter TargetName="StatusDot" Property="Fill" Value="#FFD166" />
                                         <Setter TargetName="BtnAction" Property="Content" Value="Details" />
-                                        <Setter TargetName="BtnAction" Property="Appearance" Value="Primary" />
                                     </DataTrigger>
                                     <Trigger Property="IsMouseOver" Value="False">
                                         <Setter TargetName="BtnAction" Property="Opacity" Value="0.6" />
@@ -233,7 +220,7 @@
         <TabItem Style="{StaticResource PrettyTabItem}">
             <TabItem.Header>
                 <StackPanel Orientation="Horizontal">
-                    <ui:SymbolIcon Symbol="Radar20" Margin="0,0,6,0" VerticalAlignment="Center" FontSize="14" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}" />
+                    <materialDesign:PackIcon  Kind="Radar" Margin="0,0,6,0" VerticalAlignment="Center" FontSize="14" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}"  />
                     <TextBlock VerticalAlignment="Center" Text="{DynamicResource TrackedTab}" />
                 </StackPanel>
             </TabItem.Header>
@@ -262,33 +249,26 @@
                             FontWeight="Bold"
                             Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                             Text="{DynamicResource TrackedPlayers}" />
-                        <ui:Button
+                        <Button
                             Grid.Column="1"
                             Padding="8,4"
-                            Appearance="Secondary"
-                            Click="BtnManageGroups_Click"
-                            Content="{DynamicResource ManageGroups}"
-                            Icon="Group24" />
+                            Click="BtnManageGroups_Click"><StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="AccountGroup" VerticalAlignment="Center" /><ContentPresenter Margin="6,0,0,0" VerticalAlignment="Center" Content="{DynamicResource ManageGroups}" /></StackPanel></Button>
                     </Grid>
-                    <ui:TextBox
+                    <TextBox
                         x:Name="TxtTrackedFilter"
                         x:FieldModifier="public"
                         Grid.Row="1"
                         Margin="0,0,0,8"
-                        PlaceholderText="{DynamicResource FilterPlayersPlaceholder}"
-                        TextChanged="TxtTrackedFilter_TextChanged" />
+                        TextChanged="TxtTrackedFilter_TextChanged" materialDesign:HintAssist.Hint="{DynamicResource FilterPlayersPlaceholder}" />
                     <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                         <StackPanel x:Name="ListTrackedPlayers" x:FieldModifier="public" />
                     </ScrollViewer>
-                    <ui:Button
+                    <Button
                         x:Name="BtnViewTracking"
                         Grid.Row="3"
                         Margin="0,8,0,0"
                         HorizontalAlignment="Stretch"
-                        Appearance="Primary"
-                        Click="BtnViewAllAnalysis_Click"
-                        Content="{DynamicResource ViewFullAnalysisReport}"
-                        Icon="DataHistogram24" />
+                        Click="BtnViewAllAnalysis_Click"><StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="ChartBar" VerticalAlignment="Center" /><ContentPresenter Margin="6,0,0,0" VerticalAlignment="Center" Content="{DynamicResource ViewFullAnalysisReport}" /></StackPanel></Button>
                 </Grid>
             </Border>
         </TabItem>

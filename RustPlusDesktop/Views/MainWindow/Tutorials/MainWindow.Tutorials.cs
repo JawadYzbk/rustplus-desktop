@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
 
+using RustPlusDesk.Views.Windows;
 namespace RustPlusDesk.Views;
 
 public partial class MainWindow : ITutorialContext, ITutorialNavigationCoordinator
@@ -109,16 +110,13 @@ public partial class MainWindow : ITutorialContext, ITutorialNavigationCoordinat
             !preferences.OfferedTutorialIds.Add(tutorialId)) return;
         await _tutorialProgressStore.SavePreferencesAsync(preferences);
 
-        var prompt = new Wpf.Ui.Controls.MessageBox
-        {
-            Title = Properties.Resources.GetString(definition.TitleKey),
-            Content = Properties.Resources.GetString(definition.DescriptionKey),
-            PrimaryButtonText = Properties.Resources.GetString("Tutorials.Common.Start"),
-            CloseButtonText = Properties.Resources.GetString("Tutorials.Welcome.NotNow"),
-            Owner = this,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner
-        };
-        if (await prompt.ShowDialogAsync() == Wpf.Ui.Controls.MessageBoxResult.Primary)
+        var start = await MaterialDialog.ShowAsync(
+            this,
+            Properties.Resources.GetString(definition.TitleKey),
+            Properties.Resources.GetString(definition.DescriptionKey),
+            Properties.Resources.GetString("Tutorials.Common.Start"),
+            Properties.Resources.GetString("Tutorials.Welcome.NotNow"));
+        if (start)
             await _tutorialService.StartAsync(tutorialId);
     }
 

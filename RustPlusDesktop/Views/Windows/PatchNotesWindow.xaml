@@ -1,8 +1,7 @@
 <Window x:Class="RustPlusDesk.Views.PatchNotesWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:p="clr-namespace:RustPlusDesk.Properties"
-        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:p="clr-namespace:RustPlusDesk.Properties" xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:views="clr-namespace:RustPlusDesk.Views"
         Title="{DynamicResource PatchNotes}"
         Width="720" Height="620"
@@ -23,7 +22,7 @@
 
                     <Button x:Name="BtnTranslate" HorizontalAlignment="Right" VerticalAlignment="Top" Padding="12,4" Click="BtnTranslate_Click">
                         <StackPanel Orientation="Horizontal">
-                            <ui:SymbolIcon Symbol="Translate24" Margin="0,0,6,0"/>
+                            <materialDesign:PackIcon  Kind="Translate" Margin="0,0,6,0" />
                             <TextBlock Text="{DynamicResource TranslateViaGoogle}" VerticalAlignment="Center" x:Name="TxtTranslate"/>
                         </StackPanel>
                     </Button>
@@ -956,7 +955,7 @@
                                 Rust+ Desktop now offers a full Cloud Backend! Create an account via Email or Discord to access powerful features like Device Sync, Map Overlay Sharing with Base Screenshots, and the new Cloud Portal.
                             </TextBlock>
                             
-                            <ui:Button Content="{DynamicResource CompareCloudFeatures}" Appearance="Secondary" Icon="Info24" Margin="0,5,0,15" HorizontalAlignment="Left" Click="BtnCompareCloud_Click"/>
+                            <Button Margin="0,5,0,15" HorizontalAlignment="Left" Click="BtnCompareCloud_Click"><StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="Information" VerticalAlignment="Center" /><ContentPresenter Margin="6,0,0,0" VerticalAlignment="Center" Content="{DynamicResource CompareCloudFeatures}" /></StackPanel></Button>
 
                             <TextBlock Text="&#x2022; Advanced Discord Integration &amp; Bots" FontWeight="Bold" Margin="0,0,0,4"/>
                             <TextBlock TextWrapping="Wrap" Margin="0,0,0,8">
@@ -1449,7 +1448,7 @@
                                 </Style>
                             </Button.Resources>
                         </Button>
-                        <ui:Button Content="{DynamicResource Accept}" Appearance="Primary" Padding="24,6" Click="BtnAcceptConsent_Click" Cursor="Hand" />
+                        <Button Content="{DynamicResource Accept}" Padding="24,6" Click="BtnAcceptConsent_Click" Cursor="Hand" />
                     </StackPanel>
                 </StackPanel>
             </Border>

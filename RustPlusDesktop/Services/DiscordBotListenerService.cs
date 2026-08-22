@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using RustPlusDesk.Helpers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -592,7 +593,7 @@ public class DiscordBotListenerService
                 mainWindow.ShowInfoSnackbar(
                     "Discord permissions missing",
                     "A configured Discord channel was disabled for one hour. Check the bot's channel permissions.",
-                    Wpf.Ui.Controls.ControlAppearance.Caution);
+                    SnackbarSeverity.Warning);
             }
         }));
     }
