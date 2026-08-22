@@ -409,6 +409,8 @@ public partial class MainWindow : Window
 
         _vm.IsInitializing = true;
         InitializeComponent();
+        TeamTabControl.Main = this;
+        ClanTabHost.Main = this;
         MainTabs.SelectedItem = DevicesTabItem;
         Services.Auth.SupabaseAuthManager.ShowUpgradeRequiredWarning();
         CloudTrafficPolicy.IsMinimized = WindowState == WindowState.Minimized;

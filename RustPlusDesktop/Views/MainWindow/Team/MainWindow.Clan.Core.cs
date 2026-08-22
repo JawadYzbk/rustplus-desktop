@@ -279,7 +279,7 @@ namespace RustPlusDesk.Views
                 AppendLog($"[clan-avatar] {vm.SteamId}: {ex.Message}");
             }
         }
-        private void Clan_OpenProfile_Click(object sender, System.Windows.RoutedEventArgs e)
+        internal void Clan_OpenProfile_Click(object sender, System.Windows.RoutedEventArgs e)
         {
             if ((sender as System.Windows.FrameworkElement)?.DataContext is ClanMemberVM vm)
             {
@@ -295,7 +295,7 @@ namespace RustPlusDesk.Views
             }
         }
 
-        private void Clan_CopySteamId_Click(object sender, System.Windows.RoutedEventArgs e)
+        internal void Clan_CopySteamId_Click(object sender, System.Windows.RoutedEventArgs e)
         {
             if ((sender as System.Windows.FrameworkElement)?.DataContext is ClanMemberVM vm)
             {
@@ -307,17 +307,17 @@ namespace RustPlusDesk.Views
             }
         }
 
-        private async void BtnRefreshClan_Click(object sender, System.Windows.RoutedEventArgs e)
+        internal async void BtnRefreshClan_Click(object sender, System.Windows.RoutedEventArgs e)
         {
             await LoadClanAsync();
         }
 
-        private void BtnToggleClanView_Click(object sender, System.Windows.RoutedEventArgs e)
+        internal void BtnToggleClanView_Click(object sender, System.Windows.RoutedEventArgs e)
         {
             IsClanListView = !IsClanListView;
         }
 
-        private async void BtnOpenClanChat_Click(object sender, System.Windows.RoutedEventArgs e)
+        internal async void BtnOpenClanChat_Click(object sender, System.Windows.RoutedEventArgs e)
         {
             TabClanChat.IsChecked = true;
             await OpenChatOverlayAsync();

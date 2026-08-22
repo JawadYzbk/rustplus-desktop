@@ -17,6 +17,15 @@ namespace RustPlusDesk.Views;
 
 public partial class MainWindow
 {
+    // ---- Bridges to the extracted Team tab module (Views/MainWindow/Team/TeamTabContent.xaml) ----
+    // Same names as the former generated fields so existing partial-class code needs no changes.
+    private System.Windows.Controls.ListBox? TeamList => TeamTabControl?.TeamList;
+    private System.Windows.Controls.CheckBox? ChkDeathMarkers => TeamTabControl?.ChkDeathMarkers;
+    private System.Windows.Controls.CheckBox? ChkPlayerArrows => TeamTabControl?.ChkPlayerArrows;
+    private System.Windows.Controls.CheckBox? ChkProfileMarkers => TeamTabControl?.ChkProfileMarkers;
+    private System.Windows.Controls.Primitives.ToggleButton? BtnAbbreviateNames => TeamTabControl?.BtnAbbreviateNames;
+    private System.Windows.Controls.Slider? SliderPlayerIconSize => TeamTabControl?.SliderPlayerIconSize;
+
     private System.Windows.Threading.DispatcherTimer? _teamTimer;
     private System.Windows.Threading.DispatcherTimer? _afkTimer;
     public ObservableCollection<TeamMemberVM> TeamMembers { get; } = new();
@@ -901,19 +910,19 @@ public partial class MainWindow
         }
     }
 
-    private void TeamItem_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    internal void TeamItem_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is TeamMemberVM vm)
             CenterOnMember(vm);
     }
 
-    private void Team_Center_Click(object sender, RoutedEventArgs e)
+    internal void Team_Center_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is TeamMemberVM vm)
             CenterOnMember(vm);
     }
 
-    private void Team_Follow_Click(object sender, RoutedEventArgs e)
+    internal void Team_Follow_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is TeamMemberVM vm)
         {
@@ -954,7 +963,7 @@ public partial class MainWindow
         }
     }
 
-    private void Team_OpenProfile_Click(object sender, RoutedEventArgs e)
+    internal void Team_OpenProfile_Click(object sender, RoutedEventArgs e)
     {
         var vm = VMFromSender(sender);
         if (vm == null) return;
@@ -973,7 +982,7 @@ public partial class MainWindow
     private TeamMemberVM? VMFromSender(object sender)
         => (sender as FrameworkElement)?.DataContext as TeamMemberVM ?? TeamList?.SelectedItem as TeamMemberVM;
 
-    private async void Team_Promote_Click(object sender, RoutedEventArgs e)
+    internal async void Team_Promote_Click(object sender, RoutedEventArgs e)
     {
         var vm = VMFromSender(sender);
         if (vm == null) return;
@@ -1080,7 +1089,7 @@ public partial class MainWindow
         }
     }
 
-    private void TeamCheckBox_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    internal void TeamCheckBox_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         if (sender is System.Windows.Controls.CheckBox chk && chk.DataContext is TeamMemberVM vm)
         {

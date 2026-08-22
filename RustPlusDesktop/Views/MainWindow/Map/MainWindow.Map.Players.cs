@@ -450,7 +450,7 @@ public partial class MainWindow
         }
     }
 
-    private void ChkProfileMarkers_Toggled(object? sender, RoutedEventArgs e)
+    internal void ChkProfileMarkers_Toggled(object? sender, RoutedEventArgs e)
     {
         _showProfileMarkers = ChkProfileMarkers.IsChecked == true;
         if (_vm != null && !_vm.IsInitializing) TrackingService.MapShowSteamMarkers = _showProfileMarkers;
@@ -476,7 +476,7 @@ public partial class MainWindow
         }
     }
 
-    private void ChkPlayerArrows_Toggled(object? sender, RoutedEventArgs e)
+    internal void ChkPlayerArrows_Toggled(object? sender, RoutedEventArgs e)
     {
         _showPlayerArrows = ChkPlayerArrows.IsChecked == true;
         if (_vm != null && !_vm.IsInitializing) TrackingService.MapShowPlayerArrows = _showPlayerArrows;
@@ -495,7 +495,7 @@ public partial class MainWindow
         }
     }
 
-    private void ChkDeathMarkers_Toggled(object? sender, RoutedEventArgs e)
+    internal void ChkDeathMarkers_Toggled(object? sender, RoutedEventArgs e)
     {
         _showDeathMarkers = ChkDeathMarkers.IsChecked == true;
         if (_vm != null && !_vm.IsInitializing) TrackingService.MapShowDeathTags = _showDeathMarkers;
@@ -513,7 +513,7 @@ public partial class MainWindow
         }
     }
 
-    private void BtnDeathMarkerSettings_Click(object sender, RoutedEventArgs e)
+    internal void BtnDeathMarkerSettings_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new Views.Windows.DeathMarkerSettingsDialog(TrackingService.MaxSelfDeathMarkers, TrackingService.MaxTeamDeathMarkers);
         dlg.Owner = this;
@@ -940,14 +940,14 @@ public partial class MainWindow
         }
     }
 
-    private void SliderPlayerIconSize_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    internal void SliderPlayerIconSize_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         _playerMarkerScale = e.NewValue;
         if (_vm != null && !_vm.IsInitializing) TrackingService.MapPlayerIconScale = _playerMarkerScale;
         RefreshAllOverlayScales();
     }
 
-    private void BtnAbbreviateNames_Toggled(object sender, RoutedEventArgs e)
+    internal void BtnAbbreviateNames_Toggled(object sender, RoutedEventArgs e)
     {
         _abbreviateNames = BtnAbbreviateNames.IsChecked == true;
         if (_vm != null && !_vm.IsInitializing) TrackingService.MapAbbreviateNames = _abbreviateNames;
