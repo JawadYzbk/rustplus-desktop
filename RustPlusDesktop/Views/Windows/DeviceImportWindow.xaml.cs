@@ -109,11 +109,7 @@ namespace RustPlusDesk.Views
         {
             InitializeComponent();
 
-            try
-            {
-                Wpf.Ui.Appearance.ApplicationThemeManager.Apply(this);
-            }
-            catch { }
+            // Material Design theme is applied app-wide via App.xaml.
 
             // Copy list to ObservableCollection and subscribe to changes
             Devices.Clear();

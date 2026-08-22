@@ -9,14 +9,9 @@ namespace RustPlusDesk.Views.Windows
         public OfflineDeathsHistoryWindow()
         {
             InitializeComponent();
-            
-            // Apply theme styling using helper (if exists) or fallback
-            try
-            {
-                Wpf.Ui.Appearance.ApplicationThemeManager.Apply(this);
-            }
-            catch { }
-            
+
+            // Material Design theme is applied app-wide via App.xaml.
+
             LoadHistory();
         }
 

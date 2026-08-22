@@ -469,7 +469,7 @@ public partial class MainWindow : WpfUi.FluentWindow
         // Ã¢â€â‚¬Ã¢â€â‚¬ WinUI 3: Apply OS-level Mica backdrop via DWM Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
         WindowBackdropHelper.Apply(this, WindowBackdropHelper.BackdropType.Mica);
         // Ã¢â€â‚¬Ã¢â€â‚¬ Wpf.Ui: Apply Fluent dark theme to all controls Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-        ApplicationThemeManager.Apply(ApplicationTheme.Dark, updateAccent: true);
+        // Google Material Design: theme is applied app-wide via App.xaml BundledTheme.
         
         UpdateAppTitle();
         this.LocationChanged += MainWindow_LocationChangedOrResized;

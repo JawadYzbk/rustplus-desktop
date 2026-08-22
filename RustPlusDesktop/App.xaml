@@ -1,14 +1,15 @@
 <Application x:Class="RustPlusDesk.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:converters="clr-namespace:RustPlusDesk.Converters">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <!-- Wpf.Ui (WPF-UI lepo.co): WinUI 3 Fluent controls -->
-                <ui:ThemesDictionary Theme="Dark" />
-                <ui:ControlsDictionary />
+                <!-- Google Material Design via MaterialDesignInXamlToolkit -->
+                <materialDesign:BundledTheme BaseTheme="Dark" PrimaryColor="LightBlue" SecondaryColor="DeepOrange" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
             </ResourceDictionary.MergedDictionaries>
             
             <!-- Converters -->
@@ -200,10 +201,10 @@
                         <ColumnDefinition Width="16"/>
                     </Grid.ColumnDefinitions>
 
-                    <ui:SymbolIcon
+                    <materialDesign:PackIcon
                         x:Name="CheckIcon"
                         Grid.Column="0"
-                        Symbol="Checkmark20"
+                        Kind="Check"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"
                         Foreground="{DynamicResource Accent}"

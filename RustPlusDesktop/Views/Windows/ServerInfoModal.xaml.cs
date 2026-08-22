@@ -49,12 +49,7 @@ namespace RustPlusDesk.Views
                 ? "No detailed description available for this server."
                 : _profile.Description;
 
-            // Apply WPF-UI Theme
-            try
-            {
-                Wpf.Ui.Appearance.ApplicationThemeManager.Apply(this);
-            }
-            catch { }
+            // Material Design theme is applied app-wide via App.xaml.
 
             Loaded += ServerInfoModal_Loaded;
         }
