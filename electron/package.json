@@ -8,6 +8,8 @@
   },
   "scripts": {
     "dev": "pnpm --filter @rpd/desktop dev",
+    "start": "pnpm --filter @rpd/desktop start",
+    "start:nosandbox": "pnpm --filter @rpd/desktop start:nosandbox",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",

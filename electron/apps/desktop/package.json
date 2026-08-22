@@ -5,6 +5,8 @@
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
+    "start": "electron-vite build && electron .",
+    "start:nosandbox": "electron-vite build && electron . --no-sandbox",
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.web.json",
     "test": "vitest run",
