@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Theme tokens — canonical palette from Views\MainWindow\SharedResources.xaml (audit UI_SHELL §3).
+ * App.xaml's lighter palette lost the reconciliation (dark-only confirmed as default decision Q3).
+ */
+:root {
+  /* shadcn-compatible semantic tokens */
+  --background: 220 12% 7%; /* #0F1013 AppBg */
+  --foreground: 210 25% 95%; /* #F0F3F7 TextPrimary */
+  --card: 217 13% 11%; /* #181B1F Surface */
+  --card-foreground: 210 25% 95%;
+  --popover: 222 14% 14%; /* #1F2229 SurfaceAlt */
+  --popover-foreground: 210 25% 95%;
+  --primary: 199 100% 69%; /* #60CDFF Accent */
+  --primary-foreground: 220 12% 7%;
+  --secondary: 217 13% 16%;
+  --secondary-foreground: 210 25% 95%;
+  --muted: 220 10% 18%;
+  --muted-foreground: 215 15% 62%; /* #8C96A8 TextSubtle */
+  --accent: 217 13% 16%;
+  --accent-foreground: 210 25% 95%;
+  --destructive: 0 72% 61%; /* #F04747 AccentRed */
+  --destructive-foreground: 0 0% 100%;
+  --success: 152 37% 51%; /* #4EB887 AccentGreen */
+  --warning: 38 92% 50%; /* FFA500 Caution bar */
+  --caption: 214 17% 41%; /* #5A6475 TextCaption */
+  /* solid stand-in for the rgba(255,255,255,0.16) card hairlines; alpha variant refined in UI stages */
+  --border: 220 11% 17%;
+  --input: 220 10% 20%;
+  --ring: 199 100% 69%;
+  --radius: 8px;
+
+  /* scrollbar tokens (track #141820, thumb #2C3548) applied globally below */
+  --scrollbar-track: #141820;
+  --scrollbar-thumb: #2c3548;
+}
+
+* {
+  @apply border-border;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-background text-foreground font-sans antialiased overflow-hidden;
+}
+
+/* Ultra-slim 4px scrollbars (signature pattern). */
+*::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 2px;
+}
+
+/* Draggable titlebar region helper. */
+.drag-region {
+  -webkit-app-region: drag;
+}
+.no-drag-region {
+  -webkit-app-region: no-drag;
+}
