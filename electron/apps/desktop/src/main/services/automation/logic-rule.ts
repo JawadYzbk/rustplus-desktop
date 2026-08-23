@@ -8,6 +8,14 @@
 export type LogicStepType = "Wait" | "Toggle" | "CheckAvailability" | "StartTimer";
 export type LogicTriggerType = "SmartAlarm" | "SmartSwitch" | "ChatCommand" | "RuleTriggered" | "RuleCompleted";
 export type TimerTarget = "Custom" | "SmallOilRig" | "LargeOilRig";
+/** CheckAvailability operators (single target: IS_*) and conditional-branch operators (ALL_/ANY_*). */
+export type AvailabilityOperator =
+  | "IS_OFFLINE"
+  | "IS_ONLINE"
+  | "ALL_OFFLINE"
+  | "ANY_OFFLINE"
+  | "ALL_ONLINE"
+  | "ANY_ONLINE";
 
 export interface LogicStep {
   stepType: LogicStepType;
@@ -25,7 +33,7 @@ export interface LogicStep {
   targetGroupName: string;
   /** null = invert, true = ON, false = OFF. */
   toggleState: boolean | null;
-  conditionOperator: "ALL_OFFLINE" | "ANY_OFFLINE" | "ALL_ONLINE" | "ANY_ONLINE";
+  conditionOperator: AvailabilityOperator;
   conditionDeviceIdsCsv: string;
   conditionalSteps: LogicStep[];
 }
@@ -41,6 +49,10 @@ export interface LogicRule {
   triggerCommand: string;
   triggerRuleId: string;
   triggerState: boolean;
+  /** NONE, AND, OR — gate evaluated at fire time. */
+  conditionOperator: "NONE" | "AND" | "OR";
+  conditionDeviceEntityId: number;
+  conditionDeviceState: boolean;
   steps: LogicStep[];
 }
 
@@ -75,6 +87,9 @@ export function newLogicRule(over: Partial<LogicRule> = {}): LogicRule {
     triggerCommand: "rulecommand",
     triggerRuleId: "",
     triggerState: true,
+    conditionOperator: "NONE",
+    conditionDeviceEntityId: 0,
+    conditionDeviceState: true,
     steps: [],
     ...over,
   };
