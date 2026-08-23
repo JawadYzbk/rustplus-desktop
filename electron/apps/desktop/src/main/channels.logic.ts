@@ -6,12 +6,13 @@
 import type { z } from "zod";
 import {
   logicGetRules,
+  logicGetRule,
   logicSaveRules,
   type DeviceNodeDto,
 } from "@rpd/shared";
 import { parseDevices, serializeDevices } from "./services/devices/server-profile.js";
 import { countActualDevicesTree } from "./services/devices/device-data.js";
-import { parseLogicRule } from "./services/automation/logic-rule.js";
+import { parseLogicRule, serializeLogicRule, type LogicRule, type LogicStep } from "./services/automation/logic-rule.js";
 import type { LogicEngineService } from "./services/automation/engine-service.js";
 
 export interface ProfileBridgeDeps {
@@ -80,6 +81,8 @@ export interface EngineDeps {
       headers: Array<z.infer<typeof logicSaveRules["request"]>["rules"][number]>,
       isEngineActive: boolean,
     ): boolean;
+    ruleFor(matchKey: string, ruleId: string): LogicRule | null;
+    saveFullRuleFor(matchKey: string, rule: LogicRule): boolean;
   };
 }
 
@@ -91,6 +94,8 @@ export function buildLogicHandlers(engine: EngineDeps["engine"]): {
   "logic/run": (req: { ruleId: string }) => Promise<{ accepted: boolean }>;
   "logic/getRules": (req: { matchKey: string }) => { found: boolean; isEngineActive: boolean; rules: RuleHeader[] };
   "logic/saveRules": (req: z.infer<typeof logicSaveRules["request"]>) => { saved: boolean };
+  "logic/getRule": (req: { matchKey: string; ruleId: string }) => z.infer<(typeof logicGetRule)["response"]>;
+  "logic/saveRule": (req: { matchKey: string; rule: Record<string, unknown> }) => { saved: boolean };
 } {
   return {
     "logic/status": () => engine.status(),
@@ -126,5 +131,56 @@ export function buildLogicHandlers(engine: EngineDeps["engine"]): {
     "logic/saveRules": (req) => ({
       saved: engine.saveRulesFor(req.matchKey, req.rules, req.isEngineActive),
     }),
+
+    "logic/getRule": (req) => {
+      const rule = engine.ruleFor(req.matchKey, req.ruleId);
+      return { found: rule !== null, rule: rule ? ruleToDto(rule) : null };
+    },
+
+    "logic/saveRule": (req) => {
+      // parseLogicRule applies the C# defaults/clamps/unknown-enum tolerance on load.
+      const rule = parseLogicRule(req.rule as unknown as Record<string, unknown>);
+      return { saved: engine.saveFullRuleFor(req.matchKey, rule) };
+    },
+  };
+}
+
+type StepDto = NonNullable<z.infer<(typeof logicGetRule)["response"]>["rule"]>["steps"][number];
+
+/** LogicStep → bridge DTO (recursive for conditionalSteps). */
+function stepToDto(s: LogicStep): StepDto {
+  return {
+    stepType: s.stepType,
+    timerMinutes: s.timerMinutes,
+    timerTarget: s.timerTarget,
+    timerName: s.timerName,
+    showCrateOnMap: s.showCrateOnMap,
+    alarmTextHint: s.alarmTextHint,
+    waitSeconds: s.waitSeconds,
+    targetEntityId: s.targetEntityId,
+    targetGroupName: s.targetGroupName,
+    toggleState: s.toggleState,
+    conditionOperator: s.conditionOperator,
+    conditionDeviceIdsCsv: s.conditionDeviceIdsCsv,
+    conditionalSteps: s.conditionalSteps.map(stepToDto),
+  };
+}
+
+function ruleToDto(r: LogicRule): NonNullable<z.infer<(typeof logicGetRule)["response"]>["rule"]> {
+  return {
+    id: r.id,
+    name: r.name,
+    isEnabled: r.isEnabled,
+    isLoopEnabled: r.isLoopEnabled,
+    loopCount: r.loopCount,
+    triggerType: r.triggerType,
+    triggerEntityId: r.triggerEntityId,
+    triggerCommand: r.triggerCommand,
+    triggerRuleId: r.triggerRuleId,
+    triggerState: r.triggerState,
+    conditionOperator: r.conditionOperator,
+    conditionDeviceEntityId: r.conditionDeviceEntityId,
+    conditionDeviceState: r.conditionDeviceState,
+    steps: r.steps.map(stepToDto),
   };
 }

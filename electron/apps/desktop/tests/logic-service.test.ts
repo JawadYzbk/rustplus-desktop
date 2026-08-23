@@ -268,6 +268,79 @@ describe("LogicEngineService host binding", () => {
     expect(svc.isEngineActiveFor("h:1|s")).toBe(false);
   });
 
+  it("ruleFor + saveFullRuleFor round-trip a full rule incl. nested conditional steps", () => {
+    const store: FakeStoreShape = { data: new Map(), activeKey: null };
+    seedProfile(store);
+    const { svc } = makeService(store);
+
+    expect(svc.ruleFor("h:1|s", "nope")).toBeNull();
+
+    const full = {
+      id: "edit-me",
+      name: "gate",
+      isEnabled: true,
+      isLoopEnabled: false,
+      loopCount: 2,
+      triggerType: "SmartSwitch" as const,
+      triggerEntityId: 10,
+      triggerCommand: "",
+      triggerRuleId: "",
+      triggerState: true,
+      conditionOperator: "NONE" as const,
+      conditionDeviceEntityId: 0,
+      conditionDeviceState: true,
+      steps: [
+        {
+          stepType: "CheckAvailability" as const,
+          waitSeconds: 10,
+          timerMinutes: 15,
+          timerTarget: "Custom" as const,
+          timerName: "",
+          showCrateOnMap: true,
+          alarmTextHint: "",
+          targetEntityId: 0,
+          targetGroupName: "",
+          toggleState: null,
+          conditionOperator: "ALL_OFFLINE" as const,
+          conditionDeviceIdsCsv: "31,32",
+          conditionalSteps: [
+            {
+              stepType: "Toggle" as const,
+              waitSeconds: 10,
+              timerMinutes: 15,
+              timerTarget: "Custom" as const,
+              timerName: "",
+              showCrateOnMap: true,
+              alarmTextHint: "",
+              targetEntityId: 40,
+              targetGroupName: "",
+              toggleState: true,
+              conditionOperator: "ALL_OFFLINE" as const,
+              conditionDeviceIdsCsv: "",
+              conditionalSteps: [],
+            },
+          ],
+        },
+      ],
+    };
+    // Zero timerMinutes must be clamped to 1 on save (parseLogicRule load-path clamp).
+    expect(svc.saveFullRuleFor("h:1|s", { ...full, steps: [{ ...full.steps[0]!, conditionalSteps: full.steps[0]!.conditionalSteps }] })).toBe(true);
+
+    const loaded = svc.ruleFor("h:1|s", "edit-me");
+    expect(loaded).not.toBeNull();
+    expect(loaded!.loopCount).toBe(2);
+    expect(loaded!.steps).toHaveLength(1);
+    expect(loaded!.steps[0]!.conditionDeviceIdsCsv).toBe("31,32");
+    expect(loaded!.steps[0]!.conditionalSteps[0]!.targetEntityId).toBe(40);
+    expect(loaded!.steps[0]!.conditionalSteps[0]!.toggleState).toBe(true);
+
+    // Wholesale replace of the same id:
+    const renamed = { ...loaded!, name: "renamed", steps: [] };
+    expect(svc.saveFullRuleFor("h:1|s", renamed)).toBe(true);
+    expect((svc.rulesFor("h:1|s") as unknown[]).length).toBe(1); // replaced, not appended
+    expect(svc.ruleFor("h:1|s", "edit-me")!.name).toBe("renamed");
+  });
+
   it("hubAdapter filters deviceState events and unsubscribes cleanly", () => {
     const listeners: Array<(...args: unknown[]) => void> = [];
     const fakeHub = {

@@ -1,7 +1,6 @@
 /**
- * Logic Engine panel (stage 5) — header-level rule editing over logic/* IPC.
- * Step bodies are preserved server-side for unchanged ids (saveRules contract); the full
- * step editor lands as its own pass.
+ * Logic Engine panel (stage 5) — rule list + header editing over logic/* IPC, with the
+ * full step editor mounted when a rule is expanded (logic/getRule|saveRule).
  */
 import { useCallback, useEffect, useState } from "react";
 import type * as React from "react";
@@ -14,6 +13,7 @@ import {
   type LogicStatus,
   type RuleHeaderInput,
 } from "../lib/ipc.js";
+import { StepEditor } from "./StepEditor.js";
 
 const TRIGGERS = ["SmartAlarm", "SmartSwitch", "ChatCommand", "RuleTriggered", "RuleCompleted"] as const;
 
@@ -42,6 +42,7 @@ export function RulesPanel({ matchKey }: { matchKey: string }): React.JSX.Elemen
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [openRuleId, setOpenRuleId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -135,7 +136,12 @@ export function RulesPanel({ matchKey }: { matchKey: string }): React.JSX.Elemen
           <p className="p-4 text-xs text-muted-foreground">No rules yet — create one to automate switches and alarms.</p>
         )}
         {rules.map((rule, i) => (
-          <details key={rule.id} className="mb-1 rounded-md border px-2 py-1.5" open={i === 0 && dirty}>
+          <details
+            key={rule.id}
+            className="mb-1 rounded-md border px-2 py-1.5"
+            open={openRuleId === rule.id || (i === 0 && dirty)}
+            onToggle={(e) => setOpenRuleId(e.currentTarget.open ? rule.id : null)}
+          >
             <summary className="flex cursor-pointer items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -250,6 +256,9 @@ export function RulesPanel({ matchKey }: { matchKey: string }): React.JSX.Elemen
                 </label>
               )}
             </div>
+            {openRuleId === rule.id && (
+              <StepEditor matchKey={matchKey} ruleId={rule.id} onSaved={() => void refresh()} />
+            )}
           </details>
         ))}
       </div>

@@ -76,6 +76,10 @@ const api = {
     invoke("logic/getRules", { matchKey }) as Promise<InvokeResult<unknown>>,
   logicSaveRules: (payload: unknown) =>
     invoke("logic/saveRules", payload) as Promise<InvokeResult<unknown>>,
+  logicGetRule: (matchKey: string, ruleId: string) =>
+    invoke("logic/getRule", { matchKey, ruleId }) as Promise<InvokeResult<unknown>>,
+  logicSaveRule: (payload: unknown) =>
+    invoke("logic/saveRule", payload) as Promise<InvokeResult<unknown>>,
 
   /** One-way runtime event stream (connection lifecycle, polls, device state).
    * Returns an unsubscribe function. Payload shape: { stream, event }. */

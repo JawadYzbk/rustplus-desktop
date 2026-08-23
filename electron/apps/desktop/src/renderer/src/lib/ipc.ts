@@ -16,6 +16,8 @@ type RpdBridge = {
   logicRun(ruleId: string): Promise<InvokeResult<unknown>>;
   logicGetRules(matchKey: string): Promise<InvokeResult<unknown>>;
   logicSaveRules(payload: unknown): Promise<InvokeResult<unknown>>;
+  logicGetRule(matchKey: string, ruleId: string): Promise<InvokeResult<unknown>>;
+  logicSaveRule(payload: unknown): Promise<InvokeResult<unknown>>;
 };
 
 export interface InvokeSuccess<T> {
@@ -181,5 +183,56 @@ export async function saveRules(
   rules: RuleHeaderInput[],
 ): Promise<boolean> {
   const r = await bridge.logicSaveRules({ matchKey, isEngineActive, rules });
+  return r.ok ? (r.data as { saved: boolean }).saved : false;
+}
+
+/** Full rule incl. steps (step editor surface). */
+export interface StepDto {
+  stepType: "Wait" | "Toggle" | "CheckAvailability" | "StartTimer";
+  timerMinutes?: number;
+  timerTarget?: "Custom" | "SmallOilRig" | "LargeOilRig";
+  timerName?: string;
+  showCrateOnMap?: boolean;
+  alarmTextHint?: string;
+  waitSeconds?: number;
+  targetEntityId?: number;
+  targetGroupName?: string;
+  toggleState?: boolean | null;
+  conditionOperator?:
+    | "IS_OFFLINE"
+    | "IS_ONLINE"
+    | "ALL_OFFLINE"
+    | "ANY_OFFLINE"
+    | "ALL_ONLINE"
+    | "ANY_ONLINE";
+  conditionDeviceIdsCsv?: string;
+  conditionalSteps?: StepDto[];
+}
+
+export interface FullRuleDto {
+  id: string;
+  name: string;
+  isEnabled: boolean;
+  isLoopEnabled: boolean;
+  loopCount: number;
+  triggerType: RuleHeaderDto["triggerType"];
+  triggerEntityId: number;
+  triggerCommand: string;
+  triggerRuleId: string;
+  triggerState: boolean;
+  conditionOperator: RuleHeaderDto["conditionOperator"];
+  conditionDeviceEntityId: number;
+  conditionDeviceState: boolean;
+  steps: StepDto[];
+}
+
+export async function getRule(matchKey: string, ruleId: string): Promise<FullRuleDto | null> {
+  const r = await bridge.logicGetRule(matchKey, ruleId);
+  if (r.ok) return (r.data as { found: boolean; rule: FullRuleDto | null }).rule;
+  throw new Error(`logic/getRule failed [${r.error.code}]: ${r.error.message}`);
+}
+
+export async function saveRule(matchKey: string, rule: FullRuleDto): Promise<boolean> {
+  const r = await bridge.logicSaveRule({ matchKey, rule });
   return r.ok ? (r.data as { saved: boolean }).saved : false;
 }

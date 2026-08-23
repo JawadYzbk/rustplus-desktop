@@ -308,6 +308,82 @@ export const logicSaveRules = defineChannel(
   "Persist rule headers + engine-active flag (steps are preserved untouched for unchanged ids).",
 );
 
+/** Full rule incl. steps — the step editor reads/writes one rule at a time. Step fields are
+ * optional in the bridge: parseLogicRule on the main side applies C# defaults, clamps and
+ * unknown-enum tolerance (Models/LogicRule.cs parity), so the renderer can send partial steps. */
+const logicStepSchema: z.ZodType<Record<string, unknown>> = z.lazy(() =>
+  z
+    .object({
+      stepType: z.enum(["Wait", "Toggle", "CheckAvailability", "StartTimer"]).optional(),
+      timerMinutes: z.number().optional(),
+      timerTarget: z.enum(["Custom", "SmallOilRig", "LargeOilRig"]).optional(),
+      timerName: z.string().max(120).optional(),
+      showCrateOnMap: z.boolean().optional(),
+      alarmTextHint: z.string().max(400).optional(),
+      waitSeconds: z.number().min(0).optional(),
+      targetEntityId: z.number().int().min(0).optional(),
+      targetGroupName: z.string().max(120).optional(),
+      toggleState: z.boolean().nullable().optional(),
+      conditionOperator:
+        z.enum(["IS_OFFLINE", "IS_ONLINE", "ALL_OFFLINE", "ANY_OFFLINE", "ALL_ONLINE", "ANY_ONLINE"]).optional(),
+      conditionDeviceIdsCsv: z.string().max(2000).optional(),
+      conditionalSteps: z.array(logicStepSchema).max(20).optional(),
+    })
+    .passthrough(),
+);
+
+export const logicGetRule = defineChannel(
+  "logic/getRule",
+  z.object({ matchKey: z.string().min(1), ruleId: z.string().min(1) }),
+  z.object({
+    found: z.boolean(),
+    rule: z
+      .object({
+        id: z.string(),
+        name: z.string(),
+        isEnabled: z.boolean(),
+        isLoopEnabled: z.boolean(),
+        loopCount: z.number().int().min(0),
+        triggerType: z.enum(["SmartAlarm", "SmartSwitch", "ChatCommand", "RuleTriggered", "RuleCompleted"]),
+        triggerEntityId: z.number().int().min(0),
+        triggerCommand: z.string(),
+        triggerRuleId: z.string(),
+        triggerState: z.boolean(),
+        conditionOperator: z.enum(["NONE", "AND", "OR"]),
+        conditionDeviceEntityId: z.number().int().min(0),
+        conditionDeviceState: z.boolean(),
+        steps: z.array(logicStepSchema),
+      })
+      .nullable(),
+  }),
+  "One full rule with steps for the step editor.",
+);
+
+export const logicSaveRule = defineChannel(
+  "logic/saveRule",
+  z.object({
+    matchKey: z.string().min(1),
+    rule: z.object({
+      id: z.string().min(1),
+      name: z.string().min(1).max(120),
+      isEnabled: z.boolean(),
+      isLoopEnabled: z.boolean(),
+      loopCount: z.number().int().min(0),
+      triggerType: z.enum(["SmartAlarm", "SmartSwitch", "ChatCommand", "RuleTriggered", "RuleCompleted"]),
+      triggerEntityId: z.number().int().min(0),
+      triggerCommand: z.string().max(120),
+      triggerRuleId: z.string().max(120),
+      triggerState: z.boolean(),
+      conditionOperator: z.enum(["NONE", "AND", "OR"]),
+      conditionDeviceEntityId: z.number().int().min(0),
+      conditionDeviceState: z.boolean(),
+      steps: z.array(logicStepSchema).max(50),
+    }),
+  }),
+  z.object({ saved: z.boolean() }),
+  "Replace one rule wholesale (header + steps); unknown ids are appended.",
+);
+
 /** One-way main→renderer event stream (NOT an invoke channel — no request/response schema).
  * Payload: { stream: "conn" | "poll" | "device", event: <ConnRuntime event> }. */
 export const pushChannel = "conn/push";
@@ -336,6 +412,8 @@ export const ipcChannels = {
   "logic/run": logicRun,
   "logic/getRules": logicGetRules,
   "logic/saveRules": logicSaveRules,
+  "logic/getRule": logicGetRule,
+  "logic/saveRule": logicSaveRule,
 };
 
 export type IpcChannels = typeof ipcChannels;
@@ -364,5 +442,7 @@ const _nameParity: Readonly<{ [K in keyof IpcChannels]: IpcChannels[K]["name"] }
   "logic/run": "logic/run",
   "logic/getRules": "logic/getRules",
   "logic/saveRules": "logic/saveRules",
+  "logic/getRule": "logic/getRule",
+  "logic/saveRule": "logic/saveRule",
 };
 void _nameParity;

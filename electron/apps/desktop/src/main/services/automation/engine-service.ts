@@ -229,6 +229,30 @@ export class LogicEngineService {
     return this.profiles.field(matchKey, "IsLogicEngineActive") === true;
   }
 
+  /** Full rule (incl. steps) for the step editor; null when unknown.
+   * Matching happens AFTER parsing because stored records are PascalCase (legacy format). */
+  ruleFor(matchKey: string, ruleId: string): LogicRule | null {
+    return (
+      this.rulesFor(matchKey)
+        .map((r) => parseLogicRule((r ?? {}) as Record<string, unknown>))
+        .find((r) => r.id === ruleId) ?? null
+    );
+  }
+
+  /** Wholesale rule save (header + steps); appends when the id is new. */
+  saveFullRuleFor(matchKey: string, rule: LogicRule): boolean {
+    const existing = this.rulesFor(matchKey);
+    const parsed = existing.map((r) => parseLogicRule((r ?? {}) as Record<string, unknown>));
+    const idx = parsed.findIndex((r) => r.id === rule.id);
+    if (idx >= 0) parsed[idx] = rule;
+    else parsed.push(rule);
+    return this.profiles.setField(
+      matchKey,
+      "LogicRules",
+      parsed.map(serializeLogicRule),
+    );
+  }
+
   /** Header-level save: steps of unchanged rule ids are preserved verbatim; new ids get none. */
   saveRulesFor(
     matchKey: string,

@@ -211,6 +211,8 @@ function bootstrap(): void {
       isEngineActiveFor: (matchKey) => engineService.isEngineActiveFor(matchKey),
       saveRulesFor: (matchKey, headers, isEngineActive) =>
         engineService.saveRulesFor(matchKey, headers as Array<Record<string, unknown>>, isEngineActive),
+      ruleFor: (matchKey, ruleId) => engineService.ruleFor(matchKey, ruleId),
+      saveFullRuleFor: (matchKey, rule) => engineService.saveFullRuleFor(matchKey, rule),
     }),
     ...buildBackupHandlers({
       backup: new BackupService(userDataDir, join(userDataDir, "backups"), (level, message) =>

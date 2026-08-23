@@ -80,6 +80,8 @@ const baseHandlers = () => ({
   "logic/run": () => Promise.resolve({ accepted: true }),
   "logic/getRules": () => ({ found: false, isEngineActive: false, rules: [] }),
   "logic/saveRules": () => ({ saved: true }),
+  "logic/getRule": () => ({ found: false, rule: null }),
+  "logic/saveRule": () => ({ saved: true }),
 });
 
 describe("registerIpcHandlers", () => {
