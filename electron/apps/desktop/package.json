@@ -13,6 +13,7 @@
     "smoke": "electron-vite build && cross-env RPD_SMOKE=1 electron ."
   },
   "dependencies": {
+    "@liamcottle/rustplus.js": "2.5.0",
     "@rpd/shared": "workspace:*",
     "fflate": "^0.8.3"
   },
