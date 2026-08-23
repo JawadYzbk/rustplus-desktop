@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { defineChannel } from "./framework.js";
 import { migrationRowSchema, type LegacyRootInfo, type LegacySourceInfo } from "../migration.js";
+import { backupCreate, backupRestore, resetPerform } from "../backup.js";
 
 /** `app/getInfo` — renderer bootstrap snapshot (parity with the parts of App startup the UI needs first). */
 export const appGetInfo = defineChannel(
@@ -94,6 +95,9 @@ export const migrateRun = defineChannel(
 
 export type MigrateScanResult = { roots: LegacyRootInfo[]; sources: LegacySourceInfo[] };
 export type MigrateRunResult = z.infer<typeof migrateRun["response"]>;
+export type BackupCreateResult = z.infer<typeof backupCreate["response"]>;
+export type BackupRestoreResult = z.infer<typeof backupRestore["response"]>;
+export type ResetPerformResult = z.infer<typeof resetPerform["response"]>;
 
 /** Registry consumed by preload (allow-list) and main (handler registration). Literal keys are mandatory:
  * they preserve per-channel def types (computed keys would collapse this to an index signature). */
@@ -104,6 +108,9 @@ export const ipcChannels = {
   "uiPrefs/set": uiPrefsSet,
   "migrate/scan": migrateScan,
   "migrate/run": migrateRun,
+  "backup/create": backupCreate,
+  "backup/restore": backupRestore,
+  "reset/perform": resetPerform,
 };
 
 export type IpcChannels = typeof ipcChannels;
@@ -117,5 +124,8 @@ const _nameParity: Readonly<{ [K in keyof IpcChannels]: IpcChannels[K]["name"] }
   "uiPrefs/set": "uiPrefs/set",
   "migrate/scan": "migrate/scan",
   "migrate/run": "migrate/run",
+  "backup/create": "backup/create",
+  "backup/restore": "backup/restore",
+  "reset/perform": "reset/perform",
 };
 void _nameParity;

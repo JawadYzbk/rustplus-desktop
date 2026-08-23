@@ -35,6 +35,9 @@ const baseHandlers = () => ({
   }),
   "migrate/scan": () => ({ roots: [], sources: [] }),
   "migrate/run": () => ({ startedAt: "", finishedAt: "", rows: [] }),
+  "backup/create": () => ({ path: "", bytes: 0, encrypted: false }),
+  "backup/restore": () => ({ restored: [], skipped: [] }),
+  "reset/perform": ({ targets }: { targets: string[] }) => ({ performed: targets }),
 });
 
 describe("registerIpcHandlers", () => {

@@ -11,7 +11,9 @@ import { logger } from "./logger.js";
 import { createRegistrar } from "./ipc.js";
 import { buildAppHandlers } from "./channels.app.js";
 import { buildMigrationHandlers } from "./channels.migration.js";
+import { buildBackupHandlers } from "./channels.backup.js";
 import { LegacyMigrator, defaultLegacyRoots } from "./services/legacy-migrator.js";
+import { BackupService } from "./services/backup-service.js";
 import { SettingsStore } from "./stores/settings-store.js";
 import { ProfilesStore } from "./stores/profiles-store.js";
 import { SafeStorageSecretCodec } from "./stores/safe-storage-codec.js";
@@ -90,6 +92,17 @@ function bootstrap(): void {
   registrar.register({
     ...buildAppHandlers({ smokeMode: isSmoke, uiPrefs: uiPrefsStore }),
     ...buildMigrationHandlers({ migrator }),
+    ...buildBackupHandlers({
+      backup: new BackupService(userDataDir, join(userDataDir, "backups"), (level, message) =>
+        logger.log(level, "backup", message),
+      ),
+      reset: {
+        userDataDir,
+        settings: settingsStore,
+        profiles: profilesStore,
+        log: (message) => logger.log("warn", "reset", message),
+      },
+    }),
   });
 
   const win = createMainWindow();
