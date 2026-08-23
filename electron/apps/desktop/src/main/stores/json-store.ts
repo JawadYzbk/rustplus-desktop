@@ -13,6 +13,7 @@ import { dirname, basename, join } from "node:path";
 import {
   closeSync,
   existsSync,
+  fsyncSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -122,7 +123,7 @@ export class JsonStore<T extends VersionedDocument> {
     const tmp = `${file}.tmp`;
     const fd = openSync(tmp, "w");
     try {
-      writeSync(fd, payload, "utf8");
+      writeSync(fd, payload, null, "utf8");
       fsyncSync(fd); // flush to disk before the atomic rename
     } finally {
       closeSync(fd);
@@ -145,12 +146,6 @@ export class JsonStore<T extends VersionedDocument> {
       return `${target} (move failed: ${err instanceof Error ? err.message : String(err)}; original kept at ${file})`;
     }
   }
-}
-
-function fsyncFd(fd: number): void {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { fsyncSync } = require("node:fs") as { fsyncSync(fd: number): void };
-  fsyncSync(fd);
 }
 
 function extractVersion(parsed: unknown): number {

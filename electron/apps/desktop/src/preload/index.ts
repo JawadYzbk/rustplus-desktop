@@ -53,6 +53,11 @@ const api = {
   /** Forward a renderer log line into the main logger. */
   log: (level: "debug" | "info" | "warn" | "error", scope: string, message: string) =>
     invoke("app/logFromRenderer", { level, scope, message }) as Promise<InvokeResult<unknown>>,
+
+  /** Persisted shell preferences (sidebar). */
+  getUiPrefs: () => invoke("uiPrefs/get", undefined) as Promise<InvokeResult<unknown>>,
+  setUiPrefs: (patch: { sidebarPinned?: boolean; sidebarWidth?: number }) =>
+    invoke("uiPrefs/set", patch) as Promise<InvokeResult<unknown>>,
 };
 
 export type RpdApi = typeof api;

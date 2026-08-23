@@ -5,10 +5,12 @@
  * typed IPC wiring, rotating file logger, smoke-verification mode. Feature services land per stage.
  */
 import { app, BrowserWindow } from "electron";
+import { join } from "node:path";
 import { APP_NAME, APP_VERSION, ipcChannels } from "@rpd/shared";
 import { logger } from "./logger.js";
 import { createRegistrar } from "./ipc.js";
 import { buildAppHandlers } from "./channels.app.js";
+import { UiPrefsStore } from "./stores/ui-prefs-store.js";
 import { createMainWindow, getMainWindow } from "./window.js";
 
 const isSmoke = process.env["RPD_SMOKE"] === "1";
@@ -40,11 +42,19 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 function bootstrap(): void {
+  // Storage root fixed per ELECTRON_ARCHITECTURE §6 (%APPDATA%\RustPlusDesk-Electron) — independent of
+  // the workspace package name that Electron would otherwise derive ("@rpd" in dev).
+  app.setPath("userData", join(app.getPath("appData"), "RustPlusDesk-Electron"));
+
   logger.init();
   logger.info("app", `${APP_NAME} ${APP_VERSION} starting (dev=${isDev ? "1" : "0"} smoke=${isSmoke ? "1" : "0"})`);
 
+  const uiPrefsStore = new UiPrefsStore(app.getPath("userData"), (level, message) =>
+    logger.log(level, "store/ui-prefs", message),
+  );
+
   const registrar = createRegistrar(ipcChannels);
-  registrar.register(buildAppHandlers({ smokeMode: isSmoke }));
+  registrar.register(buildAppHandlers({ smokeMode: isSmoke, uiPrefs: uiPrefsStore }));
 
   const win = createMainWindow();
 

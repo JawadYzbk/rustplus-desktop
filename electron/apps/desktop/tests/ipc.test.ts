@@ -28,6 +28,11 @@ const baseHandlers = () => ({
     smokeMode: false,
   }),
   "app/logFromRenderer": () => undefined,
+  "uiPrefs/get": () => ({ sidebarPinned: true, sidebarWidth: 420 }),
+  "uiPrefs/set": (patch: { sidebarPinned?: boolean; sidebarWidth?: number }) => ({
+    sidebarPinned: patch.sidebarPinned ?? true,
+    sidebarWidth: patch.sidebarWidth ?? 420,
+  }),
 });
 
 describe("registerIpcHandlers", () => {

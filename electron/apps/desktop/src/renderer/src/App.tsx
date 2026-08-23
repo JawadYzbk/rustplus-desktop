@@ -5,6 +5,7 @@ import { TitleBar } from "./components/shell/TitleBar.js";
 import { SidebarRail } from "./components/shell/SidebarRail.js";
 import { FeaturePending } from "./components/shell/FeaturePending.js";
 import { useUiStore, WORKSPACE_TABS, type RailTab } from "./stores/ui.js";
+import { getUiPrefs, setUiPrefsDebounced } from "./lib/ipc.js";
 
 /**
  * Shell layout (audit UI_SHELL §2): titlebar row; below it the icon rail + content column where the right
@@ -33,6 +34,24 @@ export function App(): React.JSX.Element {
         else void window.rpd.log("error", "shell", `getInfo failed: ${r.error.message}`);
       })
       .catch(() => undefined);
+
+    // Hydrate persisted shell prefs, then persist subsequent changes (debounced).
+    let lastPersisted = "";
+    void getUiPrefs().then((prefs) => {
+      if (prefs) {
+        useUiStore.setState({ sidebarPinned: prefs.sidebarPinned, sidebarWidth: prefs.sidebarWidth });
+        lastPersisted = JSON.stringify(prefs);
+      }
+    });
+    const unsub = useUiStore.subscribe((state) => {
+      const snapshot = JSON.stringify({ sidebarPinned: state.sidebarPinned, sidebarWidth: state.sidebarWidth });
+      if (snapshot !== lastPersisted) {
+        lastPersisted = snapshot;
+        const parsed = JSON.parse(snapshot) as { sidebarPinned?: boolean; sidebarWidth?: number };
+        setUiPrefsDebounced(parsed);
+      }
+    });
+    return unsub;
   }, []);
 
   return (
