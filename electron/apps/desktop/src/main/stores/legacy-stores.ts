@@ -44,6 +44,13 @@ export class DeviceHotkeysStore {
     return next;
   }
 
+  /** Bulk import (migrator) — replaces the whole map in one atomic write. */
+  replaceAll(map: Record<string, Record<string, number[]>>): void {
+    const parsed = deviceHotkeysSchema.safeParse(map);
+    if (!parsed.success) throw new Error(`hotkeys breach contract: ${parsed.error.issues[0]?.message}`);
+    this.json.save(Object.assign({ schemaVersion: V }, parsed.data));
+  }
+
   removeServer(serverKey: string): DeviceHotkeys {
     const { [serverKey]: _removed, ...rest } = this.all();
     void _removed;
@@ -103,6 +110,13 @@ export class AlertTemplateStore {
     const next: CustomAlerts = { ...current, [existingCulture]: { ...current[existingCulture], [key]: template } };
     this.json.save(Object.assign({ schemaVersion: V }, next));
     return next;
+  }
+
+  /** Bulk import (migrator) — replaces all overrides in one atomic write. */
+  replaceAll(overrides: Record<string, Record<string, string>>): void {
+    const parsed = customAlertsSchema.safeParse(overrides);
+    if (!parsed.success) throw new Error(`alert templates breach contract: ${parsed.error.issues[0]?.message}`);
+    this.json.save(Object.assign({ schemaVersion: V }, parsed.data));
   }
 }
 

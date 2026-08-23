@@ -33,6 +33,8 @@ const baseHandlers = () => ({
     sidebarPinned: patch.sidebarPinned ?? true,
     sidebarWidth: patch.sidebarWidth ?? 420,
   }),
+  "migrate/scan": () => ({ roots: [], sources: [] }),
+  "migrate/run": () => ({ startedAt: "", finishedAt: "", rows: [] }),
 });
 
 describe("registerIpcHandlers", () => {

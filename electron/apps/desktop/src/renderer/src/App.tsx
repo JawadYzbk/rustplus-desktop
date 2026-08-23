@@ -6,6 +6,7 @@ import { SidebarRail } from "./components/shell/SidebarRail.js";
 import { FeaturePending } from "./components/shell/FeaturePending.js";
 import { useUiStore, WORKSPACE_TABS, type RailTab } from "./stores/ui.js";
 import { getUiPrefs, setUiPrefsDebounced } from "./lib/ipc.js";
+import { MigratePage } from "./pages/MigratePage.js";
 
 /**
  * Shell layout (audit UI_SHELL §2): titlebar row; below it the icon rail + content column where the right
@@ -63,6 +64,8 @@ export function App(): React.JSX.Element {
           <Routes>
             <Route path="/" element={<Navigate to="/tab/devices" replace />} />
             <Route path="/tab/:tabId" element={<TabOutlet />} />
+            {/* Migration UX route (stage 3) — reachable via deep link /migrate; not on the rail. */}
+            <Route path="/migrate" element={<MigratePage />} />
             <Route path="*" element={<Navigate to="/tab/devices" replace />} />
           </Routes>
         </main>

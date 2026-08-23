@@ -10,6 +10,18 @@ import { APP_NAME, APP_VERSION, ipcChannels } from "@rpd/shared";
 import { logger } from "./logger.js";
 import { createRegistrar } from "./ipc.js";
 import { buildAppHandlers } from "./channels.app.js";
+import { buildMigrationHandlers } from "./channels.migration.js";
+import { LegacyMigrator, defaultLegacyRoots } from "./services/legacy-migrator.js";
+import { SettingsStore } from "./stores/settings-store.js";
+import { ProfilesStore } from "./stores/profiles-store.js";
+import { SafeStorageSecretCodec } from "./stores/safe-storage-codec.js";
+import {
+  AlertTemplateStore,
+  DeviceHotkeysStore,
+  HotkeyOptionsStore,
+  TrackedPlayersStore,
+} from "./stores/legacy-stores.js";
+import { TutorialProgressStore } from "./stores/tutorial-progress-store.js";
 import { UiPrefsStore } from "./stores/ui-prefs-store.js";
 import { createMainWindow, getMainWindow } from "./window.js";
 
@@ -49,12 +61,36 @@ function bootstrap(): void {
   logger.init();
   logger.info("app", `${APP_NAME} ${APP_VERSION} starting (dev=${isDev ? "1" : "0"} smoke=${isSmoke ? "1" : "0"})`);
 
-  const uiPrefsStore = new UiPrefsStore(app.getPath("userData"), (level, message) =>
-    logger.log(level, "store/ui-prefs", message),
+  const userDataDir = app.getPath("userData");
+  const storeLog = (scope: string) => (level: "warn" | "error", message: string) =>
+    logger.log(level, scope, message);
+
+  const uiPrefsStore = new UiPrefsStore(userDataDir, storeLog("store/ui-prefs"));
+  const settingsStore = new SettingsStore(userDataDir, storeLog("store/settings"));
+  const profilesStore = new ProfilesStore(userDataDir, new SafeStorageSecretCodec(), storeLog("store/profiles"));
+
+  // %LOCALAPPDATA% has no first-class Electron path; env var is authoritative on Windows.
+  const localAppData = process.env["LOCALAPPDATA"] ?? join(app.getPath("appData"), "..", "Local");
+  const migrator = new LegacyMigrator(
+    defaultLegacyRoots(app.getPath("appData"), localAppData),
+    userDataDir,
+    {
+      settings: settingsStore,
+      profiles: profilesStore,
+      hotkeys: new DeviceHotkeysStore(userDataDir, storeLog("store/hotkeys")),
+      hotkeyOptions: new HotkeyOptionsStore(userDataDir, storeLog("store/hotkey-options")),
+      alerts: new AlertTemplateStore(userDataDir, storeLog("store/alerts")),
+      trackedPlayers: new TrackedPlayersStore(userDataDir, storeLog("store/tracked-players")),
+      tutorials: new TutorialProgressStore(userDataDir, storeLog("store/tutorials")),
+    },
+    (level, message) => logger.log(level, "migrator", message),
   );
 
   const registrar = createRegistrar(ipcChannels);
-  registrar.register(buildAppHandlers({ smokeMode: isSmoke, uiPrefs: uiPrefsStore }));
+  registrar.register({
+    ...buildAppHandlers({ smokeMode: isSmoke, uiPrefs: uiPrefsStore }),
+    ...buildMigrationHandlers({ migrator }),
+  });
 
   const win = createMainWindow();
 

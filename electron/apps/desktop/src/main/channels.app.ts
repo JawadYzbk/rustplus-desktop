@@ -14,7 +14,10 @@ export interface AppChannelContext {
 }
 
 /** IPC handlers for the `app/*` and `uiPrefs/*` channels; the registry in @rpd/shared stays the contract. */
-export function buildAppHandlers(ctx: AppChannelContext): HandlerMapOf<IpcChannels> {
+export function buildAppHandlers(ctx: AppChannelContext): Pick<
+  HandlerMapOf<IpcChannels>,
+  "app/getInfo" | "app/logFromRenderer" | "uiPrefs/get" | "uiPrefs/set"
+> {
   return {
     // Literal keys (not def.name) keep per-channel contextual handler types.
     "app/getInfo": () => ({

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { defineChannel } from "./framework.js";
+import { migrationRowSchema, type LegacyRootInfo, type LegacySourceInfo } from "../migration.js";
 
 /** `app/getInfo` — renderer bootstrap snapshot (parity with the parts of App startup the UI needs first). */
 export const appGetInfo = defineChannel(
@@ -55,6 +56,45 @@ export const uiPrefsSet = defineChannel(
   "Patch shell preferences; returns the resulting full document.",
 );
 
+/** `migrate/*` — legacy-data migration (M3). Scan inventories C#-era sources; run imports them. */
+export const migrateScan = defineChannel(
+  "migrate/scan",
+  z.void(),
+  z.object({
+    roots: z.array(
+      z.object({
+        kind: z.enum(["appData", "localData", "deathsDir"]),
+        path: z.string(),
+        exists: z.boolean(),
+      }),
+    ),
+    sources: z.array(
+      z.object({
+        id: z.string(),
+        label: z.string(),
+        location: z.string(),
+        exists: z.boolean(),
+        bytes: z.number().nullable(),
+      }),
+    ),
+  }),
+  "Inventory legacy RustPlusDesk data sources without touching anything.",
+);
+
+export const migrateRun = defineChannel(
+  "migrate/run",
+  z.void(),
+  z.object({
+    startedAt: z.string(),
+    finishedAt: z.string(),
+    rows: z.array(migrationRowSchema),
+  }),
+  "Import all detected legacy sources into the new storage root; returns a per-source report.",
+);
+
+export type MigrateScanResult = { roots: LegacyRootInfo[]; sources: LegacySourceInfo[] };
+export type MigrateRunResult = z.infer<typeof migrateRun["response"]>;
+
 /** Registry consumed by preload (allow-list) and main (handler registration). Literal keys are mandatory:
  * they preserve per-channel def types (computed keys would collapse this to an index signature). */
 export const ipcChannels = {
@@ -62,6 +102,8 @@ export const ipcChannels = {
   "app/logFromRenderer": logFromRenderer,
   "uiPrefs/get": uiPrefsGet,
   "uiPrefs/set": uiPrefsSet,
+  "migrate/scan": migrateScan,
+  "migrate/run": migrateRun,
 };
 
 export type IpcChannels = typeof ipcChannels;
@@ -73,5 +115,7 @@ const _nameParity: Readonly<{ [K in keyof IpcChannels]: IpcChannels[K]["name"] }
   "app/logFromRenderer": "app/logFromRenderer",
   "uiPrefs/get": "uiPrefs/get",
   "uiPrefs/set": "uiPrefs/set",
+  "migrate/scan": "migrate/scan",
+  "migrate/run": "migrate/run",
 };
 void _nameParity;
