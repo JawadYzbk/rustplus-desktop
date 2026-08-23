@@ -264,6 +264,49 @@ export class LogicEngineService {
     return ok;
   }
 
+  /** Recursive find with live state — shared with the chat-command dispatcher. */
+  findDeviceFor(entityId: number): EngineDevice | null {
+    return this.findDevice(entityId);
+  }
+
+  /** Timer list for chat consumers ({name, command, endTimeUtcMs}). */
+  timersForChat(): Array<{ name: string; command: string; endTimeUtcMs: number }> {
+    return this.customTimers().map((t) => ({
+      name: t.name,
+      command: t.command,
+      endTimeUtcMs: t.endUtc,
+    }));
+  }
+
+  /** Adds a timer from the chat pipeline (id assigned here). */
+  addTimerFromChat(t: {
+    name: string;
+    command: string;
+    endTimeUtcMs: number;
+    createdNotified: boolean;
+    notified60: boolean;
+    notified30: boolean;
+    notified10: boolean;
+    notified3: boolean;
+  }): void {
+    const key = this.profiles.activeKey();
+    if (!key) return;
+    this.saveCustomTimers(key, [
+      ...this.customTimers(),
+      {
+        id: randomUUID(),
+        name: t.name,
+        command: t.command,
+        endUtc: t.endTimeUtcMs,
+        createdNotified: t.createdNotified,
+        notified60: t.notified60,
+        notified30: t.notified30,
+        notified10: t.notified10,
+        notified3: t.notified3,
+      },
+    ]);
+  }
+
   private findNode(entityId: number): SmartDeviceNode | null {
     return this.withKey((key) => {
       const raw = this.profiles.devicesFor(key);

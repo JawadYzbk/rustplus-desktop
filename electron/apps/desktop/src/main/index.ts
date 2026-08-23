@@ -15,6 +15,7 @@ import { buildBackupHandlers } from "./channels.backup.js";
 import { connectionHandlers } from "./channels.connection.js";
 import { buildProfileHandlers, buildLogicHandlers } from "./channels.logic.js";
 import { LogicEngineService, hubAdapter } from "./services/automation/engine-service.js";
+import { ChatCommandDispatcher } from "./services/automation/chat-commands.js";
 import { RustPlusJsTransport, realRustPlusFactory } from "./services/rustplus/rustplus-js-transport.js";
 import { ConnectionManager } from "./services/rustplus/connection-manager.js";
 import { PollService } from "./services/rustplus/poll-service.js";
@@ -129,6 +130,63 @@ function bootstrap(): void {
     hubAdapter(deviceHub),
     (message) => logger.log("debug", "logic-engine", message),
   );
+
+  // Chat-command pipeline (MainWindow.Map.ChatCommands.cs slice): team polls feed the dispatcher;
+  // the latest status snapshot powers !pop/!time until richer map state lands in stage 6.
+  const latestStatus: { value: { players: number; queue: string; timeString: string } | null } = { value: null };
+  polls.on("poll", (e: unknown) => {
+    const ev = e as { kind?: string; status?: { players: number; queue: string; timeString: string } };
+    if (ev?.kind === "status" && ev.status) latestStatus.value = ev.status;
+  });
+  const chatDispatcher = new ChatCommandDispatcher({
+    chatCommandsEnabled: () =>
+      engineField("ChatCommandsEnabled") !== false, // C# default true
+    chatCommandPrefix: () => {
+      const v = engineField("ChatCommandPrefix");
+      return typeof v === "string" && v.length > 0 ? v : "!";
+    },
+    chatResponseDelaySeconds: () => Number(engineField("ChatResponseDelaySeconds") ?? 0.5),
+    cmds: () => ({
+      list: String(engineField("CmdList") ?? "commands"),
+      pop: String(engineField("CmdPop") ?? "pop"),
+      time: String(engineField("CmdTime") ?? "time"),
+      promote: String(engineField("CmdPromote") ?? ""),
+      deepSea: String(engineField("CmdDeepSea") ?? "deepsea"),
+      cargo: String(engineField("CmdCargo") ?? "cargo"),
+      oilRig: String(engineField("CmdOilRig") ?? "oilrig"),
+      heli: String(engineField("CmdHeli") ?? "heli"),
+      vendor: String(engineField("CmdVendor") ?? "vendor"),
+      upkeepDetail: String(engineField("CmdUpkeepDetail") ?? "upkeepdetail"),
+      afk: String(engineField("CmdAfk") ?? "afk"),
+      customTimer: String(engineField("CmdCustomTimer") ?? "timer"),
+    }),
+    serverStatus: () => latestStatus.value,
+    customTimers: () => engineService.timersForChat(),
+    addCustomTimer: (t) => engineService.addTimerFromChat(t),
+    logicRulesActive: () => engineField("IsLogicEngineActive") === true, // master block is a later-stage feature
+    rules: () => engineService.loadRules(),
+    switchMappings: () => (Array.isArray(engineField("SwitchCommandMappings")) ? (engineField("SwitchCommandMappings") as Array<{ label: string; command: string; entityId: number }>) : []),
+    findDevice: (entityId) => engineService.findDeviceFor(entityId) ?? null,
+    toggleSmartSwitch: (entityId, on) => connManager.setEntityValue(entityId, on),
+    sendTeamChat: (text) => {
+      void connManager.send(rq.sendTeamMessage(text)).catch((err: unknown) =>
+        logger.log("warn", "chat-commands", `response send failed: ${String(err instanceof Error ? err.message : err)}`),
+      );
+    },
+    engineOnChatCommand: (cmdText) => engineService.onChatCommand(cmdText),
+    isChatMasterBlocked: () => false, // Chat Master election lands with the multiplayer features stage
+    log: (message) => logger.log("debug", "chat-commands", message),
+    now: () => Date.now(),
+  });
+
+  function engineField(name: string): unknown {
+    return activeRef.key ? profilesStore.field(activeRef.key, name) : undefined;
+  }
+
+  polls.on("poll", (e: unknown) => {
+    const ev = e as { kind?: string; team?: unknown };
+    if (ev?.kind === "team") chatDispatcher.processTeamInfo(ev.team);
+  });
 
   const push = createPushBridge(() => [getMainWindow()].filter(Boolean).map((w) => w!.webContents));
   const connRuntime = new ConnRuntime({ transport: connTransport, manager: connManager, polls, hub: deviceHub });
