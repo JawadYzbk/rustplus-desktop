@@ -102,3 +102,6 @@ Corel Auto-Preserve/
 RustPlusDesktop/Features/GeneticsLab/dist/assets/
 RustPlusDesktop/Features/GeneticsLab/dist/index.html
 RustPlusDesktop/Features/GeneticsLab/node_modules/
+
+# Electron workspace: re-include the pnpm workspace's packages dir (excluded above by **/packages/)
+!electron/packages/
