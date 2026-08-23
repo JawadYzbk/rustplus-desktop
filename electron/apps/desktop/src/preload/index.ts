@@ -59,6 +59,13 @@ const api = {
   setUiPrefs: (patch: { sidebarPinned?: boolean; sidebarWidth?: number }) =>
     invoke("uiPrefs/set", patch) as Promise<InvokeResult<unknown>>,
 
+  /** Server profiles + device trees (stage 5). Tokens never cross the bridge. */
+  listProfiles: () => invoke("profile/list", undefined) as Promise<InvokeResult<unknown>>,
+  getDevices: (matchKey: string) =>
+    invoke("profile/getDevices", { matchKey }) as Promise<InvokeResult<unknown>>,
+  saveDevices: (matchKey: string, devices: unknown[]) =>
+    invoke("profile/saveDevices", { matchKey, devices }) as Promise<InvokeResult<unknown>>,
+
   /** One-way runtime event stream (connection lifecycle, polls, device state).
    * Returns an unsubscribe function. Payload shape: { stream, event }. */
   onPush: (listener: (payload: { stream: string; event: unknown }) => void): (() => void) => {

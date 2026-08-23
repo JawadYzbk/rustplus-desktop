@@ -110,6 +110,24 @@ export class ProfilesStore {
     return this.secrets.open(raw);
   }
 
+  /** Raw Devices array of one profile (opaque records — callers parse with server-profile.ts). */
+  devicesFor(key: string): Record<string, unknown>[] | null {
+    const p = this.load().find((c) => this.matchKey(coreOf(c)) === key);
+    if (!p) return null;
+    const raw = p["Devices"];
+    return Array.isArray(raw) ? (raw as Record<string, unknown>[]) : [];
+  }
+
+  /** Whole-tree write for one profile (legacy Save() parity); false when the profile is gone. */
+  saveDevices(key: string, devices: Record<string, unknown>[]): boolean {
+    const profiles = this.load();
+    const p = profiles.find((c) => this.matchKey(coreOf(c)) === key);
+    if (!p) return false;
+    p["Devices"] = devices;
+    this.persist(profiles);
+    return true;
+  }
+
   private load(): LooseProfile[] {
     if (this.cache) return this.cache;
     const outcome = this.json.load();

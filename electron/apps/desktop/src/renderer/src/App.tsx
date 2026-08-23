@@ -7,6 +7,7 @@ import { FeaturePending } from "./components/shell/FeaturePending.js";
 import { useUiStore, WORKSPACE_TABS, type RailTab } from "./stores/ui.js";
 import { getUiPrefs, setUiPrefsDebounced } from "./lib/ipc.js";
 import { MigratePage } from "./pages/MigratePage.js";
+import { DevicesPage } from "./pages/DevicesPage.js";
 
 /**
  * Shell layout (audit UI_SHELL §2): titlebar row; below it the icon rail + content column where the right
@@ -78,7 +79,7 @@ function TabOutlet(): React.JSX.Element {
   const { tabId } = useParams<{ tabId: string }>();
   switch (tabId) {
     case "devices":
-      return <FeaturePending title="Devices" stage="5" matrix="4.1–4.9" />;
+      return <DevicesPage />;
     case "team":
       return <FeaturePending title="Team" stage="4+" matrix="3.10, 9.6" />;
     case "clan":

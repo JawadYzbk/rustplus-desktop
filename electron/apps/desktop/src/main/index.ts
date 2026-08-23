@@ -13,6 +13,7 @@ import { buildAppHandlers } from "./channels.app.js";
 import { buildMigrationHandlers } from "./channels.migration.js";
 import { buildBackupHandlers } from "./channels.backup.js";
 import { connectionHandlers } from "./channels.connection.js";
+import { buildProfileHandlers } from "./channels.profile.js";
 import { RustPlusJsTransport, realRustPlusFactory } from "./services/rustplus/rustplus-js-transport.js";
 import { ConnectionManager } from "./services/rustplus/connection-manager.js";
 import { PollService } from "./services/rustplus/poll-service.js";
@@ -116,6 +117,7 @@ function bootstrap(): void {
     ...buildAppHandlers({ smokeMode: isSmoke, uiPrefs: uiPrefsStore }),
     ...buildMigrationHandlers({ migrator }),
     ...connectionHandlers(connManager),
+    ...buildProfileHandlers({ profiles: profilesStore }),
     ...buildBackupHandlers({
       backup: new BackupService(userDataDir, join(userDataDir, "backups"), (level, message) =>
         logger.log(level, "backup", message),

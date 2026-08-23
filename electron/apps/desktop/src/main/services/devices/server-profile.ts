@@ -387,7 +387,7 @@ export function serializeServerProfile(p: ServerProfileData): Record<string, unk
   };
 }
 
-function serializeDevices(devices: SmartDeviceNode[]): Record<string, unknown>[] {
+export function serializeDevices(devices: SmartDeviceNode[]): Record<string, unknown>[] {
   const walk = (d: SmartDeviceNode): Record<string, unknown> => ({
     EntityId: d.entityId,
     Kind: d.kind,

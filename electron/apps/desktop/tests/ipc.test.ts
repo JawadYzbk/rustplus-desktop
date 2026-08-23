@@ -60,6 +60,13 @@ const baseHandlers = () => ({
     }),
   "conn/disconnect": () => connSnap(),
   "conn/status": () => connSnap(),
+  "profile/list": () => ({
+    profiles: [
+      { matchKey: "h:1|s", name: "n", host: "h", port: 1, steamId64: "s", deviceCount: 0 },
+    ],
+  }),
+  "profile/getDevices": () => ({ devices: [], found: false }),
+  "profile/saveDevices": () => ({ saved: false }),
 });
 
 describe("registerIpcHandlers", () => {

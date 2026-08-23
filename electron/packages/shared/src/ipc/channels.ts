@@ -153,6 +153,70 @@ const connStatus = defineChannel(
 
 export type ConnSnapshotDto = z.infer<typeof connStatus["response"]>;
 
+/** `profile/*` — server profiles + device trees (stage 5). Tokens never cross the bridge. */
+export const profileList = defineChannel(
+  "profile/list",
+  z.void(),
+  z.object({
+    profiles: z.array(
+      z.object({
+        matchKey: z.string(),
+        name: z.string(),
+        host: z.string(),
+        port: z.number().int(),
+        steamId64: z.string(),
+        deviceCount: z.number().int().min(0),
+      }),
+    ),
+  }),
+  "All stored server profiles with their stable match keys.",
+);
+
+/** Recursive device-node contract (SmartDevice subset the tree UI needs). */
+const deviceNodeSchema: z.ZodType<DeviceNodeDto> = z.lazy(() =>
+  z.object({
+    entityId: z.number().int().min(0),
+    kind: z.string().nullable(),
+    name: z.string().nullable(),
+    alias: z.string().nullable(),
+    isGroup: z.boolean(),
+    children: z.array(deviceNodeSchema),
+    isMissing: z.boolean(),
+    customIconId: z.number().int().nullable(),
+    customIconShortName: z.string().nullable(),
+    inGameAlarmTitle: z.string().nullable(),
+    oilRigTriggerTarget: z.string().nullable(),
+  }),
+);
+
+export interface DeviceNodeDto {
+  entityId: number;
+  kind: string | null;
+  name: string | null;
+  alias: string | null;
+  isGroup: boolean;
+  children: DeviceNodeDto[];
+  isMissing: boolean;
+  customIconId: number | null;
+  customIconShortName: string | null;
+  inGameAlarmTitle: string | null;
+  oilRigTriggerTarget: string | null;
+}
+
+export const profileGetDevices = defineChannel(
+  "profile/getDevices",
+  z.object({ matchKey: z.string().min(1) }),
+  z.object({ devices: z.array(deviceNodeSchema), found: z.boolean() }),
+  "Device tree of one profile (empty list when the profile does not exist).",
+);
+
+export const profileSaveDevices = defineChannel(
+  "profile/saveDevices",
+  z.object({ matchKey: z.string().min(1), devices: z.array(deviceNodeSchema) }),
+  z.object({ saved: z.boolean() }),
+  "Replace a profile's device tree (whole-tree write, matching legacy Save()).",
+);
+
 /** One-way main→renderer event stream (NOT an invoke channel — no request/response schema).
  * Payload: { stream: "conn" | "poll" | "device", event: <ConnRuntime event> }. */
 export const pushChannel = "conn/push";
@@ -172,6 +236,9 @@ export const ipcChannels = {
   "conn/connect": connConnect,
   "conn/disconnect": connDisconnect,
   "conn/status": connStatus,
+  "profile/list": profileList,
+  "profile/getDevices": profileGetDevices,
+  "profile/saveDevices": profileSaveDevices,
 };
 
 export type IpcChannels = typeof ipcChannels;
@@ -191,5 +258,8 @@ const _nameParity: Readonly<{ [K in keyof IpcChannels]: IpcChannels[K]["name"] }
   "conn/connect": "conn/connect",
   "conn/disconnect": "conn/disconnect",
   "conn/status": "conn/status",
+  "profile/list": "profile/list",
+  "profile/getDevices": "profile/getDevices",
+  "profile/saveDevices": "profile/saveDevices",
 };
 void _nameParity;

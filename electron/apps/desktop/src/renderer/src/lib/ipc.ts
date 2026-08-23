@@ -7,6 +7,9 @@ type RpdBridge = {
   log(level: "debug" | "info" | "warn" | "error", scope: string, message: string): Promise<InvokeResult<unknown>>;
   getUiPrefs(): Promise<InvokeResult<unknown>>;
   setUiPrefs(patch: { sidebarPinned?: boolean; sidebarWidth?: number }): Promise<InvokeResult<unknown>>;
+  listProfiles(): Promise<InvokeResult<unknown>>;
+  getDevices(matchKey: string): Promise<InvokeResult<unknown>>;
+  saveDevices(matchKey: string, devices: unknown[]): Promise<InvokeResult<unknown>>;
 };
 
 export interface InvokeSuccess<T> {
@@ -61,4 +64,44 @@ export function setUiPrefsDebounced(patch: { sidebarPinned?: boolean; sidebarWid
       });
     }, UI_PREFS_DEBOUNCE_MS),
   );
+}
+
+// ------------------------------------------------------------------ profile/* helpers
+
+export interface ProfileSummary {
+  matchKey: string;
+  name: string;
+  host: string;
+  port: number;
+  steamId64: string;
+  deviceCount: number;
+}
+
+export interface DeviceNode {
+  entityId: number;
+  kind: string | null;
+  name: string | null;
+  alias: string | null;
+  isGroup: boolean;
+  children: DeviceNode[];
+  isMissing: boolean;
+  customIconId?: number | null;
+  customIconShortName?: string | null;
+  inGameAlarmTitle?: string | null;
+  oilRigTriggerTarget?: string | null;
+}
+
+export async function listProfiles(): Promise<ProfileSummary[]> {
+  const r = await bridge.listProfiles();
+  return r.ok ? (r.data as { profiles: ProfileSummary[] }).profiles : [];
+}
+
+export async function getDevices(matchKey: string): Promise<DeviceNode[] | null> {
+  const r = await bridge.getDevices(matchKey);
+  return r.ok ? ((r.data as { devices: DeviceNode[]; found: boolean }).found ? (r.data as { devices: DeviceNode[] }).devices : null) : null;
+}
+
+export async function saveDevices(matchKey: string, devices: DeviceNode[]): Promise<boolean> {
+  const r = await bridge.saveDevices(matchKey, devices);
+  return r.ok ? (r.data as { saved: boolean }).saved : false;
 }
