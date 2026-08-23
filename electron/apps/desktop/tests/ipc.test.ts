@@ -82,6 +82,9 @@ const baseHandlers = () => ({
   "logic/saveRules": () => ({ saved: true }),
   "logic/getRule": () => ({ found: false, rule: null }),
   "logic/saveRule": () => ({ saved: true }),
+  "logic/getTimers": () => ({ timers: [] }),
+  "logic/addTimer": () => ({ ok: true, id: "x", reason: null }),
+  "logic/removeTimer": () => ({ removed: true }),
 });
 
 describe("registerIpcHandlers", () => {

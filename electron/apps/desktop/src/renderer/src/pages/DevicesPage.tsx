@@ -8,6 +8,7 @@ import type * as React from "react";
 import { useProfilesStore } from "../stores/profiles.js";
 import { activateProfile, type DeviceNode } from "../lib/ipc.js";
 import { RulesPanel } from "./RulesPanel.js";
+import { TimersPanel } from "./TimersPanel.js";
 
 function StatusPill({ node }: { node: DeviceNode }): React.JSX.Element {
   if (node.isGroup) return <span className="text-xs text-muted-foreground">{node.children.length} dev</span>;
@@ -72,8 +73,8 @@ export function DevicesPage(): React.JSX.Element {
   const error = useProfilesStore((s) => s.error);
   const loadProfiles = useProfilesStore((s) => s.loadProfiles);
   const selectProfile = useProfilesStore((s) => s.selectProfile);
-  // Devices ↔ Rules sub-view within the tab (legacy hosts both in the devices window).
-  const [view, setView] = useState<"devices" | "rules">("devices");
+  // Devices ↔ Rules ↔ Timers sub-view within the tab (legacy hosts all in the devices window).
+  const [view, setView] = useState<"devices" | "rules" | "timers">("devices");
 
   useEffect(() => {
     void loadProfiles();
@@ -119,7 +120,7 @@ export function DevicesPage(): React.JSX.Element {
         <div className="ml-auto flex items-center gap-2">
           {activeKey && (
             <div className="flex rounded-md border p-0.5 text-xs">
-              {(["devices", "rules"] as const).map((v) => (
+              {(["devices", "rules", "timers"] as const).map((v) => (
                 <button
                   key={v}
                   type="button"
@@ -149,6 +150,8 @@ export function DevicesPage(): React.JSX.Element {
         <div className="min-h-0 flex-1 overflow-y-auto">
           <RulesPanel matchKey={activeKey} />
         </div>
+      ) : view === "timers" && activeKey ? (
+        <TimersPanel matchKey={activeKey} />
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
           {loading && profiles.length === 0 ? (

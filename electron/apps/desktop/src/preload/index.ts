@@ -80,6 +80,12 @@ const api = {
     invoke("logic/getRule", { matchKey, ruleId }) as Promise<InvokeResult<unknown>>,
   logicSaveRule: (payload: unknown) =>
     invoke("logic/saveRule", payload) as Promise<InvokeResult<unknown>>,
+  logicGetTimers: (matchKey: string) =>
+    invoke("logic/getTimers", { matchKey }) as Promise<InvokeResult<unknown>>,
+  logicAddTimer: (payload: unknown) =>
+    invoke("logic/addTimer", payload) as Promise<InvokeResult<unknown>>,
+  logicRemoveTimer: (payload: unknown) =>
+    invoke("logic/removeTimer", payload) as Promise<InvokeResult<unknown>>,
 
   /** One-way runtime event stream (connection lifecycle, polls, device state).
    * Returns an unsubscribe function. Payload shape: { stream, event }. */

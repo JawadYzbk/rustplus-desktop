@@ -12,11 +12,10 @@
 import { randomUUID } from "node:crypto";
 import {
   LogicEngine,
-  type CustomTimerInput,
   type EngineDevice,
   type LogicEngineHost,
 } from "./logic-engine.js";
-import { parseDevices, serializeDevices } from "../devices/server-profile.js";
+import { parseDevices, serializeDevices, parseTimer, serializeTimer, type CustomTimer } from "../devices/server-profile.js";
 import { findDeviceById, type SmartDeviceNode } from "../devices/device-data.js";
 import {
   parseLogicRule,
@@ -83,6 +82,8 @@ export class LogicEngineService {
   private readonly engine: LogicEngine;
   private readonly deviceStates = new Map<number, boolean>();
   private unsubHub: (() => void) | null = null;
+  /** CheckCustomTimers first-tick purge flag (C# _timerStartupCleanupDone). */
+  private timerStartupCleanupDone = false;
 
   constructor(
     private readonly profiles: EngineProfilesAdapter,
@@ -118,8 +119,26 @@ export class LogicEngineService {
       addCustomTimer: (t) => {
         const key = this.profiles.activeKey();
         if (!key) return;
-        const timers = [...this.customTimers(), { ...t, id: randomUUID() }];
-        this.saveCustomTimers(key, timers);
+        this.saveCustomTimers(key, [
+          ...this.customTimers(),
+          {
+            id: randomUUID(),
+            name: t.name,
+            command: t.command,
+            endTimeUtcMs: t.endUtc,
+            enableCountdownAudio: true,
+            enableAlarmAudio: false,
+            createdNotified: t.createdNotified,
+            notified60: t.notified60,
+            notified30: t.notified30,
+            notified10: t.notified10,
+            notified3: t.notified3,
+            countdownAudioPlayed: false,
+            alarmPlayed: false,
+            snoozedUntilUtcMs: null,
+            autoDeleteAtUtcMs: null,
+          },
+        ]);
       },
       alertCustomTimers: () => this.withKey((key) => this.profiles.field(key, "AlertCustomTimer") !== false) ?? true,
       sendTeamChat: (message) => {
@@ -293,16 +312,175 @@ export class LogicEngineService {
     return this.findDevice(entityId);
   }
 
+  /** Canonical CustomTimer records for the ACTIVE profile (parseTimer handles dual-casing,
+   * ISO dates and the C# defaults — including EnableCountdownAudio defaulting to true). */
+  private customTimers(): CustomTimer[] {
+    return this.withKey((key) => {
+      const raw = this.profiles.field(key, "CustomTimers");
+      if (!Array.isArray(raw)) return [];
+      return raw.map((t) => parseTimer((t ?? {}) as Record<string, unknown>));
+    }) ?? [];
+  }
+
+  private saveCustomTimers(key: string, timers: CustomTimer[]): void {
+    this.profiles.setField(
+      key,
+      "CustomTimers",
+      timers.map(serializeTimer),
+    );
+  }
+
+  /**
+   * CheckCustomTimers tick (MainWindow.Map.Timers.cs L107-268) — call ~1×/s while connected.
+   * Startup purge drops already-expired timers once; removal at ≤ -60 s; countdown flag at
+   * ≤60 s; expiry alert "{name}: 00:00" gated on AlertCustomTimer within the -60..0 window;
+   * milestone alerts at 60/30/10 min with the ≥59/29/9 guards; audio cues are the stage-12
+   * seam (flags still flip exactly like the C#).
+   */
+  tickTimers(): Array<{ id: string; name: string; command: string; endTimeUtcMs: number }> {
+    const key = this.profiles.activeKey();
+    if (!key) return [];
+    const now = Date.now();
+    let timers = this.customTimers();
+
+    // First tick: silently purge anything expired from a previous session (L118-127).
+    if (!this.timerStartupCleanupDone) {
+      this.timerStartupCleanupDone = true;
+      const before = timers.length;
+      timers = timers.filter((t) => t.endTimeUtcMs - now > 0);
+      if (timers.length !== before) this.saveCustomTimers(key, timers);
+      if (timers.length === 0) return [];
+    }
+
+    const alertCustom = this.profiles.field(key, "AlertCustomTimer") === true;
+    let changed = false;
+    const remaining: Array<{ id: string; name: string; command: string; endTimeUtcMs: number }> = [];
+
+    timers = timers.filter((t) => {
+      const remMs = t.endTimeUtcMs - now;
+      if (remMs <= -60_000) {
+        changed = true;
+        return false; // L136-139: gone a minute past expiry → remove
+      }
+      const remSecs = Math.floor(remMs / 1000);
+      const remMins = Math.floor(remSecs / 60);
+
+      // Countdown boundary (L142-152): flag flips once regardless of the audio setting.
+      if (remSecs <= 60 && remSecs > 0 && !t.countdownAudioPlayed) {
+        t.countdownAudioPlayed = true;
+        changed = true;
+        // PlayTimerAudio(true) lands with the audio stage.
+      } else if (remSecs <= 0 && !t.alarmPlayed) {
+        // Expiry alert inside the -60..0 window only (L154-157).
+        if (alertCustom && remSecs >= -60) {
+          this.hostSendTeamChat(`${t.name}: 00:00`);
+        }
+        t.alarmPlayed = true;
+        changed = true;
+        // PlayTimerAudio(false) lands with the audio stage.
+      }
+
+      // Milestone chat alerts (L183-219): flag flips at ≤X minutes EVEN when the message is
+      // suppressed (late load below the guard) — message only fires within a minute of the
+      // boundary (>= X-1).
+      if (alertCustom) {
+        const milestone = (
+          flag: boolean,
+          limit: number,
+          guard: number,
+          text: string,
+        ): boolean => {
+          if (flag || remMins > limit) return flag;
+          if (remMins >= guard) this.hostSendTeamChat(text);
+          changed = true;
+          return true;
+        };
+        t.notified60 = milestone(t.notified60, 60, 59, `${t.name}: 60:00`);
+        t.notified30 = milestone(t.notified30, 30, 29, `${t.name}: 30:00`);
+        t.notified10 = milestone(t.notified10, 10, 9, `${t.name}: 10:00`);
+        t.notified3 = milestone(t.notified3, 3, 2, `${t.name}: 03:00`);
+      }
+
+      remaining.push({ id: t.id, name: t.name, command: t.command, endTimeUtcMs: t.endTimeUtcMs });
+      return true;
+    });
+
+    if (changed) this.saveCustomTimers(key, timers);
+    return remaining;
+  }
+
+  /** Team-chat send used by timer alerts (bypasses the chat-alert master block in legacy). */
+  private hostSendTeamChat(text: string): void {
+    this.conn.sendTeamMessage(text).catch(() => undefined);
+  }
+
   /** Timer list for chat consumers ({name, command, endTimeUtcMs}). */
   timersForChat(): Array<{ name: string; command: string; endTimeUtcMs: number }> {
     return this.customTimers().map((t) => ({
       name: t.name,
       command: t.command,
-      endTimeUtcMs: t.endUtc,
+      endTimeUtcMs: t.endTimeUtcMs,
     }));
   }
 
-  /** Adds a timer from the chat pipeline (id assigned here). */
+  /** Full timer records for ANY profile (timers panel). */
+  timersFor(matchKey: string): CustomTimer[] {
+    const raw = this.profiles.field(matchKey, "CustomTimers");
+    if (!Array.isArray(raw)) return [];
+    return raw.map((t) => parseTimer((t ?? {}) as Record<string, unknown>));
+  }
+
+  removeTimerFor(matchKey: string, id: string): boolean {
+    const timers = this.timersFor(matchKey);
+    const next = timers.filter((t) => t.id !== id);
+    if (next.length === timers.length) return false;
+    this.saveCustomTimers(matchKey, next);
+    return true;
+  }
+
+  /** BtnAddTimer_Click parity — returns the exact legacy validation outcome. */
+  tryAddTimerFor(
+    matchKey: string,
+    name: string,
+    hours: number,
+    minutes: number,
+    seconds: number,
+  ): { ok: true; id: string } | { ok: false; reason: "limit" | "letter" | "duration" } {
+    // Five-timer limit (L36-41).
+    if (this.timersFor(matchKey).length >= 5) return { ok: false, reason: "limit" };
+    const trimmed = name.trim();
+    if (trimmed.length === 0 || !/[a-zA-Z]/.test(trimmed[0]!)) return { ok: false, reason: "letter" };
+    const h = Math.max(0, Math.trunc(hours) || 0);
+    const m = Math.max(0, Math.trunc(minutes) || 0);
+    const s = Math.max(0, Math.trunc(seconds) || 0);
+    if (h === 0 && m === 0 && s === 0) return { ok: false, reason: "duration" };
+    // Command = whitespace-stripped lowercase name preview (TxtTimerName_TextChanged).
+    let cmd = trimmed.replace(/\s+/g, "").toLowerCase();
+    if (cmd.length === 0) cmd = trimmed.toLowerCase();
+    const totalSecs = h * 3600 + m * 60 + s;
+    const totalMins = totalSecs / 60;
+    const record: CustomTimer = {
+      id: randomUUID(),
+      name: trimmed,
+      command: cmd,
+      endTimeUtcMs: Date.now() + totalSecs * 1000,
+      enableCountdownAudio: true,
+      enableAlarmAudio: false,
+      createdNotified: false,
+      notified60: totalMins <= 60,
+      notified30: totalMins <= 30,
+      notified10: totalMins <= 10,
+      notified3: totalMins <= 3,
+      countdownAudioPlayed: false,
+      alarmPlayed: false,
+      snoozedUntilUtcMs: null,
+      autoDeleteAtUtcMs: null,
+    };
+    this.saveCustomTimers(matchKey, [...this.timersFor(matchKey), record]);
+    return { ok: true, id: record.id };
+  }
+
+  /** Adds a timer from the chat pipeline (id assigned here; C# defaults for the audio flags). */
   addTimerFromChat(t: {
     name: string;
     command: string;
@@ -321,12 +499,18 @@ export class LogicEngineService {
         id: randomUUID(),
         name: t.name,
         command: t.command,
-        endUtc: t.endTimeUtcMs,
+        endTimeUtcMs: t.endTimeUtcMs,
+        enableCountdownAudio: true, // CustomTimer.cs default
+        enableAlarmAudio: false, // CustomTimer.cs default
         createdNotified: t.createdNotified,
         notified60: t.notified60,
         notified30: t.notified30,
         notified10: t.notified10,
         notified3: t.notified3,
+        countdownAudioPlayed: false,
+        alarmPlayed: false,
+        snoozedUntilUtcMs: null,
+        autoDeleteAtUtcMs: null,
       },
     ]);
   }
@@ -389,46 +573,6 @@ export class LogicEngineService {
         walk(tree);
         return ids;
       }) ?? []
-    );
-  }
-
-  private customTimers(): Array<CustomTimerInput & { id: string }> {
-    return this.withKey((key) => {
-      const raw = this.profiles.field(key, "CustomTimers");
-      if (!Array.isArray(raw)) return [];
-      return raw.map((t) => {
-        const r = (t ?? {}) as Record<string, unknown>;
-        const num = (v: unknown, dflt: number): number => (typeof v === "number" ? v : dflt);
-        return {
-          id: typeof r.Id === "string" ? r.Id : randomUUID(),
-          name: typeof r.Name === "string" ? r.Name : "Timer",
-          command: typeof r.Command === "string" ? r.Command : "timer",
-          endUtc: num(r.EndTimeUtcMs, Date.now()),
-          createdNotified: r.CreatedNotified === true,
-          notified60: r.Notified60 === true,
-          notified30: r.Notified30 === true,
-          notified10: r.Notified10 === true,
-          notified3: r.Notified3 === true,
-        };
-      });
-    }) ?? [];
-  }
-
-  private saveCustomTimers(key: string, timers: Array<CustomTimerInput & { id: string }>): void {
-    this.profiles.setField(
-      key,
-      "CustomTimers",
-      timers.map((t) => ({
-        Id: t.id,
-        Name: t.name,
-        Command: t.command,
-        EndTimeUtcMs: t.endUtc,
-        CreatedNotified: t.createdNotified,
-        Notified60: t.notified60,
-        Notified30: t.notified30,
-        Notified10: t.notified10,
-        Notified3: t.notified3,
-      })),
     );
   }
 }

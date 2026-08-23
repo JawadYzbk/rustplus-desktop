@@ -7,6 +7,7 @@ import type { z } from "zod";
 import {
   logicGetRules,
   logicGetRule,
+  logicGetTimers,
   logicSaveRules,
   type DeviceNodeDto,
 } from "@rpd/shared";
@@ -83,6 +84,22 @@ export interface EngineDeps {
     ): boolean;
     ruleFor(matchKey: string, ruleId: string): LogicRule | null;
     saveFullRuleFor(matchKey: string, rule: LogicRule): boolean;
+    timersFor(matchKey: string): Array<{
+      id: string;
+      name: string;
+      command: string;
+      endTimeUtcMs: number;
+      enableCountdownAudio: boolean;
+      enableAlarmAudio: boolean;
+    }>;
+    removeTimerFor(matchKey: string, id: string): boolean;
+    tryAddTimerFor(
+      matchKey: string,
+      name: string,
+      hours: number,
+      minutes: number,
+      seconds: number,
+    ): { ok: true; id: string } | { ok: false; reason: "limit" | "letter" | "duration" };
   };
 }
 
@@ -96,6 +113,15 @@ export function buildLogicHandlers(engine: EngineDeps["engine"]): {
   "logic/saveRules": (req: z.infer<typeof logicSaveRules["request"]>) => { saved: boolean };
   "logic/getRule": (req: { matchKey: string; ruleId: string }) => z.infer<(typeof logicGetRule)["response"]>;
   "logic/saveRule": (req: { matchKey: string; rule: Record<string, unknown> }) => { saved: boolean };
+  "logic/getTimers": (req: { matchKey: string }) => z.infer<(typeof logicGetTimers)["response"]>;
+  "logic/addTimer": (req: {
+    matchKey: string;
+    name: string;
+    hours: number;
+    minutes: number;
+    seconds: number;
+  }) => { ok: boolean; id: string; reason: "limit" | "letter" | "duration" | null };
+  "logic/removeTimer": (req: { matchKey: string; id: string }) => { removed: boolean };
 } {
   return {
     "logic/status": () => engine.status(),
@@ -142,6 +168,15 @@ export function buildLogicHandlers(engine: EngineDeps["engine"]): {
       const rule = parseLogicRule(req.rule as unknown as Record<string, unknown>);
       return { saved: engine.saveFullRuleFor(req.matchKey, rule) };
     },
+
+    "logic/getTimers": (req: { matchKey: string }) => ({ timers: engine.timersFor(req.matchKey) }),
+    "logic/addTimer": (req: { matchKey: string; name: string; hours: number; minutes: number; seconds: number }) => {
+      const r = engine.tryAddTimerFor(req.matchKey, req.name, req.hours, req.minutes, req.seconds);
+      return r.ok ? { ok: true, id: r.id, reason: null } : { ok: false, id: "", reason: r.reason };
+    },
+    "logic/removeTimer": (req: { matchKey: string; id: string }) => ({
+      removed: engine.removeTimerFor(req.matchKey, req.id),
+    }),
   };
 }
 

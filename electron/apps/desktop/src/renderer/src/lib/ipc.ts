@@ -18,6 +18,9 @@ type RpdBridge = {
   logicSaveRules(payload: unknown): Promise<InvokeResult<unknown>>;
   logicGetRule(matchKey: string, ruleId: string): Promise<InvokeResult<unknown>>;
   logicSaveRule(payload: unknown): Promise<InvokeResult<unknown>>;
+  logicGetTimers(matchKey: string): Promise<InvokeResult<unknown>>;
+  logicAddTimer(payload: unknown): Promise<InvokeResult<unknown>>;
+  logicRemoveTimer(payload: unknown): Promise<InvokeResult<unknown>>;
 };
 
 export interface InvokeSuccess<T> {
@@ -235,4 +238,43 @@ export async function getRule(matchKey: string, ruleId: string): Promise<FullRul
 export async function saveRule(matchKey: string, rule: FullRuleDto): Promise<boolean> {
   const r = await bridge.logicSaveRule({ matchKey, rule });
   return r.ok ? (r.data as { saved: boolean }).saved : false;
+}
+
+// ---- Custom timers (timers panel) ---------------------------------------------
+
+export interface TimerDto {
+  id: string;
+  name: string;
+  command: string;
+  endTimeUtcMs: number;
+  enableCountdownAudio: boolean;
+  enableAlarmAudio: boolean;
+}
+
+export async function getTimers(matchKey: string): Promise<TimerDto[]> {
+  const r = await bridge.logicGetTimers(matchKey);
+  if (r.ok) return (r.data as { timers: TimerDto[] }).timers;
+  throw new Error(`logic/getTimers failed [${r.error.code}]: ${r.error.message}`);
+}
+
+export type AddTimerResult =
+  | { ok: true; id: string }
+  | { ok: false; reason: "limit" | "letter" | "duration" };
+
+export async function addTimer(
+  matchKey: string,
+  name: string,
+  hours: number,
+  minutes: number,
+  seconds: number,
+): Promise<AddTimerResult> {
+  const r = await bridge.logicAddTimer({ matchKey, name, hours, minutes, seconds });
+  if (!r.ok) throw new Error(`logic/addTimer failed [${r.error.code}]: ${r.error.message}`);
+  const d = r.data as { ok: boolean; id: string; reason: "limit" | "letter" | "duration" | null };
+  return d.ok ? { ok: true, id: d.id } : { ok: false, reason: d.reason ?? "duration" };
+}
+
+export async function removeTimer(matchKey: string, id: string): Promise<boolean> {
+  const r = await bridge.logicRemoveTimer({ matchKey, id });
+  return r.ok ? (r.data as { removed: boolean }).removed : false;
 }

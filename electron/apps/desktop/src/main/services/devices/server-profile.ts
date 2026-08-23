@@ -144,15 +144,22 @@ function serializeMappings(mappings: ChatCommandMapping[]): Record<string, unkno
   return mappings.map((m) => ({ Label: m.label, Command: m.command, EntityId: m.entityId }));
 }
 
-function parseTimer(raw: Record<string, unknown>): CustomTimer {
+/** Exported for the LogicEngineService timer ticker (canonical ISO record format). */
+export function parseTimer(raw: Record<string, unknown>): CustomTimer {
   return {
     id: typeof raw.Id === "string" ? raw.Id : typeof raw.id === "string" ? raw.id : randomUUID(),
     name: typeof raw.Name === "string" ? raw.Name : typeof raw.name === "string" ? raw.name : "Timer",
     command: typeof raw.Command === "string" ? raw.Command : typeof raw.command === "string" ? raw.command : "timer",
     endTimeUtcMs:
-      isoToMs(raw.EndTimeUtc) ?? isoToMs(raw.endTimeUtc) ?? Date.now(),
-    enableCountdownAudio: raw.EnableCountdownAudio === true,
-    enableAlarmAudio: raw.EnableAlarmAudio === true,
+      isoToMs(raw.EndTimeUtc) ??
+      isoToMs(raw.endTimeUtc) ??
+      (typeof raw.EndTimeUtcMs === "number" ? raw.EndTimeUtcMs : null) ??
+      Date.now(),
+    // C# default is TRUE (ServerProfile.cs _enableCountdownAudio = true):
+    enableCountdownAudio:
+      (raw.EnableCountdownAudio ?? raw.enableCountdownAudio) !== false,
+    enableAlarmAudio:
+      (raw.EnableAlarmAudio ?? raw.enableAlarmAudio) === true,
     createdNotified: raw.CreatedNotified === true,
     notified60: raw.Notified60 === true,
     notified30: raw.Notified30 === true,
@@ -165,7 +172,8 @@ function parseTimer(raw: Record<string, unknown>): CustomTimer {
   };
 }
 
-function serializeTimer(t: CustomTimer): Record<string, unknown> {
+/** Exported for the LogicEngineService timer ticker (canonical ISO record format). */
+export function serializeTimer(t: CustomTimer): Record<string, unknown> {
   const iso = (ms: number | null): string | null => (ms === null ? null : new Date(ms).toISOString());
   return {
     Id: t.id,

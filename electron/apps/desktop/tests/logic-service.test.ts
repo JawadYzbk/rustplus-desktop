@@ -341,6 +341,89 @@ describe("LogicEngineService host binding", () => {
     expect(svc.ruleFor("h:1|s", "edit-me")!.name).toBe("renamed");
   });
 
+  it("tickTimers: startup purge, expiry alert window, milestones w/ late-load suppression, removal at -60 s", () => {
+    const store: FakeStoreShape = { data: new Map(), activeKey: null };
+    seedProfile(store);
+    const { svc, chats } = makeService(store);
+    const key = "h:1|s";
+    store.data.get(key)!["AlertCustomTimer"] = true;
+    const now = 1_000_000_000;
+
+    // Seed raw records in the CANONICAL ISO format (what profiles.json holds):
+    const iso = (ms: number): string => new Date(ms).toISOString();
+    store.data.get(key)!["CustomTimers"] = [
+      // Already expired before startup → purged silently on first tick:
+      { Id: "t-old", Name: "Old", Command: "old", EndTimeUtc: iso(now - 5 * 60_000), CreatedNotified: false },
+      // 45 min left → Notified60 flips silently (44 < 59 guard), no message:
+      { Id: "t-mid", Name: "Mid", Command: "mid", EndTimeUtc: iso(now + 45 * 60_000) },
+      // 59.5 min left → Notified60 fires WITH message:
+      { Id: "t-60", Name: "Sixty", Command: "sixty", EndTimeUtc: iso(now + 59.5 * 60_000) },
+      // 30 s left → countdown flag flips; expiry alert not yet:
+      {
+        Id: "t-soon", Name: "Soon", Command: "soon", EndTimeUtc: iso(now + 30_000),
+        EnableCountdownAudio: false,
+      },
+    ];
+
+    const t = (): number => now;
+    const realNow = Date.now;
+    Date.now = (): number => now;
+    try {
+      const visible = svc.tickTimers();
+      expect(visible.map((x) => x.id).sort()).toEqual(["t-60", "t-mid", "t-soon"]); // Old purged
+      expect(chats).toEqual(["Sixty: 60:00"]);
+
+      const recs = (): Array<Record<string, unknown>> => store.data.get(key)!["CustomTimers"] as Array<Record<string, unknown>>;
+      const mid = recs().find((r) => r["Id"] === "t-mid")!;
+      expect(mid["Notified60"]).toBe(true); // set silently — C# flips even when suppressed
+
+      // Second tick at +31 s: Soon expires → alert fires once (within -60..0 window).
+      Date.now = (): number => now + 31_000;
+      svc.tickTimers();
+      expect(chats).toEqual(["Sixty: 60:00", "Soon: 00:00"]);
+      const soon1 = recs().find((r) => r["Id"] === "t-soon")!;
+      expect(soon1["AlarmPlayed"]).toBe(true);
+
+      // Third tick at +91 s (past -60 s) → Soon removed; no repeat alerts.
+      Date.now = (): number => now + 91_000;
+      svc.tickTimers();
+      expect(recs().map((r) => r["Id"])).toEqual(["t-mid", "t-60"]);
+      expect(chats).toHaveLength(2);
+    } finally {
+      Date.now = realNow;
+      void t;
+    }
+  });
+
+  it("tryAddTimerFor enforces the five-limit, letter rule and duration requirement", () => {
+    const store: FakeStoreShape = { data: new Map(), activeKey: null };
+    seedProfile(store);
+    const { svc } = makeService(store);
+    const key = "h:1|s";
+
+    expect(svc.tryAddTimerFor(key, "", 0, 10, 0)).toEqual({ ok: false, reason: "letter" }); // empty
+    expect(svc.tryAddTimerFor(key, "9bad", 0, 10, 0)).toEqual({ ok: false, reason: "letter" });
+    expect(svc.tryAddTimerFor(key, "crate", 0, 0, 0)).toEqual({ ok: false, reason: "duration" });
+
+    const added = svc.tryAddTimerFor(key, "Crate Run", 0, 15, 0);
+    expect(added.ok).toBe(true);
+    const timers = svc.timersFor(key);
+    expect(timers).toHaveLength(1);
+    expect(timers[0]!.name).toBe("Crate Run");
+    expect(timers[0]!.command).toBe("craterun"); // whitespace-stripped lowercase slug
+    expect(timers[0]!.notified60 && !timers[0]!.notified3).toBe(true); // 15 min pre-suppression
+    expect(timers[0]!.enableCountdownAudio).toBe(true); // C# default TRUE
+
+    for (let i = timers.length; i < 5; i++) {
+      expect(svc.tryAddTimerFor(key, `t${i}`, 0, 1, 0).ok).toBe(true);
+    }
+    expect(svc.tryAddTimerFor(key, "sixth", 0, 1, 0)).toEqual({ ok: false, reason: "limit" });
+
+    expect(svc.removeTimerFor(key, timers[0]!.id)).toBe(true);
+    expect(svc.removeTimerFor(key, "nope")).toBe(false);
+    expect(svc.timersFor(key)).toHaveLength(4);
+  });
+
   it("hubAdapter filters deviceState events and unsubscribes cleanly", () => {
     const listeners: Array<(...args: unknown[]) => void> = [];
     const fakeHub = {

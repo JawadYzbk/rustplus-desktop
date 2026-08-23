@@ -188,6 +188,15 @@ function bootstrap(): void {
     if (ev?.kind === "team") chatDispatcher.processTeamInfo(ev.team);
   });
 
+  // CheckCustomTimers dispatcher-timer parity (~1 s tick; MainWindow.Map.Timers.cs L107).
+  const timerTick = setInterval(() => {
+    try {
+      engineService.tickTimers();
+    } catch (err: unknown) {
+      logger.log("warn", "timers", `tick failed: ${String(err instanceof Error ? err.message : err)}`);
+    }
+  }, 1000);
+
   const push = createPushBridge(() => [getMainWindow()].filter(Boolean).map((w) => w!.webContents));
   const connRuntime = new ConnRuntime({ transport: connTransport, manager: connManager, polls, hub: deviceHub });
   connRuntime.wire();
@@ -213,6 +222,10 @@ function bootstrap(): void {
         engineService.saveRulesFor(matchKey, headers as Array<Record<string, unknown>>, isEngineActive),
       ruleFor: (matchKey, ruleId) => engineService.ruleFor(matchKey, ruleId),
       saveFullRuleFor: (matchKey, rule) => engineService.saveFullRuleFor(matchKey, rule),
+      timersFor: (matchKey) => engineService.timersFor(matchKey),
+      removeTimerFor: (matchKey, id) => engineService.removeTimerFor(matchKey, id),
+      tryAddTimerFor: (matchKey, name, hours, minutes, seconds) =>
+        engineService.tryAddTimerFor(matchKey, name, hours, minutes, seconds),
     }),
     ...buildBackupHandlers({
       backup: new BackupService(userDataDir, join(userDataDir, "backups"), (level, message) =>

@@ -384,6 +384,44 @@ export const logicSaveRule = defineChannel(
   "Replace one rule wholesale (header + steps); unknown ids are appended.",
 );
 
+export const logicGetTimers = defineChannel(
+  "logic/getTimers",
+  z.object({ matchKey: z.string().min(1) }),
+  z.object({
+    timers: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        command: z.string(),
+        endTimeUtcMs: z.number(),
+        enableCountdownAudio: z.boolean(),
+        enableAlarmAudio: z.boolean(),
+      }),
+    ),
+  }),
+  "Custom timers for one profile (timers panel).",
+);
+
+export const logicAddTimer = defineChannel(
+  "logic/addTimer",
+  z.object({
+    matchKey: z.string().min(1),
+    name: z.string().max(120),
+    hours: z.number().int().min(0).max(720),
+    minutes: z.number().int().min(0).max(59),
+    seconds: z.number().int().min(0).max(59),
+  }),
+  z.object({ ok: z.boolean(), id: z.string(), reason: z.enum(["limit", "letter", "duration"]).nullable() }),
+  "BtnAddTimer_Click parity — five-limit / letter rule / duration-required validation.",
+);
+
+export const logicRemoveTimer = defineChannel(
+  "logic/removeTimer",
+  z.object({ matchKey: z.string().min(1), id: z.string() }),
+  z.object({ removed: z.boolean() }),
+  "Delete a custom timer by id.",
+);
+
 /** One-way main→renderer event stream (NOT an invoke channel — no request/response schema).
  * Payload: { stream: "conn" | "poll" | "device", event: <ConnRuntime event> }. */
 export const pushChannel = "conn/push";
@@ -414,6 +452,9 @@ export const ipcChannels = {
   "logic/saveRules": logicSaveRules,
   "logic/getRule": logicGetRule,
   "logic/saveRule": logicSaveRule,
+  "logic/getTimers": logicGetTimers,
+  "logic/addTimer": logicAddTimer,
+  "logic/removeTimer": logicRemoveTimer,
 };
 
 export type IpcChannels = typeof ipcChannels;
@@ -444,5 +485,8 @@ const _nameParity: Readonly<{ [K in keyof IpcChannels]: IpcChannels[K]["name"] }
   "logic/saveRules": "logic/saveRules",
   "logic/getRule": "logic/getRule",
   "logic/saveRule": "logic/saveRule",
+  "logic/getTimers": "logic/getTimers",
+  "logic/addTimer": "logic/addTimer",
+  "logic/removeTimer": "logic/removeTimer",
 };
 void _nameParity;
