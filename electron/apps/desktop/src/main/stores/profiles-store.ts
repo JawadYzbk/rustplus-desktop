@@ -128,6 +128,21 @@ export class ProfilesStore {
     return true;
   }
 
+  /** Opaque field read (LogicRules, CustomTimers, flags…). Undefined when profile/field absent. */
+  field(key: string, name: string): unknown {
+    return this.load().find((c) => this.matchKey(coreOf(c)) === key)?.[name];
+  }
+
+  /** Opaque field write with whole-document persist; false when the profile is gone. */
+  setField(key: string, name: string, value: unknown): boolean {
+    const profiles = this.load();
+    const p = profiles.find((c) => this.matchKey(coreOf(c)) === key);
+    if (!p) return false;
+    p[name] = value;
+    this.persist(profiles);
+    return true;
+  }
+
   private load(): LooseProfile[] {
     if (this.cache) return this.cache;
     const outcome = this.json.load();

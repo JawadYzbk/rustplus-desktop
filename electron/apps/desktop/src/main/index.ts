@@ -13,12 +13,14 @@ import { buildAppHandlers } from "./channels.app.js";
 import { buildMigrationHandlers } from "./channels.migration.js";
 import { buildBackupHandlers } from "./channels.backup.js";
 import { connectionHandlers } from "./channels.connection.js";
-import { buildProfileHandlers } from "./channels.profile.js";
+import { buildProfileHandlers, buildLogicHandlers } from "./channels.logic.js";
+import { LogicEngineService, hubAdapter } from "./services/automation/engine-service.js";
 import { RustPlusJsTransport, realRustPlusFactory } from "./services/rustplus/rustplus-js-transport.js";
 import { ConnectionManager } from "./services/rustplus/connection-manager.js";
 import { PollService } from "./services/rustplus/poll-service.js";
 import { DeviceEventHub } from "./services/rustplus/device-hub.js";
 import { ConnRuntime } from "./services/rustplus/conn-runtime.js";
+import { rq } from "./services/rustplus/protocol.js";
 import { createPushBridge } from "./push-bridge.js";
 import { LegacyMigrator, defaultLegacyRoots } from "./services/legacy-migrator.js";
 import { BackupService } from "./services/backup-service.js";
@@ -103,6 +105,31 @@ function bootstrap(): void {
   const connManager = new ConnectionManager(connTransport);
   const polls = new PollService(connManager);
   const deviceHub = new DeviceEventHub({ send: connManager.send.bind(connManager) });
+
+  // Active-profile context + Logic Engine (stage 5). The renderer activates a profile; the engine
+  // host resolves rules/devices/timers against it through the lossless store adapters below.
+  const activeRef: { key: string | null } = { key: null };
+  const engineService = new LogicEngineService(
+    {
+      activeKey: () => activeRef.key,
+      field: (key, name) => profilesStore.field(key, name),
+      setField: (key, name, value) => profilesStore.setField(key, name, value),
+      devicesFor: (key) => profilesStore.devicesFor(key),
+      saveDevices: (key, devices) => profilesStore.saveDevices(key, devices),
+    },
+    {
+      isConnected: () => connManager.isConnected,
+      setEntityValue: (entityId, value) => connManager.setEntityValue(entityId, value),
+      getEntityInfo: async (entityId) =>
+        connManager.send(rq.getEntityInfo(entityId)) as Promise<Record<string, unknown>>,
+      sendTeamMessage: async (message) => {
+        await connManager.send(rq.sendTeamMessage(message));
+      },
+    },
+    hubAdapter(deviceHub),
+    (message) => logger.log("debug", "logic-engine", message),
+  );
+
   const push = createPushBridge(() => [getMainWindow()].filter(Boolean).map((w) => w!.webContents));
   const connRuntime = new ConnRuntime({ transport: connTransport, manager: connManager, polls, hub: deviceHub });
   connRuntime.wire();
@@ -117,7 +144,16 @@ function bootstrap(): void {
     ...buildAppHandlers({ smokeMode: isSmoke, uiPrefs: uiPrefsStore }),
     ...buildMigrationHandlers({ migrator }),
     ...connectionHandlers(connManager),
-    ...buildProfileHandlers({ profiles: profilesStore }),
+    ...buildProfileHandlers({ profiles: profilesStore, activeRef }),
+    ...buildLogicHandlers({
+      status: () => engineService.status(),
+      requestStop: () => engineService.requestStop(),
+      runRule: (ruleId) => engineService.runRule(ruleId),
+      rulesFor: (matchKey) => engineService.rulesFor(matchKey),
+      isEngineActiveFor: (matchKey) => engineService.isEngineActiveFor(matchKey),
+      saveRulesFor: (matchKey, headers, isEngineActive) =>
+        engineService.saveRulesFor(matchKey, headers as Array<Record<string, unknown>>, isEngineActive),
+    }),
     ...buildBackupHandlers({
       backup: new BackupService(userDataDir, join(userDataDir, "backups"), (level, message) =>
         logger.log(level, "backup", message),

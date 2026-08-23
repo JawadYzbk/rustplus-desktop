@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildProfileHandlers } from "../src/main/channels.profile.js";
+import { buildProfileHandlers } from "../src/main/channels.logic.js";
 import { ProfilesStore } from "../src/main/stores/profiles-store.js";
 import type { SecretCodec } from "../src/main/stores/secret-codec.js";
 
@@ -57,7 +57,7 @@ describe("profile handlers", () => {
   it("profile/list returns summaries with recursive device counts, no tokens", () => {
     const dir = join(mkdtempSync(join(tmpdir(), "rpd-prof-")), "store");
     const store = makeStore(dir, LEGACY_PROFILES);
-    const h = buildProfileHandlers({ profiles: store });
+    const h = buildProfileHandlers({ profiles: store, activeRef: { key: null } });
 
     const { profiles } = h["profile/list"]();
     expect(profiles).toHaveLength(1);
@@ -72,7 +72,7 @@ describe("profile handlers", () => {
   it("getDevices parses the PascalCase tree into camelCase DTOs; unknown matchKey → found:false", () => {
     const dir = join(mkdtempSync(join(tmpdir(), "rpd-prof-")), "store");
     const store = makeStore(dir, LEGACY_PROFILES);
-    const h = buildProfileHandlers({ profiles: store });
+    const h = buildProfileHandlers({ profiles: store, activeRef: { key: null } });
     const key = "1.2.3.4:28082|76561198000000001";
 
     const ok = h["profile/getDevices"]({ matchKey: key });
@@ -89,7 +89,7 @@ describe("profile handlers", () => {
   it("saveDevices writes the whole tree back in legacy PascalCase and survives a reload", () => {
     const dir = join(mkdtempSync(join(tmpdir(), "rpd-prof-")), "store");
     const store = makeStore(dir, LEGACY_PROFILES);
-    const h = buildProfileHandlers({ profiles: store });
+    const h = buildProfileHandlers({ profiles: store, activeRef: { key: null } });
     const key = "1.2.3.4:28082|76561198000000001";
 
     const saved = h["profile/saveDevices"]({

@@ -217,6 +217,97 @@ export const profileSaveDevices = defineChannel(
   "Replace a profile's device tree (whole-tree write, matching legacy Save()).",
 );
 
+export const profileActivate = defineChannel(
+  "profile/activate",
+  z.object({ matchKey: z.string().min(1) }),
+  z.object({ activated: z.boolean() }),
+  "Select the active server profile (engine + connection context follow this).",
+);
+
+/** `logic/*` — Logic Engine control (stage 5). Rules live on the profile record. */
+export const logicStatus = defineChannel(
+  "logic/status",
+  z.void(),
+  z.object({
+    activeKey: z.string().nullable(),
+    isRunning: z.boolean(),
+    currentRuleName: z.string().nullable(),
+    currentStepNumber: z.number().int(),
+    currentStepType: z.string().nullable(),
+    pendingRules: z.array(z.string()),
+  }),
+  "Logic Engine runtime surface (LogicEngineRuntimeService parity).",
+);
+
+export const logicStop = defineChannel(
+  "logic/stop",
+  z.void(),
+  z.object({ stopped: z.boolean() }),
+  "Request cancellation; the current rule aborts after the in-flight operation.",
+);
+
+export const logicRun = defineChannel(
+  "logic/run",
+  z.object({ ruleId: z.string().min(1) }),
+  z.object({ accepted: z.boolean() }),
+  "Manually enqueue a rule by id (legacy 'run now').",
+);
+
+export const logicGetRules = defineChannel(
+  "logic/getRules",
+  z.object({ matchKey: z.string().min(1) }),
+  z.object({
+    found: z.boolean(),
+    isEngineActive: z.boolean(),
+    rules: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        isEnabled: z.boolean(),
+        isLoopEnabled: z.boolean(),
+        loopCount: z.number().int().min(0),
+        triggerType: z.enum(["SmartAlarm", "SmartSwitch", "ChatCommand", "RuleTriggered", "RuleCompleted"]),
+        triggerEntityId: z.number().int().min(0),
+        triggerCommand: z.string(),
+        triggerRuleId: z.string(),
+        triggerState: z.boolean(),
+        conditionOperator: z.enum(["NONE", "AND", "OR"]),
+        conditionDeviceEntityId: z.number().int().min(0),
+        conditionDeviceState: z.boolean(),
+        stepCount: z.number().int().min(0),
+      }),
+    ),
+  }),
+  "Rule summaries for one profile (full step editing lands with the rule editor).",
+);
+
+export const logicSaveRules = defineChannel(
+  "logic/saveRules",
+  z.object({
+    matchKey: z.string().min(1),
+    isEngineActive: z.boolean(),
+    rules: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string().min(1).max(120),
+        isEnabled: z.boolean(),
+        isLoopEnabled: z.boolean(),
+        loopCount: z.number().int().min(0),
+        triggerType: z.enum(["SmartAlarm", "SmartSwitch", "ChatCommand", "RuleTriggered", "RuleCompleted"]),
+        triggerEntityId: z.number().int().min(0),
+        triggerCommand: z.string().max(120),
+        triggerRuleId: z.string().max(120),
+        triggerState: z.boolean(),
+        conditionOperator: z.enum(["NONE", "AND", "OR"]),
+        conditionDeviceEntityId: z.number().int().min(0),
+        conditionDeviceState: z.boolean(),
+      }),
+    ),
+  }),
+  z.object({ saved: z.boolean() }),
+  "Persist rule headers + engine-active flag (steps are preserved untouched for unchanged ids).",
+);
+
 /** One-way main→renderer event stream (NOT an invoke channel — no request/response schema).
  * Payload: { stream: "conn" | "poll" | "device", event: <ConnRuntime event> }. */
 export const pushChannel = "conn/push";
@@ -239,6 +330,12 @@ export const ipcChannels = {
   "profile/list": profileList,
   "profile/getDevices": profileGetDevices,
   "profile/saveDevices": profileSaveDevices,
+  "profile/activate": profileActivate,
+  "logic/status": logicStatus,
+  "logic/stop": logicStop,
+  "logic/run": logicRun,
+  "logic/getRules": logicGetRules,
+  "logic/saveRules": logicSaveRules,
 };
 
 export type IpcChannels = typeof ipcChannels;
@@ -261,5 +358,11 @@ const _nameParity: Readonly<{ [K in keyof IpcChannels]: IpcChannels[K]["name"] }
   "profile/list": "profile/list",
   "profile/getDevices": "profile/getDevices",
   "profile/saveDevices": "profile/saveDevices",
+  "profile/activate": "profile/activate",
+  "logic/status": "logic/status",
+  "logic/stop": "logic/stop",
+  "logic/run": "logic/run",
+  "logic/getRules": "logic/getRules",
+  "logic/saveRules": "logic/saveRules",
 };
 void _nameParity;

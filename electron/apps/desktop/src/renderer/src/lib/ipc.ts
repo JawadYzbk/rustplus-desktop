@@ -10,6 +10,12 @@ type RpdBridge = {
   listProfiles(): Promise<InvokeResult<unknown>>;
   getDevices(matchKey: string): Promise<InvokeResult<unknown>>;
   saveDevices(matchKey: string, devices: unknown[]): Promise<InvokeResult<unknown>>;
+  activateProfile(matchKey: string): Promise<InvokeResult<unknown>>;
+  logicStatus(): Promise<InvokeResult<unknown>>;
+  logicStop(): Promise<InvokeResult<unknown>>;
+  logicRun(ruleId: string): Promise<InvokeResult<unknown>>;
+  logicGetRules(matchKey: string): Promise<InvokeResult<unknown>>;
+  logicSaveRules(payload: unknown): Promise<InvokeResult<unknown>>;
 };
 
 export interface InvokeSuccess<T> {
@@ -103,5 +109,77 @@ export async function getDevices(matchKey: string): Promise<DeviceNode[] | null>
 
 export async function saveDevices(matchKey: string, devices: DeviceNode[]): Promise<boolean> {
   const r = await bridge.saveDevices(matchKey, devices);
+  return r.ok ? (r.data as { saved: boolean }).saved : false;
+}
+
+export async function activateProfile(matchKey: string): Promise<boolean> {
+  const r = await bridge.activateProfile(matchKey);
+  return r.ok ? (r.data as { activated: boolean }).activated : false;
+}
+
+// ------------------------------------------------------------------ logic/* helpers
+
+export interface LogicStatus {
+  activeKey: string | null;
+  isRunning: boolean;
+  currentRuleName: string | null;
+  currentStepNumber: number;
+  currentStepType: string | null;
+  pendingRules: string[];
+}
+
+export interface RuleHeaderDto {
+  id: string;
+  name: string;
+  isEnabled: boolean;
+  isLoopEnabled: boolean;
+  loopCount: number;
+  triggerType: "SmartAlarm" | "SmartSwitch" | "ChatCommand" | "RuleTriggered" | "RuleCompleted";
+  triggerEntityId: number;
+  triggerCommand: string;
+  triggerRuleId: string;
+  triggerState: boolean;
+  conditionOperator: "NONE" | "AND" | "OR";
+  conditionDeviceEntityId: number;
+  conditionDeviceState: boolean;
+  stepCount: number;
+}
+
+export interface RulesPageData {
+  found: boolean;
+  isEngineActive: boolean;
+  rules: RuleHeaderDto[];
+}
+
+export async function getLogicStatus(): Promise<LogicStatus> {
+  const r = await bridge.logicStatus();
+  if (r.ok) return r.data as LogicStatus;
+  throw new Error(`logic/status failed [${r.error.code}]: ${r.error.message}`);
+}
+
+export async function stopLogic(): Promise<void> {
+  const r = await bridge.logicStop();
+  if (!r.ok) throw new Error(`logic/stop failed: ${r.error.message}`);
+}
+
+export async function runRule(ruleId: string): Promise<boolean> {
+  const r = await bridge.logicRun(ruleId);
+  return r.ok ? (r.data as { accepted: boolean }).accepted : false;
+}
+
+export async function getRules(matchKey: string): Promise<RulesPageData> {
+  const r = await bridge.logicGetRules(matchKey);
+  if (r.ok) return r.data as RulesPageData;
+  throw new Error(`logic/getRules failed [${r.error.code}]: ${r.error.message}`);
+}
+
+export interface RuleHeaderInput extends Omit<RuleHeaderDto, "stepCount"> {}
+
+export async function saveRules(
+  matchKey: string,
+  isEngineActive: boolean,
+  rules: RuleHeaderInput[],
+): Promise<boolean> {
+  const r = await bridge.logicSaveRules({ matchKey, isEngineActive, rules });
   return r.ok ? (r.data as { saved: boolean }).saved : false;
 }

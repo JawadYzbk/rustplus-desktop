@@ -6,7 +6,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type * as React from "react";
 import { useProfilesStore } from "../stores/profiles.js";
-import type { DeviceNode } from "../lib/ipc.js";
+import { activateProfile, type DeviceNode } from "../lib/ipc.js";
+import { RulesPanel } from "./RulesPanel.js";
 
 function StatusPill({ node }: { node: DeviceNode }): React.JSX.Element {
   if (node.isGroup) return <span className="text-xs text-muted-foreground">{node.children.length} dev</span>;
@@ -71,6 +72,8 @@ export function DevicesPage(): React.JSX.Element {
   const error = useProfilesStore((s) => s.error);
   const loadProfiles = useProfilesStore((s) => s.loadProfiles);
   const selectProfile = useProfilesStore((s) => s.selectProfile);
+  // Devices ↔ Rules sub-view within the tab (legacy hosts both in the devices window).
+  const [view, setView] = useState<"devices" | "rules">("devices");
 
   useEffect(() => {
     void loadProfiles();
@@ -100,7 +103,10 @@ export function DevicesPage(): React.JSX.Element {
           <select
             aria-label="Active profile"
             value={activeKey ?? ""}
-            onChange={(e) => selectProfile(e.target.value)}
+            onChange={(e) => {
+              selectProfile(e.target.value);
+              void activateProfile(e.target.value);
+            }}
             className="rounded-md border bg-transparent px-2 py-1 text-xs"
           >
             {profiles.map((p) => (
@@ -110,22 +116,48 @@ export function DevicesPage(): React.JSX.Element {
             ))}
           </select>
         )}
-        {active && (
-          <span className="ml-auto text-xs text-muted-foreground">
-            {active.deviceCount} device{active.deviceCount === 1 ? "" : "s"}
-          </span>
-        )}
+        <div className="ml-auto flex items-center gap-2">
+          {activeKey && (
+            <div className="flex rounded-md border p-0.5 text-xs">
+              {(["devices", "rules"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setView(v)}
+                  className={
+                    view === v
+                      ? "rounded bg-primary/10 px-2 py-1 font-medium capitalize text-primary"
+                      : "rounded px-2 py-1 capitalize text-muted-foreground hover:bg-muted"
+                  }
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+          )}
+          {active && view === "devices" && (
+            <span className="text-xs text-muted-foreground">
+              {active.deviceCount} device{active.deviceCount === 1 ? "" : "s"}
+            </span>
+          )}
+        </div>
       </header>
 
       {error && <div className="px-4 py-2 text-xs text-destructive">{error}</div>}
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-2">
-        {loading && profiles.length === 0 ? (
-          <div className="p-4 text-sm text-muted-foreground">Loading profiles…</div>
-        ) : (
-          devices.map((d) => <DeviceRow key={d.entityId} node={d} depth={0} />)
-        )}
-      </div>
+      {view === "rules" && activeKey ? (
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <RulesPanel matchKey={activeKey} />
+        </div>
+      ) : (
+        <div className="min-h-0 flex-1 overflow-y-auto p-2">
+          {loading && profiles.length === 0 ? (
+            <div className="p-4 text-sm text-muted-foreground">Loading profiles…</div>
+          ) : (
+            devices.map((d) => <DeviceRow key={d.entityId} node={d} depth={0} />)
+          )}
+        </div>
+      )}
     </div>
   );
 }

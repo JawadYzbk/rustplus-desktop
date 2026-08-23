@@ -67,6 +67,19 @@ const baseHandlers = () => ({
   }),
   "profile/getDevices": () => ({ devices: [], found: false }),
   "profile/saveDevices": () => ({ saved: false }),
+  "profile/activate": () => ({ activated: true }),
+  "logic/status": () => ({
+    activeKey: null,
+    isRunning: false,
+    currentRuleName: null,
+    currentStepNumber: 0,
+    currentStepType: null,
+    pendingRules: [],
+  }),
+  "logic/stop": () => ({ stopped: true }),
+  "logic/run": () => Promise.resolve({ accepted: true }),
+  "logic/getRules": () => ({ found: false, isEngineActive: false, rules: [] }),
+  "logic/saveRules": () => ({ saved: true }),
 });
 
 describe("registerIpcHandlers", () => {

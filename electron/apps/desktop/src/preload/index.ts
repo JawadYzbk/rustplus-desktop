@@ -65,6 +65,17 @@ const api = {
     invoke("profile/getDevices", { matchKey }) as Promise<InvokeResult<unknown>>,
   saveDevices: (matchKey: string, devices: unknown[]) =>
     invoke("profile/saveDevices", { matchKey, devices }) as Promise<InvokeResult<unknown>>,
+  activateProfile: (matchKey: string) =>
+    invoke("profile/activate", { matchKey }) as Promise<InvokeResult<unknown>>,
+
+  /** Logic Engine control (stage 5). */
+  logicStatus: () => invoke("logic/status", undefined) as Promise<InvokeResult<unknown>>,
+  logicStop: () => invoke("logic/stop", undefined) as Promise<InvokeResult<unknown>>,
+  logicRun: (ruleId: string) => invoke("logic/run", { ruleId }) as Promise<InvokeResult<unknown>>,
+  logicGetRules: (matchKey: string) =>
+    invoke("logic/getRules", { matchKey }) as Promise<InvokeResult<unknown>>,
+  logicSaveRules: (payload: unknown) =>
+    invoke("logic/saveRules", payload) as Promise<InvokeResult<unknown>>,
 
   /** One-way runtime event stream (connection lifecycle, polls, device state).
    * Returns an unsubscribe function. Payload shape: { stream, event }. */
