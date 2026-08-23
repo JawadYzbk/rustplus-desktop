@@ -7,10 +7,11 @@
  *  - unexpected exit → auto-restart after 3 s unless stopped; registration failure aborts (parity:
  *    legacy stops entirely rather than looping a broken browser automation).
  */
-import { spawn, type ChildProcess } from "node:child_process";
+import type { ChildProcess } from "node:child_process";
 import { existsSync, statSync } from "node:fs";
 import { EventEmitter } from "node:events";
 import { PairingLineParser, type ListenerEvent } from "./pairing-parser.js";
+import type { RegisterBrowserEnv } from "./cli-runtime.js";
 
 export const FCM_CONFIG_MIN_BYTES = 50;
 export const RESTART_DELAY_MS = 3_000;
@@ -29,6 +30,8 @@ export interface PairingListenerDeps {
   configPath: string;
   spawner: CliSpawner;
   log?: (message: string) => void;
+  /** Ordered fcm-register browser envs ([primary, fallback…]); empty array = no browser found. */
+  browserResolver?: () => RegisterBrowserEnv[];
 }
 
 export class PairingListenerService extends EventEmitter {
@@ -61,11 +64,35 @@ export class PairingListenerService extends EventEmitter {
     if (needsRegister) {
       this.emit("status", "registering");
       this.deps.log?.("Starting one time registration (fcm-register) …");
-      const code = await this.deps.spawner.run(
-        "fcm-register",
-        {}, // browser discovery env is resolved by the CLI itself in the Electron era
-      );
+      // Find the browser BEFORE starting, not after failing (legacy comment preserved).
+      const envs = this.deps.browserResolver?.() ?? [];
+      if (this.deps.browserResolver && envs.length === 0) {
+        this.deps.log?.(
+          "❌ No Chromium-based browser found. Pairing needs one of: Google Chrome, " +
+            "Microsoft Edge, Brave, Vivaldi, Opera or Chromium. Edge ships with Windows — " +
+            "if it was removed, installing any of the others will do.",
+        );
+        this.running = false;
+        this.emit("status", "stopped");
+        throw new Error("No Chromium-based browser found for fcm-register");
+      }
+
+      let code: number | null = null;
+      for (let i = 0; i < Math.max(envs.length, 1); i++) {
+        const attempt = envs[i];
+        if (attempt) this.deps.log?.(`Using ${attempt.label} for the login window.`);
+        code = await this.deps.spawner.run("fcm-register", attempt?.env ?? {});
+        if (code === 0) break;
+        // A second browser, if the first one refuses to start (AV, policies, half-removed install).
+        if (i + 1 < envs.length) {
+          this.deps.log?.(`${envs[i]!.label} did not start. Trying ${envs[i + 1]!.label}…`);
+        }
+      }
+
       if (code !== 0) {
+        this.deps.log?.(
+          `❌ Registering failed. Antivirus or a company policy blocking browser automation is the usual cause.`,
+        );
         // Legacy parity: stop entirely — do not loop broken browser automation.
         this.running = false;
         this.emit("status", "stopped");
