@@ -208,7 +208,7 @@ describe("ChatPrimer + StatusWatchdog", () => {
   it("chat primes exactly once per connection flag reset", async () => {
     const state = { teamChatPrimed: false, clanChatPrimed: false };
     let sends = 0;
-    const primer = new ChatPrimer({
+    const primer = new ChatPrimer(() => ({
       raw: { sendRequestAsync: async () => ({ response: {} }) },
       send: async () => {
         sends++;
@@ -216,7 +216,7 @@ describe("ChatPrimer + StatusWatchdog", () => {
       },
       toggleSwitch: async () => ({}),
       switchState: async () => null,
-    });
+    }));
     expect(await primer.primeTeamChat(state)).toBe(true);
     expect(await primer.primeTeamChat(state)).toBe(false);
     expect(sends).toBe(1);

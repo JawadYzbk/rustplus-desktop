@@ -12,6 +12,9 @@ import { createRegistrar } from "./ipc.js";
 import { buildAppHandlers } from "./channels.app.js";
 import { buildMigrationHandlers } from "./channels.migration.js";
 import { buildBackupHandlers } from "./channels.backup.js";
+import { connectionHandlers } from "./channels.connection.js";
+import { RustPlusJsTransport, realRustPlusFactory } from "./services/rustplus/rustplus-js-transport.js";
+import { ConnectionManager } from "./services/rustplus/connection-manager.js";
 import { LegacyMigrator, defaultLegacyRoots } from "./services/legacy-migrator.js";
 import { BackupService } from "./services/backup-service.js";
 import { SettingsStore } from "./stores/settings-store.js";
@@ -88,10 +91,15 @@ function bootstrap(): void {
     (level, message) => logger.log(level, "migrator", message),
   );
 
+  // Connection layer (stage 4): rustplus.js transport behind the manager facade. Manager events are
+  // forwarded to the renderer as push messages once the feature UI lands (stage 5).
+  const connManager = new ConnectionManager(new RustPlusJsTransport(realRustPlusFactory));
+
   const registrar = createRegistrar(ipcChannels);
   registrar.register({
     ...buildAppHandlers({ smokeMode: isSmoke, uiPrefs: uiPrefsStore }),
     ...buildMigrationHandlers({ migrator }),
+    ...connectionHandlers(connManager),
     ...buildBackupHandlers({
       backup: new BackupService(userDataDir, join(userDataDir, "backups"), (level, message) =>
         logger.log(level, "backup", message),

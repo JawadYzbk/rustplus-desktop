@@ -10,19 +10,20 @@ import { rq, type ProtocolApi } from "./protocol.js";
 import type { ConnectionState } from "./connection-core.js";
 
 export class ChatPrimer {
-  constructor(private readonly protocol: ProtocolApi) {}
+  /** Provider form: the live protocol endpoint changes on every reconnect. */
+  constructor(private readonly getProtocol: () => ProtocolApi) {}
 
   /** Issues one team-chat prime; no-ops when already primed on this connection. */
   async primeTeamChat(state: Pick<ConnectionState, "teamChatPrimed">): Promise<boolean> {
     if (state.teamChatPrimed) return false;
-    await this.protocol.send(rq.getTeamChat());
+    await this.getProtocol().send(rq.getTeamChat());
     state.teamChatPrimed = true;
     return true;
   }
 
   async primeClanChat(state: Pick<ConnectionState, "clanChatPrimed">): Promise<boolean> {
     if (state.clanChatPrimed) return false;
-    await this.protocol.send(rq.getTeamChat()); // clan chat rides getClanChat in newer protos; 2.5.0 uses getTeamChat
+    await this.getProtocol().send(rq.getTeamChat()); // clan chat rides getClanChat in newer protos; 2.5.0 uses getTeamChat
     state.clanChatPrimed = true;
     return true;
   }

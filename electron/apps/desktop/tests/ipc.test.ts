@@ -3,8 +3,19 @@
  * Exit criterion for stage 2: "IPC contract tests green".
  */
 import { describe, expect, it, vi } from "vitest";
-import { ipcChannels } from "@rpd/shared";
+import { ipcChannels, type ConnSnapshotDto } from "@rpd/shared";
 import { registerIpcHandlers, type IpcRegistrar } from "../src/main/ipc.js";
+
+const connSnap = (over: Partial<ConnSnapshotDto> = {}): ConnSnapshotDto => ({
+  connected: false,
+  activeProxy: null,
+  host: null,
+  port: null,
+  consecutiveTimeouts: 0,
+  teamChatPrimed: false,
+  clanChatPrimed: false,
+  ...over,
+});
 
 function fakeRegistrar(): IpcRegistrar & { handlers: Map<string, (raw: unknown) => Promise<unknown>> } {
   const handlers = new Map<string, (raw: unknown) => Promise<unknown>>();
@@ -38,6 +49,17 @@ const baseHandlers = () => ({
   "backup/create": () => ({ path: "", bytes: 0, encrypted: false }),
   "backup/restore": () => ({ restored: [], skipped: [] }),
   "reset/perform": ({ targets }: { targets: string[] }) => ({ performed: targets }),
+  "conn/connect": () =>
+    connSnap({
+      connected: true,
+      activeProxy: "direct",
+      host: "1.2.3.4",
+      port: 28082,
+      teamChatPrimed: true,
+      clanChatPrimed: true,
+    }),
+  "conn/disconnect": () => connSnap(),
+  "conn/status": () => connSnap(),
 });
 
 describe("registerIpcHandlers", () => {

@@ -99,6 +99,60 @@ export type BackupCreateResult = z.infer<typeof backupCreate["response"]>;
 export type BackupRestoreResult = z.infer<typeof backupRestore["response"]>;
 export type ResetPerformResult = z.infer<typeof resetPerform["response"]>;
 
+/** Connection control — request payloads validated main-side against the live profile store. */
+const connConnect = defineChannel(
+  "conn/connect",
+  z.object({
+    host: z.string().min(1),
+    port: z.number().int().min(1).max(65535),
+    steamId64: z.string().regex(/^\d{17}$/),
+    playerToken: z.string().min(1),
+    useProxy: z.boolean().optional(),
+  }),
+  z.object({
+    connected: z.boolean(),
+    activeProxy: z.enum(["direct", "proxy"]).nullable(),
+    host: z.string().nullable(),
+    port: z.number().nullable(),
+    consecutiveTimeouts: z.number(),
+    teamChatPrimed: z.boolean(),
+    clanChatPrimed: z.boolean(),
+  }),
+  "Open the Rust+ companion connection (dual-path direct/probe fallback).",
+);
+
+const connDisconnect = defineChannel(
+  "conn/disconnect",
+  z.object({}).strict(),
+  z.object({
+    connected: z.boolean(),
+    activeProxy: z.enum(["direct", "proxy"]).nullable(),
+    host: z.string().nullable(),
+    port: z.number().nullable(),
+    consecutiveTimeouts: z.number(),
+    teamChatPrimed: z.boolean(),
+    clanChatPrimed: z.boolean(),
+  }),
+  "Close the companion connection and cancel any pending silent reconnect.",
+);
+
+const connStatus = defineChannel(
+  "conn/status",
+  z.object({}).strict(),
+  z.object({
+    connected: z.boolean(),
+    activeProxy: z.enum(["direct", "proxy"]).nullable(),
+    host: z.string().nullable(),
+    port: z.number().nullable(),
+    consecutiveTimeouts: z.number(),
+    teamChatPrimed: z.boolean(),
+    clanChatPrimed: z.boolean(),
+  }),
+  "Current connection snapshot (no side effects).",
+);
+
+export type ConnSnapshotDto = z.infer<typeof connStatus["response"]>;
+
 /** Registry consumed by preload (allow-list) and main (handler registration). Literal keys are mandatory:
  * they preserve per-channel def types (computed keys would collapse this to an index signature). */
 export const ipcChannels = {
@@ -111,6 +165,9 @@ export const ipcChannels = {
   "backup/create": backupCreate,
   "backup/restore": backupRestore,
   "reset/perform": resetPerform,
+  "conn/connect": connConnect,
+  "conn/disconnect": connDisconnect,
+  "conn/status": connStatus,
 };
 
 export type IpcChannels = typeof ipcChannels;
@@ -127,5 +184,8 @@ const _nameParity: Readonly<{ [K in keyof IpcChannels]: IpcChannels[K]["name"] }
   "backup/create": "backup/create",
   "backup/restore": "backup/restore",
   "reset/perform": "reset/perform",
+  "conn/connect": "conn/connect",
+  "conn/disconnect": "conn/disconnect",
+  "conn/status": "conn/status",
 };
 void _nameParity;
