@@ -141,3 +141,29 @@ export function browserRegisterEnvs(browser: FoundBrowser): RegisterBrowserEnv {
     env: { PUPPETEER_EXECUTABLE_PATH: browser.path, CHROME_PATH: browser.path },
   };
 }
+
+/**
+ * LookUpAppPath parity: reads HKCU/HKLM "App Paths", where Windows installers register
+ * executables. Synchronous (pairing start is already an explicit user action); returns null on any
+ * failure — filesystem probes remain as fallback.
+ */
+export function windowsRegistryAppPath(exeName: string): string | null {
+  if (process.platform !== "win32") return null;
+  const { execFileSync } = require("node:child_process") as typeof import("node:child_process");
+  for (const hive of ["HKCU", "HKLM"]) {
+    try {
+      const out = execFileSync(
+        "reg",
+        ["query", `${hive}\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\${exeName}`, "/ve"],
+        { encoding: "utf8", timeout: 2000, stdio: ["ignore", "pipe", "ignore"] },
+      );
+      const match = /REG_SZ\s+(.+)/.exec(out);
+      if (!match) continue;
+      const p = match[1]!.trim().replace(/^"|"$/g, "");
+      if (p && fileExists(p)) return p;
+    } catch {
+      /* key missing or reg unavailable — try next hive */
+    }
+  }
+  return null;
+}

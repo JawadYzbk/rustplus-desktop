@@ -15,6 +15,10 @@ import { buildBackupHandlers } from "./channels.backup.js";
 import { connectionHandlers } from "./channels.connection.js";
 import { RustPlusJsTransport, realRustPlusFactory } from "./services/rustplus/rustplus-js-transport.js";
 import { ConnectionManager } from "./services/rustplus/connection-manager.js";
+import { PollService } from "./services/rustplus/poll-service.js";
+import { DeviceEventHub } from "./services/rustplus/device-hub.js";
+import { ConnRuntime } from "./services/rustplus/conn-runtime.js";
+import { createPushBridge } from "./push-bridge.js";
 import { LegacyMigrator, defaultLegacyRoots } from "./services/legacy-migrator.js";
 import { BackupService } from "./services/backup-service.js";
 import { SettingsStore } from "./stores/settings-store.js";
@@ -91,9 +95,21 @@ function bootstrap(): void {
     (level, message) => logger.log(level, "migrator", message),
   );
 
-  // Connection layer (stage 4): rustplus.js transport behind the manager facade. Manager events are
-  // forwarded to the renderer as push messages once the feature UI lands (stage 5).
-  const connManager = new ConnectionManager(new RustPlusJsTransport(realRustPlusFactory));
+  // Connection layer (stage 4): rustplus.js transport behind the manager facade, with the poll
+  // loops (status/team/markers), the device-event hub and the unified renderer push stream wired
+  // through ConnRuntime. Nothing auto-connects — the renderer drives conn/connect explicitly.
+  const connTransport = new RustPlusJsTransport(realRustPlusFactory);
+  const connManager = new ConnectionManager(connTransport);
+  const polls = new PollService(connManager);
+  const deviceHub = new DeviceEventHub({ send: connManager.send.bind(connManager) });
+  const push = createPushBridge(() => [getMainWindow()].filter(Boolean).map((w) => w!.webContents));
+  const connRuntime = new ConnRuntime({ transport: connTransport, manager: connManager, polls, hub: deviceHub });
+  connRuntime.wire();
+  connRuntime.on("push", (p) => {
+    const { stream, event } = p as { stream: "conn" | "poll" | "device"; event: unknown };
+    push(stream, event);
+    logger.log("debug", "conn", `${stream}: ${JSON.stringify(event)}`);
+  });
 
   const registrar = createRegistrar(ipcChannels);
   registrar.register({

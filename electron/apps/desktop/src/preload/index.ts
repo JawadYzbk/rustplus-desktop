@@ -8,7 +8,7 @@
  */
 import { contextBridge, ipcRenderer } from "electron";
 import type { IpcChannelName, IpcError } from "@rpd/shared";
-import { ipcChannels } from "@rpd/shared";
+import { ipcChannels, pushChannel } from "@rpd/shared";
 
 export interface InvokeSuccess<T> {
   ok: true;
@@ -58,6 +58,17 @@ const api = {
   getUiPrefs: () => invoke("uiPrefs/get", undefined) as Promise<InvokeResult<unknown>>,
   setUiPrefs: (patch: { sidebarPinned?: boolean; sidebarWidth?: number }) =>
     invoke("uiPrefs/set", patch) as Promise<InvokeResult<unknown>>,
+
+  /** One-way runtime event stream (connection lifecycle, polls, device state).
+   * Returns an unsubscribe function. Payload shape: { stream, event }. */
+  onPush: (listener: (payload: { stream: string; event: unknown }) => void): (() => void) => {
+    const wrapped = (_event: unknown, payload: unknown): void => {
+      const p = (payload ?? {}) as { stream?: string; event?: unknown };
+      listener({ stream: p.stream ?? "", event: p.event });
+    };
+    ipcRenderer.on(pushChannel, wrapped);
+    return () => ipcRenderer.removeListener(pushChannel, wrapped);
+  },
 };
 
 export type RpdApi = typeof api;

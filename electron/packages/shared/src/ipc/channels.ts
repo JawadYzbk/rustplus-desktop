@@ -153,6 +153,10 @@ const connStatus = defineChannel(
 
 export type ConnSnapshotDto = z.infer<typeof connStatus["response"]>;
 
+/** One-way main→renderer event stream (NOT an invoke channel — no request/response schema).
+ * Payload: { stream: "conn" | "poll" | "device", event: <ConnRuntime event> }. */
+export const pushChannel = "conn/push";
+
 /** Registry consumed by preload (allow-list) and main (handler registration). Literal keys are mandatory:
  * they preserve per-channel def types (computed keys would collapse this to an index signature). */
 export const ipcChannels = {
