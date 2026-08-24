@@ -28,6 +28,33 @@ export interface ServerStatus {
   timeString: string | null;
 }
 
+export interface MapMonument {
+  x: number;
+  y: number;
+  token: string | null;
+}
+
+export interface MapSnapshot {
+  width: number;
+  height: number;
+  worldSize: number;
+  oceanMargin: number;
+  imageBase64: string | null;
+  monuments: MapMonument[];
+}
+
+export interface LiveMapMarker {
+  id: number;
+  type: string;
+  x: number;
+  y: number;
+  steamId: string | null;
+  rotation: number | null;
+  radius: number | null;
+  alpha: number | null;
+  name: string | null;
+}
+
 export type ConnectionPhase = "disconnected" | "connecting" | "connected" | "reconnecting";
 
 const EMPTY_SNAPSHOT: ConnSnapshot = {
@@ -83,6 +110,8 @@ interface ConnectionState {
   phase: ConnectionPhase;
   team: TeamSnapshot | null;
   status: ServerStatus | null;
+  map: MapSnapshot | null;
+  markers: LiveMapMarker[];
   error: string | null;
   hydrate: () => Promise<void>;
   connectProfile: (matchKey: string, useProxy?: boolean) => Promise<ConnSnapshot>;
@@ -95,6 +124,8 @@ export const useConnectionStore = create<ConnectionState>((set) => ({
   phase: "disconnected",
   team: null,
   status: null,
+  map: null,
+  markers: [],
   error: null,
 
   hydrate: async () => {
@@ -107,14 +138,14 @@ export const useConnectionStore = create<ConnectionState>((set) => ({
   },
 
   connectProfile: async (matchKey, useProxy) => {
-    set({ phase: "connecting", error: null, team: null, status: null });
+    set({ phase: "connecting", error: null, team: null, status: null, map: null, markers: [] });
     try {
       const snapshot = await connectProfileIpc(matchKey, useProxy);
       set({ snapshot, phase: "connected", error: null });
       return snapshot;
     } catch (reason: unknown) {
       const error = reason instanceof Error ? reason.message : String(reason);
-      set({ phase: "disconnected", error });
+      set({ phase: "disconnected", error, map: null, markers: [] });
       throw reason;
     }
   },
@@ -122,7 +153,7 @@ export const useConnectionStore = create<ConnectionState>((set) => ({
   disconnect: async () => {
     try {
       const snapshot = await disconnectIpc();
-      set({ snapshot, phase: "disconnected", team: null, status: null, error: null });
+      set({ snapshot, phase: "disconnected", team: null, status: null, map: null, markers: [], error: null });
     } catch (reason: unknown) {
       set({ error: reason instanceof Error ? reason.message : String(reason) });
       throw reason;
@@ -136,8 +167,8 @@ export const useConnectionStore = create<ConnectionState>((set) => ({
       if (kind === "connecting") set({ phase: "connecting", error: null });
       else if (kind === "connected") set({ phase: "connected", error: null });
       else if (kind === "reconnectingIn") set({ phase: "reconnecting" });
-      else if (kind === "lost") set({ phase: "reconnecting", snapshot: { ...EMPTY_SNAPSHOT, host: null, port: null } });
-      else if (kind === "disconnected") set({ phase: "disconnected", snapshot: EMPTY_SNAPSHOT, team: null, status: null });
+      else if (kind === "lost") set({ phase: "reconnecting", snapshot: { ...EMPTY_SNAPSHOT, host: null, port: null }, map: null, markers: [] });
+      else if (kind === "disconnected") set({ phase: "disconnected", snapshot: EMPTY_SNAPSHOT, team: null, status: null, map: null, markers: [] });
       return;
     }
     if (stream === "poll" && raw.kind === "status") {
@@ -153,6 +184,42 @@ export const useConnectionStore = create<ConnectionState>((set) => ({
     }
     if (stream === "poll" && raw.kind === "team") {
       set({ team: normalizeTeamSnapshot(raw.team) });
+      return;
+    }
+    if (stream === "poll" && raw.kind === "map") {
+      const value = record(raw.map);
+      set({ map: {
+        width: typeof value.width === "number" ? value.width : 0,
+        height: typeof value.height === "number" ? value.height : 0,
+        worldSize: typeof value.worldSize === "number" ? value.worldSize : 0,
+        oceanMargin: typeof value.oceanMargin === "number" ? value.oceanMargin : 0,
+        imageBase64: typeof value.imageBase64 === "string" ? value.imageBase64 : null,
+        monuments: Array.isArray(value.monuments) ? value.monuments.flatMap((item): MapMonument[] => {
+          const monument = record(item);
+          return typeof monument.x === "number" && typeof monument.y === "number"
+            ? [{ x: monument.x, y: monument.y, token: typeof monument.token === "string" ? monument.token : null }]
+            : [];
+        }) : [],
+      } });
+      return;
+    }
+    if (stream === "poll" && raw.kind === "markers") {
+      const markers = Array.isArray(raw.markers) ? raw.markers.flatMap((item): LiveMapMarker[] => {
+        const marker = record(item);
+        if (typeof marker.x !== "number" || typeof marker.y !== "number") return [];
+        return [{
+          id: typeof marker.id === "number" ? marker.id : 0,
+          type: typeof marker.type === "string" ? marker.type : "Undefined",
+          x: marker.x,
+          y: marker.y,
+          steamId: marker.steamId === null || marker.steamId === undefined ? null : String(marker.steamId),
+          rotation: typeof marker.rotation === "number" ? marker.rotation : null,
+          radius: typeof marker.radius === "number" ? marker.radius : null,
+          alpha: typeof marker.alpha === "number" ? marker.alpha : null,
+          name: typeof marker.name === "string" ? marker.name : null,
+        }];
+      }) : [];
+      set({ markers });
     }
   },
 }));

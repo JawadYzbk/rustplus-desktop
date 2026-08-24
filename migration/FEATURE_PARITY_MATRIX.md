@@ -24,7 +24,7 @@ note in this matrix.
 |---|---|---|---|---|
 | 1.1 | Main window: custom titlebar w/ Discord/PatchNotes/Settings + inline update widget | MainWindow.xaml FluentWindow, Mica | Frameless BrowserWindow + React header; titleBarOverlay for native buttons | PLANNED |
 | 1.2 | Dual-mode sidebar: 64px icon rail ↔ 360–480px hover-expand (200 ms delay, 180 ms anim, pin), popover cards w/ ACTIVE badge | CompactSidebarRail | React layout w/ persisted width; HoverCard popovers | PLANNED |
-| 1.3 | Permanent live-map right pane (not a tab) + GridSplitter proportions | xaml:473-499 | CSS grid split, min widths preserved (map ≥400px) | PLANNED |
+| 1.3 | Permanent live-map right pane (not a tab) + GridSplitter proportions | xaml:473-499 | CSS split pane, min widths preserved (map ≥360px) | IN PROGRESS |
 | 1.4 | Tabs: Devices, Team, Clan, Cameras, Players, Notifications (+ unread badge, mark-all-read on focus) | MainTabs TabControl | Route-per-tab in content area; badge from notification store | IN PROGRESS |
 | 1.5 | Workspace tabs (GeneticsLab, PlayerWipeTracker, DeathStats, RaidCalculator, Recycler): full-window takeover, close→`_lastWorkspaceTabIndex` | ZIndex-9000 overlays | Full-screen routes w/ return-to-previous-tab semantics | PLANNED |
 | 1.6 | In-window overlays: LoginOverlay, BusyOverlay, DeleteConfirmationOverlay, UploadConsentOverlay, AlarmOverlay banner stack | Overlay dir + inline copies | React overlay components (portal-based) | PLANNED |
@@ -82,11 +82,11 @@ note in this matrix.
 
 | # | Feature | Legacy anchor | Strategy | Status |
 |---|---|---|---|---|
-| 5.1 | Layered scene: base PNG → heatmap → grid → overlay canvases; MatrixTransform zoom/pan | SetupMapScene | Layered canvas/WebGL w/ same z-order | PLANNED |
+| 5.1 | Layered scene: base PNG → heatmap → grid → overlay canvases; MatrixTransform zoom/pan | SetupMapScene | Base map image + CSS grid + typed team/dynamic marker overlay; zoom/pan and heatmap remain | IN PROGRESS |
 | 5.2 | Zoom/pan feel: wheel ×1.25 cursor-anchored eased, default 1.18, focus 6.0, zoom-dip centering, follow lerp 0.08 | Interaction.cs | Port math verbatim | PLANNED |
 | 5.3 | Monuments + extra monuments derivation (dedup 20 m) + zoom-aware icons + click menus | Markers.cs:75 | Marker engine w/ culling/virtualization budget | PLANNED |
-| 5.4 | Dynamic events: cargo docking state machine, heli crash sites despawn, chinook, vendor; animated rotation; 2 s poll | PollDynMarkersOnceAsync | Event marker service fed by connectivity layer | PLANNED |
-| 5.5 | Player markers: avatars (30 s retry), arrows, abbreviations, size slider, team notes rendering, death-note filtering heuristics | Map.Players.cs | Same heuristics incl. localized "Death" label | PLANNED |
+| 5.4 | Dynamic events: cargo docking state machine, heli crash sites despawn, chinook, vendor; animated rotation; 2 s poll | PollDynMarkersOnceAsync | Rust+ marker stream now fed to the live pane at 2 s; event-specific state/animation remains | IN PROGRESS |
+| 5.5 | Player markers: avatars (30 s retry), arrows, abbreviations, size slider, team notes rendering, death-note filtering heuristics | Map.Players.cs | Live team/player dots and status colors; avatars/arrows/notes/filtering remain | IN PROGRESS |
 | 5.6 | Death pins (caps, rename/delete, wipe-clear) + death heatmap ellipses r=90 | DeathHeatmap | Canvas layer | PLANNED |
 | 5.7 | Resource heatmaps: 27 parser categories → 24 UI categories, 512² blur+ramp rendering, requires-parser gate | DrawHeatmapOn2DMapAsync | ImageData port of blur/ramp | PLANNED |
 | 5.8 | Wipe detection (harbor count/>50 m drift) → cache/tracking reset; HUD day/night + wipe date | IsWipeDetected | Detector service + HUD card | PLANNED |

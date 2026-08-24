@@ -15,5 +15,6 @@
 
 | 40 | Profile-scoped Rust+ connection: encrypted-token resolution stays in main, lifecycle/team pushes hydrate a typed renderer store, Devices gains connect controls, and Team replaces its placeholder with a live roster route using installed shadcn/ui primitives | Stages 4 and 5 |
 | 41 | Rust+ protobuf compatibility: patched the pinned rustplus.js proto so all 125 required declarations are optional, added sparse-payload decode coverage, and surfaced queued players in live Team status | Stage 4 |
+| 42 | Permanent live-map pane: one-shot `getMap` snapshot, typed 2 s marker pushes, legacy centered-square coordinate projection, team/dynamic marker overlays, and explicit connection/map loading states | Stages 2 and 4 |
 
-Verification: `pnpm --dir electron typecheck`, `test` (260 tests), `build`, and `RPD_SMOKE=1 electron . --no-sandbox` pass; default smoke still hits the environment's Electron GPU child failure.
+Verification through round 42: `pnpm --dir electron typecheck`, `test` (263 tests), `build`, and `RPD_SMOKE=1 electron . --no-sandbox` pass; default smoke still hits the environment's Electron GPU child failure.

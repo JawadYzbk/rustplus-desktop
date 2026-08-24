@@ -31,11 +31,18 @@
   --border: 220 11% 17%;
   --input: 220 10% 20%;
   --ring: 199 100% 69%;
+  --map-grid: hsl(199 100% 69% / 0.08);
   --radius: 8px;
 
   /* scrollbar tokens (track #141820, thumb #2C3548) applied globally below */
   --scrollbar-track: #141820;
   --scrollbar-thumb: #2c3548;
+}
+
+.map-grid {
+  background-image: linear-gradient(to right, var(--map-grid) 1px, transparent 1px), linear-gradient(to bottom, var(--map-grid) 1px, transparent 1px);
+  background-size: 10% 10%;
+  mask-image: linear-gradient(to bottom, black, transparent 92%);
 }
 
 * {

@@ -94,3 +94,10 @@
 - The renderer connection store consumes `conn` lifecycle and `poll/team` pushes with normalized member DTOs; Devices exposes connection controls and `/tab/team` is a live roster route.
 - The pinned `@liamcottle/rustplus.js@2.5.0` dependency is reproducibly patched under `electron/patches/` so all 125 protobuf `required` fields are optional; sparse AppInfo/team decode and queued-player retention are covered by tests.
 - Verification: `pnpm --dir electron typecheck`, `pnpm --dir electron test` (260 tests), `pnpm --dir electron build`, and no-sandbox smoke boot.
+
+## Round 42 evidence
+
+- Added the permanent Electron live-map pane beside every route; it shows explicit offline, map-loading, missing-image, and live states instead of silently rendering an empty content area.
+- Rust+ connection startup now requests `getMap` once, retains `mapSize` from `getInfo`, converts `jpgImage` bytes to a renderer-safe base64 payload, and normalizes monuments and `getMapMarkers` into typed push events.
+- The renderer applies the legacy `0..mapSize` / north-up Y projection with the centered 2000-unit ocean pad, overlays team positions plus dynamic Rust+ markers, and reports the 2-second marker cadence in the pane footer.
+- Verification: `pnpm --dir electron typecheck`, `pnpm --dir electron build`, full `pnpm --dir electron test` (263 tests), no-sandbox smoke boot, and the projection golden test pass.

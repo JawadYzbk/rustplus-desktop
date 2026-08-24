@@ -16,6 +16,7 @@ import { DeathStatsPage } from "./pages/DeathStatsPage.js";
 import { PairingPage } from "./pages/PairingPage.js";
 import { TeamPage } from "./pages/TeamPage.js";
 import { useConnectionStore } from "./stores/connection.js";
+import { LiveMapPane } from "./components/shell/LiveMapPane.js";
 
 /**
  * Shell layout (audit UI_SHELL §2): titlebar row; below it the icon rail + content column where the right
@@ -90,6 +91,7 @@ export function App(): React.JSX.Element {
             <Route path="*" element={<Navigate to="/tab/devices" replace />} />
           </Routes>
         </main>
+        <LiveMapPane />
       </div>
     </div>
   );

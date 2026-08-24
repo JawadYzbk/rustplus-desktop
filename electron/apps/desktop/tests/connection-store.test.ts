@@ -32,4 +32,17 @@ describe("normalizeTeamSnapshot", () => {
     useConnectionStore.getState().applyPush("poll", { kind: "status", status: { players: 1, maxPlayers: 10 } });
     expect(useConnectionStore.getState().status?.queuedPlayers).toBe(0);
   });
+
+  it("keeps the map snapshot and live marker pushes renderer-safe", () => {
+    useConnectionStore.getState().applyPush("poll", {
+      kind: "map",
+      map: { width: 6000, height: 6000, worldSize: 4000, oceanMargin: 1000, imageBase64: "/9g=", monuments: [] },
+    });
+    useConnectionStore.getState().applyPush("poll", {
+      kind: "markers",
+      markers: [{ id: 4, type: "Player", x: 123, y: 456, steamId: "765", rotation: null, radius: null, alpha: null, name: "Ada" }],
+    });
+    expect(useConnectionStore.getState().map?.worldSize).toBe(4000);
+    expect(useConnectionStore.getState().markers[0]?.name).toBe("Ada");
+  });
 });

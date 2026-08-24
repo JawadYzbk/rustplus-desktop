@@ -7,6 +7,7 @@
  * Loops tick only while the connection is up; all timing rides the injected clock.
  */
 import { EventEmitter } from "node:events";
+import { Buffer } from "node:buffer";
 import { rq } from "./protocol.js";
 import type { Clock } from "./timing.js";
 import { realClock } from "./timing.js";
@@ -24,10 +25,38 @@ export interface ServerStatus {
   timeString: string | null;
 }
 
+export interface MapMonument {
+  x: number;
+  y: number;
+  token: string | null;
+}
+
+export interface MapSnapshot {
+  width: number;
+  height: number;
+  worldSize: number;
+  oceanMargin: number;
+  imageBase64: string | null;
+  monuments: MapMonument[];
+}
+
+export interface MapMarker {
+  id: number;
+  type: string;
+  x: number;
+  y: number;
+  steamId: string | null;
+  rotation: number | null;
+  radius: number | null;
+  alpha: number | null;
+  name: string | null;
+}
+
 export type PollEvents =
   | { kind: "status"; status: ServerStatus }
   | { kind: "team"; team: Record<string, unknown> }
-  | { kind: "markers"; markers: Record<string, unknown> };
+  | { kind: "map"; map: MapSnapshot }
+  | { kind: "markers"; markers: MapMarker[] };
 
 export const POLL_INTERVALS = {
   statusMs: 10_000,
@@ -83,12 +112,100 @@ export function formatGameTime(t: unknown): string | null {
 const RESPONSE_KEY: Record<string, string> = {
   getInfo: "info",
   getTime: "time",
+  getMap: "map",
   getTeamInfo: "teamInfo",
   getMapMarkers: "mapMarkers",
 };
 
+const MARKER_TYPES = [
+  "Undefined",
+  "Player",
+  "Explosion",
+  "VendingMachine",
+  "CH47",
+  "CargoShip",
+  "Crate",
+  "GenericRadius",
+  "PatrolHelicopter",
+] as const;
+
+function object(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === "object" ? value as Record<string, unknown> : {};
+}
+
+function finite(value: unknown, fallback = 0): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function positive(value: unknown, fallback = 0): number {
+  const result = finite(value, fallback);
+  return result > 0 ? result : fallback;
+}
+
+function bytesToBase64(value: unknown): string | null {
+  if (typeof value === "string") return value;
+  if (value instanceof Uint8Array) return Buffer.from(value).toString("base64");
+  if (Array.isArray(value) && value.every((item) => typeof item === "number")) {
+    return Buffer.from(value as number[]).toString("base64");
+  }
+  const data = object(value).data;
+  if (Array.isArray(data) && data.every((item) => typeof item === "number")) {
+    return Buffer.from(data as number[]).toString("base64");
+  }
+  return null;
+}
+
+/** Normalize the raw AppMap message before it crosses the main/renderer boundary. */
+export function toMapSnapshot(value: unknown, worldSize = 0): MapSnapshot | null {
+  if (value === null || typeof value !== "object") return null;
+  const raw = object(value);
+  const monuments = Array.isArray(raw.monuments) ? raw.monuments.flatMap((value): MapMonument[] => {
+    const monument = object(value);
+    const x = finite(monument.x, Number.NaN);
+    const y = finite(monument.y, Number.NaN);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return [];
+    return [{ x, y, token: typeof monument.token === "string" && monument.token ? monument.token : null }];
+  }) : [];
+  return {
+    width: positive(raw.width),
+    height: positive(raw.height),
+    worldSize: positive(worldSize),
+    oceanMargin: Math.max(0, finite(raw.oceanMargin)),
+    imageBase64: bytesToBase64(raw.jpgImage),
+    monuments,
+  };
+}
+
+/** Keep the live marker stream small and stable for the renderer. */
+export function toMapMarkers(value: unknown): MapMarker[] {
+  const raw = object(value);
+  if (!Array.isArray(raw.markers)) return [];
+  return raw.markers.flatMap((value, index): MapMarker[] => {
+    const marker = object(value);
+    const typeValue = marker.type;
+    const type = typeof typeValue === "number" ? MARKER_TYPES[typeValue] ?? "Undefined" : typeof typeValue === "string" ? typeValue : "Undefined";
+    const x = finite(marker.x, Number.NaN);
+    const y = finite(marker.y, Number.NaN);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return [];
+    const rawId = finite(marker.id, index);
+    const id = rawId > 0 ? rawId : index;
+    return [{
+      id,
+      type,
+      x,
+      y,
+      steamId: marker.steamId === undefined || marker.steamId === null ? null : String(marker.steamId),
+      rotation: typeof marker.rotation === "number" && Number.isFinite(marker.rotation) ? marker.rotation : null,
+      radius: typeof marker.radius === "number" && Number.isFinite(marker.radius) ? marker.radius : null,
+      alpha: typeof marker.alpha === "number" && Number.isFinite(marker.alpha) ? marker.alpha : null,
+      name: typeof marker.name === "string" && marker.name ? marker.name : null,
+    }];
+  });
+}
+
 export class PollService extends EventEmitter {
   private running = false;
+  private worldSize = 0;
 
   constructor(
     private readonly mgr: PollManagerLike,
@@ -101,9 +218,12 @@ export class PollService extends EventEmitter {
   start(): void {
     if (this.running) return;
     this.running = true;
+    this.worldSize = 0;
     void this.loop("status", this.intervals.statusMs, () => this.pollStatus());
     void this.loop("team", this.intervals.teamMs, () => this.pollTeam());
     void this.loop("markers", this.intervals.markersMs, () => this.pollMarkers());
+    // The map image is a connection snapshot; dynamic markers continue on their 2 s loop.
+    void this.pollMap().catch(() => undefined);
   }
 
   stop(): void {
@@ -137,7 +257,10 @@ export class PollService extends EventEmitter {
       // Legacy GetServerStatusAsync issues BOTH getInfo and getTime per tick.
       const res = await this.mgr.send(rq.getInfo());
       const timeRes = await this.mgr.send(rq.getTime()).catch(() => ({}) as Record<string, unknown>);
-      const status = toServerStatus(res[RESPONSE_KEY["getInfo"]!]);
+      const info = res[RESPONSE_KEY["getInfo"]!];
+      const infoRecord = object(info);
+      this.worldSize = positive(infoRecord.mapSize ?? infoRecord.worldSize, this.worldSize);
+      const status = toServerStatus(info);
       if (!status) throw new Error("invalid status payload");
       if (!status.timeString) {
         const timePayload = (timeRes[RESPONSE_KEY["getTime"]!] ?? null) as { time?: unknown } | null;
@@ -161,10 +284,20 @@ export class PollService extends EventEmitter {
 
   private async pollMarkers(): Promise<void> {
     const res = await this.mgr.send(rq.getMapMarkers());
-    const markers = res[RESPONSE_KEY["getMapMarkers"]!];
-    if (markers && typeof markers === "object") {
-      this.emit("poll", { kind: "markers", markers } as PollEvents);
+    const markers = toMapMarkers(res[RESPONSE_KEY["getMapMarkers"]!]);
+    this.emit("poll", { kind: "markers", markers } satisfies PollEvents);
+  }
+
+  private async pollMap(): Promise<void> {
+    if (!this.running || !this.mgr.isConnected) return;
+    const res = await this.mgr.send(rq.getMap());
+    if (this.worldSize <= 0) {
+      const infoRes = await this.mgr.send(rq.getInfo()).catch(() => ({}) as Record<string, unknown>);
+      const info = object(infoRes[RESPONSE_KEY["getInfo"]!]);
+      this.worldSize = positive(info.mapSize ?? info.worldSize, this.worldSize);
     }
+    const map = toMapSnapshot(res[RESPONSE_KEY["getMap"]!], this.worldSize);
+    if (map && this.running && this.mgr.isConnected) this.emit("poll", { kind: "map", map } satisfies PollEvents);
   }
 }
 

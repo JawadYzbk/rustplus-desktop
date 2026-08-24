@@ -7,6 +7,8 @@ import { describe, expect, it } from "vitest";
 import {
   PollService,
   POLL_INTERVALS,
+  toMapMarkers,
+  toMapSnapshot,
   toServerStatus,
   formatGameTime,
   switchServer,
@@ -19,6 +21,7 @@ const SHORT = { statusMs: 40, teamMs: 30, markersMs: 20 } as const;
 const RESPONSE_KEY: Record<string, string> = {
   getInfo: "info",
   getTime: "time",
+  getMap: "map",
   getTeamInfo: "teamInfo",
   getMapMarkers: "mapMarkers",
 };
@@ -89,6 +92,44 @@ describe("PollService", () => {
     const sendsAtStop = mgr.sends.length;
     await new Promise((r) => setTimeout(r, 120));
     expect(mgr.sends.length).toBeLessThan(sendsAtStop + 6);
+  }, 5000);
+
+  it("loads one map snapshot and normalizes the live marker payload", async () => {
+    const mgr = fakeMgr({
+      responses: {
+        getMap: { width: 6000, height: 6000, oceanMargin: 1000, jpgImage: Uint8Array.from([0xff, 0xd8]), monuments: [{ token: "launch_site", x: 1200, y: 3400 }] },
+        getInfo: { mapSize: 4000, players: 1, maxPlayers: 10 },
+      },
+    });
+    const svc = new PollService(mgr, undefined, SHORT);
+    const maps: unknown[] = [];
+    svc.on("poll", (event) => event.kind === "map" && maps.push(event.map));
+
+    svc.start();
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    svc.stop();
+
+    expect(maps).toEqual([{
+      width: 6000,
+      height: 6000,
+      worldSize: 4000,
+      oceanMargin: 1000,
+      imageBase64: "/9g=",
+      monuments: [{ token: "launch_site", x: 1200, y: 3400 }],
+    }]);
+    expect(mgr.sends).toContain("getMap");
+    expect(toMapMarkers({ markers: [{ id: 8, type: 1, x: 123, y: 456, steamId: 7656119, name: "Ada" }] })).toEqual([{
+      id: 8,
+      type: "Player",
+      x: 123,
+      y: 456,
+      steamId: "7656119",
+      rotation: null,
+      radius: null,
+      alpha: null,
+      name: "Ada",
+    }]);
+    expect(toMapSnapshot(null)).toBeNull();
   }, 5000);
 
   it("status failure keeps values silent and records false for the watchdog", async () => {
