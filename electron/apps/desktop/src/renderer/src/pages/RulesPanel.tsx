@@ -14,6 +14,13 @@ import {
   type RuleHeaderInput,
 } from "../lib/ipc.js";
 import { StepEditor } from "./StepEditor.js";
+import { Badge } from "../components/ui/badge.js";
+import { Button } from "../components/ui/button.js";
+import { Checkbox } from "../components/ui/checkbox.js";
+import { Input } from "../components/ui/input.js";
+import { Label } from "../components/ui/label.js";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select.js";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/ui/accordion.js";
 
 const TRIGGERS = ["SmartAlarm", "SmartSwitch", "ChatCommand", "RuleTriggered", "RuleCompleted"] as const;
 
@@ -86,47 +93,49 @@ export function RulesPanel({ matchKey }: { matchKey: string }): React.JSX.Elemen
   return (
     <div className="flex min-h-0 flex-col">
       <div className="flex items-center gap-3 border-b px-4 py-2">
-        <label className="flex items-center gap-2 text-xs font-medium">
-          <input
-            type="checkbox"
+        <Label className="flex items-center gap-2 text-xs font-medium">
+          <Checkbox
             checked={engineActive}
-            onChange={(e) => {
-              setEngineActive(e.target.checked);
-              void persist(e.target.checked, rules);
+            onCheckedChange={(checked) => {
+              setEngineActive(checked === true);
+              void persist(checked === true, rules);
             }}
           />
           Logic Engine active
-        </label>
-        <button
+        </Label>
+        <Button
           type="button"
-          className="rounded-md border px-2 py-1 text-xs hover:bg-muted"
+          variant="outline"
+          size="sm"
           onClick={() => {
             setRules((r) => [...r, newHeader(r.length + 1)]);
             setDirty(true);
           }}
         >
           + Rule
-        </button>
+        </Button>
         <span className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
           {status?.isRunning === true && (
             <>
-              <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] text-emerald-600">
+              <Badge variant="outline" className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] text-emerald-600">
                 {status.currentRuleName} · step {status.currentStepNumber} ({status.currentStepType})
-              </span>
-              <button type="button" className="rounded border px-2 py-0.5 hover:bg-muted" onClick={() => void stopLogic()}>
+              </Badge>
+              <Button type="button" variant="outline" size="sm" onClick={() => void stopLogic()}>
                 Stop
-              </button>
+              </Button>
             </>
           )}
           {dirty && (
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               disabled={saving}
               className="rounded-md border border-primary bg-primary/10 px-2 py-0.5 text-primary hover:bg-primary/20 disabled:opacity-50"
               onClick={() => void persist(engineActive, rules)}
             >
               {saving ? "Saving…" : "Save changes"}
-            </button>
+            </Button>
           )}
         </span>
       </div>
@@ -135,82 +144,56 @@ export function RulesPanel({ matchKey }: { matchKey: string }): React.JSX.Elemen
         {rules.length === 0 && (
           <p className="p-4 text-xs text-muted-foreground">No rules yet — create one to automate switches and alarms.</p>
         )}
+        <Accordion type="single" collapsible value={openRuleId ?? (dirty ? rules[0]?.id : undefined)} onValueChange={(value) => setOpenRuleId(value || null)}>
         {rules.map((rule, i) => (
-          <details
-            key={rule.id}
-            className="mb-1 rounded-md border px-2 py-1.5"
-            open={openRuleId === rule.id || (i === 0 && dirty)}
-            onToggle={(e) => setOpenRuleId(e.currentTarget.open ? rule.id : null)}
-          >
-            <summary className="flex cursor-pointer items-center gap-2 text-sm">
-              <input
-                type="checkbox"
+          <AccordionItem key={rule.id} value={rule.id} className="mb-1 rounded-md border px-2">
+            <div className="flex items-center gap-2">
+              <Checkbox
                 checked={rule.isEnabled}
-                onChange={(e) => {
-                  setRules((rs) => rs.map((r, j) => (j === i ? { ...r, isEnabled: e.target.checked } : r)));
+                onCheckedChange={(checked) => {
+                  setRules((rs) => rs.map((r, j) => (j === i ? { ...r, isEnabled: checked === true } : r)));
                   setDirty(true);
                 }}
               />
-              <span className={rule.isEnabled ? "" : "text-muted-foreground"}>{rule.name}</span>
-              <span className="ml-auto text-[11px] text-muted-foreground">
-                {rule.triggerType}
-                {rule.triggerType === "ChatCommand" ? ` · !${rule.triggerCommand}` : ""}
-                {` · ${rule.loopCount}×`}
-                <button
-                  type="button"
-                  className="ml-2 rounded border px-1.5 py-0.5 hover:bg-muted"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    void runRule(rule.id);
-                  }}
-                >
-                  Run
-                </button>
-                <button
-                  type="button"
-                  className="ml-1 rounded border px-1.5 py-0.5 text-destructive hover:bg-destructive/10"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setRules((rs) => rs.filter((_, j) => j !== i));
-                    setDirty(true);
-                  }}
-                >
-                  ✕
-                </button>
-              </span>
-            </summary>
+              <AccordionTrigger className="flex-1 py-2 text-sm hover:no-underline">
+                <span className={rule.isEnabled ? "" : "text-muted-foreground"}>{rule.name}</span>
+                <span className="ml-auto mr-2 text-[11px] text-muted-foreground">
+                  {rule.triggerType}
+                  {rule.triggerType === "ChatCommand" ? ` · !${rule.triggerCommand}` : ""}
+                  {` · ${rule.loopCount}×`}
+                </span>
+              </AccordionTrigger>
+              <Button type="button" variant="outline" size="sm" onClick={() => void runRule(rule.id)}>Run</Button>
+              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => { setRules((rs) => rs.filter((_, j) => j !== i)); setDirty(true); }}>✕</Button>
+            </div>
+            <AccordionContent>
             <div className="grid grid-cols-2 gap-2 px-6 py-2 text-xs">
-              <label className="col-span-2 flex items-center gap-2">
+              <Label className="col-span-2 flex items-center gap-2">
                 Name
-                <input
+                <Input
                   value={rule.name}
                   onChange={(e) => {
                     setRules((rs) => rs.map((r, j) => (j === i ? { ...r, name: e.target.value } : r)));
                     setDirty(true);
                   }}
-                  className="flex-1 rounded border bg-transparent px-2 py-1"
+                  className="flex-1"
                 />
-              </label>
-              <label className="flex items-center gap-2">
+              </Label>
+              <Label className="flex items-center gap-2">
                 Trigger
-                <select
-                  value={rule.triggerType}
-                  onChange={(e) => {
+                <Select value={rule.triggerType} onValueChange={(value) => {
                     setRules((rs) =>
-                      rs.map((r, j) => (j === i ? { ...r, triggerType: e.target.value as typeof r.triggerType } : r)),
+                      rs.map((r, j) => (j === i ? { ...r, triggerType: value as typeof r.triggerType } : r)),
                     );
                     setDirty(true);
-                  }}
-                  className="flex-1 rounded border bg-transparent px-2 py-1"
-                >
-                  {TRIGGERS.map((t) => (
-                    <option key={t}>{t}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex items-center gap-2">
+                  }}>
+                  <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>{TRIGGERS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                </Select>
+              </Label>
+              <Label className="flex items-center gap-2">
                 Loop count
-                <input
+                <Input
                   type="number"
                   min={0}
                   value={rule.loopCount}
@@ -220,13 +203,13 @@ export function RulesPanel({ matchKey }: { matchKey: string }): React.JSX.Elemen
                     );
                     setDirty(true);
                   }}
-                  className="w-20 rounded border bg-transparent px-2 py-1"
+                  className="w-20"
                 />
-              </label>
+              </Label>
               {(rule.triggerType === "SmartAlarm" || rule.triggerType === "SmartSwitch") && (
-                <label className="flex items-center gap-2">
+                <Label className="flex items-center gap-2">
                   Trigger entity #
-                  <input
+                  <Input
                     type="number"
                     min={0}
                     value={rule.triggerEntityId}
@@ -238,29 +221,31 @@ export function RulesPanel({ matchKey }: { matchKey: string }): React.JSX.Elemen
                       );
                       setDirty(true);
                     }}
-                    className="w-24 rounded border bg-transparent px-2 py-1"
+                    className="w-24"
                   />
-                </label>
+                </Label>
               )}
               {rule.triggerType === "ChatCommand" && (
-                <label className="flex items-center gap-2">
+                <Label className="flex items-center gap-2">
                   Command
-                  <input
+                  <Input
                     value={rule.triggerCommand}
                     onChange={(e) => {
                       setRules((rs) => rs.map((r, j) => (j === i ? { ...r, triggerCommand: e.target.value } : r)));
                       setDirty(true);
                     }}
-                    className="flex-1 rounded border bg-transparent px-2 py-1"
+                    className="flex-1"
                   />
-                </label>
+                </Label>
               )}
             </div>
             {openRuleId === rule.id && (
               <StepEditor matchKey={matchKey} ruleId={rule.id} onSaved={() => void refresh()} />
             )}
-          </details>
+            </AccordionContent>
+          </AccordionItem>
         ))}
+        </Accordion>
       </div>
     </div>
   );

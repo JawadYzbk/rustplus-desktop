@@ -5,9 +5,15 @@ import { TitleBar } from "./components/shell/TitleBar.js";
 import { SidebarRail } from "./components/shell/SidebarRail.js";
 import { FeaturePending } from "./components/shell/FeaturePending.js";
 import { useUiStore, WORKSPACE_TABS, type RailTab } from "./stores/ui.js";
+import { useProfilesStore } from "./stores/profiles.js";
 import { getUiPrefs, setUiPrefsDebounced } from "./lib/ipc.js";
 import { MigratePage } from "./pages/MigratePage.js";
 import { DevicesPage } from "./pages/DevicesPage.js";
+import { RaidCalculatorPage } from "./pages/RaidCalculatorPage.js";
+import { RecyclerCalculatorPage } from "./pages/RecyclerCalculatorPage.js";
+import { PlayerWipeTrackerPage } from "./pages/PlayerWipeTrackerPage.js";
+import { DeathStatsPage } from "./pages/DeathStatsPage.js";
+import { PairingPage } from "./pages/PairingPage.js";
 
 /**
  * Shell layout (audit UI_SHELL §2): titlebar row; below it the icon rail + content column where the right
@@ -53,7 +59,16 @@ export function App(): React.JSX.Element {
         setUiPrefsDebounced(parsed);
       }
     });
-    return unsub;
+    const unsubPush = window.rpd.onPush(({ stream, event }) => {
+      const e = (event ?? {}) as { kind?: string; entityId?: unknown; on?: unknown };
+      if (stream === "device" && e.kind === "deviceState" && typeof e.entityId === "number" && typeof e.on === "boolean") {
+        useProfilesStore.getState().setDeviceState(e.entityId, e.on);
+      }
+    });
+    return () => {
+      unsub();
+      unsubPush();
+    };
   }, []);
 
   return (
@@ -67,6 +82,7 @@ export function App(): React.JSX.Element {
             <Route path="/tab/:tabId" element={<TabOutlet />} />
             {/* Migration UX route (stage 3) — reachable via deep link /migrate; not on the rail. */}
             <Route path="/migrate" element={<MigratePage />} />
+            <Route path="/pair" element={<PairingPage />} />
             <Route path="*" element={<Navigate to="/tab/devices" replace />} />
           </Routes>
         </main>
@@ -93,13 +109,13 @@ function TabOutlet(): React.JSX.Element {
     case "genetics-lab":
       return <FeaturePending title="GeneticsLab" stage="8" matrix="7.1–7.5" />;
     case "wipe-tracker":
-      return <FeaturePending title="Player Wipe Tracker" stage="9" matrix="8.3" />;
+      return <PlayerWipeTrackerPage />;
     case "death-stats":
-      return <FeaturePending title="Death Stats" stage="9" matrix="8.4" />;
+      return <DeathStatsPage />;
     case "raid-calculator":
-      return <FeaturePending title="Raid Calculator" stage="9" matrix="8.1" />;
+      return <RaidCalculatorPage />;
     case "recycler-calculator":
-      return <FeaturePending title="Recycler Calculator" stage="9" matrix="8.2" />;
+      return <RecyclerCalculatorPage />;
     default:
       return <Navigate to="/tab/devices" replace />;
   }

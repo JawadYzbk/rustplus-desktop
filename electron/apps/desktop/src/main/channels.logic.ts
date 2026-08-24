@@ -15,11 +15,13 @@ import { parseDevices, serializeDevices } from "./services/devices/server-profil
 import { countActualDevicesTree } from "./services/devices/device-data.js";
 import { parseLogicRule, serializeLogicRule, type LogicRule, type LogicStep } from "./services/automation/logic-rule.js";
 import type { LogicEngineService } from "./services/automation/engine-service.js";
+import { parsePairingLink } from "./services/rustplus/pairing-parser.js";
 
 export interface ProfileBridgeDeps {
   profiles: {
     list(): Array<{ Name: string; Host: string; Port: number; SteamId64: string }>;
     matchKey(p: { Host: string; Port: number; SteamId64: string }): string;
+    upsert(profile: { Name: string; Description?: string; Host: string; Port: number; SteamId64: string } & Record<string, unknown>): void;
     devicesFor(key: string): Record<string, unknown>[] | null;
     saveDevices(key: string, devices: Record<string, unknown>[]): boolean;
     field(key: string, name: string): unknown;
@@ -31,6 +33,7 @@ export interface ProfileBridgeDeps {
 
 export function buildProfileHandlers(deps: ProfileBridgeDeps): {
   "profile/list": () => { profiles: Array<{ matchKey: string; name: string; host: string; port: number; steamId64: string; deviceCount: number }> };
+  "profile/pair": (req: { link: string; name?: string }) => { activated: boolean; profile: { matchKey: string; name: string; host: string; port: number; steamId64: string; deviceCount: number } };
   "profile/getDevices": (req: { matchKey: string }) => { devices: DeviceNodeDto[]; found: boolean };
   "profile/saveDevices": (req: { matchKey: string; devices: unknown[] }) => { saved: boolean };
   "profile/activate": (req: { matchKey: string }) => { activated: boolean };
@@ -50,6 +53,36 @@ export function buildProfileHandlers(deps: ProfileBridgeDeps): {
         };
       }),
     }),
+
+    "profile/pair": (req) => {
+      const payload = parsePairingLink(req.link);
+      if (!payload?.SteamId64 || !payload.PlayerToken || !/^\d{17}$/.test(payload.SteamId64)) {
+        throw new Error("Invalid Rust+ pairing link. Paste the complete rustplus:// link.");
+      }
+      const name = req.name?.trim() || payload.ServerName?.trim() || `${payload.Host}:${payload.Port}`;
+      const profile = {
+        Name: name,
+        Description: payload.ServerDescription ?? undefined,
+        Host: payload.Host,
+        Port: payload.Port,
+        SteamId64: payload.SteamId64,
+        PlayerToken: payload.PlayerToken,
+      };
+      deps.profiles.upsert(profile);
+      const matchKey = deps.profiles.matchKey(profile);
+      deps.activeRef.key = matchKey;
+      return {
+        activated: true,
+        profile: {
+          matchKey,
+          name,
+          host: payload.Host,
+          port: payload.Port,
+          steamId64: payload.SteamId64,
+          deviceCount: countActualDevicesTree(parseDevices(deps.profiles.devicesFor(matchKey) ?? [])),
+        },
+      };
+    },
 
     "profile/getDevices": (req) => {
       const raw = deps.profiles.devicesFor(req.matchKey);

@@ -1,5 +1,13 @@
 # Feature Parity Matrix
 
+## Migration UI rule
+
+Every implemented Electron route and shell surface must use the local shadcn/ui primitives under
+`electron/apps/desktop/src/renderer/src/components/ui/` for controls and repeated surfaces (Button, Input,
+Select, Textarea, Checkbox, Card, Badge, Table, Dialog, and future primitives). Raw `<button>`, `<input>`,
+`<select>`, `<textarea>`, or hand-rolled equivalents in implemented pages are migration audit failures; native
+HTML remains allowed inside primitive implementations and for semantic layout/content elements.
+
 > Stage-1 deliverable. Every legacy feature must appear here exactly once with its porting strategy.
 > Status values during migration: **PLANNED** → **IN-PROGRESS** → **PASS** / **BLOCKED** (final statuses live in
 > [FINAL_PARITY_REPORT.md](./FINAL_PARITY_REPORT.md); only PASS/BLOCKED allowed there).
@@ -60,15 +68,15 @@ note in this matrix.
 
 | # | Feature | Legacy anchor | Strategy | Status |
 |---|---|---|---|---|
-| 4.1 | Device tree UI: groups, search/type filter, icons, action bar (hotkeys/import/export/logic-engine/automation/refresh/delete) | ListDevices TreeView | Virtualized tree + toolbar | PLANNED |
-| 4.2 | Device import/export formats | DeviceImportWindow | Same JSON shapes round-trip | PLANNED |
+| 4.1 | Device tree UI: groups, search/type filter, icons, action bar (hotkeys/import/export/logic-engine/automation/refresh/delete) | ListDevices TreeView | Virtualized tree + toolbar | IN PROGRESS |
+| 4.2 | Device import/export formats | DeviceImportWindow | Same JSON shapes round-trip | IN PROGRESS |
 | 4.3 | Logic Engine executor: triggers ×5, gating NONE/AND/OR (OR-always-true quirk), steps Wait/Toggle/CheckAvailability/StartTimer, nested conditional steps, loops (Wait>0 required; 0=infinite), cooperative stop, manual-op deference | MainWindow.LogicEngine.cs | Pure TS runner + IO adapters + golden replay fixtures per §8 bullet | PLANNED |
 | 4.4 | Logic Engine UI incl. runtime status card (RUNNING/IDLE, current rule/step, queue, Stop), oil-rig template preset, two-phase delete, icon picker | LogicEngineOverlay | React editor mirroring controls | PLANNED |
 | 4.5 | Device Automation evaluator: proximity (Euclidean, dead=offline), 6 match modes incl. Specific prefix semantics, time windows (half-open, midnight wrap, start==end=all-day, unparseable=skip tick), conflict ⇒ no action, semaphore skip-not-queue, 5 s cadence | DeviceAutomationEvaluator | Pure functions + golden tests (port 3 MSTest cases 1:1) | PLANNED |
 | 4.6 | Automation UI (flat declarative editor, anchor combos w/ coordinates display, THEN states) | DeviceAutomationOverlay | React form | PLANNED |
 | 4.7 | Custom timers: cap 5/profile, replace-by-name, milestone suppression, chat announcement + Discord events mirror; rig timers hand-off to MonumentWatcher | timer services | Timer store + dispatcher | PLANNED |
 | 4.8 | AlertTemplateService: culture overrides file, positional {n} formatting w/ fallback chain, 27 keys, dimmed unavailable rows | AlertTemplateService | i18next interpolation adapter + same override file format | PLANNED |
-| 4.9 | profiles.json persistence shape (PascalCase, string enums, [JsonIgnore] exclusions) byte-compatible round-trip | ServerProfile model | Typed models + contract tests on real fixtures | PLANNED |
+| 4.9 | profiles.json persistence shape (PascalCase, string enums, [JsonIgnore] exclusions) byte-compatible round-trip | ServerProfile model | Typed models + contract tests on real fixtures | DONE |
 
 ## 5) Maps 2D (audit: MAPS_2D_3D_MAPPARSER §2–3)
 
@@ -115,10 +123,10 @@ note in this matrix.
 
 | # | Feature | Legacy anchor | Strategy | Status |
 |---|---|---|---|---|
-| 8.1 | Raid Calculator (raid-data.json dataset, plans persisted raid-plan.json) | RaidCalculatorView/RaidPlanStore | React port + dataset copy + golden tests on calculator core | PLANNED |
-| 8.2 | Recycler Calculator (Recycling-Data.json, recycler-items.json) | RecyclerOverlay | Same approach | PLANNED |
-| 8.3 | Player Wipe Tracker: JSONL observation sessions, day payloads w/ checksum, bounded retry queue, stats views, cloud backup flag | PlayerWipeTrackerStore + LaravelPlayerWipeTrackerClient | TS store + queue parity; golden tests on aggregation | PLANNED |
-| 8.4 | Death Stats view + death log store (+ orphan-folder fix) | DeathStatsView / DeathReporter | Unified deaths store + UI | PLANNED |
+| 8.1 | Raid Calculator (raid-data.json dataset, plans persisted raid-plan.json) | RaidCalculatorView/RaidPlanStore | React port + dataset copy + golden tests on calculator core | IN PROGRESS |
+| 8.2 | Recycler Calculator (Recycling-Data.json, recycler-items.json) | RecyclerOverlay | Same approach | IN PROGRESS |
+| 8.3 | Player Wipe Tracker: JSONL observation sessions, day payloads w/ checksum, bounded retry queue, stats views, cloud backup flag | PlayerWipeTrackerStore + LaravelPlayerWipeTrackerClient | TS store + queue parity; golden tests on aggregation | IN PROGRESS |
+| 8.4 | Death Stats view + death log store (+ orphan-folder fix) | DeathStatsView / DeathReporter | Unified deaths store + UI, legacy JSONL read-through, baseline-aware team polling, filters, summaries, and focused parity tests | IN PROGRESS |
 
 ## 9) Social / integrations (audit: SOCIAL_DISCORD_TELEGRAM_ALEXA_CHAT_FCM)
 
@@ -155,17 +163,17 @@ note in this matrix.
 
 | # | Feature | Legacy anchor | Strategy | Status |
 |---|---|---|---|---|
-| 11.1 | Auth: email/password + Discord OAuth loopback; session store safeStorage; 15-min cached validation; transient-vs-revoked semantics | CloudAuthManager | CLOUD_ARCHITECTURE §2 | PLANNED |
-| 11.2 | API client choke point w/ envelope/error/typed-conflict + upgrade_required kill-switch | CloudApiClient | CLOUD_ARCHITECTURE §3 | PLANNED |
+| 11.1 | Auth: email/password + Discord OAuth loopback; session store safeStorage; 15-min cached validation; transient-vs-revoked semantics | CloudAuthManager | CLOUD_ARCHITECTURE §2 | IN PROGRESS |
+| 11.2 | API client choke point w/ envelope/error/typed-conflict + upgrade_required kill-switch | CloudApiClient | CLOUD_ARCHITECTURE §3 | IN PROGRESS |
 | 11.3 | Realtime Pusher v7: config-driven endpoint, broadcasting/auth proxy, heartbeat-driven team channel, server-events channel, backoff+jitter resubscribe, activity keepalive | RealtimeClient | CLOUD_ARCHITECTURE §4 | PLANNED |
 | 11.4 | Sync trio + overlays + team sharing w/ hash dedupe, checksums, empty-payload tolerance | Overlay/DeviceDataModules | Domain services | PLANNED |
 | 11.5 | Steam claim + 409 conflict UX (pause once, evidence dialog, resume) | CloudSteamLink | Ported flow | PLANNED |
-| 11.6 | Entitlements: me/limits tier caps enforced pre-upload; premium surfaces (avatar ring, screenshots caps, failure alerts) | TierLimitModel | Entitlement snapshot store | PLANNED |
+| 11.6 | Entitlements: me/limits tier caps enforced pre-upload; premium surfaces (avatar ring, screenshots caps, failure alerts) | TierLimitModel | Entitlement snapshot store | IN PROGRESS |
 | 11.7 | Traffic policy minimized-state scaling; presence-before-report ordering | CloudTrafficPolicy | Scheduler service | PLANNED |
 | 11.8 | Consent-first upload ordering + MigrationNotice equivalent once-per-identity | EnsureCloudSyncConsentAsync | CLOUD_MIGRATION §4 | PLANNED |
 | 11.9 | Purge orphaned cloud data action | overlay/purge-orphaned | Settings action | PLANNED |
 | 11.10 | Admin panel window (manual premium grants, modeless) | AdminPanelWindow | Route gated by me/roles | PLANNED |
-| 11.11 | Account/cloud windows: login overlay, account mgr w/ plan badge, features showcase, disclaimer, email login, FCM consent | Views\Windows\Cloud* | Routes/dialogs per shadcn mapping | PLANNED |
+| 11.11 | Account/cloud windows: login overlay, account mgr w/ plan badge, features showcase, disclaimer, email login, FCM consent | Views\Windows\Cloud* | Routes/dialogs per shadcn mapping | IN PROGRESS |
 
 ## 12) Data, settings, backup (audit: DATA_STORES_SETTINGS_SECRETS)
 

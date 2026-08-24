@@ -29,6 +29,11 @@ import {
   AlertTemplateService,
   dotNetFormat,
 } from "../src/main/services/automation/alert-template-service.js";
+import {
+  DeviceAutomationService,
+  extractTeamMembers,
+} from "../src/main/services/automation/device-automation-service.js";
+import { newSmartDevice } from "../src/main/services/devices/device-data.js";
 
 const p = (steamId: string, isOnline: boolean, x: number | null = null, y: number | null = null): PlayerSnapshot => ({
   steamId,
@@ -104,6 +109,54 @@ describe("DeviceAutomationEvaluator", () => {
     expect(isTimeMatch({ ...base, startTime: "00:00", endTime: "24:00" }, "23:59")).toBe(true);
     // 25:00 parses via TimeSpan → wraps to 60 min mod 1440
     expect(isTimeMatch(base, "25:00")).toBe(false); // empty start unparseable → parsed=false path
+  });
+});
+
+describe("DeviceAutomationService", () => {
+  it("evaluates a live proximity rule and toggles the target once", async () => {
+    const target = newSmartDevice({ entityId: 22, kind: "SmartSwitch", isMissing: false });
+    const anchor = newSmartDevice({ entityId: 11, pairedX: 100, pairedY: 100 });
+    const toggles: Array<[number, boolean]> = [];
+    const rule = {
+      id: "automation-1",
+      name: "Porch lights",
+      isEnabled: true,
+      isExpanded: true,
+      conditionType: "PlayerProximity",
+      playerMatchMode: "AnyOnline",
+      specificPlayerSteamId: "",
+      locationEntityId: 11,
+      distanceMeters: 25,
+      startTime: "20:00",
+      endTime: "08:00",
+      targetEntityId: 22,
+      matchedState: true,
+      unmatchedState: false,
+    } as const;
+
+    const service = new DeviceAutomationService({
+      isActive: () => true,
+      rules: () => [rule],
+      findDevice: (id) => (id === 11 ? anchor : id === 22 ? target : null),
+      getIsOn: () => false,
+      players: () => [{ steamId: "76561198000000001", isOnline: true, x: 110, y: 100 }],
+      serverTime: () => "21:00",
+      busy: () => false,
+      toggle: async (id, on) => {
+        toggles.push([id, on]);
+      },
+      log: () => undefined,
+    });
+
+    await service.evaluate();
+    expect(toggles).toEqual([[22, true]]);
+    expect(service.lastAppliedState("automation-1")).toBe(true);
+  });
+
+  it("keeps dead online payloads offline for proximity rules", () => {
+    expect(extractTeamMembers({ members: [{ steamId: "1", online: true, isDead: true }] })).toEqual([
+      { steamId: "1", isOnline: false, x: null, y: null },
+    ]);
   });
 });
 

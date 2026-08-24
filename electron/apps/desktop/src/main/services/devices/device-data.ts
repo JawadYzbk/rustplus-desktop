@@ -49,6 +49,15 @@ export interface SmartDeviceNode {
   customIconShortName: string | null;
   inGameAlarmTitle: string | null;
   oilRigTriggerTarget: string | null;
+  /**
+   * Device Automation anchor (Models/SmartDevice.cs PairedX/PairedY/PairedBySteamId/
+   * PairedLocationCapturedAt): live position of the player who paired the device.
+   * SteamId stays a string (u64); captured-at is epoch ms (ISO in profiles.json).
+   */
+  pairedX: number | null;
+  pairedY: number | null;
+  pairedBySteamId: string | null;
+  pairedLocationCapturedAtMs: number | null;
 }
 
 export function newSmartDevice(init: Partial<SmartDeviceNode> & Pick<SmartDeviceNode, "entityId">): SmartDeviceNode {
@@ -63,6 +72,10 @@ export function newSmartDevice(init: Partial<SmartDeviceNode> & Pick<SmartDevice
     customIconShortName: null,
     inGameAlarmTitle: null,
     oilRigTriggerTarget: null,
+    pairedX: null,
+    pairedY: null,
+    pairedBySteamId: null,
+    pairedLocationCapturedAtMs: null,
     ...init,
   };
 }

@@ -39,6 +39,105 @@ export interface CustomTimer {
   autoDeleteAtUtcMs: number | null;
 }
 
+/**
+ * Models/DeviceAutomationRule.cs — defaults are the C# field initializers (name "New
+ * Automation", disabled, PlayerProximity/AnyOnline, 250 m, 20:00→08:00, matched OFF,
+ * unmatched ON). DistanceMeters setter clamps to ≥1. SteamId stays a string (u64).
+ * IsExpanded is serialized by the legacy app; LastAppliedState is [JsonIgnore] runtime-only.
+ */
+export interface DeviceAutomationRule {
+  id: string;
+  name: string;
+  isEnabled: boolean;
+  isExpanded: boolean;
+  conditionType: string; // "PlayerProximity" | "GameTime"
+  playerMatchMode: string; // AnyOnline|AllOnline|AnyOffline|AllOffline|SpecificOnline|SpecificOffline
+  specificPlayerSteamId: string;
+  locationEntityId: number;
+  distanceMeters: number;
+  startTime: string;
+  endTime: string;
+  targetEntityId: number;
+  matchedState: boolean;
+  unmatchedState: boolean;
+}
+
+export function newAutomationRule(): DeviceAutomationRule {
+  return {
+    id: randomUUID(),
+    name: "New Automation",
+    isEnabled: false,
+    isExpanded: true,
+    conditionType: "PlayerProximity",
+    playerMatchMode: "AnyOnline",
+    specificPlayerSteamId: "",
+    locationEntityId: 0,
+    distanceMeters: 250,
+    startTime: "20:00",
+    endTime: "08:00",
+    targetEntityId: 0,
+    matchedState: false,
+    unmatchedState: true,
+  };
+}
+
+export function parseAutomationRule(raw: Record<string, unknown>): DeviceAutomationRule {
+  const d = newAutomationRule();
+  const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  const conditionType = raw.ConditionType === "GameTime" ? "GameTime" : "PlayerProximity";
+  const playerMatchMode = new Set([
+    "AnyOnline",
+    "AllOnline",
+    "Specific",
+    "SpecificOffline",
+    "AnyOffline",
+    "AllOffline",
+  ]).has(typeof raw.PlayerMatchMode === "string" ? raw.PlayerMatchMode : "")
+    ? (raw.PlayerMatchMode as string)
+    : d.playerMatchMode;
+  return {
+    id: typeof raw.Id === "string" ? raw.Id : d.id,
+    name: typeof raw.Name === "string" ? raw.Name : d.name,
+    isEnabled: raw.IsEnabled === true,
+    isExpanded: raw.IsExpanded !== false,
+    conditionType,
+    playerMatchMode,
+    specificPlayerSteamId:
+      typeof raw.SpecificPlayerSteamId === "string"
+        ? raw.SpecificPlayerSteamId
+        : typeof raw.SpecificPlayerSteamId === "number"
+          ? String(raw.SpecificPlayerSteamId)
+          : d.specificPlayerSteamId,
+    locationEntityId: num(raw.LocationEntityId) ?? d.locationEntityId,
+    distanceMeters: Math.max(1, num(raw.DistanceMeters) ?? d.distanceMeters),
+    startTime: typeof raw.StartTime === "string" ? raw.StartTime : d.startTime,
+    endTime: typeof raw.EndTime === "string" ? raw.EndTime : d.endTime,
+    targetEntityId: num(raw.TargetEntityId) ?? d.targetEntityId,
+    matchedState: raw.MatchedState === true,
+    unmatchedState: raw.UnmatchedState !== false,
+  };
+}
+
+export function serializeAutomationRule(rule: DeviceAutomationRule): Record<string, unknown> {
+  return {
+    Id: rule.id,
+    Name: rule.name,
+    IsEnabled: rule.isEnabled,
+    IsExpanded: rule.isExpanded,
+    ConditionType: rule.conditionType,
+    PlayerMatchMode: rule.playerMatchMode,
+    SpecificPlayerSteamId: rule.specificPlayerSteamId,
+    LocationEntityId: rule.locationEntityId,
+    DistanceMeters: Math.max(1, rule.distanceMeters),
+    StartTime: rule.startTime,
+    EndTime: rule.endTime,
+    TargetEntityId: rule.targetEntityId,
+    MatchedState: rule.matchedState,
+    UnmatchedState: rule.unmatchedState,
+    // LastAppliedState is [JsonIgnore] in the C# model — never persisted.
+  };
+}
+
 export interface ServerProfileData {
   host: string;
   port: number;
@@ -92,7 +191,7 @@ export interface ServerProfileData {
   wipeTimeMs: number | null;
   logicRules: unknown[];
   isLogicEngineActive: boolean;
-  deviceAutomationRules: unknown[];
+  deviceAutomationRules: DeviceAutomationRule[];
   isDeviceAutomationActive: boolean;
   subscribedTeammateSteamIds: string[];
   /** Properties from other app versions, preserved verbatim across round-trips. */
@@ -117,7 +216,7 @@ export function validateCommand(value: string | null | undefined, defaultValue: 
 
 const PREFIX_WHITELIST = new Set(["!", ".", ",", "\\"]);
 const isoToMs = (v: unknown): number | null => {
-  if (typeof v !== "string" || v.length === 0) return typeof v === "number" ? v : null;
+  if (typeof v !== "string" || v.length === 0) return typeof v === "number" && Number.isFinite(v) ? v : null;
   const t = Date.parse(v);
   return Number.isNaN(t) ? null : t;
 };
@@ -174,7 +273,8 @@ export function parseTimer(raw: Record<string, unknown>): CustomTimer {
 
 /** Exported for the LogicEngineService timer ticker (canonical ISO record format). */
 export function serializeTimer(t: CustomTimer): Record<string, unknown> {
-  const iso = (ms: number | null): string | null => (ms === null ? null : new Date(ms).toISOString());
+  const iso = (ms: number | null | undefined): string | null =>
+    typeof ms === "number" && Number.isFinite(ms) ? new Date(ms).toISOString() : null;
   return {
     Id: t.id,
     Name: t.name,
@@ -289,7 +389,9 @@ export function parseServerProfile(raw: unknown): ServerProfileData {
     wipeTimeMs: isoToMs(r.WipeTime),
     logicRules: Array.isArray(r.LogicRules) ? r.LogicRules : [],
     isLogicEngineActive: boolOf("IsLogicEngineActive"),
-    deviceAutomationRules: Array.isArray(r.DeviceAutomationRules) ? r.DeviceAutomationRules : [],
+    deviceAutomationRules: Array.isArray(r.DeviceAutomationRules)
+      ? (r.DeviceAutomationRules as unknown[]).map((x) => parseAutomationRule((x ?? {}) as Record<string, unknown>))
+      : [],
     isDeviceAutomationActive: boolOf("IsDeviceAutomationActive"),
     subscribedTeammateSteamIds: Array.isArray(r.SubscribedTeammateSteamIds)
       ? (r.SubscribedTeammateSteamIds as unknown[]).map((id) => String(id))
@@ -320,6 +422,16 @@ export function parseDevices(raw: unknown): SmartDeviceNode[] {
         typeof r.InGameAlarmTitle === "string" ? r.InGameAlarmTitle : typeof r.inGameAlarmTitle === "string" ? r.inGameAlarmTitle : null,
       oilRigTriggerTarget:
         typeof r.OilRigTriggerTarget === "string" ? r.OilRigTriggerTarget : typeof r.oilRigTriggerTarget === "string" ? r.oilRigTriggerTarget : null,
+      pairedX: typeof r.PairedX === "number" && Number.isFinite(r.PairedX) ? r.PairedX : null,
+      pairedY: typeof r.PairedY === "number" && Number.isFinite(r.PairedY) ? r.PairedY : null,
+      // ulong? → System.Text.Json writes a JSON number; keep string form (u64 as string).
+      pairedBySteamId:
+        typeof r.PairedBySteamId === "string"
+          ? r.PairedBySteamId
+          : typeof r.PairedBySteamId === "number" && Number.isFinite(r.PairedBySteamId)
+            ? String(r.PairedBySteamId)
+            : null,
+      pairedLocationCapturedAtMs: isoToMs(r.PairedLocationCapturedAt),
     };
   };
   return raw.map((d: unknown): SmartDeviceNode => walk(d));
@@ -388,7 +500,7 @@ export function serializeServerProfile(p: ServerProfileData): Record<string, unk
     WipeTime: iso(p.wipeTimeMs),
     LogicRules: p.logicRules,
     IsLogicEngineActive: p.isLogicEngineActive,
-    DeviceAutomationRules: p.deviceAutomationRules,
+    DeviceAutomationRules: p.deviceAutomationRules.map(serializeAutomationRule),
     IsDeviceAutomationActive: p.isDeviceAutomationActive,
     SubscribedTeammateSteamIds: [...p.subscribedTeammateSteamIds],
     ...p.extra, // unknown-from-our-view properties survive verbatim
@@ -396,6 +508,8 @@ export function serializeServerProfile(p: ServerProfileData): Record<string, unk
 }
 
 export function serializeDevices(devices: SmartDeviceNode[]): Record<string, unknown>[] {
+  const iso = (ms: number | null | undefined): string | null =>
+    typeof ms === "number" && Number.isFinite(ms) ? new Date(ms).toISOString() : null;
   const walk = (d: SmartDeviceNode): Record<string, unknown> => ({
     EntityId: d.entityId,
     Kind: d.kind,
@@ -408,6 +522,10 @@ export function serializeDevices(devices: SmartDeviceNode[]): Record<string, unk
     CustomIconShortName: d.customIconShortName,
     InGameAlarmTitle: d.inGameAlarmTitle,
     OilRigTriggerTarget: d.oilRigTriggerTarget,
+    PairedX: d.pairedX,
+    PairedY: d.pairedY,
+    PairedBySteamId: d.pairedBySteamId,
+    PairedLocationCapturedAt: iso(d.pairedLocationCapturedAtMs),
   });
   return devices.map(walk);
 }

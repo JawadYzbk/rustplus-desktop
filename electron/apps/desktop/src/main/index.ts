@@ -4,7 +4,7 @@
  * Stage-2 scope (MIGRATION_PROGRESS stage 2): secure boot skeleton — single instance, hardened window,
  * typed IPC wiring, rotating file logger, smoke-verification mode. Feature services land per stage.
  */
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, dialog } from "electron";
 import { join } from "node:path";
 import { APP_NAME, APP_VERSION, ipcChannels } from "@rpd/shared";
 import { logger } from "./logger.js";
@@ -14,8 +14,12 @@ import { buildMigrationHandlers } from "./channels.migration.js";
 import { buildBackupHandlers } from "./channels.backup.js";
 import { connectionHandlers } from "./channels.connection.js";
 import { buildProfileHandlers, buildLogicHandlers } from "./channels.logic.js";
+import { buildDeviceAutomationHandlers } from "./channels.device-automation.js";
+import { buildDeviceDataHandlers } from "./channels.device-data.js";
+import { buildRaidHandlers } from "./channels.raid.js";
 import { LogicEngineService, hubAdapter } from "./services/automation/engine-service.js";
 import { ChatCommandDispatcher } from "./services/automation/chat-commands.js";
+import { DeviceAutomationService, extractTeamMembers } from "./services/automation/device-automation-service.js";
 import { RustPlusJsTransport, realRustPlusFactory } from "./services/rustplus/rustplus-js-transport.js";
 import { ConnectionManager } from "./services/rustplus/connection-manager.js";
 import { PollService } from "./services/rustplus/poll-service.js";
@@ -37,6 +41,20 @@ import {
 import { TutorialProgressStore } from "./stores/tutorial-progress-store.js";
 import { UiPrefsStore } from "./stores/ui-prefs-store.js";
 import { createMainWindow, getMainWindow } from "./window.js";
+import { parseAutomationRule } from "./services/devices/server-profile.js";
+import { loadRaidData } from "./services/raid/raid-data-service.js";
+import { RaidCalculatorEngine } from "./services/raid/raid-calculator.js";
+import { buildRecyclerHandlers } from "./channels.recycler.js";
+import { loadRecyclerItems } from "./services/recycler/recycler-service.js";
+import { buildCloudHandlers } from "./channels.cloud.js";
+import { CloudService } from "./services/cloud/cloud-service.js";
+import { CloudSessionStore } from "./stores/cloud-session-store.js";
+import { buildWipeHandlers } from "./channels.wipe.js";
+import { PlayerWipeTrackerService, FREE_WIPE_CAPABILITIES } from "./services/wipe-tracker/service.js";
+import { PlayerWipeTrackerStore } from "./services/wipe-tracker/store.js";
+import { buildSettingsHandlers } from "./channels.settings.js";
+import { buildDeathHandlers } from "./channels.deaths.js";
+import { DeathLogStore, DeathService } from "./services/deaths/death-service.js";
 
 const isSmoke = process.env["RPD_SMOKE"] === "1";
 const isDev = Boolean(process.env["ELECTRON_RENDERER_URL"]);
@@ -81,11 +99,32 @@ function bootstrap(): void {
   const uiPrefsStore = new UiPrefsStore(userDataDir, storeLog("store/ui-prefs"));
   const settingsStore = new SettingsStore(userDataDir, storeLog("store/settings"));
   const profilesStore = new ProfilesStore(userDataDir, new SafeStorageSecretCodec(), storeLog("store/profiles"));
+  const cloud = new CloudService(
+    new CloudSessionStore(userDataDir, new SafeStorageSecretCodec(), storeLog("store/cloud-session")),
+    process.env["RPD_CLOUD_API_BASE_URL"] ?? "https://rustplusdesktop.cloud/api",
+  );
+  const wipeTracker = new PlayerWipeTrackerService(
+    new PlayerWipeTrackerStore(join(userDataDir, "player-wipes")),
+    {
+      enabled: () => settingsStore.all.PlayerWipeTrackerEnabled,
+      cloudBackupEnabled: () => settingsStore.all.PlayerWipeTrackerCloudBackupEnabled,
+      capabilities: () => cloud.trackerCapabilities ?? FREE_WIPE_CAPABILITIES,
+    },
+    cloud.api,
+  );
+  const raidData = loadRaidData();
+  const raidEngine = new RaidCalculatorEngine(raidData);
+  const recyclerItems = loadRecyclerItems();
 
   // %LOCALAPPDATA% has no first-class Electron path; env var is authoritative on Windows.
   const localAppData = process.env["LOCALAPPDATA"] ?? join(app.getPath("appData"), "..", "Local");
+  const legacyRoots = defaultLegacyRoots(app.getPath("appData"), localAppData);
+  const deaths = new DeathService(
+    new DeathLogStore(join(userDataDir, "deaths"), legacyRoots.deathsDir),
+    () => wipeTracker.loadCurrentWipeMap()?.worldSize ?? null,
+  );
   const migrator = new LegacyMigrator(
-    defaultLegacyRoots(app.getPath("appData"), localAppData),
+    legacyRoots,
     userDataDir,
     {
       settings: settingsStore,
@@ -185,7 +224,69 @@ function bootstrap(): void {
 
   polls.on("poll", (e: unknown) => {
     const ev = e as { kind?: string; team?: unknown };
-    if (ev?.kind === "team") chatDispatcher.processTeamInfo(ev.team);
+    if (ev?.kind === "team") {
+      ensureWipeTrackerSession();
+      const profile = activeRef.key ? profilesStore.list().find((item) => profilesStore.matchKey(item) === activeRef.key) : null;
+      if (profile) deaths.observeTeam(`${profile.Host}-${profile.Port}`, ev.team);
+      wipeTracker.observeTeam(ev.team);
+      chatDispatcher.processTeamInfo(ev.team);
+      // TeamTimer_Tick parity: device automation evaluates after every team load.
+      automationTeamInfo.value = ev.team;
+      void automationService.evaluate();
+    }
+  });
+
+  connManager.on("disconnected", () => { wipeTracker.disconnect(); deaths.disconnect(); });
+  connManager.on("lost", () => { wipeTracker.disconnect(); deaths.disconnect(); });
+
+  function ensureWipeTrackerSession(): void {
+    const key = activeRef.key;
+    if (!key || (wipeTracker.currentServerKey && wipeTracker.currentSessionId)) return;
+    const profile = profilesStore.list().find((item) => profilesStore.matchKey(item) === key);
+    if (!profile) return;
+    const rawWipe = profilesStore.field(key, "WipeTime");
+    const rawRustMapsWipe = profilesStore.field(key, "RustMapsWipeTime");
+    const wipeTime = parseDate(rawWipe) ?? parseDate(rawRustMapsWipe);
+    const mapIdentity = typeof profilesStore.field(key, "RustMapsMapId") === "string" ? profilesStore.field(key, "RustMapsMapId") as string : null;
+    wipeTracker.startConnection(`${profile.Host}-${profile.Port}`, wipeTime, mapIdentity, profile.SteamId64);
+  }
+
+  function parseDate(value: unknown): Date | null {
+    if (typeof value !== "string" && !(value instanceof Date)) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  // EvaluateDeviceAutomationAsync host (MainWindow.DeviceAutomation.cs). Toggle busy is
+  // shared with the logic engine through connManager's in-flight tracking.
+  let toggleInFlight = false;
+  const automationTeamInfo: { value: unknown } = { value: null };
+  const automationService = new DeviceAutomationService({
+    isActive: () => engineField("IsDeviceAutomationActive") === true,
+    rules: () => {
+      const raw = activeRef.key ? profilesStore.field(activeRef.key, "DeviceAutomationRules") : null;
+      return Array.isArray(raw)
+        ? raw.map((rule) => parseAutomationRule((rule ?? {}) as Record<string, unknown>))
+        : [];
+    },
+    findDevice: (entityId) => engineService.findNodeFor(entityId),
+    getIsOn: (entityId) => engineService.deviceIsOn(entityId),
+    players: () => extractTeamMembers(automationTeamInfo.value),
+    serverTime: () => latestStatus.value?.timeString ?? null,
+    busy: () => {
+      if (!connManager.isConnected || toggleInFlight || engineService.isActionRunning()) return true;
+      return false;
+    },
+    toggle: async (entityId, on) => {
+      toggleInFlight = true;
+      try {
+        await connManager.setEntityValue(entityId, on);
+        engineService.setDeviceState(entityId, on);
+      } finally {
+        toggleInFlight = false;
+      }
+    },
+    log: (message) => logger.log("info", "device-automation", message),
   });
 
   // CheckCustomTimers dispatcher-timer parity (~1 s tick; MainWindow.Map.Timers.cs L107).
@@ -209,9 +310,29 @@ function bootstrap(): void {
   const registrar = createRegistrar(ipcChannels);
   registrar.register({
     ...buildAppHandlers({ smokeMode: isSmoke, uiPrefs: uiPrefsStore }),
+    ...buildCloudHandlers(cloud),
+    ...buildWipeHandlers(wipeTracker),
+    ...buildSettingsHandlers(settingsStore),
+    ...buildDeathHandlers(deaths),
     ...buildMigrationHandlers({ migrator }),
     ...connectionHandlers(connManager),
     ...buildProfileHandlers({ profiles: profilesStore, activeRef }),
+    ...buildDeviceAutomationHandlers({ profiles: profilesStore }),
+    ...buildDeviceDataHandlers({
+      profiles: profilesStore,
+      showSaveDialog: async () => dialog.showSaveDialog({
+        title: "Export devices",
+        defaultPath: "rustplus-devices.json",
+        filters: [{ name: "JSON", extensions: ["json"] }],
+      }),
+      showOpenDialog: async () => dialog.showOpenDialog({
+        title: "Import devices",
+        properties: ["openFile"],
+        filters: [{ name: "JSON", extensions: ["json"] }],
+      }),
+    }),
+    ...buildRaidHandlers({ data: raidData, engine: raidEngine }),
+    ...buildRecyclerHandlers({ items: recyclerItems }),
     ...buildLogicHandlers({
       status: () => engineService.status(),
       requestStop: () => engineService.requestStop(),

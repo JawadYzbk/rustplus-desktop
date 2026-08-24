@@ -174,6 +174,16 @@ export class LogicEngineService {
     this.engine.onDeviceEvent(entityId, isOn);
   }
 
+  /** Live switch state for automation consumers (null when never seen). */
+  deviceIsOn(entityId: number): boolean | null {
+    return this.deviceStates.has(entityId) ? (this.deviceStates.get(entityId) ?? null) : null;
+  }
+
+  /** Optimistic local state after a successful main-process toggle. */
+  setDeviceState(entityId: number, isOn: boolean): void {
+    this.deviceStates.set(entityId, isOn);
+  }
+
   /** RefreshAllDevicesStatusAsync parity: sequential getEntityInfo per flat node, hub-consistent. */
   private async refreshAllDevices(): Promise<void> {
     for (const id of this.flatEntityIds()) {
@@ -200,6 +210,11 @@ export class LogicEngineService {
       currentStepType: this.engine.currentStepType,
       pendingRules: [...this.engine.pending],
     };
+  }
+
+  /** _logicEngineRunningAction parity — automation skips toggles while a rule acts. */
+  isActionRunning(): boolean {
+    return this.engine.isRunning;
   }
 
   requestStop(): void {
@@ -310,6 +325,11 @@ export class LogicEngineService {
   /** Recursive find with live state — shared with the chat-command dispatcher. */
   findDeviceFor(entityId: number): EngineDevice | null {
     return this.findDevice(entityId);
+  }
+
+  /** Full stored node for Device Automation anchors and target validation. */
+  findNodeFor(entityId: number): SmartDeviceNode | null {
+    return this.findNode(entityId);
   }
 
   /** Canonical CustomTimer records for the ACTIVE profile (parseTimer handles dual-casing,

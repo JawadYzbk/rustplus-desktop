@@ -8,6 +8,9 @@ import type * as React from "react";
 import type { MigrateRunResult, MigrateScanResult, MigrationStatus } from "@rpd/shared";
 import { invoke } from "../lib/ipc.js";
 import { Button } from "../components/ui/button.js";
+import { Badge } from "../components/ui/badge.js";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card.js";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table.js";
 
 const STATUS_STYLES: Record<MigrationStatus, string> = {
   migrated: "text-success",
@@ -43,22 +46,25 @@ export function MigratePage(): React.JSX.Element {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 overflow-y-auto p-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Import legacy data</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+      <Card>
+        <CardHeader>
+          <CardTitle>Import legacy data</CardTitle>
+          <CardDescription>
           Imports profiles, settings, hotkeys, alert templates, tracked players and tutorial progress from the
           legacy RustPlusDesk folder. Server tokens are encrypted at rest during import. Legacy files are never
           modified. Map overlays, 3D maps, wipe and death data import with their features in later stages.
-        </p>
-      </div>
+          </CardDescription>
+        </CardHeader>
+      </Card>
 
       {error && <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
 
       {!scan && !error && <p className="text-sm text-muted-foreground">Scanning legacy folders…</p>}
 
       {scan && (
-        <section className="flex flex-col gap-2">
-          <h2 className="text-sm font-medium text-muted-foreground">Legacy roots</h2>
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-sm">Legacy roots</CardTitle></CardHeader>
+          <CardContent>
           <ul className="flex flex-col gap-1 text-sm">
             {scan.roots.map((r) => (
               <li key={r.kind} className="flex items-center gap-2">
@@ -72,32 +78,34 @@ export function MigratePage(): React.JSX.Element {
               No legacy RustPlusDesk data found on this machine — nothing to import.
             </p>
           )}
-        </section>
+          </CardContent>
+        </Card>
       )}
 
       {scan && scan.sources.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <h2 className="text-sm font-medium text-muted-foreground">Detected sources</h2>
-          <div className="overflow-hidden rounded-md border border-border">
-            <table className="w-full text-sm">
-              <tbody>
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-sm">Detected sources</CardTitle></CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader><TableRow><TableHead>Source</TableHead><TableHead>Location</TableHead><TableHead className="text-right">Status</TableHead></TableRow></TableHeader>
+              <TableBody>
                 {scan.sources.map((s) => (
-                  <tr key={s.id} className="border-b border-border last:border-b-0">
-                    <td className="px-3 py-2">{s.label}</td>
-                    <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{s.location}</td>
-                    <td className="px-3 py-2 text-right">
+                  <TableRow key={s.id}>
+                    <TableCell>{s.label}</TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">{s.location}</TableCell>
+                    <TableCell className="text-right">
                       {s.exists ? (
-                        <span className="text-success">found{s.bytes !== null ? ` (${s.bytes} B)` : ""}</span>
+                        <Badge variant="outline" className="text-success">found{s.bytes !== null ? ` (${s.bytes} B)` : ""}</Badge>
                       ) : (
-                        <span className="text-muted-foreground">not present</span>
+                        <Badge variant="outline" className="text-muted-foreground">not present</Badge>
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
 
       <div className="flex items-center gap-3">
@@ -112,8 +120,9 @@ export function MigratePage(): React.JSX.Element {
       </div>
 
       {report && (
-        <section className="flex flex-col gap-1">
-          <h2 className="mb-1 text-sm font-medium text-muted-foreground">Result</h2>
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-sm">Result</CardTitle></CardHeader>
+          <CardContent className="space-y-1">
           {report.rows.map((row, i) => (
             <div key={`${row.source}-${i}`} className="flex items-baseline justify-between gap-4 border-b border-border/60 py-1.5 text-sm last:border-b-0">
               <div className="min-w-0">
@@ -127,10 +136,11 @@ export function MigratePage(): React.JSX.Element {
                 )}
                 {row.detail && <div className="text-xs text-muted-foreground">{row.detail}</div>}
               </div>
-              <span className={`shrink-0 font-medium ${STATUS_STYLES[row.status]}`}>{row.status}</span>
+              <Badge variant="outline" className={`shrink-0 font-medium ${STATUS_STYLES[row.status]}`}>{row.status}</Badge>
             </div>
           ))}
-        </section>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

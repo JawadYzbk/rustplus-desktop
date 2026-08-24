@@ -1,5 +1,12 @@
 # Migration Progress Tracker
 
+### Active implementation rules
+
+- Implemented Electron pages and shell surfaces must compose the local shadcn/ui primitives; raw interactive
+  controls are not accepted in migrated routes.
+- A missing control belongs in `electron/apps/desktop/src/renderer/src/components/ui/` before it is used by a page.
+- This UI rule is a migration gate and does not permit removing legacy behavior to simplify the component port.
+
 > Living document. Updated at every stage transition. Final gate: [FINAL_PARITY_REPORT.md](./FINAL_PARITY_REPORT.md)
 > (statuses PASS/BLOCKED only). Planning ground truth: [FEATURE_PARITY_MATRIX.md](./FEATURE_PARITY_MATRIX.md).
 

@@ -6,8 +6,12 @@
 import { useCallback, useEffect, useState } from "react";
 import type * as React from "react";
 import { addTimer, getTimers, removeTimer, type TimerDto } from "../lib/ipc.js";
+import { Button } from "../components/ui/button.js";
+import { Card } from "../components/ui/card.js";
+import { Input } from "../components/ui/input.js";
+import { Label } from "../components/ui/label.js";
 
-const inputCls = "rounded border bg-transparent px-2 py-1 text-xs";
+const inputCls = "text-xs";
 
 /** RemainingTimeText parity: "00:00:00" when expired; hh:mm:ss ≥1 h else mm:ss. */
 function remainingText(endMs: number, now: number): string {
@@ -78,7 +82,7 @@ export function TimersPanel({ matchKey }: { matchKey: string }): React.JSX.Eleme
     <div className="flex min-h-0 flex-col p-3 text-xs">
       {/* Add form */}
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <input
+        <Input
           value={name}
           placeholder="Timer name"
           onChange={(e) => setName(e.target.value)}
@@ -91,24 +95,26 @@ export function TimersPanel({ matchKey }: { matchKey: string }): React.JSX.Eleme
             ["s", s, setS],
           ] as const
         ).map(([label, value, set]) => (
-          <label key={label} className="flex items-center gap-1">
+          <Label key={label} className="flex items-center gap-1">
             {label}
-            <input
+            <Input
               type="number"
               min={0}
               value={value}
               onChange={(e) => set(e.target.value)}
               className={`w-14 ${inputCls}`}
             />
-          </label>
+          </Label>
         ))}
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={() => void submit()}
-          className="rounded-md border border-primary bg-primary/10 px-2 py-1 font-medium text-primary hover:bg-primary/20"
+          className="border-primary bg-primary/10 font-medium text-primary hover:bg-primary/20"
         >
           + Add timer
-        </button>
+        </Button>
       </div>
       {error !== null && <p className="mb-2 text-destructive">{error}</p>}
 
@@ -121,23 +127,25 @@ export function TimersPanel({ matchKey }: { matchKey: string }): React.JSX.Eleme
             const remMs = t.endTimeUtcMs - now;
             const critical = remMs < 5 * 60_000 && remMs > -60_000;
             return (
-              <li
+              <Card
                 key={t.id}
-                className={`flex items-center gap-2 rounded border px-2 py-1 ${critical ? "border-destructive/60 bg-destructive/10" : ""}`}
+                className={`flex items-center gap-2 rounded px-2 py-1 ${critical ? "border-destructive/60 bg-destructive/10" : ""}`}
               >
                 <span className="font-medium">{t.name}</span>
                 <span className="text-muted-foreground">!{t.command}</span>
                 <span className={`ml-auto tabular-nums ${critical ? "text-destructive" : ""}`}>
                   {remainingText(t.endTimeUtcMs, now)}
                 </span>
-                <button
+                <Button
                   type="button"
-                  className="rounded border px-1 text-destructive hover:bg-destructive/10"
+                  variant="destructive"
+                  size="icon"
+                  className="h-7 w-7"
                   onClick={() => void removeTimer(matchKey, t.id).then(refresh)}
                 >
                   ✕
-                </button>
-              </li>
+                </Button>
+              </Card>
             );
           })}
         </ul>

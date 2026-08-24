@@ -26,19 +26,23 @@ interface ProfilesState {
   profiles: ProfileSummary[];
   activeKey: string | null;
   devices: Record<string, DeviceNode[]>;
+  deviceStates: Record<number, boolean>;
   loading: boolean;
   error: string | null;
   loadProfiles: () => Promise<void>;
   selectProfile: (matchKey: string | null) => void;
   ensureDevices: (matchKey: string) => Promise<void>;
+  reloadDevices: (matchKey: string) => Promise<void>;
   /** In-place device mutation + whole-tree persist; returns false when the node is gone. */
   updateDevice: (matchKey: string, entityId: number, patch: Partial<DeviceNode>) => Promise<boolean>;
+  setDeviceState: (entityId: number, isOn: boolean) => void;
 }
 
 export const useProfilesStore = create<ProfilesState>((set, get) => ({
   profiles: [],
   activeKey: null,
   devices: {},
+  deviceStates: {},
   loading: false,
   error: null,
 
@@ -51,7 +55,7 @@ export const useProfilesStore = create<ProfilesState>((set, get) => ({
         prevActive && profiles.some((p) => p.matchKey === prevActive)
           ? prevActive
           : (profiles[0]?.matchKey ?? null);
-      set({ profiles, activeKey, loading: false });
+      set({ profiles, activeKey, loading: false, deviceStates: activeKey === prevActive ? get().deviceStates : {} });
       if (activeKey) await get().ensureDevices(activeKey);
     } catch (err) {
       set({ loading: false, error: err instanceof Error ? err.message : String(err) });
@@ -59,12 +63,17 @@ export const useProfilesStore = create<ProfilesState>((set, get) => ({
   },
 
   selectProfile: (matchKey) => {
-    set({ activeKey: matchKey });
+    set({ activeKey: matchKey, deviceStates: {} });
     if (matchKey) void get().ensureDevices(matchKey);
   },
 
   ensureDevices: async (matchKey) => {
     if (get().devices[matchKey]) return;
+    const devices = await getDevices(matchKey);
+    if (devices !== null) set((s) => ({ devices: { ...s.devices, [matchKey]: devices } }));
+  },
+
+  reloadDevices: async (matchKey) => {
     const devices = await getDevices(matchKey);
     if (devices !== null) set((s) => ({ devices: { ...s.devices, [matchKey]: devices } }));
   },
@@ -78,4 +87,6 @@ export const useProfilesStore = create<ProfilesState>((set, get) => ({
     set((s) => ({ devices: { ...s.devices, [matchKey]: [...tree] } })); // new top-level array → re-render
     return saveDevices(matchKey, tree);
   },
+
+  setDeviceState: (entityId, isOn) => set((state) => ({ deviceStates: { ...state.deviceStates, [entityId]: isOn } })),
 }));

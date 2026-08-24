@@ -181,6 +181,12 @@ function tryParseRustPlusUrl(url: string): PairingPayload | null {
   }
 }
 
+/** Parse a pasted rustplus:// pairing link without starting the FCM listener. */
+export function parsePairingLink(input: string): PairingPayload | null {
+  const match = RUST_URL.exec(input.trim());
+  return match ? tryParseRustPlusUrl(match[0]) : null;
+}
+
 export class PairingLineParser {
   // Per-notification context (reset on "Notification Received").
   private pendingAlarmTitle: string | null = null;

@@ -8,6 +8,11 @@
 import { useCallback, useEffect, useState } from "react";
 import type * as React from "react";
 import { getRule, saveRule, type FullRuleDto, type StepDto } from "../lib/ipc.js";
+import { Button } from "../components/ui/button.js";
+import { Checkbox } from "../components/ui/checkbox.js";
+import { Input } from "../components/ui/input.js";
+import { Label } from "../components/ui/label.js";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select.js";
 
 const STEP_TYPES = ["Wait", "Toggle", "CheckAvailability", "StartTimer"] as const;
 const OPERATORS = ["IS_OFFLINE", "IS_ONLINE", "ALL_OFFLINE", "ANY_OFFLINE", "ALL_ONLINE", "ANY_ONLINE"] as const;
@@ -35,7 +40,7 @@ function newStep(type: (typeof STEP_TYPES)[number]): StepDto {
   return base;
 }
 
-const inputCls = "rounded border bg-transparent px-2 py-1";
+const inputCls = "text-xs";
 
 export function StepEditor({
   matchKey,
@@ -87,29 +92,20 @@ export function StepEditor({
     <div className="border-t px-6 py-2">
       <div className="mb-1 flex items-center gap-2">
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Steps</span>
-        <select
-          value=""
-          onChange={(e) => {
-            const t = e.target.value as (typeof STEP_TYPES)[number];
-            if (e.target.value !== "") setSteps([...rule.steps, newStep(t)]);
-          }}
-          className="rounded border bg-transparent px-1 py-0.5 text-xs"
-        >
-          <option value="">+ Add step…</option>
-          {STEP_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
-        <button
+        <Select value="" onValueChange={(value) => setSteps([...rule.steps, newStep(value as (typeof STEP_TYPES)[number])])}>
+          <SelectTrigger className="h-7 w-32 text-xs"><SelectValue placeholder="+ Add step…" /></SelectTrigger>
+          <SelectContent>{STEP_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+        </Select>
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           disabled={saving}
           onClick={() => void persist()}
-          className="ml-auto rounded-md border border-primary bg-primary/10 px-2 py-0.5 text-primary hover:bg-primary/20 disabled:opacity-50"
+          className="ml-auto border-primary bg-primary/10 text-primary hover:bg-primary/20"
         >
           {saving ? "Saving…" : "Save steps"}
-        </button>
+        </Button>
       </div>
 
       {rule.steps.length === 0 && (
@@ -120,24 +116,19 @@ export function StepEditor({
         {rule.steps.map((step, i) => (
           <li key={i} className="flex flex-wrap items-center gap-2 rounded border bg-muted/30 px-2 py-1 text-xs">
             <span className="w-4 text-right text-[10px] text-muted-foreground">{i + 1}.</span>
-            <select
-              value={step.stepType}
-              onChange={(e) => {
+            <Select value={step.stepType} onValueChange={(value) => {
                 const next = [...rule.steps];
-                next[i] = { ...newStep(e.target.value as StepDto["stepType"]) };
+                next[i] = { ...newStep(value as StepDto["stepType"]) };
                 setSteps(next);
-              }}
-              className={inputCls}
-            >
-              {STEP_TYPES.map((t) => (
-                <option key={t}>{t}</option>
-              ))}
-            </select>
+              }}>
+              <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
+              <SelectContent>{STEP_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+            </Select>
 
             {step.stepType === "Wait" && (
-              <label className="flex items-center gap-1">
+              <Label className="flex items-center gap-1">
                 seconds
-                <input
+                <Input
                   type="number"
                   min={0}
                   value={step.waitSeconds ?? 0}
@@ -150,14 +141,14 @@ export function StepEditor({
                   }
                   className={`w-16 ${inputCls}`}
                 />
-              </label>
+              </Label>
             )}
 
             {step.stepType === "Toggle" && (
               <>
-                <label className="flex items-center gap-1">
+                <Label className="flex items-center gap-1">
                   entity #
-                  <input
+                  <Input
                     type="number"
                     min={0}
                     value={step.targetEntityId ?? 0}
@@ -170,10 +161,10 @@ export function StepEditor({
                     }
                     className={`w-20 ${inputCls}`}
                   />
-                </label>
-                <label className="flex items-center gap-1">
+                </Label>
+                <Label className="flex items-center gap-1">
                   or group
-                  <input
+                  <Input
                     value={step.targetGroupName ?? ""}
                     placeholder="(none)"
                     onChange={(e) =>
@@ -181,55 +172,45 @@ export function StepEditor({
                     }
                     className={`w-28 ${inputCls}`}
                   />
-                </label>
-                <label className="flex items-center gap-1">
+                </Label>
+                <Label className="flex items-center gap-1">
                   state
-                  <select
-                    value={step.toggleState === null || step.toggleState === undefined ? "" : String(step.toggleState)}
-                    onChange={(e) =>
+                  <Select value={step.toggleState === null || step.toggleState === undefined ? "invert" : String(step.toggleState)} onValueChange={(value) =>
                       setSteps(
                         rule.steps.map((s, j) => ({
                           ...(j === i ? s : s),
                           toggleState:
-                            j !== i ? s.toggleState : e.target.value === "" ? null : e.target.value === "true",
+                            j !== i ? s.toggleState : value === "invert" ? null : value === "true",
                         })),
                       )
-                    }
-                    className={inputCls}
-                  >
-                    <option value="">invert</option>
-                    <option value="true">ON</option>
-                    <option value="false">OFF</option>
-                  </select>
-                </label>
+                    }>
+                    <SelectTrigger className={inputCls}><SelectValue placeholder="invert" /></SelectTrigger>
+                    <SelectContent><SelectItem value="invert">invert</SelectItem><SelectItem value="true">ON</SelectItem><SelectItem value="false">OFF</SelectItem></SelectContent>
+                  </Select>
+                </Label>
               </>
             )}
 
             {step.stepType === "StartTimer" && (
               <>
-                <label className="flex items-center gap-1">
+                <Label className="flex items-center gap-1">
                   target
-                  <select
-                    value={step.timerTarget ?? "Custom"}
-                    onChange={(e) =>
+                  <Select value={step.timerTarget ?? "Custom"} onValueChange={(value) =>
                       setSteps(
                         rule.steps.map((s, j) =>
-                          j === i ? { ...s, timerTarget: e.target.value as StepDto["timerTarget"] } : s,
+                          j === i ? { ...s, timerTarget: value as StepDto["timerTarget"] } : s,
                         ),
                       )
-                    }
-                    className={inputCls}
-                  >
-                    {TIMER_TARGETS.map((t) => (
-                      <option key={t}>{t}</option>
-                    ))}
-                  </select>
-                </label>
+                    }>
+                    <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
+                    <SelectContent>{TIMER_TARGETS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                  </Select>
+                </Label>
                 {(step.timerTarget ?? "Custom") === "Custom" ? (
                   <>
-                    <label className="flex items-center gap-1">
+                    <Label className="flex items-center gap-1">
                       minutes
-                      <input
+                      <Input
                         type="number"
                         min={1}
                         value={step.timerMinutes ?? 15}
@@ -242,8 +223,8 @@ export function StepEditor({
                         }
                         className={`w-16 ${inputCls}`}
                       />
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       value={step.timerName ?? ""}
                       placeholder="name"
                       onChange={(e) =>
@@ -253,43 +234,37 @@ export function StepEditor({
                     />
                   </>
                 ) : (
-                  <label className="flex items-center gap-1">
-                    <input
-                      type="checkbox"
+                  <Label className="flex items-center gap-1">
+                    <Checkbox
                       checked={step.showCrateOnMap ?? true}
-                      onChange={(e) =>
+                      onCheckedChange={(checked) =>
                         setSteps(
-                          rule.steps.map((s, j) => (j === i ? { ...s, showCrateOnMap: e.target.checked } : s)),
+                          rule.steps.map((s, j) => (j === i ? { ...s, showCrateOnMap: checked === true } : s)),
                         )
                       }
                     />
                     crate marker
-                  </label>
+                  </Label>
                 )}
               </>
             )}
 
             {step.stepType === "CheckAvailability" && (
               <>
-                <label className="flex items-center gap-1">
+                <Label className="flex items-center gap-1">
                   op
-                  <select
-                    value={step.conditionOperator ?? "ALL_OFFLINE"}
-                    onChange={(e) =>
+                  <Select value={step.conditionOperator ?? "ALL_OFFLINE"} onValueChange={(value) =>
                       setSteps(
                         rule.steps.map((s, j) =>
-                          j === i ? { ...s, conditionOperator: e.target.value as StepDto["conditionOperator"] } : s,
+                          j === i ? { ...s, conditionOperator: value as StepDto["conditionOperator"] } : s,
                         ),
                       )
-                    }
-                    className={inputCls}
-                  >
-                    {OPERATORS.map((o) => (
-                      <option key={o}>{o}</option>
-                    ))}
-                  </select>
-                </label>
-                <input
+                    }>
+                    <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
+                    <SelectContent>{OPERATORS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                  </Select>
+                </Label>
+                <Input
                   value={step.conditionDeviceIdsCsv ?? ""}
                   placeholder="entity ids, comma-separated"
                   onChange={(e) =>
@@ -303,37 +278,43 @@ export function StepEditor({
             )}
 
             <span className="ml-auto flex gap-1">
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="icon"
                 disabled={i === 0}
                 onClick={() => {
                   const next = [...rule.steps];
                   [next[i - 1], next[i]] = [next[i]!, next[i - 1]!];
                   setSteps(next);
                 }}
-                className="rounded border px-1 hover:bg-muted disabled:opacity-30"
+                className="h-7 w-7 disabled:opacity-30"
               >
                 ↑
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="outline"
+                size="icon"
                 disabled={i === rule.steps.length - 1}
                 onClick={() => {
                   const next = [...rule.steps];
                   [next[i], next[i + 1]] = [next[i + 1]!, next[i]!];
                   setSteps(next);
                 }}
-                className="rounded border px-1 hover:bg-muted disabled:opacity-30"
+                className="h-7 w-7 disabled:opacity-30"
               >
                 ↓
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="destructive"
+                size="icon"
                 onClick={() => setSteps(rule.steps.filter((_, j) => j !== i))}
-                className="rounded border px-1 text-destructive hover:bg-destructive/10"
+                className="h-7 w-7"
               >
                 ✕
-              </button>
+              </Button>
             </span>
 
             {/* Conditional steps run inline when the CheckAvailability gate passes. */}
@@ -368,37 +349,22 @@ function ConditionalStepsList({
         <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
           If available · run
         </span>
-        <select
-          value=""
-          onChange={(e) => {
-            if (e.target.value !== "") onChange([...steps, newStep(e.target.value as StepDto["stepType"])]);
-          }}
-          className="rounded border bg-transparent px-1 py-0.5 text-xs"
-        >
-          <option value="">+ Add…</option>
-          {STEP_TYPES.filter((t) => t !== "CheckAvailability").map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
+        <Select value="" onValueChange={(value) => onChange([...steps, newStep(value as StepDto["stepType"])])}>
+          <SelectTrigger className="h-7 w-24 text-xs"><SelectValue placeholder="+ Add…" /></SelectTrigger>
+          <SelectContent>{STEP_TYPES.filter((t) => t !== "CheckAvailability").map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+        </Select>
       </div>
       <ul className="mt-1 space-y-1">
         {steps.map((step, i) => (
           <li key={i} className="flex flex-wrap items-center gap-2 rounded border bg-background px-2 py-1">
-            <select
-              value={step.stepType}
-              onChange={(e) => onChange(steps.map((s, j) => (j === i ? { ...newStep(e.target.value as StepDto["stepType"]) } : s)))}
-              className={`${inputCls} text-xs`}
-            >
-              {STEP_TYPES.filter((t) => t !== "CheckAvailability").map((t) => (
-                <option key={t}>{t}</option>
-              ))}
-            </select>
+            <Select value={step.stepType} onValueChange={(value) => onChange(steps.map((s, j) => (j === i ? { ...newStep(value as StepDto["stepType"]) } : s)))}>
+              <SelectTrigger className={`${inputCls} text-xs`}><SelectValue /></SelectTrigger>
+              <SelectContent>{STEP_TYPES.filter((t) => t !== "CheckAvailability").map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+            </Select>
             {step.stepType === "Wait" && (
-              <label className="flex items-center gap-1 text-xs">
+              <Label className="flex items-center gap-1 text-xs">
                 seconds
-                <input
+                <Input
                   type="number"
                   min={0}
                   value={step.waitSeconds ?? 0}
@@ -411,13 +377,13 @@ function ConditionalStepsList({
                   }
                   className={`w-14 ${inputCls}`}
                 />
-              </label>
+              </Label>
             )}
             {step.stepType === "Toggle" && (
               <>
-                <label className="flex items-center gap-1 text-xs">
+                <Label className="flex items-center gap-1 text-xs">
                   entity #
-                  <input
+                  <Input
                     type="number"
                     min={0}
                     value={step.targetEntityId ?? 0}
@@ -428,28 +394,23 @@ function ConditionalStepsList({
                         ),
                       )
                     }
-                    className={`w-16 ${inputCls}`}
+                  className={`w-16 ${inputCls}`}
                   />
-                </label>
-                <select
-                  value={step.toggleState === null || step.toggleState === undefined ? "" : String(step.toggleState)}
-                  onChange={(e) =>
+                </Label>
+                <Select value={step.toggleState === null || step.toggleState === undefined ? "invert" : String(step.toggleState)} onValueChange={(value) =>
                     onChange(
-                      steps.map((s, j) => (j === i ? { ...s, toggleState: e.target.value === "" ? null : e.target.value === "true" } : s)),
+                      steps.map((s, j) => (j === i ? { ...s, toggleState: value === "invert" ? null : value === "true" } : s)),
                     )
-                  }
-                  className={`${inputCls} text-xs`}
-                >
-                  <option value="">invert</option>
-                  <option value="true">ON</option>
-                  <option value="false">OFF</option>
-                </select>
+                  }>
+                  <SelectTrigger className={`${inputCls} text-xs`}><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="invert">invert</SelectItem><SelectItem value="true">ON</SelectItem><SelectItem value="false">OFF</SelectItem></SelectContent>
+                </Select>
               </>
             )}
             {step.stepType === "StartTimer" && (
-              <label className="flex items-center gap-1 text-xs">
+              <Label className="flex items-center gap-1 text-xs">
                 minutes
-                <input
+                <Input
                   type="number"
                   min={1}
                   value={step.timerMinutes ?? 15}
@@ -462,15 +423,17 @@ function ConditionalStepsList({
                   }
                   className={`w-14 ${inputCls}`}
                 />
-              </label>
+              </Label>
             )}
-            <button
+            <Button
               type="button"
+              variant="destructive"
+              size="icon"
               onClick={() => onChange(steps.filter((_, j) => j !== i))}
-              className="ml-auto rounded border px-1 text-destructive hover:bg-destructive/10"
+              className="ml-auto h-7 w-7"
             >
               ✕
-            </button>
+            </Button>
           </li>
         ))}
       </ul>

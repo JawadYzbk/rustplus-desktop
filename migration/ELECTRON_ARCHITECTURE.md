@@ -12,6 +12,14 @@ Playwright (E2E) · electron-builder (NSIS target). Three.js enters only via the
 shadcn is the component foundation — it standardizes primitives; it never justifies removing or simplifying
 legacy functionality.
 
+### Renderer UI rule
+
+Implemented routes and shell surfaces consume the shadcn primitives from
+`electron/apps/desktop/src/renderer/src/components/ui/`. New controls are added there first, then composed by
+pages; raw interactive controls are not permitted in implemented page components. Native HTML is reserved for
+semantic content and the internals of the primitives themselves. This keeps accessibility, focus behavior, and
+the Rust+ dark token palette consistent while the feature migration continues.
+
 ## 2) Process model
 
 ```

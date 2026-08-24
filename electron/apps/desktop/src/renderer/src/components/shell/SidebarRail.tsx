@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
 import type * as React from "react";
 import { Bot, Calculator, Camera, Crosshair, Skull, Swords, Trophy, Users, Bell, FlaskConical, Pin, PinOff } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useUiStore, type RailTab } from "../../stores/ui.js";
 import { cn } from "../../lib/cn.js";
+import { Button } from "../ui/button.js";
 
 interface RailItem {
   tab: RailTab;
@@ -49,6 +51,7 @@ const HOVER_EXPAND_DELAY_MS = 200;
 export function SidebarRail(): React.JSX.Element {
   const activeTab = useUiStore((s) => s.activeTab);
   const setActiveTab = useUiStore((s) => s.setActiveTab);
+  const navigate = useNavigate();
   const expanded = useUiStore((s) => s.sidebarExpanded);
   const pinned = useUiStore((s) => s.sidebarPinned);
   const width = useUiStore((s) => s.sidebarWidth);
@@ -61,6 +64,10 @@ export function SidebarRail(): React.JSX.Element {
   }, []);
 
   const showPanel = pinned || expanded;
+  const goToTab = (tab: RailTab): void => {
+    setActiveTab(tab);
+    navigate(`/tab/${tab}`);
+  };
 
   return (
     <div
@@ -78,7 +85,7 @@ export function SidebarRail(): React.JSX.Element {
       {/* Always-visible compact rail */}
       <nav className="flex w-16 shrink-0 flex-col items-center gap-1 overflow-y-auto border-r border-border bg-card py-2" aria-label="Primary">
         {sortedItems().map(({ tab, label, icon: Icon }) => (
-          <RailButton key={tab} tab={tab} label={label} Icon={Icon} active={activeTab === tab} onClick={() => setActiveTab(tab)} />
+          <RailButton key={tab} tab={tab} label={label} Icon={Icon} active={activeTab === tab} onClick={() => goToTab(tab)} />
         ))}
       </nav>
 
@@ -93,35 +100,38 @@ export function SidebarRail(): React.JSX.Element {
       >
         <div className="flex items-center justify-between px-3 pt-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-caption">Navigation</span>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={togglePinned}
             title={pinned ? "Unpin sidebar" : "Pin sidebar"}
             aria-label={pinned ? "Unpin sidebar" : "Pin sidebar"}
-            className={cn("rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground", pinned && "text-primary")}
+            className={cn("text-muted-foreground", pinned && "text-primary")}
           >
             {pinned ? <Pin className="h-4 w-4" /> : <PinOff className="h-4 w-4" />}
-          </button>
+          </Button>
         </div>
         <div className="mt-1 flex-1 overflow-y-auto px-2 pb-2">
           {sortedItems().map(({ tab, label, icon: Icon }) => {
             const isActive = activeTab === tab;
             return (
-              <button
+              <Button
                 key={tab}
                 type="button"
-                onClick={() => setActiveTab(tab)}
+                variant="ghost"
+                onClick={() => goToTab(tab)}
                 aria-current={isActive ? "page" : undefined}
                 data-tutorial-id={`Navigation.${tab}`}
                 className={cn(
-                  "mb-0.5 flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+                  "mb-0.5 h-auto w-full justify-start gap-3 rounded-md px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
                   isActive && "bg-accent font-medium text-primary",
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 <span className="truncate">{label}</span>
                 {isActive && <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -148,9 +158,11 @@ function RailButton({
   onClick: () => void;
 }): React.JSX.Element {
   return (
-    <button
+    <Button
       key={tab}
       type="button"
+      variant="ghost"
+      size="icon"
       onClick={onClick}
       title={label}
       aria-label={label}
@@ -164,6 +176,6 @@ function RailButton({
       <Icon className="h-5 w-5" />
       {/* Bottom 3px accent indicator on the selected item (PrettyTabItem parity). */}
       {active && <span className="absolute -bottom-1 h-[3px] w-7 rounded-full bg-primary" />}
-    </button>
+    </Button>
   );
 }

@@ -54,6 +54,21 @@ const api = {
   log: (level: "debug" | "info" | "warn" | "error", scope: string, message: string) =>
     invoke("app/logFromRenderer", { level, scope, message }) as Promise<InvokeResult<unknown>>,
 
+  cloudLogin: (email: string, password: string) => invoke("cloud/login", { email, password }) as Promise<InvokeResult<unknown>>,
+  cloudBootstrap: () => invoke("cloud/bootstrap", {}) as Promise<InvokeResult<unknown>>,
+  cloudLogout: () => invoke("cloud/logout", {}) as Promise<InvokeResult<unknown>>,
+  wipeGetStatus: () => invoke("wipe/getStatus", {}) as Promise<InvokeResult<unknown>>,
+  wipeGetPlayer: (steamId: string) => invoke("wipe/getPlayer", { steamId }) as Promise<InvokeResult<unknown>>,
+  wipeGetMap: () => invoke("wipe/getMap", {}) as Promise<InvokeResult<unknown>>,
+  wipeGetCloudArchives: () => invoke("wipe/getCloudArchives", {}) as Promise<InvokeResult<unknown>>,
+  wipeRestoreCloudArchive: (archiveId: string) => invoke("wipe/restoreCloudArchive", { archiveId }) as Promise<InvokeResult<unknown>>,
+  wipeDeleteCloudArchive: (archiveId: string) => invoke("wipe/deleteCloudArchive", { archiveId }) as Promise<InvokeResult<unknown>>,
+  wipeDeleteAllCloud: () => invoke("wipe/deleteAllCloud", {}) as Promise<InvokeResult<unknown>>,
+  deathsGetStats: (payload: unknown) => invoke("deaths/getStats", payload) as Promise<InvokeResult<unknown>>,
+  deathsClear: () => invoke("deaths/clear", {}) as Promise<InvokeResult<unknown>>,
+  settingsGetWipe: () => invoke("settings/getWipe", {}) as Promise<InvokeResult<unknown>>,
+  settingsSetWipe: (payload: unknown) => invoke("settings/setWipe", payload) as Promise<InvokeResult<unknown>>,
+
   /** Persisted shell preferences (sidebar). */
   getUiPrefs: () => invoke("uiPrefs/get", undefined) as Promise<InvokeResult<unknown>>,
   setUiPrefs: (patch: { sidebarPinned?: boolean; sidebarWidth?: number }) =>
@@ -61,12 +76,30 @@ const api = {
 
   /** Server profiles + device trees (stage 5). Tokens never cross the bridge. */
   listProfiles: () => invoke("profile/list", undefined) as Promise<InvokeResult<unknown>>,
+  pairProfile: (link: string, name?: string) => invoke("profile/pair", { link, ...(name ? { name } : {}) }) as Promise<InvokeResult<unknown>>,
   getDevices: (matchKey: string) =>
     invoke("profile/getDevices", { matchKey }) as Promise<InvokeResult<unknown>>,
   saveDevices: (matchKey: string, devices: unknown[]) =>
     invoke("profile/saveDevices", { matchKey, devices }) as Promise<InvokeResult<unknown>>,
   activateProfile: (matchKey: string) =>
     invoke("profile/activate", { matchKey }) as Promise<InvokeResult<unknown>>,
+  exportDevices: (matchKey: string) =>
+    invoke("profile/exportDevices", { matchKey }) as Promise<InvokeResult<unknown>>,
+  importDevicesPreview: (matchKey: string) =>
+    invoke("profile/importPreview", { matchKey }) as Promise<InvokeResult<unknown>>,
+  applyImportedDevices: (payload: unknown) =>
+    invoke("profile/applyImport", payload) as Promise<InvokeResult<unknown>>,
+  deleteDevice: (payload: unknown) =>
+    invoke("profile/deleteDevice", payload) as Promise<InvokeResult<unknown>>,
+
+  deviceAutomationGetRules: (matchKey: string) =>
+    invoke("deviceAutomation/getRules", { matchKey }) as Promise<InvokeResult<unknown>>,
+  deviceAutomationSaveRules: (payload: unknown) =>
+    invoke("deviceAutomation/saveRules", payload) as Promise<InvokeResult<unknown>>,
+  raidGetData: () => invoke("raid/getData", undefined) as Promise<InvokeResult<unknown>>,
+  raidCalculate: (payload: unknown) => invoke("raid/calculate", payload) as Promise<InvokeResult<unknown>>,
+  recyclerGetData: () => invoke("recycler/getData", undefined) as Promise<InvokeResult<unknown>>,
+  recyclerCalculate: (payload: unknown) => invoke("recycler/calculate", payload) as Promise<InvokeResult<unknown>>,
 
   /** Logic Engine control (stage 5). */
   logicStatus: () => invoke("logic/status", undefined) as Promise<InvokeResult<unknown>>,

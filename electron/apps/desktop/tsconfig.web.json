@@ -3,6 +3,8 @@
   "compilerOptions": {
     "noEmit": true,
     "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/renderer/src/*"] },
     "lib": ["ES2022", "DOM", "DOM.Iterable"]
   },
   "include": ["src/renderer"]

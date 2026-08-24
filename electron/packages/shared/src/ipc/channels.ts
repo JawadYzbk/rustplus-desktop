@@ -32,6 +32,227 @@ export const logFromRenderer = defineChannel(
   "Renderer log sink into the main-process rotating log.",
 );
 
+const cloudUserSchema = z.object({
+  id: z.string(),
+  steamId: z.string().nullable(),
+  name: z.string().nullable(),
+  displayName: z.string().nullable(),
+  email: z.string().nullable(),
+  providers: z.array(z.string()),
+  hasPassword: z.boolean(),
+});
+
+const cloudCapabilitiesSchema = z.object({
+  planCode: z.string(),
+  isTrackerAvailable: z.boolean(),
+  canTrackTeam: z.boolean(),
+  canUseCloudSync: z.boolean(),
+  canUseAdvancedViews: z.boolean(),
+  canUseRouteReplay: z.boolean(),
+  canExport: z.boolean(),
+  maxTrackedPlayers: z.number().int().min(1),
+  retainedWipes: z.number().int().min(1),
+  cloudRetentionDays: z.number().int().min(0),
+  fetchedAt: z.string(),
+});
+
+export const cloudLogin = defineChannel(
+  "cloud/login",
+  z.object({ email: z.string().email().max(320), password: z.string().min(1).max(1024) }),
+  z.object({ signedIn: z.literal(true), user: cloudUserSchema }),
+  "Sign in to the Laravel cloud account; the bearer token remains main-process only.",
+);
+
+export const cloudBootstrap = defineChannel(
+  "cloud/bootstrap",
+  z.object({}).strict(),
+  z.object({
+    signedIn: z.boolean(),
+    user: cloudUserSchema.nullable(),
+    capabilities: cloudCapabilitiesSchema.nullable(),
+    error: z.string().nullable(),
+  }),
+  "Fetch Laravel client bootstrap and Player Wipe Tracker entitlements.",
+);
+
+export const cloudLogout = defineChannel(
+  "cloud/logout",
+  z.object({}).strict(),
+  z.object({ signedIn: z.literal(false) }),
+  "Clear the encrypted Laravel cloud session.",
+);
+
+const wipeVisitSchema = z.object({
+  name: z.string(),
+  startUtc: z.string(),
+  endUtc: z.string(),
+  entryX: z.number().nullable(),
+  entryY: z.number().nullable(),
+  exitX: z.number().nullable(),
+  exitY: z.number().nullable(),
+});
+
+const wipeReplayPointSchema = z.object({
+  timestampUtc: z.string(),
+  x: z.number().nullable(),
+  y: z.number().nullable(),
+  state: z.enum(["moving", "stationary", "afk", "dead", "offline", "unknown"]),
+  locationType: z.enum(["monument", "base", "open", "unknown"]),
+  locationName: z.string().nullable(),
+  grid: z.string().nullable(),
+  event: z.enum(["death", "respawn"]).nullable(),
+  sessionId: z.string(),
+});
+
+const wipeReplaySegmentSchema = z.object({
+  startUtc: z.string(),
+  endUtc: z.string(),
+  state: z.enum(["moving", "stationary", "afk", "dead", "offline", "unknown"]),
+});
+
+const wipePlayerSchema = z.object({
+  steamId: z.string().regex(/^\d{17}$/),
+  name: z.string(),
+  observationCount: z.number().int().min(0),
+  summary: z.object({
+    coverageSeconds: z.number(),
+    unknownSeconds: z.number(),
+    movingSeconds: z.number(),
+    stationarySeconds: z.number(),
+    afkSeconds: z.number(),
+    deadSeconds: z.number(),
+    offlineSeconds: z.number(),
+    estimatedDistance: z.number(),
+    deaths: z.number().int().min(0),
+    monumentVisits: z.array(wipeVisitSchema),
+  }),
+  insights: z.object({
+    firstSeenUtc: z.string().nullable(),
+    lastSeenUtc: z.string().nullable(),
+    sessionCount: z.number().int().min(0),
+    topMonument: z.string().nullable(),
+    topMonumentSeconds: z.number(),
+    topMonumentVisits: z.number().int().min(0),
+    longestBlindGapSeconds: z.number(),
+    longestBlindGapStartUtc: z.string().nullable(),
+    peakHourLocal: z.number().int().min(0).max(23).nullable(),
+    peakHourActiveSeconds: z.number(),
+    currentState: z.enum(["moving", "stationary", "afk", "dead", "offline", "unknown"]),
+    currentLocationType: z.enum(["monument", "base", "open", "unknown"]),
+    currentLocationName: z.string().nullable(),
+    currentGrid: z.string().nullable(),
+    currentAsOfUtc: z.string().nullable(),
+    isLikelyOnline: z.boolean(),
+  }),
+  observations: z.array(wipeReplayPointSchema),
+  segments: z.array(wipeReplaySegmentSchema),
+});
+
+export const wipeGetStatus = defineChannel(
+  "wipe/getStatus",
+  z.object({}).strict(),
+  z.object({ serverKey: z.string().nullable(), wipeKey: z.string().nullable(), sessionId: z.string().nullable(), players: z.array(wipePlayerSchema) }),
+  "Current local Player Wipe Tracker session and per-player summaries.",
+);
+
+export const wipeGetPlayer = defineChannel(
+  "wipe/getPlayer",
+  z.object({ steamId: z.string().regex(/^\d{17}$/) }),
+  z.object({ player: wipePlayerSchema.nullable() }),
+  "One local Player Wipe Tracker player summary and derived insights.",
+);
+
+export const wipeGetMap = defineChannel(
+  "wipe/getMap",
+  z.object({}).strict(),
+  z.object({ map: z.object({ pngBase64: z.string(), imageWidth: z.number().int().positive(), imageHeight: z.number().int().positive(), worldSize: z.number(), worldRectX: z.number(), worldRectY: z.number(), worldRectWidth: z.number(), worldRectHeight: z.number() }).nullable() }),
+  "Current local Wipe Tracker map image and world projection metadata.",
+);
+
+export const settingsGetWipe = defineChannel(
+  "settings/getWipe",
+  z.object({}).strict(),
+  z.object({ enabled: z.boolean(), cloudBackupEnabled: z.boolean() }),
+  "Player Wipe Tracker settings flags.",
+);
+
+export const settingsSetWipe = defineChannel(
+  "settings/setWipe",
+  z.object({ enabled: z.boolean().optional(), cloudBackupEnabled: z.boolean().optional() }),
+  z.object({ enabled: z.boolean(), cloudBackupEnabled: z.boolean() }),
+  "Persist Player Wipe Tracker settings flags.",
+);
+
+const wipeArchiveSchema = z.object({
+  id: z.string().min(1),
+  serverKey: z.string(),
+  serverName: z.string(),
+  wipeKey: z.string(),
+  wipeStartedAtUtc: z.string().nullable(),
+  firstObservedAtUtc: z.string().nullable(),
+  lastObservedAtUtc: z.string().nullable(),
+  playerCount: z.number().int().nullable(),
+  storedBytes: z.number().int().nullable(),
+  players: z.array(z.object({ steamId: z.string().regex(/^\d{17}$/), dayCount: z.number().int().min(0) })),
+});
+
+export const wipeGetCloudArchives = defineChannel(
+  "wipe/getCloudArchives",
+  z.object({}).strict(),
+  z.object({ archives: z.array(wipeArchiveSchema) }),
+  "List Laravel Player Wipe Tracker archives.",
+);
+
+export const wipeRestoreCloudArchive = defineChannel(
+  "wipe/restoreCloudArchive",
+  z.object({ archiveId: z.string().min(1).max(120) }),
+  z.object({ archiveId: z.string(), players: z.number().int().min(0), days: z.number().int().min(0), observations: z.number().int().min(0), isCurrentWipe: z.boolean() }),
+  "Restore a Laravel Player Wipe Tracker archive into local JSONL history.",
+);
+
+export const wipeDeleteCloudArchive = defineChannel(
+  "wipe/deleteCloudArchive",
+  z.object({ archiveId: z.string().min(1).max(120) }),
+  z.object({ deleted: z.boolean() }),
+  "Delete one Laravel Player Wipe Tracker archive.",
+);
+
+export const wipeDeleteAllCloud = defineChannel(
+  "wipe/deleteAllCloud",
+  z.object({}).strict(),
+  z.object({ deleted: z.number().int().min(0) }),
+  "Delete all Laravel Player Wipe Tracker archives.",
+);
+
+const deathSummarySchema = z.object({
+  total: z.number().int().min(0),
+  victims: z.number().int().min(0),
+  avgSurvival: z.string(),
+  longestSurvival: z.string(),
+  peakHour: z.string(),
+  deadliestPlace: z.string(),
+  deadliestGrid: z.string(),
+  byArea: z.array(z.object({ name: z.string(), type: z.enum(["monument", "base", "open"]), deaths: z.number().int().min(0), percent: z.number().int().min(0).max(100) })),
+  byVictim: z.array(z.object({ victim: z.string(), deaths: z.number().int().min(0), avgSurvival: z.string() })),
+  byLocation: z.array(z.object({ location: z.string(), type: z.enum(["monument", "base", "open"]), deaths: z.number().int().min(0) })),
+  recent: z.array(z.object({ victim: z.string(), type: z.enum(["monument", "base", "open"]), location: z.string(), grid: z.string(), died: z.string() })),
+  deathsPerDay: z.array(z.object({ day: z.string(), count: z.number().int().min(0) })),
+});
+
+export const deathsGetStats = defineChannel(
+  "deaths/getStats",
+  z.object({ search: z.string().max(200).optional(), player: z.string().max(200).optional(), type: z.enum(["all", "monument", "base", "open"]).optional(), range: z.enum(["all", "24h", "7d"]).optional() }).strict(),
+  z.object({ serverKey: z.string().nullable(), players: z.array(z.string()), summary: deathSummarySchema }),
+  "Read local JSONL death statistics for the active server with legacy filters.",
+);
+
+export const deathsClear = defineChannel(
+  "deaths/clear",
+  z.object({}).strict(),
+  z.object({ cleared: z.boolean() }),
+  "Clear the local death log for the active server.",
+);
+
 /** `uiPrefs/*` — persisted shell preferences (sidebar state). Backed by ui-prefs.json via JsonStore. */
 export const uiPrefsSchema = z.object({
   sidebarPinned: z.boolean(),
@@ -172,6 +393,16 @@ export const profileList = defineChannel(
   "All stored server profiles with their stable match keys.",
 );
 
+export const profilePair = defineChannel(
+  "profile/pair",
+  z.object({ link: z.string().min(1).max(4096), name: z.string().max(200).optional() }).strict(),
+  z.object({
+    activated: z.boolean(),
+    profile: z.object({ matchKey: z.string(), name: z.string(), host: z.string(), port: z.number().int(), steamId64: z.string(), deviceCount: z.number().int().min(0) }),
+  }),
+  "Create or replace a server profile from a Rust+ pairing link and make it active.",
+);
+
 /** Recursive device-node contract (SmartDevice subset the tree UI needs). */
 const deviceNodeSchema: z.ZodType<DeviceNodeDto> = z.lazy(() =>
   z.object({
@@ -186,6 +417,10 @@ const deviceNodeSchema: z.ZodType<DeviceNodeDto> = z.lazy(() =>
     customIconShortName: z.string().nullable(),
     inGameAlarmTitle: z.string().nullable(),
     oilRigTriggerTarget: z.string().nullable(),
+    pairedX: z.number().nullable(),
+    pairedY: z.number().nullable(),
+    pairedBySteamId: z.string().nullable(),
+    pairedLocationCapturedAtMs: z.number().nullable(),
   }),
 );
 
@@ -201,7 +436,39 @@ export interface DeviceNodeDto {
   customIconShortName: string | null;
   inGameAlarmTitle: string | null;
   oilRigTriggerTarget: string | null;
+  pairedX: number | null;
+  pairedY: number | null;
+  pairedBySteamId: string | null;
+  pairedLocationCapturedAtMs: number | null;
 }
+
+interface ExportedDeviceDto {
+  entityId: number;
+  kind: string | null;
+  name: string | null;
+  alias: string | null;
+  isGroup: boolean;
+  children: ExportedDeviceDto[] | null;
+  customIconId: number | null;
+  customIconShortName: string | null;
+  inGameAlarmTitle: string | null;
+  oilRigTrigger: string | null;
+}
+
+const exportedDeviceDtoSchema: z.ZodType<ExportedDeviceDto> = z.lazy(() =>
+  z.object({
+    entityId: z.number().int().min(0),
+    kind: z.string().nullable(),
+    name: z.string().nullable(),
+    alias: z.string().nullable(),
+    isGroup: z.boolean(),
+    children: z.array(exportedDeviceDtoSchema).nullable(),
+    customIconId: z.number().int().nullable(),
+    customIconShortName: z.string().nullable(),
+    inGameAlarmTitle: z.string().nullable(),
+    oilRigTrigger: z.string().nullable(),
+  }),
+);
 
 export const profileGetDevices = defineChannel(
   "profile/getDevices",
@@ -222,6 +489,207 @@ export const profileActivate = defineChannel(
   z.object({ matchKey: z.string().min(1) }),
   z.object({ activated: z.boolean() }),
   "Select the active server profile (engine + connection context follow this).",
+);
+
+export const profileExportDevices = defineChannel(
+  "profile/exportDevices",
+  z.object({ matchKey: z.string().min(1) }),
+  z.object({ saved: z.boolean(), canceled: z.boolean(), path: z.string().nullable(), bytes: z.number().int().min(0) }),
+  "Save the selected profile's legacy-compatible device snapshot as JSON.",
+);
+
+export const profileImportPreview = defineChannel(
+  "profile/importPreview",
+  z.object({ matchKey: z.string().min(1) }),
+  z.object({
+    canceled: z.boolean(),
+    path: z.string().nullable(),
+    candidates: z.array(
+      z.object({
+        id: z.string().min(1),
+        ownerSteamId: z.string(),
+        ownerName: z.string(),
+        entityId: z.number().int().min(0),
+        kind: z.string().nullable(),
+        name: z.string().nullable(),
+        alias: z.string().nullable(),
+        alreadyPresent: z.boolean(),
+        fromPreviousWipe: z.boolean(),
+        serverName: z.string(),
+        existsState: z.enum(["?", "ok", "missing", "err", "local"]),
+        originalDto: exportedDeviceDtoSchema,
+      }),
+    ),
+  }),
+  "Open a device snapshot and return selectable import candidates without changing the profile.",
+);
+
+export const profileApplyImport = defineChannel(
+  "profile/applyImport",
+  z.object({ matchKey: z.string().min(1), devices: z.array(exportedDeviceDtoSchema).max(1_000) }),
+  z.object({ saved: z.boolean(), imported: z.number().int().min(0) }),
+  "Add selected device snapshot entries to a profile, skipping existing entity IDs.",
+);
+
+export const profileDeleteDevice = defineChannel(
+  "profile/deleteDevice",
+  z.object({ matchKey: z.string().min(1), entityId: z.number().int().min(0) }),
+  z.object({ removed: z.boolean(), reason: z.enum(["removed", "notFound", "notMissing"]) }),
+  "Remove one missing leaf device from a profile; groups and live devices are protected.",
+);
+
+/** `deviceAutomation/*` — profile-scoped switch automation (stage 5). */
+const deviceAutomationRuleSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1).max(120),
+  isEnabled: z.boolean(),
+  isExpanded: z.boolean(),
+  conditionType: z.enum(["PlayerProximity", "GameTime"]),
+  playerMatchMode: z.enum(["AnyOnline", "AllOnline", "Specific", "SpecificOffline", "AnyOffline", "AllOffline"]),
+  specificPlayerSteamId: z.string().max(32),
+  locationEntityId: z.number().int().min(0),
+  distanceMeters: z.number().finite().min(1).max(1_000_000),
+  startTime: z.string().max(32),
+  endTime: z.string().max(32),
+  targetEntityId: z.number().int().min(0),
+  matchedState: z.boolean(),
+  unmatchedState: z.boolean(),
+});
+
+export const deviceAutomationGetRules = defineChannel(
+  "deviceAutomation/getRules",
+  z.object({ matchKey: z.string().min(1) }),
+  z.object({ found: z.boolean(), isActive: z.boolean(), rules: z.array(deviceAutomationRuleSchema) }),
+  "Load one profile's DeviceAutomationRules and master switch.",
+);
+
+export const deviceAutomationSaveRules = defineChannel(
+  "deviceAutomation/saveRules",
+  z.object({
+    matchKey: z.string().min(1),
+    isActive: z.boolean(),
+    rules: z.array(deviceAutomationRuleSchema).max(100),
+  }),
+  z.object({ saved: z.boolean() }),
+  "Persist one profile's DeviceAutomationRules and master switch.",
+);
+
+/** `raid/*` — embedded raid dataset and calculator engine (stage 9). */
+const raidResourceSchema = z.object({
+  shortname: z.string(),
+  itemId: z.number().int(),
+  displayName: z.string(),
+  amount: z.number().finite(),
+});
+
+const raidSourceSchema = z.object({
+  sourceId: z.number().int(),
+  prefabName: z.string(),
+  itemId: z.number().int().nullable(),
+  itemShortname: z.string(),
+  itemSlug: z.string(),
+  itemCategorySlug: z.string(),
+  displayName: z.string(),
+  kind: z.string(),
+  rawDamage: z.number().finite(),
+  craftCost: z.array(raidResourceSchema).nullable(),
+  workbenchLevelRequired: z.number().int().nullable(),
+});
+
+const raidTargetSchema = z.object({
+  targetId: z.number().int(),
+  prefabName: z.string(),
+  itemId: z.number().int().nullable(),
+  itemShortname: z.string().nullable(),
+  itemSlug: z.string().nullable(),
+  itemCategorySlug: z.string().nullable(),
+  buildingSlug: z.string().nullable(),
+  buildingImage: z.string().nullable(),
+  displayName: z.string(),
+  buildingTier: z.string().nullable(),
+  componentType: z.string(),
+  startHealth: z.number().finite().positive(),
+  category: z.string(),
+});
+
+const raidMethodSchema = z.object({
+  source: raidSourceSchema,
+  requiredItems: z.number().int().min(1),
+  damagePerItem: z.number().finite(),
+  totalDamage: z.number().finite(),
+  overkill: z.number().finite().min(0),
+  resources: z.array(raidResourceSchema),
+  hasCraftCost: z.boolean(),
+});
+
+export const raidGetData = defineChannel(
+  "raid/getData",
+  z.void(),
+  z.object({ sources: z.array(raidSourceSchema), targets: z.array(raidTargetSchema) }),
+  "Load the validated embedded raid dataset for the calculator UI.",
+);
+
+export const raidCalculate = defineChannel(
+  "raid/calculate",
+  z.object({
+    targetId: z.number().int().positive(),
+    targetQuantity: z.number().int().min(1).max(100_000),
+    sourceIds: z.array(z.number().int().positive()).max(100),
+    mode: z.enum(["LowestSulfur", "LowestTotalResources", "FewestRaidItems", "Custom"]),
+  }),
+  z.object({
+    methods: z.array(raidMethodSchema),
+    recommended: raidMethodSchema.nullable(),
+    combination: z.array(raidMethodSchema),
+    resources: z.array(raidResourceSchema),
+    items: z.array(z.object({ source: raidSourceSchema, amount: z.number().int().min(1) })),
+  }),
+  "Calculate raid methods and the selected best combination for one target.",
+);
+
+/** `recycler/*` — embedded recycler inputs and wild/safe-zone yield calculation (stage 9). */
+const recyclerItemSchema = z.object({
+  id: z.string(),
+  shortName: z.string().min(1),
+  displayName: z.string().min(1),
+  category: z.string().min(1),
+  stackSize: z.number().int().min(1),
+});
+
+const recyclerMetricSchema = z.object({
+  expected: z.number().finite().min(0),
+  guaranteed: z.number().finite().min(0),
+  chance: z.number().finite().min(0),
+  chancePercent: z.number().finite().min(0).max(100),
+  min: z.number().finite().min(0),
+  max: z.number().finite().min(0),
+});
+
+const recyclerOutputSchema = z.object({
+  shortName: z.string().min(1),
+  displayName: z.string().min(1),
+  wild: recyclerMetricSchema,
+  safe: recyclerMetricSchema,
+});
+
+export const recyclerGetData = defineChannel(
+  "recycler/getData",
+  z.void(),
+  z.object({ items: z.array(recyclerItemSchema) }),
+  "Load the validated embedded recycler input catalog.",
+);
+
+export const recyclerCalculate = defineChannel(
+  "recycler/calculate",
+  z.object({
+    quantities: z.array(z.object({ shortName: z.string().min(1), quantity: z.number().int().min(0).max(2_000_000_000) })).max(1_000),
+  }),
+  z.object({
+    outputs: z.array(recyclerOutputSchema),
+    wildSeconds: z.number().finite().min(0),
+    safeSeconds: z.number().finite().min(0),
+  }),
+  "Calculate wild and safe-zone recycler yields and processing times.",
 );
 
 /** `logic/*` — Logic Engine control (stage 5). Rules live on the profile record. */
@@ -431,6 +899,20 @@ export const pushChannel = "conn/push";
 export const ipcChannels = {
   "app/getInfo": appGetInfo,
   "app/logFromRenderer": logFromRenderer,
+  "cloud/login": cloudLogin,
+  "cloud/bootstrap": cloudBootstrap,
+  "cloud/logout": cloudLogout,
+  "wipe/getStatus": wipeGetStatus,
+  "wipe/getPlayer": wipeGetPlayer,
+  "wipe/getMap": wipeGetMap,
+  "settings/getWipe": settingsGetWipe,
+  "settings/setWipe": settingsSetWipe,
+  "wipe/getCloudArchives": wipeGetCloudArchives,
+  "wipe/restoreCloudArchive": wipeRestoreCloudArchive,
+  "wipe/deleteCloudArchive": wipeDeleteCloudArchive,
+  "wipe/deleteAllCloud": wipeDeleteAllCloud,
+  "deaths/getStats": deathsGetStats,
+  "deaths/clear": deathsClear,
   "uiPrefs/get": uiPrefsGet,
   "uiPrefs/set": uiPrefsSet,
   "migrate/scan": migrateScan,
@@ -442,9 +924,20 @@ export const ipcChannels = {
   "conn/disconnect": connDisconnect,
   "conn/status": connStatus,
   "profile/list": profileList,
+  "profile/pair": profilePair,
   "profile/getDevices": profileGetDevices,
   "profile/saveDevices": profileSaveDevices,
   "profile/activate": profileActivate,
+  "profile/exportDevices": profileExportDevices,
+  "profile/importPreview": profileImportPreview,
+  "profile/applyImport": profileApplyImport,
+  "profile/deleteDevice": profileDeleteDevice,
+  "deviceAutomation/getRules": deviceAutomationGetRules,
+  "deviceAutomation/saveRules": deviceAutomationSaveRules,
+  "raid/getData": raidGetData,
+  "raid/calculate": raidCalculate,
+  "recycler/getData": recyclerGetData,
+  "recycler/calculate": recyclerCalculate,
   "logic/status": logicStatus,
   "logic/stop": logicStop,
   "logic/run": logicRun,
@@ -464,6 +957,20 @@ export type IpcChannelName = keyof IpcChannels & string;
 const _nameParity: Readonly<{ [K in keyof IpcChannels]: IpcChannels[K]["name"] }> = {
   "app/getInfo": "app/getInfo",
   "app/logFromRenderer": "app/logFromRenderer",
+  "cloud/login": "cloud/login",
+  "cloud/bootstrap": "cloud/bootstrap",
+  "cloud/logout": "cloud/logout",
+  "wipe/getStatus": "wipe/getStatus",
+  "wipe/getPlayer": "wipe/getPlayer",
+  "wipe/getMap": "wipe/getMap",
+  "settings/getWipe": "settings/getWipe",
+  "settings/setWipe": "settings/setWipe",
+  "wipe/getCloudArchives": "wipe/getCloudArchives",
+  "wipe/restoreCloudArchive": "wipe/restoreCloudArchive",
+  "wipe/deleteCloudArchive": "wipe/deleteCloudArchive",
+  "wipe/deleteAllCloud": "wipe/deleteAllCloud",
+  "deaths/getStats": "deaths/getStats",
+  "deaths/clear": "deaths/clear",
   "uiPrefs/get": "uiPrefs/get",
   "uiPrefs/set": "uiPrefs/set",
   "migrate/scan": "migrate/scan",
@@ -475,9 +982,20 @@ const _nameParity: Readonly<{ [K in keyof IpcChannels]: IpcChannels[K]["name"] }
   "conn/disconnect": "conn/disconnect",
   "conn/status": "conn/status",
   "profile/list": "profile/list",
+  "profile/pair": "profile/pair",
   "profile/getDevices": "profile/getDevices",
   "profile/saveDevices": "profile/saveDevices",
   "profile/activate": "profile/activate",
+  "profile/exportDevices": "profile/exportDevices",
+  "profile/importPreview": "profile/importPreview",
+  "profile/applyImport": "profile/applyImport",
+  "profile/deleteDevice": "profile/deleteDevice",
+  "deviceAutomation/getRules": "deviceAutomation/getRules",
+  "deviceAutomation/saveRules": "deviceAutomation/saveRules",
+  "raid/getData": "raid/getData",
+  "raid/calculate": "raid/calculate",
+  "recycler/getData": "recycler/getData",
+  "recycler/calculate": "recycler/calculate",
   "logic/status": "logic/status",
   "logic/stop": "logic/stop",
   "logic/run": "logic/run",
