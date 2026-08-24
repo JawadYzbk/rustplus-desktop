@@ -321,6 +321,16 @@ export type BackupRestoreResult = z.infer<typeof backupRestore["response"]>;
 export type ResetPerformResult = z.infer<typeof resetPerform["response"]>;
 
 /** Connection control — request payloads validated main-side against the live profile store. */
+const connSnapshotSchema = z.object({
+  connected: z.boolean(),
+  activeProxy: z.enum(["direct", "proxy"]).nullable(),
+  host: z.string().nullable(),
+  port: z.number().nullable(),
+  consecutiveTimeouts: z.number(),
+  teamChatPrimed: z.boolean(),
+  clanChatPrimed: z.boolean(),
+});
+
 const connConnect = defineChannel(
   "conn/connect",
   z.object({
@@ -330,45 +340,28 @@ const connConnect = defineChannel(
     playerToken: z.string().min(1),
     useProxy: z.boolean().optional(),
   }),
-  z.object({
-    connected: z.boolean(),
-    activeProxy: z.enum(["direct", "proxy"]).nullable(),
-    host: z.string().nullable(),
-    port: z.number().nullable(),
-    consecutiveTimeouts: z.number(),
-    teamChatPrimed: z.boolean(),
-    clanChatPrimed: z.boolean(),
-  }),
+  connSnapshotSchema,
   "Open the Rust+ companion connection (dual-path direct/probe fallback).",
+);
+
+const connConnectProfile = defineChannel(
+  "conn/connectProfile",
+  z.object({ matchKey: z.string().min(1), useProxy: z.boolean().optional() }).strict(),
+  connSnapshotSchema,
+  "Open Rust+ using the encrypted token of a stored server profile; the token never crosses IPC.",
 );
 
 const connDisconnect = defineChannel(
   "conn/disconnect",
   z.object({}).strict(),
-  z.object({
-    connected: z.boolean(),
-    activeProxy: z.enum(["direct", "proxy"]).nullable(),
-    host: z.string().nullable(),
-    port: z.number().nullable(),
-    consecutiveTimeouts: z.number(),
-    teamChatPrimed: z.boolean(),
-    clanChatPrimed: z.boolean(),
-  }),
+  connSnapshotSchema,
   "Close the companion connection and cancel any pending silent reconnect.",
 );
 
 const connStatus = defineChannel(
   "conn/status",
   z.object({}).strict(),
-  z.object({
-    connected: z.boolean(),
-    activeProxy: z.enum(["direct", "proxy"]).nullable(),
-    host: z.string().nullable(),
-    port: z.number().nullable(),
-    consecutiveTimeouts: z.number(),
-    teamChatPrimed: z.boolean(),
-    clanChatPrimed: z.boolean(),
-  }),
+  connSnapshotSchema,
   "Current connection snapshot (no side effects).",
 );
 
@@ -921,6 +914,7 @@ export const ipcChannels = {
   "backup/restore": backupRestore,
   "reset/perform": resetPerform,
   "conn/connect": connConnect,
+  "conn/connectProfile": connConnectProfile,
   "conn/disconnect": connDisconnect,
   "conn/status": connStatus,
   "profile/list": profileList,
@@ -979,6 +973,7 @@ const _nameParity: Readonly<{ [K in keyof IpcChannels]: IpcChannels[K]["name"] }
   "backup/restore": "backup/restore",
   "reset/perform": "reset/perform",
   "conn/connect": "conn/connect",
+  "conn/connectProfile": "conn/connectProfile",
   "conn/disconnect": "conn/disconnect",
   "conn/status": "conn/status",
   "profile/list": "profile/list",

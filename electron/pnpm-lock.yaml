@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@liamcottle/rustplus.js@2.5.0': 3f2ef7b4c756c3e7cde83d9f5783c1fa5969c233d12c634d144b474a2174fb92
+
 importers:
 
   .: {}
@@ -12,7 +15,7 @@ importers:
     dependencies:
       '@liamcottle/rustplus.js':
         specifier: 2.5.0
-        version: 2.5.0(debug@4.4.3(supports-color@5.5.0))(supports-color@5.5.0)
+        version: 2.5.0(patch_hash=3f2ef7b4c756c3e7cde83d9f5783c1fa5969c233d12c634d144b474a2174fb92)(debug@4.4.3(supports-color@5.5.0))(supports-color@5.5.0)
       '@radix-ui/react-accordion':
         specifier: ^1.2.20
         version: 1.2.20(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -3318,7 +3321,7 @@ snapshots:
       - debug
       - supports-color
 
-  '@liamcottle/rustplus.js@2.5.0(debug@4.4.3(supports-color@5.5.0))(supports-color@5.5.0)':
+  '@liamcottle/rustplus.js@2.5.0(patch_hash=3f2ef7b4c756c3e7cde83d9f5783c1fa5969c233d12c634d144b474a2174fb92)(debug@4.4.3(supports-color@5.5.0))(supports-color@5.5.0)':
     dependencies:
       '@liamcottle/push-receiver': 0.0.3(debug@4.4.3(supports-color@5.5.0))(supports-color@5.5.0)
       axios: 1.19.0(debug@4.4.3(supports-color@5.5.0))(supports-color@5.5.0)

@@ -75,6 +75,10 @@ const api = {
     invoke("uiPrefs/set", patch) as Promise<InvokeResult<unknown>>,
 
   /** Server profiles + device trees (stage 5). Tokens never cross the bridge. */
+  connectProfile: (matchKey: string, useProxy?: boolean) =>
+    invoke("conn/connectProfile", { matchKey, ...(useProxy === undefined ? {} : { useProxy }) }) as Promise<InvokeResult<unknown>>,
+  disconnect: () => invoke("conn/disconnect", {}) as Promise<InvokeResult<unknown>>,
+  connectionStatus: () => invoke("conn/status", {}) as Promise<InvokeResult<unknown>>,
   listProfiles: () => invoke("profile/list", undefined) as Promise<InvokeResult<unknown>>,
   pairProfile: (link: string, name?: string) => invoke("profile/pair", { link, ...(name ? { name } : {}) }) as Promise<InvokeResult<unknown>>,
   getDevices: (matchKey: string) =>

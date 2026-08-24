@@ -60,7 +60,7 @@ the Rust+ dark token palette consistent while the feature migration continues.
 | Renderer isolation | `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true` for app windows |
 | No remote content in app origin | Custom schemes (`rpd://` app shell in dev/prod packaging decision at stage 2); external links via `shell.openExternal` w/ allowlist |
 | Typed IPC | Single `preload.ts` exposing namespaced, zod-validated invoke channels + event subscriptions; no dynamic channel strings from renderer |
-| Secrets | safeStorage encryption at rest (session token, PlayerToken, webhook URLs); never rendered to DevTools-visible stores; clipboard use explicit only |
+| Secrets | safeStorage encryption at rest (session token, PlayerToken, webhook URLs); profile-scoped connection resolves PlayerToken in main and returns only `ConnSnapshotDto`; never rendered to DevTools-visible stores; clipboard use explicit only |
 | Navigation locks | `will-navigate`/`setWindowOpenHandler` deny-all except allowlisted hosts |
 | CSP | Strict CSP on app pages; 3D/GeneticsLab hosts get their own scoped policies (they load local assets only after CDN removal) |
 

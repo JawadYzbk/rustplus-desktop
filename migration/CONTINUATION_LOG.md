@@ -13,4 +13,7 @@
 | 38 | Death Stats: baseline-aware team death detection, primary + legacy JSONL store, C#-matching summaries and filters, base-note/grid classification, typed IPC, React workspace, and focused parity tests | Stage 9 |
 | 39 | Profile onboarding/navigation: sidebar route synchronization, Pair Rust+ paste-link flow, legacy import entry point, and CLI-generated shadcn/ui primitives composed across implemented Electron routes and shell panels | Stages 2, 5, 9, and 12 |
 
-Verification: `pnpm --dir electron typecheck`, `test` (255 tests), `build`, and smoke with `--no-sandbox` all pass; default smoke still hits the environment's Electron GPU child failure.
+| 40 | Profile-scoped Rust+ connection: encrypted-token resolution stays in main, lifecycle/team pushes hydrate a typed renderer store, Devices gains connect controls, and Team replaces its placeholder with a live roster route using installed shadcn/ui primitives | Stages 4 and 5 |
+| 41 | Rust+ protobuf compatibility: patched the pinned rustplus.js proto so all 125 required declarations are optional, added sparse-payload decode coverage, and surfaced queued players in live Team status | Stage 4 |
+
+Verification: `pnpm --dir electron typecheck`, `test` (260 tests), `build`, and `RPD_SMOKE=1 electron . --no-sandbox` pass; default smoke still hits the environment's Electron GPU child failure.

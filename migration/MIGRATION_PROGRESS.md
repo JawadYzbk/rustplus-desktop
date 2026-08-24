@@ -87,3 +87,10 @@
 | stage 3 | ProfilesStore deliberately schema-loose per profile until SmartDevice/LogicRule/etc. port (stages 4–5) — unknown fields preserved byte-faithfully; typed core subset only; PlayerToken sealed via SecretCodec seam (safeStorage prod). Legacy plaintext files read as-is, sealed on first rewrite | ServerProfile.cs full read |
 | stage 3 | Remaining small stores ported with exact C# shapes (PascalCase, numeric TutorialStatus enum, TimeSpan "c"-format strings): hotkeys/hotkey_options/custom_alerts/tracked_players/tutorial-progress. Tutorial GetAsync version-bump→Updated is in-memory-only parity (persists on explicit save only) — test documents this quirk deliberately | TutorialProgressStore.cs:37-52 + TrackingService.cs/AlertTemplateService.cs/MainWindow.xaml.cs reads |
 | stage 3 | Backup format v2: AES-256-GCM (authenticated) + PBKDF2-SHA256 210k iters replaces legacy AES-CBC/no-MAC/10k; manifest w/ per-file sha256; zip entry names POSIX-normalized. Legacy encrypted .zip READ support pending owner answer (audit §8.3 → Q18) | audit DATA_STORES §4 + BackupDataModule.cs crypto read |
+
+## Round 40 evidence
+
+- Profile-scoped `conn/connectProfile` resolves the encrypted PlayerToken in the main process; the renderer receives only `ConnSnapshotDto` (security contract test).
+- The renderer connection store consumes `conn` lifecycle and `poll/team` pushes with normalized member DTOs; Devices exposes connection controls and `/tab/team` is a live roster route.
+- The pinned `@liamcottle/rustplus.js@2.5.0` dependency is reproducibly patched under `electron/patches/` so all 125 protobuf `required` fields are optional; sparse AppInfo/team decode and queued-player retention are covered by tests.
+- Verification: `pnpm --dir electron typecheck`, `pnpm --dir electron test` (260 tests), `pnpm --dir electron build`, and no-sandbox smoke boot.

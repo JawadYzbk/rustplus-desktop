@@ -25,7 +25,7 @@ note in this matrix.
 | 1.1 | Main window: custom titlebar w/ Discord/PatchNotes/Settings + inline update widget | MainWindow.xaml FluentWindow, Mica | Frameless BrowserWindow + React header; titleBarOverlay for native buttons | PLANNED |
 | 1.2 | Dual-mode sidebar: 64px icon rail ↔ 360–480px hover-expand (200 ms delay, 180 ms anim, pin), popover cards w/ ACTIVE badge | CompactSidebarRail | React layout w/ persisted width; HoverCard popovers | PLANNED |
 | 1.3 | Permanent live-map right pane (not a tab) + GridSplitter proportions | xaml:473-499 | CSS grid split, min widths preserved (map ≥400px) | PLANNED |
-| 1.4 | Tabs: Devices, Team, Clan, Cameras, Players, Notifications (+ unread badge, mark-all-read on focus) | MainTabs TabControl | Route-per-tab in content area; badge from notification store | PLANNED |
+| 1.4 | Tabs: Devices, Team, Clan, Cameras, Players, Notifications (+ unread badge, mark-all-read on focus) | MainTabs TabControl | Route-per-tab in content area; badge from notification store | IN PROGRESS |
 | 1.5 | Workspace tabs (GeneticsLab, PlayerWipeTracker, DeathStats, RaidCalculator, Recycler): full-window takeover, close→`_lastWorkspaceTabIndex` | ZIndex-9000 overlays | Full-screen routes w/ return-to-previous-tab semantics | PLANNED |
 | 1.6 | In-window overlays: LoginOverlay, BusyOverlay, DeleteConfirmationOverlay, UploadConsentOverlay, AlarmOverlay banner stack | Overlay dir + inline copies | React overlay components (portal-based) | PLANNED |
 | 1.7 | Window bounds/maximized persistence, `--background` start, StartMinimized option | SaveWindowSettings | bounds store + main-process arg parsing | PLANNED |
@@ -47,8 +47,8 @@ note in this matrix.
 
 | # | Feature | Legacy anchor | Strategy | Status |
 |---|---|---|---|---|
-| 3.1 | Persistent Rust+ connection, dual-path proxy fallback (Facepunch↔direct) in one connect call | RustPlusClientReal.ConnectAsync | @liamcottle/rustplus.js natively in main process (option A); keep CLI subprocess only for FCM phase 1 (option C hybrid) | PLANNED |
-| 3.2 | Soft connect (devices/team/chat/status/A2S) vs full connect (map/markers/shops/cameras) reuse ≤8 s | PerformConnectDevicesOnlyAsync / PerformConnectAsync | State machine port w/ identical gating flags IsConnected/IsFullConnected | PLANNED |
+| 3.1 | Persistent Rust+ connection, dual-path proxy fallback (Facepunch↔direct) in one connect call | RustPlusClientReal.ConnectAsync | @liamcottle/rustplus.js in main; profile-scoped `conn/connectProfile` resolves the encrypted PlayerToken without exposing it to the renderer | IN PROGRESS |
+| 3.2 | Soft connect (devices/team/chat/status/A2S) vs full connect (map/markers/shops/cameras) reuse ≤8 s | PerformConnectDevicesOnlyAsync / PerformConnectAsync | ConnectionManager + PollService lifecycle is live; soft/full gating remains to be completed with the map surface | IN PROGRESS |
 | 3.3 | Rate limiter 50/25 s⁻¹/333 ms; 5-timeout loss detector; backoff 2 s×2→60 s; watchdog silent refresh | L52-94, Reset.cs | Main-process connection manager, unit-tested w/ fake timers | PLANNED |
 | 3.4 | Per-connection reset of subscription/chat prime state; subscribe-then-poke activation; 5 s/entity + 100 ms gap priming | HookEventsIfNeeded etc. | Session-scoped subscription registry | PLANNED |
 | 3.5 | Pairing: fcm-register (browser automation) + fcm-listen stdout protocol, deep links, JSON payloads, alarm buffering by persistentId, 3 s/5 s restarts | PairingListenerRealProcess | Keep CLI subprocesses (phase 1) behind typed wrapper emitting parsed events; browser discovery via Electron's own Chromium later | PLANNED |

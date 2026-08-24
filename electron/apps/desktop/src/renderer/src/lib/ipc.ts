@@ -21,6 +21,9 @@ type RpdBridge = {
   settingsSetWipe(payload: unknown): Promise<InvokeResult<unknown>>;
   getUiPrefs(): Promise<InvokeResult<unknown>>;
   setUiPrefs(patch: { sidebarPinned?: boolean; sidebarWidth?: number }): Promise<InvokeResult<unknown>>;
+  connectProfile(matchKey: string, useProxy?: boolean): Promise<InvokeResult<unknown>>;
+  disconnect(): Promise<InvokeResult<unknown>>;
+  connectionStatus(): Promise<InvokeResult<unknown>>;
   listProfiles(): Promise<InvokeResult<unknown>>;
   pairProfile(link: string, name?: string): Promise<InvokeResult<unknown>>;
   getDevices(matchKey: string): Promise<InvokeResult<unknown>>;
@@ -65,7 +68,7 @@ declare global {
   }
 }
 
-export const bridge: RpdBridge = window.rpd;
+export const bridge: RpdBridge = (globalThis as typeof globalThis & { rpd: RpdBridge }).rpd;
 
 export async function invoke<T>(channel: IpcChannelName, payload?: unknown): Promise<T> {
   const result = await bridge.invoke(channel, payload);
@@ -315,6 +318,34 @@ export interface ProfileSummary {
   port: number;
   steamId64: string;
   deviceCount: number;
+}
+
+export interface ConnSnapshot {
+  connected: boolean;
+  activeProxy: "direct" | "proxy" | null;
+  host: string | null;
+  port: number | null;
+  consecutiveTimeouts: number;
+  teamChatPrimed: boolean;
+  clanChatPrimed: boolean;
+}
+
+export async function connectProfile(matchKey: string, useProxy?: boolean): Promise<ConnSnapshot> {
+  const r = await bridge.connectProfile(matchKey, useProxy);
+  if (r.ok) return r.data as ConnSnapshot;
+  throw new Error(r.error.message);
+}
+
+export async function disconnect(): Promise<ConnSnapshot> {
+  const r = await bridge.disconnect();
+  if (r.ok) return r.data as ConnSnapshot;
+  throw new Error(r.error.message);
+}
+
+export async function getConnectionStatus(): Promise<ConnSnapshot> {
+  const r = await bridge.connectionStatus();
+  if (r.ok) return r.data as ConnSnapshot;
+  throw new Error(r.error.message);
 }
 
 export interface DeviceNode {

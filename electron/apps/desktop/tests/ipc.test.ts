@@ -75,6 +75,15 @@ const baseHandlers = () => ({
       teamChatPrimed: true,
       clanChatPrimed: true,
     }),
+  "conn/connectProfile": () =>
+    connSnap({
+      connected: true,
+      activeProxy: "direct",
+      host: "1.2.3.4",
+      port: 28082,
+      teamChatPrimed: true,
+      clanChatPrimed: true,
+    }),
   "conn/disconnect": () => connSnap(),
   "conn/status": () => connSnap(),
   "profile/list": () => ({

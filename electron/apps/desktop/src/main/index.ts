@@ -140,7 +140,7 @@ function bootstrap(): void {
 
   // Connection layer (stage 4): rustplus.js transport behind the manager facade, with the poll
   // loops (status/team/markers), the device-event hub and the unified renderer push stream wired
-  // through ConnRuntime. Nothing auto-connects — the renderer drives conn/connect explicitly.
+  // through ConnRuntime. Profile-scoped connects resolve the encrypted token here in main.
   const connTransport = new RustPlusJsTransport(realRustPlusFactory);
   const connManager = new ConnectionManager(connTransport);
   const polls = new PollService(connManager);
@@ -315,7 +315,7 @@ function bootstrap(): void {
     ...buildSettingsHandlers(settingsStore),
     ...buildDeathHandlers(deaths),
     ...buildMigrationHandlers({ migrator }),
-    ...connectionHandlers(connManager),
+    ...connectionHandlers(connManager, profilesStore),
     ...buildProfileHandlers({ profiles: profilesStore, activeRef }),
     ...buildDeviceAutomationHandlers({ profiles: profilesStore }),
     ...buildDeviceDataHandlers({

@@ -14,6 +14,8 @@ import { RecyclerCalculatorPage } from "./pages/RecyclerCalculatorPage.js";
 import { PlayerWipeTrackerPage } from "./pages/PlayerWipeTrackerPage.js";
 import { DeathStatsPage } from "./pages/DeathStatsPage.js";
 import { PairingPage } from "./pages/PairingPage.js";
+import { TeamPage } from "./pages/TeamPage.js";
+import { useConnectionStore } from "./stores/connection.js";
 
 /**
  * Shell layout (audit UI_SHELL §2): titlebar row; below it the icon rail + content column where the right
@@ -42,6 +44,7 @@ export function App(): React.JSX.Element {
         else void window.rpd.log("error", "shell", `getInfo failed: ${r.error.message}`);
       })
       .catch(() => undefined);
+    void useConnectionStore.getState().hydrate();
 
     // Hydrate persisted shell prefs, then persist subsequent changes (debounced).
     let lastPersisted = "";
@@ -60,6 +63,7 @@ export function App(): React.JSX.Element {
       }
     });
     const unsubPush = window.rpd.onPush(({ stream, event }) => {
+      useConnectionStore.getState().applyPush(stream, event);
       const e = (event ?? {}) as { kind?: string; entityId?: unknown; on?: unknown };
       if (stream === "device" && e.kind === "deviceState" && typeof e.entityId === "number" && typeof e.on === "boolean") {
         useProfilesStore.getState().setDeviceState(e.entityId, e.on);
@@ -97,7 +101,7 @@ function TabOutlet(): React.JSX.Element {
     case "devices":
       return <DevicesPage />;
     case "team":
-      return <FeaturePending title="Team" stage="4+" matrix="3.10, 9.6" />;
+      return <TeamPage />;
     case "clan":
       return <FeaturePending title="Clan" stage="4+" matrix="3.10" />;
     case "cameras":

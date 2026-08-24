@@ -28,6 +28,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "../components/ui/input.js";
 import { Label } from "../components/ui/label.js";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select.js";
+import { useConnectionStore } from "../stores/connection.js";
 
 function StatusPill({ node }: { node: DeviceNode }): React.JSX.Element {
   if (node.isGroup) return <span className="text-xs text-muted-foreground">{node.children.length} dev</span>;
@@ -143,6 +144,11 @@ export function DevicesPage(): React.JSX.Element {
   const loadProfiles = useProfilesStore((s) => s.loadProfiles);
   const selectProfile = useProfilesStore((s) => s.selectProfile);
   const reloadDevices = useProfilesStore((s) => s.reloadDevices);
+  const connection = useConnectionStore((s) => s.snapshot);
+  const connectionPhase = useConnectionStore((s) => s.phase);
+  const connectionError = useConnectionStore((s) => s.error);
+  const connectServer = useConnectionStore((s) => s.connectProfile);
+  const disconnectServer = useConnectionStore((s) => s.disconnect);
   // Devices ↔ Rules ↔ Timers sub-view within the tab (legacy hosts all in the devices window).
   const [view, setView] = useState<"devices" | "rules" | "timers" | "automation">("devices");
   const [query, setQuery] = useState("");
@@ -163,6 +169,11 @@ export function DevicesPage(): React.JSX.Element {
   );
   const filteredDevices = useMemo(() => filterTree(devices, query.trim().toLowerCase(), kind), [devices, query, kind]);
   const selectedNode = selectedId === null ? null : findNode(devices, selectedId);
+
+  const handleProfileChange = async (matchKey: string): Promise<void> => {
+    selectProfile(matchKey);
+    if (await activateProfile(matchKey)) await connectServer(matchKey);
+  };
 
   const handleExport = async (): Promise<void> => {
     if (!activeKey) return;
@@ -238,12 +249,25 @@ export function DevicesPage(): React.JSX.Element {
       <header className="flex items-center gap-3 border-b px-4 py-2.5">
         <h1 className="text-sm font-semibold">Devices</h1>
         {profiles.length > 0 && (
-          <Select value={activeKey ?? ""} onValueChange={(value) => { selectProfile(value); void activateProfile(value); }}>
+          <Select value={activeKey ?? ""} onValueChange={(value) => void handleProfileChange(value)}>
             <SelectTrigger aria-label="Active profile" className="w-56 text-xs"><SelectValue placeholder="Select server" /></SelectTrigger>
             <SelectContent>{profiles.map((p) => <SelectItem key={p.matchKey} value={p.matchKey}>{p.name} ({p.host}:{p.port})</SelectItem>)}</SelectContent>
           </Select>
         )}
         <div className="ml-auto flex items-center gap-2">
+          {active && <>
+            <Badge variant={connection.connected ? "default" : "secondary"} className="gap-1.5">
+              <span className={`h-1.5 w-1.5 rounded-full ${connection.connected ? "bg-emerald-300" : "bg-muted-foreground"}`} />
+              {connectionPhase === "reconnecting" ? "Reconnecting" : connection.connected ? "Connected" : "Offline"}
+            </Badge>
+            {connection.connected ? (
+              <Button type="button" variant="outline" size="sm" onClick={() => void disconnectServer()}>Disconnect</Button>
+            ) : (
+              <Button type="button" size="sm" disabled={connectionPhase === "connecting"} onClick={() => void handleProfileChange(active.matchKey)}>
+                {connectionPhase === "connecting" ? "Connecting…" : "Connect"}
+              </Button>
+            )}
+          </>}
           {activeKey && (
             <div className="flex rounded-md border p-0.5 text-xs">
               {(["devices", "rules", "timers", "automation"] as const).map((v) => (
@@ -284,7 +308,7 @@ export function DevicesPage(): React.JSX.Element {
         </div>
       </header>
 
-      {error && <div className="px-4 py-2 text-xs text-destructive">{error}</div>}
+      {(error || connectionError) && <div className="px-4 py-2 text-xs text-destructive">{error ?? connectionError}</div>}
       {actionMessage && <div className="border-b px-4 py-2 text-xs text-muted-foreground">{actionMessage}</div>}
 
       <Dialog open={Boolean(importCandidates)} onOpenChange={(open) => { if (!open) setImportCandidates(null); }}>

@@ -5,3 +5,5 @@ allowBuilds:
   electron: true
   esbuild: true
   protobufjs: true
+patchedDependencies:
+  '@liamcottle/rustplus.js@2.5.0': patches/@liamcottle__rustplus.js@2.5.0.patch
