@@ -149,6 +149,123 @@ public sealed class PlayerWipeTrackerStore : IAsyncDisposable
             .ToArray();
     }
 
+    public void SaveWipeMetadata(string serverKey, string wipeKey, StoredWipeMetadata metadata)
+    {
+        var directory = WipeDirectory(serverKey, wipeKey);
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, "wipe_info.json"), JsonSerializer.Serialize(metadata, _json));
+    }
+
+    public StoredWipeMetadata? LoadWipeMetadata(string serverKey, string wipeKey)
+    {
+        var path = Path.Combine(WipeDirectory(serverKey, wipeKey), "wipe_info.json");
+        if (!File.Exists(path))
+            return null;
+        try
+        {
+            return JsonSerializer.Deserialize<StoredWipeMetadata>(File.ReadAllText(path), _json);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public IReadOnlyList<StoredWipeSummary> GetStoredWipes()
+    {
+        if (!Directory.Exists(_root))
+            return Array.Empty<StoredWipeSummary>();
+
+        var profiles = LoadProfilesSafe();
+        var results = new List<StoredWipeSummary>();
+        foreach (var serverDir in Directory.EnumerateDirectories(_root))
+        {
+            var serverKey = Path.GetFileName(serverDir);
+            foreach (var wipeDir in Directory.EnumerateDirectories(serverDir))
+            {
+                var wipeKey = Path.GetFileName(wipeDir);
+                var jsonlFiles = Directory.EnumerateFiles(wipeDir, "*.jsonl")
+                    .Where(f => new FileInfo(f).Length > 0)
+                    .ToArray();
+
+                // Only show folders that have actual wipe tracking records
+                if (jsonlFiles.Length == 0)
+                    continue;
+
+                var meta = LoadWipeMetadata(serverKey, wipeKey);
+                var serverName = meta?.ServerName;
+                if (string.IsNullOrWhiteSpace(serverName) || IsRawServerKey(serverName))
+                {
+                    serverName = ResolveServerName(serverKey, profiles);
+                    if (!string.IsNullOrWhiteSpace(serverName) && !IsRawServerKey(serverName))
+                    {
+                        SaveWipeMetadata(serverKey, wipeKey, new StoredWipeMetadata(
+                            serverKey,
+                            serverName,
+                            wipeKey,
+                            meta?.WipeStartedAtUtc,
+                            meta?.CreatedAtUtc ?? DateTime.UtcNow));
+                    }
+                }
+
+                var wipeStarted = meta?.WipeStartedAtUtc;
+                var playerCount = jsonlFiles.Length;
+                var totalBytes = Directory.EnumerateFiles(wipeDir, "*").Sum(f => new FileInfo(f).Length);
+                var lastObserved = jsonlFiles.Max(f => new FileInfo(f).LastWriteTimeUtc);
+
+                results.Add(new StoredWipeSummary(
+                    serverKey,
+                    serverName ?? serverKey,
+                    wipeKey,
+                    wipeStarted,
+                    lastObserved,
+                    playerCount,
+                    0,
+                    totalBytes,
+                    HasWipeMap(serverKey, wipeKey)));
+            }
+        }
+
+        return results
+            .OrderByDescending(w => w.LastObservedAtUtc ?? w.WipeStartedAtUtc ?? DateTime.MinValue)
+            .ToArray();
+    }
+
+    public static bool IsRawServerKey(string? name)
+        => string.IsNullOrWhiteSpace(name) ||
+           name.All(c => char.IsDigit(c) || c == '.' || c == ':' || c == '-' || c == '_') ||
+           name.StartsWith("unknown", StringComparison.OrdinalIgnoreCase);
+
+    public static List<RustPlusDesk.Models.ServerProfile> LoadProfilesSafe()
+    {
+        try { return RustPlusDesk.Services.Data.ProfileDataModule.LoadProfiles(); }
+        catch { return new List<RustPlusDesk.Models.ServerProfile>(); }
+    }
+
+    public static string ResolveServerName(string serverKey, List<RustPlusDesk.Models.ServerProfile>? profiles = null)
+    {
+        if (string.IsNullOrWhiteSpace(serverKey))
+            return "Server";
+
+        profiles ??= LoadProfilesSafe();
+        var cleanKey = serverKey.Replace(":", "-").Replace("_", "-").Trim();
+        foreach (var p in profiles)
+        {
+            if (string.IsNullOrWhiteSpace(p.Host))
+                continue;
+
+            var pHostKey = $"{p.Host}-{p.Port}".Replace(":", "-").Replace("_", "-").Trim();
+            if (string.Equals(cleanKey, pHostKey, StringComparison.OrdinalIgnoreCase) ||
+                cleanKey.StartsWith(p.Host, StringComparison.OrdinalIgnoreCase))
+            {
+                if (!string.IsNullOrWhiteSpace(p.Name))
+                    return p.Name;
+            }
+        }
+
+        return serverKey;
+    }
+
     public void DeleteWipe(string serverKey, string wipeKey)
     {
         var directory = Path.Combine(_root, Safe(serverKey), Safe(wipeKey));
