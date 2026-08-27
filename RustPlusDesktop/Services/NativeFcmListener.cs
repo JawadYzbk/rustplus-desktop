@@ -53,12 +53,15 @@ namespace RustPlusDesk.Services
         private RawFcmClient? _client;
         private List<string>? _persistentIds;
         private volatile bool _running;
-        private int _reconnecting;
 
         // De-duplicates the same pairing bounced twice in quick succession, matching the
         // Node listener's 20-second window.
         private string? _lastPairKey;
         private DateTime _lastPairAt;
+
+        // One reconnect at a time. Disconnected and SocketClosed can both fire for a single
+        // drop, and two reconnects would leave two live clients delivering every push twice.
+        private int _reconnecting;
 
         public NativeFcmListener(Action<string> log) => _log = log;
 
@@ -66,7 +69,7 @@ namespace RustPlusDesk.Services
 
         public bool IsConfigured => File.Exists(ConfigPath) && new FileInfo(ConfigPath).Length > 50;
 
-        private static string ConfigPath => Path.Combine(
+        internal static string ConfigPath => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "RustPlusDesk", "rustplusjs-config.json");
 
@@ -141,12 +144,24 @@ namespace RustPlusDesk.Services
                     {
                         _log("[fcm-native:err] " + ex.Message);
                     }
+
+                    // A reset socket surfaces here and, on that path, without a following
+                    // Disconnected. Left alone the listener stays up with a dead socket and
+                    // silently stops delivering pushes until the app is restarted.
+                    if (LooksFatal(ex)) OnSocketDown();
                 };
                 client.PersistentIdReceived += (_, __) => SavePersistentIds();
                 client.Disconnected += (_, __) => OnSocketDown();
                 client.SocketClosed += (_, __) => OnSocketDown();
 
-                lock (_gate) _client = client;
+                // Hand the old client its retirement before replacing it. Otherwise its socket
+                // and handlers stay alive and keep driving reconnects of their own.
+                RawFcmClient? previous;
+                lock (_gate) { previous = _client; _client = client; }
+                if (previous is not null)
+                {
+                    try { await previous.DisposeAsync().ConfigureAwait(false); } catch { }
+                }
 
                 await client.ConnectAsync(ct).ConfigureAwait(false);
             }
@@ -172,14 +187,35 @@ namespace RustPlusDesk.Services
         }
 
         // Bounded auto-reconnect, mirroring the Node listener's restart-on-exit behaviour.
+        /// <summary>
+        /// Socket-level failures worth reconnecting for. Parse and config errors are not:
+        /// dropping the connection over those would turn one bad message into a reconnect loop.
+        /// </summary>
+        private static bool LooksFatal(Exception ex)
+        {
+            for (var e = ex; e is not null; e = e.InnerException!)
+            {
+                if (e is System.Net.Sockets.SocketException or System.IO.IOException
+                    or ObjectDisposedException) return true;
+            }
+            return false;
+        }
+
         private void OnSocketDown()
         {
+            // Single-flight: the first caller wins, later ones return immediately.
+            if (Interlocked.Exchange(ref _reconnecting, 1) == 1) return;
+
             var wasRunning = _running;
             _running = false;
             if (wasRunning) Stopped?.Invoke(this, EventArgs.Empty);
 
             var cts = _cts;
-            if (cts is null || cts.IsCancellationRequested) return;
+            if (cts is null || cts.IsCancellationRequested)
+            {
+                Interlocked.Exchange(ref _reconnecting, 0);
+                return;
+            }
 
             // Debounce so Disconnected + SocketClosed don't spawn duplicate reconnect tasks
             if (Interlocked.CompareExchange(ref _reconnecting, 1, 0) != 0) return;
@@ -279,6 +315,10 @@ namespace RustPlusDesk.Services
             {
                 var data = message.Data;
                 var body = data.Body;
+
+                // Our own probe coming back. Claimed first so it can never be mistaken for a
+                // pairing, an alarm, or an unhandled channel.
+                if (FcmSelfTestService.TryConsume(data.Title)) return;
 
                 // Offline death is title-driven and not tied to a single channel.
                 var deathMatch = DeathTitleRegex.Match(data.Title ?? string.Empty);
@@ -465,30 +505,8 @@ namespace RustPlusDesk.Services
         /// Reads rustplusjs-config.json, injects issue_date / expiry_date / steam_id, and writes
         /// it back — same shape the Node path persists, so the rest of the app is unaffected.
         /// </summary>
-        private void EnrichFcmConfig(DateTime issuedAt, DateTime expiresAt, string? steamId)
-        {
-            try
-            {
-                if (!File.Exists(ConfigPath)) return;
-                var json = File.ReadAllText(ConfigPath);
-                using var doc = JsonDocument.Parse(json);
-                using var ms = new MemoryStream();
-                using var wtr = new Utf8JsonWriter(ms, new JsonWriterOptions { Indented = true });
-                wtr.WriteStartObject();
-                foreach (var prop in doc.RootElement.EnumerateObject()) prop.WriteTo(wtr);
-                wtr.WriteString("steam_id", steamId ?? "");
-                wtr.WriteString("issue_date", issuedAt.ToString("o"));
-                wtr.WriteString("expiry_date", expiresAt.ToString("o"));
-                wtr.WriteEndObject();
-                wtr.Flush();
-                File.WriteAllBytes(ConfigPath, ms.ToArray());
-                _ = FcmSyncService.SyncFcmCredentialsAsync();
-            }
-            catch (Exception ex)
-            {
-                _log($"[fcm-native] could not enrich config: {ex.Message}");
-            }
-        }
+        private void EnrichFcmConfig(DateTime issuedAt, DateTime expiresAt, string? steamId) =>
+            NativeFcmRegistrationService.StampConfigMetadata(ConfigPath, issuedAt, expiresAt, steamId, _log);
 
         /// <summary>
         /// Subclasses RustPlusFcm so we receive the fully-typed <see cref="FcmMessage"/> directly
@@ -496,10 +514,23 @@ namespace RustPlusDesk.Services
         /// </summary>
         private sealed class RawFcmClient : RustPlusFcm
         {
+            /// <summary>
+            /// The library defaults to a five-minute heartbeat, which leaves the socket silent
+            /// long enough for a home router to drop its NAT mapping - every observed drop was
+            /// noticed exactly a multiple of five minutes after connecting. A minute of traffic
+            /// keeps the mapping alive and costs a few bytes. The Node listener avoided this a
+            /// different way, by turning on TCP keep-alive, which this library does not expose.
+            /// </summary>
+            private static readonly RustPlusFcmSocketOptions SocketOptions = new()
+            {
+                HeartbeatInterval = TimeSpan.FromSeconds(60),
+                InactivityTimeout = TimeSpan.FromMinutes(3),
+            };
+
             private readonly Action<FcmMessage> _onMessage;
 
             public RawFcmClient(Credentials credentials, ICollection<string>? persistentIds, Action<FcmMessage> onMessage)
-                : base(credentials, persistentIds) => _onMessage = onMessage;
+                : base(credentials, persistentIds, SocketOptions) => _onMessage = onMessage;
 
             protected override void ParseNotification(FcmMessage message) => _onMessage(message);
         }
