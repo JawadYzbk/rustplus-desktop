@@ -6348,4 +6348,7 @@ Weitere Informationen finden Sie auf der offiziellen Website des Servers:
   <data name="ProfileVacClean" xml:space="preserve">
     <value>Einwandfrei (keine Sperren)</value>
   </data>
+  <data name="ChatScrollToBottom" xml:space="preserve">
+    <value>Nach unten springen</value>
+  </data>
 </root>
