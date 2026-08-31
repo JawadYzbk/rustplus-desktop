@@ -806,6 +806,10 @@ private bool _overlayToolsVisible = false;
                 // Drop an accidental click that never became a shape.
                 if (anchor is Point a && PointDistance(a, mapPos) < 0.75)
                     RemoveOwnElement(completed);
+                else if (IsRouteModeActive)
+                    // A shape can be a route too. A line joins on like a pen stroke; a box or a
+                    // circle arrives already closed, which is a lap by any other name.
+                    AppendStrokeToActiveRoute(completed, closes: _currentTool is OverlayToolMode.Box or OverlayToolMode.Circle);
                 else
                     RecordOverlayAdd(completed);
             }
@@ -820,7 +824,11 @@ private bool _overlayToolsVisible = false;
             _currentStroke = null;
             if (completed != null)
             {
-                if (_currentTool == OverlayToolMode.Route)
+                if (IsRouteModeActive)
+                    // In route mode a stroke is not a stroke: it extends the route being drawn,
+                    // which owns its own geometry and its own start and end.
+                    AppendStrokeToActiveRoute(completed);
+                else if (_currentTool == OverlayToolMode.Route)
                     // Replace the freehand stroke with evenly-spaced direction arrows.
                     BuildArrowRouteElements(completed);
                 else
@@ -2773,6 +2781,11 @@ private bool _overlayToolsVisible = false;
         var data = new OverlaySaveData();
         data.LastUpdatedUnix = DataManager.UnixNow(); // NEU: stamp jetzt
 
+        // Routes carry their own geometry rather than appearing in the stroke list. Their visuals
+        // have no OverlayTag, so the loop below steps over them on its own.
+        data.Routes = BuildSavedRoutes();
+        data.ImportedRouteIds = _importedRouteIds.ToList();
+
         foreach (var child in Overlay.Children)
         {
             if (child is not FrameworkElement fe) continue;
@@ -2874,8 +2887,40 @@ private bool _overlayToolsVisible = false;
 
     // baut aus einem OverlaySaveData echte UI-Elemente auf der Canvas fuer einen Spieler
     // und cached sie in _playerOverlayElements[steamId]
+    /// <summary>
+    /// Keeps routes the cloud copy does not know about.
+    ///
+    /// The same shape as the device merge above it, and for the same reason: an older payload
+    /// missing a newer kind of thing is not a payload saying that thing was deleted.
+    /// </summary>
+    private static void MergeMissingLocalRoutesInto(OverlaySaveData target, OverlaySaveData local)
+    {
+        if (local.Routes == null || local.Routes.Count == 0) return;
+
+        target.Routes ??= new List<SavedRoute>();
+
+        var known = new HashSet<string>(target.Routes.Select(r => r.Id), StringComparer.Ordinal);
+
+        foreach (SavedRoute route in local.Routes)
+            if (!string.IsNullOrWhiteSpace(route.Id) && known.Add(route.Id))
+                target.Routes.Add(route);
+
+        if (local.ImportedRouteIds is { Count: > 0 })
+        {
+            target.ImportedRouteIds ??= new List<string>();
+            foreach (string id in local.ImportedRouteIds)
+                if (!target.ImportedRouteIds.Contains(id)) target.ImportedRouteIds.Add(id);
+        }
+    }
+
     private void MaterializeOverlayForPlayer(ulong steamId, OverlaySaveData data, bool editableIfMine)
     {
+        // Routes are rebuilt here rather than alongside the strokes: they are their own objects
+        // with their own list, and this is the one place every overlay - mine on start-up, a
+        // teammate's on sync, a restored one from the cloud - actually comes through.
+        if (steamId == _mySteamId) ApplySavedRoutes(data.Routes, data.ImportedRouteIds);
+        else ImportTeammateRoutes(steamId, data.Routes);
+
         // falls schon Elemente fuer den Spieler existieren -> erstmal killen
         if (_playerOverlayElements.TryGetValue(steamId, out var existing))
         {
@@ -3085,10 +3130,14 @@ private bool _overlayToolsVisible = false;
             var serverKey = GetServerKey();
             var localData = OverlayDataModule.LoadLocalOverlay(serverKey, _mySteamId);
 
+            // Routes count as content. Without them an overlay that is nothing but routes reads
+            // as empty here, takes the "nothing to do" branch below, and never materialises - so
+            // the routes are saved perfectly and silently never come back.
             bool localHasContent = localData != null
                 && ((localData.Strokes?.Count ?? 0) > 0
                  || (localData.Icons?.Count   ?? 0) > 0
                  || (localData.Texts?.Count   ?? 0) > 0
+                 || (localData.Routes?.Count  ?? 0) > 0
                  || (localData.Devices?.Count ?? 0) > 0);
 
             OverlaySaveData? cloudData = null;
@@ -3122,9 +3171,17 @@ private bool _overlayToolsVisible = false;
                 && ((cloudData.Strokes?.Count ?? 0) > 0
                  || (cloudData.Icons?.Count   ?? 0) > 0
                  || (cloudData.Texts?.Count   ?? 0) > 0
+                 || (cloudData.Routes?.Count  ?? 0) > 0
                  || (cloudData.Devices?.Count ?? 0) > 0);
 
             OverlaySaveData? toUse;
+
+            // A cloud copy written before routes existed simply has none, and it is newer than
+            // the local file the moment anything else syncs. Taking it whole would read "no
+            // routes" as "routes deleted" and wipe them - which is exactly what happened. What
+            // the cloud does not carry, local keeps.
+            if (cloudData != null && localData != null)
+                MergeMissingLocalRoutesInto(cloudData, localData);
 
             if (!localHasContent && cloudHasContent)
             {
@@ -3755,6 +3812,9 @@ private bool _overlayToolsVisible = false;
                     data.Icons = mapData.Icons ?? new();
                     data.Texts = mapData.Texts ?? new();
                     data.Devices = mapData.Devices ?? new();
+                    // The same omission as everywhere else: a teammate broadcasting their map
+                    // would arrive with everything except the routes.
+                    data.Routes = mapData.Routes ?? new();
                 }
             }
 
