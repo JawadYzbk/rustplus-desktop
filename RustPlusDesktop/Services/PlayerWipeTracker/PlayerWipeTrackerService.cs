@@ -44,6 +44,47 @@ public sealed class PlayerWipeTrackerService : IAsyncDisposable
     /// </summary>
     private const int MaxObservationsPerBatch = 1000;
 
+    /// <summary>
+    /// Hard ceiling on one request body, on top of the count.
+    ///
+    /// A minute of a sprinting player is a dozen observations — a couple of kilobytes — so in
+    /// normal operation this is never reached. It exists for the abnormal case: a backlog after a
+    /// long offline stretch would otherwise go out as one 170 KB body, and this app has no
+    /// business putting that much on a home uplink in a single burst. The remainder simply goes
+    /// out on the next cycle.
+    /// </summary>
+    private const int MaxBatchBytes = 48 * 1024;
+
+    /// <summary>Rough serialized size of one observation, used to stop filling a batch.</summary>
+    private const int ApproximateObservationBytes = 180;
+
+    /// <summary>Whichever of the two limits bites first.</summary>
+    private static int EffectiveBatchSize => Math.Min(MaxObservationsPerBatch, MaxBatchBytes / ApproximateObservationBytes);
+
+    /// <summary>Set by the host so a repeated upload failure reaches the app log.</summary>
+    public Action<string>? Log { get; set; }
+
+    /// <summary>
+    /// Raised when the cloud dropped older wipe archives to fit a new one.
+    ///
+    /// Deleting somebody's stored history is not something to do quietly, even when the plan
+    /// limit makes it unavoidable, so the host is told and puts it in front of the user.
+    /// </summary>
+    public Action<IReadOnlyList<CloudPrunedArchive>>? ArchivesPruned { get; set; }
+
+    /// <summary>
+    /// One upload at a time.
+    ///
+    /// A team poll produces an observation per player, each firing its own upload, so four of
+    /// them used to hit the server in the same millisecond. On the server that raced the archive
+    /// creation against its own retention check: one request created the archive, found it one
+    /// over the plan limit, deleted it again, and a sibling request inserting a day against that
+    /// row got a foreign key violation. The server no longer creates rows it might delete, but
+    /// four simultaneous requests were never wanted anyway — they arrive within a second of each
+    /// other either way, and one at a time is gentler on both ends.
+    /// </summary>
+    private readonly SemaphoreSlim _uploadGate = new(1, 1);
+
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> _cloudLastUpload = new(StringComparer.Ordinal);
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, (ulong SteamId, DateTime TimestampUtc, string PlayerName)> _cloudDirty = new(StringComparer.Ordinal);
 
@@ -433,56 +474,94 @@ public sealed class PlayerWipeTrackerService : IAsyncDisposable
         if (!_cloudDirty.TryRemove(key, out var entry))
             return;
 
+        await _uploadGate.WaitAsync().ConfigureAwait(false);
         try
         {
             await _store.FlushAsync().ConfigureAwait(false);
 
             var day = DateOnly.FromDateTime(entry.TimestampUtc);
-            var cursor = _store.GetCloudCursor(_serverKey, _wipeKey, entry.SteamId, day);
-            var request = BuildCloudDelta(entry.SteamId, day, entry.PlayerName, cursor);
+            var (cursor, fromOffset) = _store.GetCloudCursor(_serverKey, _wipeKey, entry.SteamId, day);
+            var (request, nextOffset, complete) = BuildCloudDelta(entry.SteamId, day, entry.PlayerName, cursor, fromOffset);
             if (request is null)
-                return;
-
-            var (status, acknowledged) = await _cloudClient.AppendDayAsync(request).ConfigureAwait(false);
-            if (status is < 200 or >= 300)
             {
+                // Nothing new, but the read still established how far the file has been examined.
+                if (cursor is not null && nextOffset > fromOffset)
+                    _store.SetCloudCursor(_serverKey, _wipeKey, entry.SteamId, day, cursor.Value, nextOffset);
+                return;
+            }
+
+            var result = await _cloudClient.AppendDayAsync(request).ConfigureAwait(false);
+            if (result.Status is < 200 or >= 300)
+            {
+                Log?.Invoke($"[wipe-tracker] Cloud backup refused ({result.Status})"
+                    + (string.IsNullOrWhiteSpace(result.Reason) ? "." : $": {result.Reason}."));
+
                 // Put it back so the next cycle picks the same window up again.
                 _cloudDirty.TryAdd(key, entry);
                 return;
             }
 
+            // A new wipe pushed the oldest backup out of the retained set. Someone's history was
+            // just deleted to make room, which they are entitled to hear about.
+            if (result.Pruned.Count > 0)
+                ArchivesPruned?.Invoke(result.Pruned);
+
+            var acknowledged = result.LastObservedUtc;
             var mark = acknowledged ?? DateTime.Parse(
                 request.Observations[^1].Timestamp, CultureInfo.InvariantCulture,
-                DateTimeStyles.RoundtripKind | DateTimeStyles.AdjustToUniversal);
-            _store.SetCloudCursor(_serverKey, _wipeKey, entry.SteamId, day, mark);
+                DateTimeStyles.RoundtripKind);
+            // The offset only advances when the batch carried everything that was read. Otherwise
+            // the remainder lies between the old offset and here, and moving it would skip it.
+            _store.SetCloudCursor(_serverKey, _wipeKey, entry.SteamId, day, mark,
+                complete ? nextOffset : fromOffset);
 
             // A capped batch leaves a backlog behind; mark the day so the next cycle continues
             // rather than waiting for the player to move again.
-            if (request.Observations.Count >= MaxObservationsPerBatch)
+            if (!complete)
                 _cloudDirty.TryAdd(key, entry);
         }
-        catch
+        catch (Exception ex)
         {
+            // Reported rather than swallowed. An earlier version caught this silently, and an
+            // invalid DateTimeStyles combination meant the cursor was never written — every cycle
+            // re-sent the same capped batch, the server accepted it, deduplicated it and answered
+            // 200, and nothing anywhere said a word. A failure that repeats every minute has to
+            // be visible somewhere.
+            Log?.Invoke($"[wipe-tracker] Cloud append failed for {key}: {ex.GetType().Name}: {ex.Message}");
             _cloudDirty.TryAdd(key, entry);
+        }
+        finally
+        {
+            _uploadGate.Release();
         }
     }
 
-    /// <summary>Builds a batch of observations newer than <paramref name="cursorUtc"/>, capped.</summary>
-    private CloudDayAppendRequest? BuildCloudDelta(ulong steamId, DateOnly day, string? playerName, DateTime? cursorUtc)
+    /// <summary>
+    /// Builds a batch of observations newer than <paramref name="cursorUtc"/>, capped, and
+    /// reports where the day starts in the file so the next call can skip straight to it.
+    /// </summary>
+    private (CloudDayAppendRequest? Request, long NextOffset, bool Complete) BuildCloudDelta(
+        ulong steamId, DateOnly day, string? playerName, DateTime? cursorUtc, long fromOffset)
     {
         if (_serverKey is null || _wipeKey is null)
-            return null;
+            return (null, fromOffset, false);
 
-        var observations = _store.Load(_serverKey, _wipeKey, steamId)
+        var (stored, nextOffset) = _store.LoadDay(_serverKey, _wipeKey, steamId, day, fromOffset);
+
+        var pending = stored
             .Where(item => item.Kind == "observation")
             .Select(item => item.Observation)
-            .Where(item => DateOnly.FromDateTime(item.TimestampUtc.ToUniversalTime()) == day)
             .Where(item => cursorUtc is null || item.TimestampUtc.ToUniversalTime() > cursorUtc.Value)
             .OrderBy(item => item.TimestampUtc)
-            .Take(MaxObservationsPerBatch)
             .ToArray();
+
+        // Everything read is going out, so the offset may move past it. When the cap bites, it
+        // must not: the remainder still sits between the old offset and here.
+        var observations = pending.Take(EffectiveBatchSize).ToArray();
+        var complete = observations.Length == pending.Length;
+
         if (observations.Length == 0)
-            return null;
+            return (null, nextOffset, true);
 
         var cloud = new List<CloudTrackerObservation>(observations.Length);
         PlayerObservation? previous = null;
@@ -513,7 +592,7 @@ public sealed class PlayerWipeTrackerService : IAsyncDisposable
             previous = observation;
         }
 
-        return new CloudDayAppendRequest
+        return (new CloudDayAppendRequest
         {
             ServerKey = _serverKey,
             WipeKey = _wipeKey,
@@ -523,7 +602,7 @@ public sealed class PlayerWipeTrackerService : IAsyncDisposable
             Day = day.ToString("yyyy-MM-dd"),
             Observations = cloud,
             Sessions = observations.Select(item => item.SessionId).Distinct(StringComparer.Ordinal).ToArray(),
-        };
+        }, nextOffset, complete);
     }
 
     /// <summary>
