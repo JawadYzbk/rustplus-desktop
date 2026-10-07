@@ -105,12 +105,10 @@ namespace RustPlusDesk
                 finally { _clamping = false; }
             };
 
-            // Runs after every Loaded handler, so the saved position is applied on top of
-            // whatever the initial layout and the loaded settings worked out.
+            // Widgets restore after layout. The map is positioned before its window is shown.
             ContentRendered += (_, __) =>
             {
                 if (IsDeviceOverlay) RestoreDockPosition();
-                else RestoreMapPosition();
             };
 
             // The clip depends on the layers' measured size, which arrives after the layout pass

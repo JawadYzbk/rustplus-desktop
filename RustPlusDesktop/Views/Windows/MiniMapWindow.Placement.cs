@@ -15,11 +15,9 @@ public partial class MiniMapWindow
     {
         ChromeLayer.Visibility = Visibility.Collapsed;
         SettingsOverlay.HideWidgetSettings();
-        Loaded += (_, _) =>
-        {
-            if (StorageService.LoadCache<MiniMapSettings>("minimap_settings") is { } settings)
-                ApplyLoadedSettings(settings);
-        };
+        if (StorageService.LoadCache<MiniMapSettings>("minimap_settings") is { } settings)
+            ApplyLoadedSettings(settings);
+        SourceInitialized += (_, _) => RestoreMapPosition();
         Closing += (_, _) => SaveMapPosition();
     }
 

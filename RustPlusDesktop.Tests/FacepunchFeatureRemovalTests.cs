@@ -109,14 +109,31 @@ public sealed class FacepunchFeatureRemovalTests
             {
                 app = new App { ShutdownMode = ShutdownMode.OnExplicitShutdown };
                 app.InitializeComponent();
-                map = new MiniMapWindow(new(null, null, null, null, null, null, null, null));
+                map = new MiniMapWindow(new(null, null, null, null, null, null, null, null))
+                {
+                    Left = SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth + 10000,
+                    Top = SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight + 10000,
+                };
                 widgets = new DeviceOverlayWindow();
                 Assert.IsFalse(map.Topmost);
                 Assert.IsTrue(map.ShowInTaskbar);
                 Assert.IsTrue(widgets.Topmost);
                 Assert.IsFalse(widgets.ShowInTaskbar);
-                long mapStyles = GetWindowLongPtr(new WindowInteropHelper(map).EnsureHandle(), -20).ToInt64();
+                var mapHandle = new WindowInteropHelper(map).EnsureHandle();
+                long mapStyles = GetWindowLongPtr(mapHandle, -20).ToInt64();
                 long widgetStyles = GetWindowLongPtr(new WindowInteropHelper(widgets).EnsureHandle(), -20).ToInt64();
+                Assert.IsFalse(map.IsVisible);
+                Assert.IsTrue(GetWindowRect(mapHandle, out var initialRect));
+                Assert.IsTrue(System.Windows.Forms.Screen.AllScreens.Any(s =>
+                    s.WorkingArea.Contains(initialRect.Left, initialRect.Top)),
+                    "The map must be placed on a monitor before its first visible frame.");
+                foreach (var screen in System.Windows.Forms.Screen.AllScreens)
+                {
+                    map.MoveToMonitor(screen.DeviceName);
+                    Assert.IsFalse(map.Topmost);
+                    Assert.AreEqual(0L, GetWindowLongPtr(mapHandle, -20).ToInt64() & 0x00000008,
+                        "Changing displays must not make the map always on top.");
+                }
                 Assert.AreEqual(0L, mapStyles & 0x08000000);
                 Assert.AreNotEqual(0L, widgetStyles & 0x08000000);
                 var timer = typeof(MiniMapWindow).GetField("_dockTimer",
@@ -127,6 +144,20 @@ public sealed class FacepunchFeatureRemovalTests
                 var settings = (FrameworkElement)map.FindName("SettingsOverlay");
                 Assert.AreEqual(Visibility.Collapsed, ((FrameworkElement)settings.FindName("SliGridZoom")).Visibility);
                 Assert.AreEqual(Visibility.Collapsed, ((FrameworkElement)settings.FindName("CmbGrowth")).Visibility);
+                var gear = (Wpf.Ui.Controls.Button)map.FindName("BtnMapSettings");
+                gear.ApplyTemplate();
+                Assert.IsNotNull(gear.Template);
+                Assert.AreEqual(1d, gear.Opacity);
+                Assert.AreEqual(Visibility.Visible, gear.Visibility);
+                Assert.IsTrue(GetWindowRect(mapHandle, out var beforeShow));
+                map.ShowActivated = false;
+                map.Show();
+                Assert.IsTrue(GetWindowRect(mapHandle, out var firstFrame));
+                Assert.AreEqual(beforeShow.Left, firstFrame.Left);
+                Assert.AreEqual(beforeShow.Top, firstFrame.Top);
+                gear.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                Assert.IsTrue(((System.Windows.Controls.Primitives.Popup)map.FindName("SettingsPopup")).IsOpen);
+                map.CloseSettings();
                 map.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent));
                 Assert.IsNull(timer.GetValue(map));
 
@@ -137,6 +168,11 @@ public sealed class FacepunchFeatureRemovalTests
                 map.Left = -2000;
                 map.Top = -500;
                 Assert.AreEqual(-2000d, map.Left);
+                Assert.AreEqual(-500d, map.Top);
+                typeof(Window).GetMethod("OnContentRendered",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                    .Invoke(map, new object[] { EventArgs.Empty });
+                Assert.AreEqual(-2000d, map.Left, "Rendering must not teleport the map.");
                 Assert.AreEqual(-500d, map.Top);
             }
             catch (Exception ex) { error = ex; }
@@ -156,9 +192,16 @@ public sealed class FacepunchFeatureRemovalTests
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
         Assert.IsTrue(thread.Join(TimeSpan.FromSeconds(20)), "Window initialization timed out.");
-        if (error != null) throw error;
+        if (error != null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error).Throw();
     }
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
     private static extern IntPtr GetWindowLongPtr(IntPtr hwnd, int index);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT { public int Left, Top, Right, Bottom; }
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
 }
