@@ -29,6 +29,17 @@ namespace RustPlusDesk.Views
             _isInitializing = true;
             try
             {
+                foreach (var screen in System.Windows.Forms.Screen.AllScreens)
+                    CmbMonitor.Items.Add(new ComboBoxItem
+                    {
+                        Content = screen.DeviceName + (screen.Primary ? " (primary)" : ""),
+                        Tag = screen.DeviceName
+                    });
+                var currentMonitor = System.Windows.Forms.Screen.FromHandle(
+                    new System.Windows.Interop.WindowInteropHelper(ParentWindow).Handle).DeviceName;
+                foreach (ComboBoxItem item in CmbMonitor.Items)
+                    if ((string)item.Tag == currentMonitor) CmbMonitor.SelectedItem = item;
+
                 var settings = StorageService.LoadCache<MiniMapSettings>("minimap_settings");
                 if (settings != null)
                 {
@@ -85,6 +96,13 @@ namespace RustPlusDesk.Views
                 _isInitializing = false;
             }
             SaveSettings();
+        }
+
+        private void CmbMonitor_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isInitializing || ParentWindow == null) return;
+            if (CmbMonitor.SelectedItem is ComboBoxItem { Tag: string deviceName })
+                ParentWindow.MoveToMonitor(deviceName);
         }
 
         private void BtnSettingsClose_Click(object sender, RoutedEventArgs e)

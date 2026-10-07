@@ -24,6 +24,7 @@ namespace RustPlusDesk
 
     public partial class MiniMapWindow : Window
     {
+        internal bool IsDeviceOverlay => this is DeviceOverlayWindow;
         public Action? OnClicked { get; set; }
 
         // Basis-Ausschnitt vom MainWindow (wo der Spieler ist)

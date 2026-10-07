@@ -11,8 +11,7 @@
         ResizeMode="NoResize"
         AllowsTransparency="True"
         Background="Transparent"
-        Topmost="True"
-        ShowInTaskbar="False"
+        ShowInTaskbar="True"
         Width="260" Height="260">
     <Grid x:Name="RootGrid">
 
