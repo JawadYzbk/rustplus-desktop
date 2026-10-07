@@ -64,7 +64,6 @@ namespace RustPlusDesk
             MouseMove += MiniMapWindow_MouseMove;
 
             // Click detection for centering
-            Point startDragPos = new Point();
             MouseLeftButtonDown += (s, e) =>
             {
                 if (!IsFromWindowContent(e.OriginalSource)) return;
@@ -73,28 +72,17 @@ namespace RustPlusDesk
                 // DragMove blocks until the button comes back up and would eat that press too.
                 if (PressedOnTileControl(e.OriginalSource)) return;
 
-                startDragPos = e.GetPosition(this);
+                var start = new Point(Left, Top);
+                e.Handled = true;
                 DragMove();
-                ClampToScreen();
-
-                // Dragged on purpose, so this is where the grid now hangs from.
-                AnchorOriginToWindow();
-            };
-            MouseLeftButtonUp += (s, e) =>
-            {
-                if (!IsFromWindowContent(e.OriginalSource)) return;
-
-                var endPos = e.GetPosition(this);
-                if (Math.Abs(endPos.X - startDragPos.X) < 5 && Math.Abs(endPos.Y - startDragPos.Y) < 5)
+                if (IsDeviceOverlay)
                 {
+                    ClampToScreen();
+                    AnchorOriginToWindow();
+                }
+                SaveDockPosition();
+                if (Math.Abs(Left - start.X) < 5 && Math.Abs(Top - start.Y) < 5)
                     OnClicked?.Invoke();
-                }
-                else
-                {
-                    // Dragged by the map rather than the title bar — the dock still ends up
-                    // somewhere new, and the position has to survive the next restart either way.
-                    SaveDockPosition();
-                }
             };
 
             // The title bar drags the whole dock, and is the only handle left once the map is
@@ -111,7 +99,7 @@ namespace RustPlusDesk
 
             LocationChanged += (_, __) =>
             {
-                if (_clamping) return;
+                if (!IsDeviceOverlay || _clamping) return;
                 _clamping = true;
                 try { ClampToScreen(); }
                 finally { _clamping = false; }
@@ -119,14 +107,19 @@ namespace RustPlusDesk
 
             // Runs after every Loaded handler, so the saved position is applied on top of
             // whatever the initial layout and the loaded settings worked out.
-            ContentRendered += (_, __) => RestoreDockPosition();
+            ContentRendered += (_, __) =>
+            {
+                if (IsDeviceOverlay) RestoreDockPosition();
+                else RestoreMapPosition();
+            };
 
             // The clip depends on the layers' measured size, which arrives after the layout pass
             // that UpdateSize triggers — so it is reapplied whenever that size settles.
             MapClipHost.SizeChanged += (_, __) => ApplyMapClip();
 
             SettingsOverlay.ParentWindow = this;
-            InitCommandDock();
+            if (IsDeviceOverlay) InitCommandDock();
+            else InitMiniMap();
         }
 
         private bool _clamping;
@@ -704,6 +697,14 @@ namespace RustPlusDesk
 
         private void LayoutDock()
         {
+            if (!IsDeviceOverlay)
+            {
+                Width = _mapWidth;
+                Height = _mapHeight;
+                QueueOnScreenCheck();
+                return;
+            }
+
             double oldLeft = Left, oldTop = Top;
 
             // The monitor the dock is on *now*, before its size changes.

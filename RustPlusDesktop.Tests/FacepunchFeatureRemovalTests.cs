@@ -119,12 +119,37 @@ public sealed class FacepunchFeatureRemovalTests
                 long widgetStyles = GetWindowLongPtr(new WindowInteropHelper(widgets).EnsureHandle(), -20).ToInt64();
                 Assert.AreEqual(0L, mapStyles & 0x08000000);
                 Assert.AreNotEqual(0L, widgetStyles & 0x08000000);
+                var timer = typeof(MiniMapWindow).GetField("_dockTimer",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+                Assert.IsNull(timer.GetValue(map));
+                Assert.IsNotNull(timer.GetValue(widgets));
+                Assert.AreEqual(Visibility.Collapsed, ((FrameworkElement)map.FindName("ChromeLayer")).Visibility);
+                var settings = (FrameworkElement)map.FindName("SettingsOverlay");
+                Assert.AreEqual(Visibility.Collapsed, ((FrameworkElement)settings.FindName("SliGridZoom")).Visibility);
+                Assert.AreEqual(Visibility.Collapsed, ((FrameworkElement)settings.FindName("CmbGrowth")).Visibility);
+                map.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent));
+                Assert.IsNull(timer.GetValue(map));
+
+                var widgetSize = new Size(widgets.Width, widgets.Height);
+                map.UpdateSize(400, updateSlider: false);
+                Assert.AreEqual(new Size(400, 400), new Size(map.Width, map.Height));
+                Assert.AreEqual(widgetSize, new Size(widgets.Width, widgets.Height));
+                map.Left = -2000;
+                map.Top = -500;
+                Assert.AreEqual(-2000d, map.Left);
+                Assert.AreEqual(-500d, map.Top);
             }
             catch (Exception ex) { error = ex; }
             finally
             {
-                widgets?.Close();
-                map?.Close();
+                foreach (var window in new MiniMapWindow?[] { map, widgets })
+                {
+                    if (window == null) continue;
+                    // Do not persist test positions into the user's settings.
+                    window.Left = double.NaN;
+                    window.Top = double.NaN;
+                    window.Close();
+                }
                 app?.Shutdown();
             }
         });

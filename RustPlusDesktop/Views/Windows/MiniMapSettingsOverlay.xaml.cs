@@ -16,6 +16,12 @@ namespace RustPlusDesk.Views
             Loaded += MiniMapSettingsOverlay_Loaded;
         }
 
+        internal void HideWidgetSettings()
+        {
+            LblGridZoom.Visibility = SliGridZoom.Visibility = Visibility.Collapsed;
+            LblGrowth.Visibility = CmbGrowth.Visibility = Visibility.Collapsed;
+        }
+
         private bool _loadedOnce;
 
         private void MiniMapSettingsOverlay_Loaded(object sender, RoutedEventArgs e)

@@ -21,6 +21,12 @@ namespace RustPlusDesk
                 0, 0, 0x0001 | 0x0004 | 0x0010); // keep size, z-order and activation
             Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
             {
+                if (!IsDeviceOverlay)
+                {
+                    KeepFullyOnScreen();
+                    SaveMapPosition();
+                    return;
+                }
                 ClampToScreen(pullIntoView: true);
                 AnchorOriginToWindow();
                 SaveDockPosition();

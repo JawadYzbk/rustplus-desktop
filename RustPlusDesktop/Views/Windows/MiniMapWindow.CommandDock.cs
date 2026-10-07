@@ -130,6 +130,7 @@ namespace RustPlusDesk
         /// </summary>
         public void ReloadDockLayout()
         {
+            if (!IsDeviceOverlay) return;
             var reloaded = StorageService.LoadCache<CommandDockLayout>(DockCacheKey);
             if (reloaded == null) return;
 
@@ -148,6 +149,7 @@ namespace RustPlusDesk
 
         private void SaveDockPosition()
         {
+            if (!IsDeviceOverlay) { SaveMapPosition(); return; }
             if (double.IsNaN(Left) || double.IsNaN(Top)) return;
 
             _dock.WindowLeft = Left;
@@ -783,6 +785,8 @@ namespace RustPlusDesk
 
         private void RebuildTiles()
         {
+            // The map is a free window, never a locked tile or a cell in the widget layout.
+            if (!IsDeviceOverlay) return;
             RemoveUnsupportedTiles();
             foreach (var el in _tileElements.Values)
             {
