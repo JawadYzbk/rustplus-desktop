@@ -34,8 +34,8 @@
                 <Border Background="#101F35" BorderBrush="#1D4ED8" BorderThickness="1" CornerRadius="10" Padding="18">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <ui:SymbolIcon Symbol="Info24" FontSize="16" Foreground="#3B82F6" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="{DynamicResource PrivacyDisclaimerTitle}" FontWeight="Bold" Foreground="#3B82F6" FontSize="13" VerticalAlignment="Center"/>
+                            <ui:SymbolIcon Symbol="Info24" FontSize="16" Foreground="{DynamicResource Accent}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource PrivacyDisclaimerTitle}" FontWeight="Bold" Foreground="{DynamicResource Accent}" FontSize="13" VerticalAlignment="Center"/>
                         </StackPanel>
                         <TextBlock TextWrapping="Wrap" Foreground="#CCDDEE" FontSize="12.5" LineHeight="18" Text="{DynamicResource PrivacyDisclaimerDesc}"/>
                     </StackPanel>

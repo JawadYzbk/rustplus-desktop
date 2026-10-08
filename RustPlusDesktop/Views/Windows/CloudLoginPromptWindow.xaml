@@ -7,7 +7,7 @@
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Foreground="White"
-        FontFamily="Segoe UI"
+        FontFamily="{DynamicResource UiFontFamily}"
         ExtendsContentIntoTitleBar="True"
         WindowBackdropType="Mica"
         WindowCornerPreference="Round">
@@ -23,7 +23,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}"
-                                CornerRadius="8"
+                                CornerRadius="{DynamicResource ControlRadius}"
                                 Padding="14,0">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
@@ -63,7 +63,7 @@
                        Margin="28,0,28,20" LineHeight="20"/>
 
             <!-- Divider -->
-            <Border Background="#1E2126" Height="1" Margin="24,0"/>
+            <Border Background="{DynamicResource Surface}" Height="1" Margin="24,0"/>
 
             <!-- Buttons -->
             <StackPanel Margin="24,20,24,0" >
@@ -82,7 +82,7 @@
 
                 <!-- Email Login -->
                 <Button x:Name="BtnEmail" Style="{StaticResource CloudBtn}"
-                        Background="#1A1D21" Foreground="White"
+                        Background="{DynamicResource Surface}" Foreground="White"
                         HorizontalAlignment="Stretch" Margin="0,0,0,10"
                         Click="BtnEmail_Click">
                     <StackPanel Orientation="Horizontal">

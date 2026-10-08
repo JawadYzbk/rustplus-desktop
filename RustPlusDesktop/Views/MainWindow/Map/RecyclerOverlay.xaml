@@ -10,7 +10,7 @@
              Background="Transparent">
 
     <UserControl.Resources>
-        <SolidColorBrush x:Key="DeckText" Color="#FFF4F6FA" />
+        <SolidColorBrush x:Key="DeckText" Color="{DynamicResource TextPrimaryColor}" />
         <SolidColorBrush x:Key="DeckMuted" Color="#FF94A0B3" />
         <SolidColorBrush x:Key="DeckLine" Color="#2CFFFFFF" />
         <SolidColorBrush x:Key="DeckLineSoft" Color="#18FFFFFF" />
@@ -25,7 +25,7 @@
         </LinearGradientBrush>
 
         <LinearGradientBrush x:Key="DeckHeader" StartPoint="0,0" EndPoint="1,0">
-            <GradientStop Color="#243FD7FF" Offset="0" />
+            <GradientStop Color="{DynamicResource AccentAlpha24Color}" Offset="0" />
             <GradientStop Color="#0EFFFFFF" Offset="0.55" />
             <GradientStop Color="#16FF9C6C" Offset="1" />
         </LinearGradientBrush>
@@ -35,7 +35,7 @@
             <Setter Property="Height" Value="78" />
             <Setter Property="Margin" Value="3" />
             <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Background" Value="#FF111820" />
+            <Setter Property="Background" Value="{DynamicResource AppBg}" />
             <Setter Property="BorderBrush" Value="#2BFFFFFF" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="SnapsToDevicePixels" Value="True" />
@@ -46,7 +46,7 @@
 
     <Border Margin="10"
             Background="{StaticResource DeckShell}"
-            BorderBrush="#5260CDFF"
+            BorderBrush="{DynamicResource AccentAlpha52}"
             BorderThickness="1"
             CornerRadius="10"
             ClipToBounds="True">

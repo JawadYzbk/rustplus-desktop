@@ -9,7 +9,7 @@
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResizeWithGrip"
         Foreground="{DynamicResource TextPrimary}"
-        FontFamily="Segoe UI Variable Display, Segoe UI"
+        FontFamily="{DynamicResource UiFontFamily}"
         ExtendsContentIntoTitleBar="True"
         WindowBackdropType="Mica"
         WindowCornerPreference="Round">

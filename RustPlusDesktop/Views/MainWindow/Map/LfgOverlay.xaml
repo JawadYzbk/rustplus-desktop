@@ -13,11 +13,11 @@
     <UserControl.Resources>
         <conv:BoolToVisibilityConverter x:Key="BoolToVis" />
         <conv:BoolToVisibilityConverter x:Key="InverseBoolToVis" Invert="True" />
-        <SolidColorBrush x:Key="LfgText" Color="#FFF4F6FA" />
+        <SolidColorBrush x:Key="LfgText" Color="{DynamicResource TextPrimaryColor}" />
         <SolidColorBrush x:Key="LfgMuted" Color="#FF94A0B3" />
         <SolidColorBrush x:Key="LfgLine" Color="#26FFFFFF" />
-        <SolidColorBrush x:Key="LfgCard" Color="#FF111820" />
-        <SolidColorBrush x:Key="LfgAccent" Color="#FF3FD7FF" />
+        <SolidColorBrush x:Key="LfgCard" Color="{DynamicResource AppBgColor}" />
+        <SolidColorBrush x:Key="LfgAccent" Color="{DynamicResource AccentColor}" />
 
         <Style x:Key="LfgSectionHeading" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource LfgMuted}" />
@@ -485,20 +485,20 @@
                                                                 Cursor="Hand" HorizontalAlignment="Stretch" Margin="0,2,0,5">
                                                             <Button.Template>
                                                                 <ControlTemplate TargetType="Button">
-                                                                    <Border x:Name="QuoteCard" Background="#161B23" BorderBrush="#20FFFFFF" BorderThickness="1"
-                                                                            CornerRadius="6" Padding="8,6" SnapsToDevicePixels="True">
+                                                                    <Border x:Name="QuoteCard" Background="{DynamicResource Surface}" BorderBrush="#20FFFFFF" BorderThickness="1"
+                                                                            CornerRadius="{DynamicResource ControlRadius}" Padding="8,6" SnapsToDevicePixels="True">
                                                                         <Grid>
                                                                             <Grid.ColumnDefinitions>
                                                                                 <ColumnDefinition Width="Auto" />
                                                                                 <ColumnDefinition Width="*" />
                                                                             </Grid.ColumnDefinitions>
                                                                             <!-- Left Vertical Accent Bar -->
-                                                                            <Border Grid.Column="0" Width="3" CornerRadius="1.5" Background="#38BDF8"
+                                                                            <Border Grid.Column="0" Width="3" CornerRadius="1.5" Background="{DynamicResource Accent}"
                                                                                     HorizontalAlignment="Center" VerticalAlignment="Stretch" Margin="0,1,8,1" />
                                                                             <!-- Author + Excerpt Text -->
                                                                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                                                 <TextBlock Text="{Binding ReplyTo.DisplayName}" FontSize="11"
-                                                                                           Foreground="#38BDF8" FontWeight="SemiBold" Margin="0,0,0,2"
+                                                                                           Foreground="{DynamicResource Accent}" FontWeight="SemiBold" Margin="0,0,0,2"
                                                                                            TextTrimming="CharacterEllipsis" />
                                                                                 <TextBlock Text="{Binding ReplyTo.DisplayText}" FontSize="11"
                                                                                            Foreground="{StaticResource LfgMuted}"
@@ -509,7 +509,7 @@
                                                                     <ControlTemplate.Triggers>
                                                                         <Trigger Property="IsMouseOver" Value="True">
                                                                             <Setter TargetName="QuoteCard" Property="Background" Value="#222B38" />
-                                                                            <Setter TargetName="QuoteCard" Property="BorderBrush" Value="#4038BDF8" />
+                                                                            <Setter TargetName="QuoteCard" Property="BorderBrush" Value="{DynamicResource AccentAlpha40}" />
                                                                         </Trigger>
                                                                         <Trigger Property="IsPressed" Value="True">
                                                                             <Setter TargetName="QuoteCard" Property="Background" Value="#12161E" />
@@ -597,7 +597,7 @@
                                 Margin="0,0,0,10"
                                 Padding="10,4"
                                 Background="#E6151F2C"
-                                BorderBrush="#333FD7FF"
+                                BorderBrush="{DynamicResource AccentAlpha33}"
                                 BorderThickness="1"
                                 Click="BtnScrollToBottom_Click"
                                 Visibility="Collapsed"
@@ -609,7 +609,7 @@
                                             Background="{TemplateBinding Background}"
                                             BorderBrush="{TemplateBinding BorderBrush}"
                                             BorderThickness="{TemplateBinding BorderThickness}"
-                                            CornerRadius="12">
+                                            CornerRadius="{DynamicResource ControlRadius}">
                                         <Border.Effect>
                                             <DropShadowEffect BlurRadius="10" ShadowDepth="2" Direction="270" Color="#000000" Opacity="0.6" />
                                         </Border.Effect>
@@ -621,7 +621,7 @@
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
                                             <Setter TargetName="Bd" Property="Background" Value="#FF1C2B3E" />
-                                            <Setter TargetName="Bd" Property="BorderBrush" Value="#883FD7FF" />
+                                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentAlpha88}" />
                                         </Trigger>
                                         <Trigger Property="IsPressed" Value="True">
                                             <Setter TargetName="Bd" Property="Background" Value="#FF131D2A" />
@@ -698,12 +698,12 @@
                         <StackPanel x:Name="ChatComposeArea">
                             <!-- Active Slow Mode indicator directly within send message component -->
                             <Border x:Name="ChatSlowModeBar" Visibility="Collapsed" Margin="0,0,0,6"
-                                    Background="#143FD7FF" CornerRadius="6" Padding="8,4"
-                                    BorderBrush="#333FD7FF" BorderThickness="1"
+                                    Background="{DynamicResource AccentAlpha14}" CornerRadius="6" Padding="8,4"
+                                    BorderBrush="{DynamicResource AccentAlpha33}" BorderThickness="1"
                                     HorizontalAlignment="Left">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <ui:SymbolIcon Symbol="Timer24" FontSize="13" Foreground="#FF3FD7FF" Margin="0,0,6,0" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="ChatSlowModeText" Text="Slow Mode: 10s" Foreground="#FF3FD7FF"
+                                    <ui:SymbolIcon Symbol="Timer24" FontSize="13" Foreground="{DynamicResource Accent}" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="ChatSlowModeText" Text="Slow Mode: 10s" Foreground="{DynamicResource Accent}"
                                                FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Border>
@@ -770,7 +770,7 @@
                                                 ToolTip="Clear message">
                                             <Button.Template>
                                                 <ControlTemplate TargetType="Button">
-                                                    <Border x:Name="Bd" Background="Transparent" CornerRadius="12" Padding="2">
+                                                    <Border x:Name="Bd" Background="Transparent" CornerRadius="{DynamicResource ControlRadius}" Padding="2">
                                                         <ui:SymbolIcon x:Name="Ico" Symbol="Dismiss24" FontSize="12"
                                                                        Foreground="{StaticResource LfgMuted}"
                                                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -858,7 +858,7 @@
                                            StaysOpen="False"
                                            AllowsTransparency="True"
                                            PopupAnimation="Fade">
-                                        <Border Background="#1B2027" BorderBrush="#2E3742" BorderThickness="1"
+                                        <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
                                                 CornerRadius="8" Padding="8" Margin="0,0,0,6">
                                             <StackPanel>
                                                 <TextBlock Text="{DynamicResource ChatNameColorHeading}"
@@ -1087,7 +1087,7 @@
                                         </Ellipse.Fill>
                                     </Ellipse>
                                     <Ellipse Width="9" Height="9" HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                                             Fill="#FF4CC38A" Stroke="#FF111820" StrokeThickness="1.5" />
+                                             Fill="#FF4CC38A" Stroke="{DynamicResource AppBg}" StrokeThickness="1.5" />
                                 </Grid>
 
                                  <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -1187,7 +1187,7 @@
                                              </Ellipse>
                                              <!--  Online light, bottom right of the avatar  -->
                                              <Ellipse Width="9" Height="9" HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                                                      Fill="{Binding StatusBrush}" Stroke="#FF111820" StrokeThickness="1.5" />
+                                                      Fill="{Binding StatusBrush}" Stroke="{DynamicResource AppBg}" StrokeThickness="1.5" />
                                          </Grid>
 
                                          <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -1294,7 +1294,7 @@
                                                         </Ellipse.Fill>
                                                     </Ellipse>
                                                     <Ellipse Width="8" Height="8" HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                                                             Fill="{Binding StatusBrush}" Stroke="#FF111820" StrokeThickness="1.5" />
+                                                             Fill="{Binding StatusBrush}" Stroke="{DynamicResource AppBg}" StrokeThickness="1.5" />
                                                 </Grid>
 
                                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -1575,7 +1575,7 @@
                                                             </Ellipse.Fill>
                                                         </Ellipse>
                                                         <Ellipse Width="9" Height="9" HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                                                                 Fill="{Binding StatusBrush}" Stroke="#FF111820" StrokeThickness="1.5" />
+                                                                 Fill="{Binding StatusBrush}" Stroke="{DynamicResource AppBg}" StrokeThickness="1.5" />
                                                     </Grid>
 
                                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">

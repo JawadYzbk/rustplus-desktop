@@ -152,7 +152,7 @@
                                                 </Border>
 
                                                 <!-- Vision Badge -->
-                                                <Border Margin="4,0,0,0" Padding="4,1" CornerRadius="4" Background="#263B82F6"
+                                                <Border Margin="4,0,0,0" Padding="4,1" CornerRadius="4" Background="{DynamicResource AccentAlpha26}"
                                                         Visibility="{Binding SupportsVision, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                     <TextBlock Text="VISION" FontWeight="SemiBold" FontSize="10" Foreground="#60A5FA" />
                                                 </Border>
@@ -223,7 +223,7 @@
                                 <Border x:Name="BadgePaid" Margin="0,0,6,6" Padding="8,3" CornerRadius="4" Background="#26EAB308">
                                     <TextBlock Text="💳 PAID MODEL" FontWeight="Bold" FontSize="11" Foreground="#EAB308" />
                                 </Border>
-                                <Border x:Name="BadgeVision" Margin="0,0,6,6" Padding="8,3" CornerRadius="4" Background="#263B82F6">
+                                <Border x:Name="BadgeVision" Margin="0,0,6,6" Padding="8,3" CornerRadius="4" Background="{DynamicResource AccentAlpha26}">
                                     <TextBlock Text="👁️ Vision / Screenshots" FontWeight="SemiBold" FontSize="11" Foreground="#60A5FA" />
                                 </Border>
                                 <Border x:Name="BadgeTextOnly" Margin="0,0,6,6" Padding="8,3" CornerRadius="4" Background="{DynamicResource SubtleFillColorSecondaryBrush}">

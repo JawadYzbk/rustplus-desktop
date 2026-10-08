@@ -13,10 +13,10 @@
         <!-- Location-type colors and translucent fills -->
         <SolidColorBrush x:Key="MonumentBrush" Color="#FF7A38" />
         <SolidColorBrush x:Key="BaseBrush" Color="#4ADE80" />
-        <SolidColorBrush x:Key="OpenBrush" Color="#94A3B8" />
+        <SolidColorBrush x:Key="OpenBrush" Color="{DynamicResource TextSubtleColor}" />
         <SolidColorBrush x:Key="MonumentBg" Color="#22FF7A38" />
         <SolidColorBrush x:Key="BaseBg" Color="#224ADE80" />
-        <SolidColorBrush x:Key="OpenBg" Color="#2294A3B8" />
+        <SolidColorBrush x:Key="OpenBg" Color="{DynamicResource TextSubtleAlpha22Color}" />
 
         <!-- Typography & Cell Styles -->
         <Style x:Key="ColHeader" TargetType="TextBlock">
@@ -187,7 +187,7 @@
                                     <TextBlock Text="AVG SURVIVAL" Style="{StaticResource ColHeader}" />
                                     <TextBlock Text="{Binding AvgSurvival}" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,4,0,0" />
                                 </StackPanel>
-                                <Border Grid.Column="1" Width="36" Height="36" CornerRadius="18" Background="#2060CDFF" VerticalAlignment="Center">
+                                <Border Grid.Column="1" Width="36" Height="36" CornerRadius="18" Background="{DynamicResource AccentAlpha20}" VerticalAlignment="Center">
                                     <ui:SymbolIcon Symbol="Timer24" FontSize="18" Foreground="{DynamicResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 </Border>
                             </Grid>

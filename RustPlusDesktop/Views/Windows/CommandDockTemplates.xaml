@@ -13,7 +13,7 @@
         MaxHeight="560"
         WindowStartupLocation="CenterOwner">
     <Border Background="Transparent" Padding="12">
-        <Border Background="#141820"
+        <Border Background="{DynamicResource AppBg}"
                 BorderBrush="#252F3D"
                 BorderThickness="1"
                 CornerRadius="14"

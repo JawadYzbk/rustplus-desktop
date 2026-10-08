@@ -12,7 +12,7 @@
         WindowBackdropType="Mica"
         WindowCornerPreference="Round">
 
-    <Grid Background="#0D1117">
+    <Grid Background="{DynamicResource AppBg}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -22,7 +22,7 @@
         <!-- TitleBar -->
         <ui:TitleBar Grid.Row="0" Title="Enable Cloud 24/7 — Data &amp; Privacy Consent" ShowMaximize="False" ShowMinimize="False">
             <ui:TitleBar.Icon>
-                <ui:SymbolIcon Symbol="CloudSync24" Foreground="#38BDF8"/>
+                <ui:SymbolIcon Symbol="CloudSync24" Foreground="{DynamicResource Accent}"/>
             </ui:TitleBar.Icon>
         </ui:TitleBar>
 
@@ -31,7 +31,7 @@
             <StackPanel Margin="24,12,24,16">
 
                 <!-- Header Icon & Title Banner -->
-                <Border Background="#141820" BorderBrush="#252F3D" BorderThickness="1" CornerRadius="14" Padding="18,16" Margin="0,0,0,16">
+                <Border Background="{DynamicResource AppBg}" BorderBrush="#252F3D" BorderThickness="1" CornerRadius="14" Padding="18,16" Margin="0,0,0,16">
                     <Border.Effect>
                         <DropShadowEffect BlurRadius="20" Opacity="0.65" ShadowDepth="2" Color="#000000"/>
                     </Border.Effect>
@@ -40,8 +40,8 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Border Grid.Column="0" Width="48" Height="48" Background="#1E293B" BorderBrush="#38BDF8" BorderThickness="1.5" CornerRadius="12" Margin="0,0,16,0" VerticalAlignment="Center">
-                            <ui:SymbolIcon Symbol="CloudCheckmark24" FontSize="26" Foreground="#38BDF8" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Border Grid.Column="0" Width="48" Height="48" Background="#1E293B" BorderBrush="{DynamicResource Accent}" BorderThickness="1.5" CornerRadius="12" Margin="0,0,16,0" VerticalAlignment="Center">
+                            <ui:SymbolIcon Symbol="CloudCheckmark24" FontSize="26" Foreground="{DynamicResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
@@ -51,7 +51,7 @@
                                 </Border>
                             </StackPanel>
                             <TextBlock Text="Allows RustPlus Desktop Cloud daemons to monitor your active Rust server(s) 24/7 when this desktop app is closed."
-                                       TextWrapping="Wrap" FontSize="12.5" LineHeight="18" Foreground="#94A3B8"/>
+                                       TextWrapping="Wrap" FontSize="12.5" LineHeight="18" Foreground="{DynamicResource TextSubtle}"/>
                             <TextBlock Text="⚠️ Note: Cloud 24/7 is an experimental and time-limited feature that may be modified or removed at any time."
                                        TextWrapping="Wrap" FontSize="11.5" FontWeight="Medium" Foreground="#F59E0B" Margin="0,4,0,0"/>
                         </StackPanel>
@@ -59,7 +59,7 @@
                 </Border>
 
                 <!-- Agreement Card -->
-                <Border Background="#141820" BorderBrush="#252F3D" BorderThickness="1" CornerRadius="12" Padding="16,14" Margin="0,0,0,12">
+                <Border Background="{DynamicResource AppBg}" BorderBrush="#252F3D" BorderThickness="1" CornerRadius="12" Padding="16,14" Margin="0,0,0,12">
                     <StackPanel>
                         <TextBlock Text="By giving consent, you agree that:" FontSize="13" FontWeight="SemiBold" Foreground="#E2E8F0" Margin="0,0,0,10"/>
 
@@ -71,7 +71,7 @@
                             </Grid.ColumnDefinitions>
                             <ui:SymbolIcon Grid.Column="0" Symbol="Checkmark24" FontSize="16" Foreground="#10B981" Margin="0,2,10,0" VerticalAlignment="Top"/>
                             <TextBlock Grid.Column="1" TextWrapping="Wrap" FontSize="12" LineHeight="17" Foreground="#CBD5E1">
-                                <Run FontWeight="SemiBold" Foreground="#FFFFFF">FCM Push Credentials:</Run> Your notification settings, pairing tokens, and keys will be securely uploaded to <Run Foreground="#38BDF8">rustplusdesktop.cloud</Run> to capture raid alarms and notifications.
+                                <Run FontWeight="SemiBold" Foreground="#FFFFFF">FCM Push Credentials:</Run> Your notification settings, pairing tokens, and keys will be securely uploaded to <Run Foreground="{DynamicResource Accent}">rustplusdesktop.cloud</Run> to capture raid alarms and notifications.
                             </TextBlock>
                         </Grid>
 
@@ -93,8 +93,8 @@
                 <Border Background="#10141D" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="12" Padding="16,14">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <ui:SymbolIcon Symbol="ShieldCheckmark24" FontSize="16" Foreground="#38BDF8" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Security &amp; Privacy Guarantees" FontSize="13" FontWeight="SemiBold" Foreground="#38BDF8" VerticalAlignment="Center"/>
+                            <ui:SymbolIcon Symbol="ShieldCheckmark24" FontSize="16" Foreground="{DynamicResource Accent}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Security &amp; Privacy Guarantees" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" VerticalAlignment="Center"/>
                         </StackPanel>
 
                         <!-- Guarantee 1: Database Encryption -->
@@ -103,8 +103,8 @@
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <ui:SymbolIcon Grid.Column="0" Symbol="LockClosed24" FontSize="14" Foreground="#38BDF8" Margin="0,2,10,0" VerticalAlignment="Top"/>
-                            <TextBlock Grid.Column="1" Text="All credentials and pairing tokens are encrypted at rest at the database level." TextWrapping="Wrap" FontSize="11.5" LineHeight="16" Foreground="#94A3B8"/>
+                            <ui:SymbolIcon Grid.Column="0" Symbol="LockClosed24" FontSize="14" Foreground="{DynamicResource Accent}" Margin="0,2,10,0" VerticalAlignment="Top"/>
+                            <TextBlock Grid.Column="1" Text="All credentials and pairing tokens are encrypted at rest at the database level." TextWrapping="Wrap" FontSize="11.5" LineHeight="16" Foreground="{DynamicResource TextSubtle}"/>
                         </Grid>
 
                         <!-- Guarantee 2: Account Isolation -->
@@ -113,8 +113,8 @@
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <ui:SymbolIcon Grid.Column="0" Symbol="PersonLock24" FontSize="14" Foreground="#38BDF8" Margin="0,2,10,0" VerticalAlignment="Top"/>
-                            <TextBlock Grid.Column="1" Text="Credentials and telemetry are strictly bound exclusively to your user account and never shared with anyone else." TextWrapping="Wrap" FontSize="11.5" LineHeight="16" Foreground="#94A3B8"/>
+                            <ui:SymbolIcon Grid.Column="0" Symbol="PersonLock24" FontSize="14" Foreground="{DynamicResource Accent}" Margin="0,2,10,0" VerticalAlignment="Top"/>
+                            <TextBlock Grid.Column="1" Text="Credentials and telemetry are strictly bound exclusively to your user account and never shared with anyone else." TextWrapping="Wrap" FontSize="11.5" LineHeight="16" Foreground="{DynamicResource TextSubtle}"/>
                         </Grid>
 
                         <!-- Guarantee 3: Revocation -->
@@ -124,7 +124,7 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <ui:SymbolIcon Grid.Column="0" Symbol="DismissCircle24" FontSize="14" Foreground="#F43F5E" Margin="0,2,10,0" VerticalAlignment="Top"/>
-                            <TextBlock Grid.Column="1" Text="You can revoke consent at any time from this window to instantly terminate all cloud workers." TextWrapping="Wrap" FontSize="11.5" LineHeight="16" Foreground="#94A3B8"/>
+                            <TextBlock Grid.Column="1" Text="You can revoke consent at any time from this window to instantly terminate all cloud workers." TextWrapping="Wrap" FontSize="11.5" LineHeight="16" Foreground="{DynamicResource TextSubtle}"/>
                         </Grid>
                     </StackPanel>
                 </Border>

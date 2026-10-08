@@ -22,7 +22,7 @@
     <Border x:Name="Strip"
             Height="30"
             Background="#12161C"
-            BorderBrush="#1F2430"
+            BorderBrush="{DynamicResource CardBorder}"
             BorderThickness="0,1,0,0"
             Cursor="Hand"
             MouseLeftButtonUp="Strip_MouseLeftButtonUp">
@@ -82,7 +82,7 @@
                     Margin="10,0,2,0"
                     Padding="6,1"
                     VerticalAlignment="Center"
-                    Background="#FF3FD7FF"
+                    Background="{DynamicResource Accent}"
                     CornerRadius="7"
                     Visibility="Collapsed">
                 <TextBlock x:Name="UnseenText"

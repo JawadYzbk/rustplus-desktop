@@ -15,7 +15,7 @@
     <ui:FluentWindow.Resources>
         <!-- Dark ScrollViewer Style -->
         <Style TargetType="ScrollBar">
-            <Setter Property="Background" Value="#161B22"/>
+            <Setter Property="Background" Value="{DynamicResource Surface}"/>
         </Style>
     </ui:FluentWindow.Resources>
 

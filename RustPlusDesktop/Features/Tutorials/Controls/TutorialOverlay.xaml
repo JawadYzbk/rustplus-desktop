@@ -19,9 +19,9 @@
             <Canvas x:Name="OverlayCanvas" ClipToBounds="True" FlowDirection="LeftToRight">
                 <Path x:Name="DimPath" Fill="#B8000000" Stretch="None" />
         <Border x:Name="TargetBlocker" Background="Transparent" />
-        <Border x:Name="SpotlightBorder" BorderBrush="#FF60CDFF" BorderThickness="3" CornerRadius="10"
+        <Border x:Name="SpotlightBorder" BorderBrush="{DynamicResource Accent}" BorderThickness="3" CornerRadius="10"
                 IsHitTestVisible="False">
-            <Border.Effect><DropShadowEffect Color="#FF60CDFF" BlurRadius="16" ShadowDepth="0" Opacity="0.8" /></Border.Effect>
+            <Border.Effect><DropShadowEffect Color="{DynamicResource AccentColor}" BlurRadius="16" ShadowDepth="0" Opacity="0.8" /></Border.Effect>
         </Border>
 
         <Border x:Name="Popover" Width="380" MaxHeight="620" Padding="20" Background="#FA171A1F"
@@ -40,7 +40,7 @@
 
                     <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                       <StackPanel>
-                    <TextBlock x:Name="TutorialTitleText" Foreground="#FF60CDFF" FontSize="12" FontWeight="SemiBold" />
+                    <TextBlock x:Name="TutorialTitleText" Foreground="{DynamicResource Accent}" FontSize="12" FontWeight="SemiBold" />
                     <TextBlock x:Name="StepTitleText" Margin="0,7,0,0" Foreground="White" FontSize="20" FontWeight="Bold"
                                TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
                     <TextBlock x:Name="DescriptionText" Margin="0,10,0,0" Foreground="#E6FFFFFF" FontSize="14"
@@ -84,7 +84,7 @@
                 </StackPanel>
 
                 <StackPanel x:Name="WelcomePanel" Visibility="Collapsed">
-                    <ui:SymbolIcon Symbol="HatGraduation24" FontSize="40" Foreground="#FF60CDFF" HorizontalAlignment="Center" />
+                    <ui:SymbolIcon Symbol="HatGraduation24" FontSize="40" Foreground="{DynamicResource Accent}" HorizontalAlignment="Center" />
                     <TextBlock Margin="0,12,0,0" Text="{DynamicResource Tutorials.Welcome.Title}" Foreground="White" FontSize="22"
                                FontWeight="Bold" TextAlignment="Center" TextWrapping="Wrap" />
                     <TextBlock Margin="0,10,0,20" Text="{DynamicResource Tutorials.Welcome.Description}" Foreground="#E6FFFFFF"

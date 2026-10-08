@@ -19,7 +19,7 @@
 
         <!-- Ticket list item card style with smooth hover elevation -->
         <Style x:Key="TicketCardBorder" TargetType="Border">
-            <Setter Property="Background" Value="#141820" />
+            <Setter Property="Background" Value="{DynamicResource AppBg}" />
             <Setter Property="BorderBrush" Value="#22FFFFFF" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
@@ -30,7 +30,7 @@
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#1D232E" />
-                    <Setter Property="BorderBrush" Value="#4560CDFF" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentAlpha45}" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -116,7 +116,7 @@
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                     <Ellipse Width="7" Height="7" Fill="{DynamicResource Accent}" VerticalAlignment="Center" Margin="0,0,7,0" Visibility="{Binding UnreadVisibility}">
                                                         <Ellipse.Effect>
-                                                            <DropShadowEffect Color="#60CDFF" BlurRadius="6" ShadowDepth="0" Opacity="0.8" />
+                                                            <DropShadowEffect Color="{DynamicResource AccentColor}" BlurRadius="6" ShadowDepth="0" Opacity="0.8" />
                                                         </Ellipse.Effect>
                                                     </Ellipse>
                                                     <TextBlock Text="{Binding Subject}" Foreground="{DynamicResource TextPrimary}" FontSize="13.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
@@ -277,7 +277,7 @@
                                                         <ui:SymbolIcon Symbol="{Binding BadgeSymbol}" FontSize="11" Foreground="{Binding BadgeForeground}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                     </Border>
                                                     <TextBlock Text="{Binding Author}" Foreground="{DynamicResource TextPrimary}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                                    <Border Visibility="{Binding StaffTagVisibility}" Background="#2260CDFF" CornerRadius="3" Padding="4,1" Margin="6,0,0,0" VerticalAlignment="Center">
+                                                    <Border Visibility="{Binding StaffTagVisibility}" Background="{DynamicResource AccentAlpha22}" CornerRadius="3" Padding="4,1" Margin="6,0,0,0" VerticalAlignment="Center">
                                                         <TextBlock Text="STAFF" Foreground="{DynamicResource Accent}" FontSize="10" FontWeight="Bold" />
                                                     </Border>
                                                 </StackPanel>

@@ -33,12 +33,12 @@
          inside a window already sized to it.
          ============================================================ -->
 
-    <SolidColorBrush x:Key="MenuFlyoutBackground" Color="#F51E2026" />
+    <SolidColorBrush x:Key="MenuFlyoutBackground" Color="{DynamicResource SurfaceAltColor}" />
     <SolidColorBrush x:Key="MenuFlyoutBorder" Color="#2EFFFFFF" />
     <SolidColorBrush x:Key="MenuFlyoutHover" Color="#1AFFFFFF" />
     <SolidColorBrush x:Key="MenuFlyoutIcon" Color="#D8FFFFFF" />
     <SolidColorBrush x:Key="MenuFlyoutSeparator" Color="#1FFFFFFF" />
-    <SolidColorBrush x:Key="MenuFlyoutText" Color="#F0F3F7" />
+    <SolidColorBrush x:Key="MenuFlyoutText" Color="{DynamicResource TextPrimaryColor}" />
 
     <!-- Nulled out on the acrylic path: a blurred window already reads as
          lifted, and the shadow has no margin to render into anyway. -->

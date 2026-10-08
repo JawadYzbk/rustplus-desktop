@@ -18,7 +18,7 @@
             <Setter Property="Background" Value="#12FFFFFF" />
             <Setter Property="BorderBrush" Value="#16FFFFFF" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="#CCECEFF1" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryAlphaCC}" />
             <Setter Property="FontSize" Value="11.5" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Height" Value="28" />
@@ -31,7 +31,7 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="14"
+                                CornerRadius="{DynamicResource ControlRadius}"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
@@ -56,7 +56,7 @@
             <Setter Property="Background" Value="#0FFFFFFF" />
             <Setter Property="BorderBrush" Value="#10FFFFFF" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="#E0ECEFF1" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryAlphaE0}" />
             <Setter Property="FontSize" Value="14" />
             <Setter Property="Height" Value="36" />
             <Setter Property="MinWidth" Value="36" />
@@ -70,7 +70,7 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="8"
+                                CornerRadius="{DynamicResource ControlRadius}"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
@@ -162,7 +162,7 @@
             <Setter Property="Background" Value="#12FFFFFF" />
             <Setter Property="BorderBrush" Value="#16FFFFFF" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="#CCECEFF1" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryAlphaCC}" />
             <Setter Property="FontSize" Value="11" />
             <Setter Property="Height" Value="20" />
             <Setter Property="Padding" Value="5,1" />
@@ -240,7 +240,7 @@
                         MaxHeight="300"
                         PopupAnimation="Fade">
                         <Border
-                            Background="#16191E"
+                            Background="{DynamicResource Surface}"
                             BorderBrush="#35FFFFFF"
                             BorderThickness="1"
                             CornerRadius="6">
@@ -375,7 +375,7 @@
             </Grid.ColumnDefinitions>
 
             <StackPanel Grid.Column="0" Margin="0,0,4,0">
-                <TextBlock Text="{DynamicResource UiSortBy}" Foreground="#80ECEFF1" FontSize="11" Margin="2,0,0,4"/>
+                <TextBlock Text="{DynamicResource UiSortBy}" Foreground="{DynamicResource TextPrimaryAlpha80}" FontSize="11" Margin="2,0,0,4"/>
                 <ComboBox x:Name="CmbSort" SelectionChanged="CmbSort_SelectionChanged" Height="34">
                     <ComboBoxItem Content="{DynamicResource UiDefault}" Tag="default" IsSelected="True"/>
                     <ComboBoxItem Content="{DynamicResource UiPriceLowToHigh}" Tag="price_asc"/>
@@ -386,7 +386,7 @@
             </StackPanel>
 
             <StackPanel Grid.Column="1" Margin="4,0,0,0">
-                <TextBlock Text="Category" Foreground="#80ECEFF1" FontSize="11" Margin="2,0,0,4"/>
+                <TextBlock Text="Category" Foreground="{DynamicResource TextPrimaryAlpha80}" FontSize="11" Margin="2,0,0,4"/>
                 <ComboBox x:Name="CmbCategory" SelectionChanged="CmbCategory_SelectionChanged" Height="34">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
@@ -403,7 +403,7 @@
         <!-- Row 3: Payment Resource Filter -->
         <Grid Grid.Row="3" Margin="10,0,10,10">
             <StackPanel>
-                <TextBlock Text="{DynamicResource UiPaymentResource}" Foreground="#80ECEFF1" FontSize="11" Margin="2,0,0,4"/>
+                <TextBlock Text="{DynamicResource UiPaymentResource}" Foreground="{DynamicResource TextPrimaryAlpha80}" FontSize="11" Margin="2,0,0,4"/>
                 <ComboBox x:Name="CmbResource" SelectionChanged="CmbResource_SelectionChanged" Height="34">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
@@ -421,7 +421,7 @@
         <Border
             Grid.Row="4"
             Margin="10,2,10,2"
-            Background="#12151B"
+            Background="{DynamicResource Surface}"
             BorderBrush="{DynamicResource WhiteA25}"
             BorderThickness="1"
             CornerRadius="6"
@@ -447,12 +447,12 @@
                     <Grid>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="🚨 " FontSize="12" VerticalAlignment="Center" />
-                            <TextBlock Text="{DynamicResource UiActiveItemAlerts}" FontWeight="Bold" Foreground="#ECEFF1" FontSize="12.5" VerticalAlignment="Center" />
+                            <TextBlock Text="{DynamicResource UiActiveItemAlerts}" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" FontSize="12.5" VerticalAlignment="Center" />
                         </StackPanel>
                         <TextBlock
                             x:Name="TxtAlertArrow"
                             Text="▼"
-                            Foreground="#CCECEFF1"
+                            Foreground="{DynamicResource TextPrimaryAlphaCC}"
                             FontSize="11"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center" />

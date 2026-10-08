@@ -30,7 +30,7 @@
 
         <!-- Custom TitleBar -->
         <Border Grid.Row="0"
-                Background="#0F1013"
+                Background="{DynamicResource AppBg}"
                 BorderBrush="{DynamicResource WhiteA1A}"
                 BorderThickness="0,0,0,1">
             <ui:TitleBar Title="{DynamicResource ImportDevicesTitle}"

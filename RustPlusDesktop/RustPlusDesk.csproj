@@ -388,7 +388,7 @@
   <!-- Source inputs for the MapParser publish, so it only re-publishes when MapParser actually
        changes (a self-contained single-file compressed publish is expensive to run every build). -->
   <ItemGroup>
-    <MapParserSource Include="$(MSBuildProjectDirectory)\..\MapParser\**\*.cs;$(MSBuildProjectDirectory)\..\MapParser\**\*.csproj;$(MSBuildProjectDirectory)\..\MapParser\**\*.js;$(MSBuildProjectDirectory)\..\MapParser\**\*.mjs;$(MSBuildProjectDirectory)\..\MapParser\**\*.json" Exclude="$(MSBuildProjectDirectory)\..\MapParser\bin\**;$(MSBuildProjectDirectory)\..\MapParser\obj\**;$(MSBuildProjectDirectory)\..\MapParser\node_modules\**" />
+    <MapParserSource Include="$(MSBuildProjectDirectory)\..\MapParser\**\*.cs;$(MSBuildProjectDirectory)\..\MapParser\**\*.csproj;$(MSBuildProjectDirectory)\..\MapParser\**\*.js;$(MSBuildProjectDirectory)\..\MapParser\**\*.mjs;$(MSBuildProjectDirectory)\..\MapParser\**\*.json;$(MSBuildProjectDirectory)\..\MapParser\**\*.css;$(MSBuildProjectDirectory)\..\MapParser\**\*.html" Exclude="$(MSBuildProjectDirectory)\..\MapParser\bin\**;$(MSBuildProjectDirectory)\..\MapParser\obj\**;$(MSBuildProjectDirectory)\..\MapParser\dist\**;$(MSBuildProjectDirectory)\..\MapParser\node_modules\**" />
   </ItemGroup>
 
   <Target Name="BuildMapParserRuntime" Inputs="@(MapParserSource)" Outputs="$(MapParserPublishedExe)" Condition="Exists('$(MapParserProjectPath)') And !$([System.String]::Copy('$(MSBuildProjectName)').Contains('_wpftmp'))">

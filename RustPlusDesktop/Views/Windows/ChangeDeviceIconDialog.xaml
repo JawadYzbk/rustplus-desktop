@@ -79,8 +79,8 @@
                                                 <Setter TargetName="Bd" Property="BorderBrush" Value="#1EFFFFFF" />
                                             </Trigger>
                                             <Trigger Property="IsSelected" Value="True">
-                                                <Setter TargetName="Bd" Property="Background" Value="#3360CDFF" />
-                                                <Setter TargetName="Bd" Property="BorderBrush" Value="#FF60CDFF" />
+                                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentTintBrush}" />
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Accent}" />
                                                 <Setter TargetName="Bd" Property="BorderThickness" Value="1" />
                                             </Trigger>
                                         </ControlTemplate.Triggers>

@@ -17,7 +17,7 @@
         <SolidColorBrush x:Key="RaidSulfurSoft" Color="#26F2C14E" />
         <SolidColorBrush x:Key="RaidBest" Color="#FF66BB6A" />
         <SolidColorBrush x:Key="RaidBestSoft" Color="#2266BB6A" />
-        <SolidColorBrush x:Key="RaidAccentSoft" Color="#1860CDFF" />
+        <SolidColorBrush x:Key="RaidAccentSoft" Color="{DynamicResource AccentAlpha18Color}" />
 
         <Style x:Key="RaidPanel" TargetType="Border">
             <Setter Property="Background" Value="{DynamicResource SurfaceAlt}" />
@@ -79,7 +79,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
+                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{DynamicResource ControlRadius}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
@@ -130,7 +130,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="CardBorder" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10">
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{DynamicResource ControlRadius}">
                             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                         </Border>
                         <ControlTemplate.Triggers>

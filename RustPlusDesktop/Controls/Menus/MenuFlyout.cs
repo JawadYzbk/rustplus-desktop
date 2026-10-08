@@ -209,8 +209,8 @@ public static class MenuFlyout
     private const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
     private const int DWMWCP_ROUND = 2;
 
-    /// <summary>Tint painted into the blur, as the AABBGGRR the accent API wants — #1E2026 at 75%.</summary>
-    private const uint AcrylicTint = 0xBF26201E;
+    /// <summary>Tint painted into the blur, as the AABBGGRR the accent API wants — the Fluent surface at 75%.</summary>
+    private const uint AcrylicTint = 0xBF303030;
 
     /// <summary>Windows 11 21H2. Earlier builds have no rounded window corners to match the blur to.</summary>
     private static readonly bool IsSupported = Environment.OSVersion.Version.Build >= 22000;

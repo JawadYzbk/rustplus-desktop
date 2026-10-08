@@ -11,12 +11,12 @@
     <UserControl.Resources>
         <!-- Standard App Theme Brushes -->
         <SolidColorBrush x:Key="AppBg" Color="#0F1115" />
-        <SolidColorBrush x:Key="Surface" Color="#181B20" />
+        <SolidColorBrush x:Key="Surface" Color="{DynamicResource SurfaceColor}" />
         <SolidColorBrush x:Key="SurfaceAlt" Color="#1F242C" />
         <SolidColorBrush x:Key="CardBorder" Color="#20FFFFFF" />
-        <SolidColorBrush x:Key="Accent" Color="#60CDFF" />
+        <SolidColorBrush x:Key="Accent" Color="{DynamicResource AccentColor}" />
         <SolidColorBrush x:Key="TextPrimary" Color="#F4F7FA" />
-        <SolidColorBrush x:Key="TextSubtle" Color="#94A3B8" />
+        <SolidColorBrush x:Key="TextSubtle" Color="{DynamicResource TextSubtleColor}" />
 
         <!-- Activity state colors (mirrored in code-behind StateColor) -->
         <SolidColorBrush x:Key="StateMoving" Color="#5BE7A9" />
@@ -151,7 +151,7 @@
                 </Grid.RowDefinitions>
 
                 <!-- Plan / Capability Status Banner -->
-                <Border Grid.Row="0" Background="#1460CDFF" BorderBrush="#3360CDFF" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,0,0,10">
+                <Border Grid.Row="0" Background="{DynamicResource AccentAlpha14}" BorderBrush="{DynamicResource AccentTintBrush}" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,0,0,10">
                     <StackPanel Orientation="Horizontal">
                         <ui:SymbolIcon Symbol="Sparkle24" FontSize="14" Foreground="{DynamicResource Accent}" Margin="0,0,8,0" VerticalAlignment="Center" />
                         <TextBlock x:Name="PremiumBanner" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" TextWrapping="Wrap" VerticalAlignment="Center" />
@@ -514,7 +514,7 @@
                         </Grid>
                     </ui:Card>
 
-                    <Border Grid.Row="1" Background="#1260CDFF" BorderBrush="#2560CDFF" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,0,0,8">
+                    <Border Grid.Row="1" Background="{DynamicResource AccentAlpha12}" BorderBrush="{DynamicResource AccentAlpha25}" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,0,0,8">
                         <TextBlock Text="Cyan is Player A · Amber is Player B. Comparison overlays only recorded coordinates and leaves missing periods blank." FontSize="11.5" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                     </Border>
 
@@ -634,7 +634,7 @@
                                                                 <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource ControlFillColorTertiaryBrush}" />
                                                             </Trigger>
                                                             <Trigger Property="IsSelected" Value="True">
-                                                                <Setter TargetName="ItemBorder" Property="Background" Value="#1F60CDFF" />
+                                                                <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource AccentAlpha1F}" />
                                                                 <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{DynamicResource Accent}" />
                                                             </Trigger>
                                                         </ControlTemplate.Triggers>
@@ -651,7 +651,7 @@
                                                     <ColumnDefinition Width="*" />
                                                 </Grid.ColumnDefinitions>
                                                 <Border Width="36" Height="36" CornerRadius="6"
-                                                        Background="#1860CDFF" BorderBrush="#3360CDFF" BorderThickness="1"
+                                                        Background="{DynamicResource AccentAlpha18}" BorderBrush="{DynamicResource AccentTintBrush}" BorderThickness="1"
                                                         Margin="0,0,10,0" VerticalAlignment="Center">
                                                     <ui:SymbolIcon Symbol="Server24" FontSize="16" Foreground="{DynamicResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                 </Border>
@@ -703,7 +703,7 @@
                                                 <TextBlock Text="SERVER" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                                 <TextBlock x:Name="ArchiveServerNameText" FontSize="14.5" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" Margin="0,2,0,0" />
                                             </StackPanel>
-                                            <Border Grid.Column="1" Background="#1A60CDFF" BorderBrush="#3360CDFF" BorderThickness="1" CornerRadius="12" Padding="8,3" VerticalAlignment="Top">
+                                            <Border Grid.Column="1" Background="{DynamicResource AccentAlpha1A}" BorderBrush="{DynamicResource AccentTintBrush}" BorderThickness="1" CornerRadius="12" Padding="8,3" VerticalAlignment="Top">
                                                 <TextBlock Text="Cloud Backup" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" />
                                             </Border>
                                         </Grid>
@@ -782,7 +782,7 @@
                                 </StackPanel>
 
                                 <!-- Status / Feedback Text -->
-                                <Border Background="#1260CDFF" BorderBrush="#2560CDFF" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,4,0,0">
+                                <Border Background="{DynamicResource AccentAlpha12}" BorderBrush="{DynamicResource AccentAlpha25}" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,4,0,0">
                                     <TextBlock x:Name="CloudStatusText" Foreground="{DynamicResource Accent}" TextWrapping="Wrap" FontSize="12" />
                                 </Border>
                             </StackPanel>

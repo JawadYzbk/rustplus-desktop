@@ -47,7 +47,7 @@
                     <ControlTemplate TargetType="RadioButton">
                         <Border x:Name="Border" Background="{TemplateBinding Background}" 
                                 CornerRadius="12" 
-                                BorderBrush="#181A1E" BorderThickness="2">
+                                BorderBrush="{DynamicResource Surface}" BorderThickness="2">
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">

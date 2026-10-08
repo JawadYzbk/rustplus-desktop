@@ -143,7 +143,7 @@
                                                                 <Setter TargetName="CheckMark" Property="Visibility" Value="Visible" />
                                                                 <Setter TargetName="Bd" Property="Effect">
                                                                     <Setter.Value>
-                                                                        <DropShadowEffect BlurRadius="4" Color="#60CDFF" Opacity="0.3" ShadowDepth="0" />
+                                                                        <DropShadowEffect BlurRadius="4" Color="{DynamicResource AccentColor}" Opacity="0.3" ShadowDepth="0" />
                                                                     </Setter.Value>
                                                                 </Setter>
                                                             </Trigger>
@@ -401,7 +401,7 @@
                                             Background="{TemplateBinding Background}"
                                             BorderBrush="{TemplateBinding BorderBrush}"
                                             BorderThickness="{TemplateBinding BorderThickness}"
-                                            CornerRadius="6">
+                                            CornerRadius="{DynamicResource ControlRadius}">
                                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                                         </Border>
                                     </ControlTemplate>

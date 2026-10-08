@@ -109,6 +109,7 @@ public sealed class FacepunchFeatureRemovalTests
             {
                 app = new App { ShutdownMode = ShutdownMode.OnExplicitShutdown };
                 app.InitializeComponent();
+                FluentThemeTests.AssertSharedResourcesAndControlStates();
                 map = new MiniMapWindow(new(null, null, null, null, null, null, null, null))
                 {
                     Left = SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth + 10000,

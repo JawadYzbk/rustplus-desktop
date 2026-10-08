@@ -137,7 +137,7 @@
 
             <Grid x:Name="SettingsDetailPage" Visibility="Collapsed">
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                <Border Padding="10,9" Background="#FF15191E" BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,0,0,1">
+                <Border Padding="10,9" Background="{DynamicResource AppBg}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,0,0,1">
                     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                         <ui:Button Width="30" Height="30" Margin="0,0,10,0" Padding="0" Appearance="Transparent" ToolTip="{DynamicResource UiBackToSettingsCategories}" Click="SettingsBack_Click"><ui:SymbolIcon Symbol="ArrowLeft24" /></ui:Button>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -157,7 +157,7 @@
                                 <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <StackPanel>
                                         <ui:TextBlock FontWeight="SemiBold">
-                                            <Run Text="{Binding BeforeMatch}" /><Run Background="#FF60CDFF" Foreground="#FF071218" FontWeight="Bold" Text="{Binding Match}" /><Run Text="{Binding AfterMatch}" />
+                                            <Run Text="{Binding BeforeMatch}" /><Run Background="{DynamicResource Accent}" Foreground="#FF071218" FontWeight="Bold" Text="{Binding Match}" /><Run Text="{Binding AfterMatch}" />
                                         </ui:TextBlock>
                                         <ui:TextBlock Margin="0,2,0,0" FontSize="11" Foreground="{DynamicResource TextSubtle}"><Run Text="{Binding CategoryTitle}" /><Run Text="  ›  " /><Run Text="{Binding SectionTitle}" /></ui:TextBlock>
                                     </StackPanel>
@@ -908,7 +908,7 @@
                             <ui:ToggleSwitch Content="{DynamicResource UiTTS}" IsChecked="{Binding Selected.DiscordWebhookChatAlertsTts, Mode=TwoWay}" Margin="4,0,0,0" Foreground="{DynamicResource TextPrimary}" ToolTip="{DynamicResource UiTextToSpeechForWebhook}" IsEnabled="{Binding Selected, Converter={StaticResource LocalNotNull}}" VerticalAlignment="Center" />
                             <ui:ToggleSwitch Content="{DynamicResource UiDiscordWebhookExclusive}" IsChecked="{Binding Selected.DiscordWebhookChatAlertsExclusive, Mode=TwoWay}" Margin="8,0,0,0" Foreground="{DynamicResource TextPrimary}" IsEnabled="{Binding Selected, Converter={StaticResource LocalNotNull}}" VerticalAlignment="Center">
                                 <ui:ToggleSwitch.ToolTip>
-                                    <ToolTip Background="#1F232A" BorderBrush="#3A404D" BorderThickness="1" Padding="8,6">
+                                    <ToolTip Background="{DynamicResource SurfaceAlt}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" Padding="8,6">
                                         <TextBlock Text="{DynamicResource UiDiscordWebhookExclusiveTooltip}" MaxWidth="240" TextWrapping="Wrap" Foreground="#E1E4EA" FontSize="11" />
                                     </ToolTip>
                                 </ui:ToggleSwitch.ToolTip>

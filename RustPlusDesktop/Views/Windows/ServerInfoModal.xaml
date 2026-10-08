@@ -41,7 +41,7 @@
                                     <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                                         <GradientStop Color="#99000000" Offset="0"/>
                                         <GradientStop Color="#00000000" Offset="0.5"/>
-                                        <GradientStop Color="#B216191E" Offset="1"/>
+                                        <GradientStop Color="{DynamicResource SurfaceAlphaB2Color}" Offset="1"/>
                                     </LinearGradientBrush>
                                 </Border.Background>
                             </Border>

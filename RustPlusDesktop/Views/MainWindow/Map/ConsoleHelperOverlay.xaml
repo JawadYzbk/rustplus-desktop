@@ -11,12 +11,12 @@
 
     <UserControl.Resources>
         <conv:BoolToVisibilityConverter x:Key="BoolToVis" />
-        <SolidColorBrush x:Key="ConText" Color="#FFF4F6FA" />
+        <SolidColorBrush x:Key="ConText" Color="{DynamicResource TextPrimaryColor}" />
         <SolidColorBrush x:Key="ConMuted" Color="#FF94A0B3" />
         <SolidColorBrush x:Key="ConLine" Color="#26FFFFFF" />
-        <SolidColorBrush x:Key="ConCard" Color="#FF111820" />
+        <SolidColorBrush x:Key="ConCard" Color="{DynamicResource AppBgColor}" />
         <SolidColorBrush x:Key="ConCode" Color="#FF0B1015" />
-        <SolidColorBrush x:Key="ConAccent" Color="#FF3FD7FF" />
+        <SolidColorBrush x:Key="ConAccent" Color="{DynamicResource AccentColor}" />
 
         <LinearGradientBrush x:Key="ConShell" StartPoint="0,0" EndPoint="1,1">
             <GradientStop Color="#FD0B1015" Offset="0" />

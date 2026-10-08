@@ -7,7 +7,7 @@
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Foreground="White"
-        FontFamily="Segoe UI"
+        FontFamily="{DynamicResource UiFontFamily}"
         ExtendsContentIntoTitleBar="True"
         WindowBackdropType="Mica"
         WindowCornerPreference="Round"
@@ -47,7 +47,7 @@
         </Style>
 
         <Style x:Key="AuthField" TargetType="TextBox">
-            <Setter Property="Background" Value="#1A1D21"/>
+            <Setter Property="Background" Value="{DynamicResource Surface}"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderBrush" Value="#333"/>
             <Setter Property="BorderThickness" Value="1"/>
@@ -57,7 +57,7 @@
         </Style>
 
         <Style x:Key="AuthPassword" TargetType="PasswordBox">
-            <Setter Property="Background" Value="#1A1D21"/>
+            <Setter Property="Background" Value="{DynamicResource Surface}"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderBrush" Value="#333"/>
             <Setter Property="BorderThickness" Value="1"/>
@@ -78,7 +78,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}"
-                                CornerRadius="6"
+                                CornerRadius="{DynamicResource ControlRadius}"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
@@ -130,7 +130,7 @@
 
         <StackPanel Grid.Row="1">
             <!-- Header -->
-            <Border Background="#1A1D21" Padding="20,16">
+            <Border Background="{DynamicResource Surface}" Padding="20,16">
                 <Grid>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <ui:SymbolIcon Symbol="Person24" FontSize="18" Foreground="#E8612C" Margin="0,0,10,0" VerticalAlignment="Center"/>
@@ -192,7 +192,7 @@
 
                 <!-- Status / Error area -->
                 <Border x:Name="PanelStatus" Visibility="Collapsed" Margin="0,14,0,0"
-                        Background="#1A1D21" CornerRadius="6" Padding="12,10">
+                        Background="{DynamicResource Surface}" CornerRadius="6" Padding="12,10">
                     <StackPanel>
                         <StackPanel x:Name="PanelLoading" Orientation="Horizontal" Visibility="Collapsed" Margin="0,0,0,8">
                             <ui:ProgressRing Width="18" Height="18" IsIndeterminate="True" Margin="0,0,10,0"/>

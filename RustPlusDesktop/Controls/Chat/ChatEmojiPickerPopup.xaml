@@ -52,7 +52,7 @@
                                             <Style.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
                                                     <Setter Property="Background" Value="#243248"/>
-                                                    <Setter Property="BorderBrush" Value="#3FD7FF"/>
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource Accent}"/>
                                                 </Trigger>
                                             </Style.Triggers>
                                         </Style>

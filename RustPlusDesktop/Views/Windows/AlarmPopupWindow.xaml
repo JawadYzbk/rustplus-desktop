@@ -12,12 +12,12 @@
         ShowInTaskbar="False">
 
     <Window.Resources>
-        <SolidColorBrush x:Key="AppBg" Color="#121417"/>
-        <SolidColorBrush x:Key="Surface" Color="#1C1F24"/>
+        <SolidColorBrush x:Key="AppBg" Color="{DynamicResource AppBgColor}"/>
+        <SolidColorBrush x:Key="Surface" Color="{DynamicResource SurfaceColor}"/>
         <SolidColorBrush x:Key="SurfaceAlt" Color="#23272E"/>
         <SolidColorBrush x:Key="Accent" Color="#4FC3F7"/>
         <SolidColorBrush x:Key="RustRed" Color="#CE422B"/>
-        <SolidColorBrush x:Key="TextPrimary" Color="#ECEFF1"/>
+        <SolidColorBrush x:Key="TextPrimary" Color="{DynamicResource TextPrimaryColor}"/>
         <SolidColorBrush x:Key="TextSubtle" Color="#B0BEC5"/>
         <CornerRadius x:Key="Radius">12</CornerRadius>
     </Window.Resources>

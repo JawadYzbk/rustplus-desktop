@@ -59,7 +59,7 @@
                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                 BorderThickness="1"
                 CornerRadius="8"
-                TextElement.FontFamily="Segoe UI Variable Display, Segoe UI">
+                TextElement.FontFamily="{DynamicResource UiFontFamily}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -245,7 +245,7 @@
                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                 BorderThickness="1"
                 CornerRadius="8"
-                TextElement.FontFamily="Segoe UI Variable Display, Segoe UI">
+                TextElement.FontFamily="{DynamicResource UiFontFamily}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />

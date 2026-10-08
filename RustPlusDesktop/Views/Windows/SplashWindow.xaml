@@ -121,7 +121,7 @@
                             Background="{StaticResource AccentBrush}"
                             VerticalAlignment="Center" Margin="0,0,14,0" />
                     <TextBlock Text="Rust+ Desktop"
-                               FontFamily="Segoe UI"
+                               FontFamily="{DynamicResource UiFontFamily}"
                                FontSize="30"
                                FontWeight="SemiBold"
                                Foreground="#FFFFFFFF"
@@ -141,7 +141,7 @@
                              VerticalAlignment="Center" Margin="0,0,9,0" />
                     <TextBlock x:Name="StatusText"
                                Text="Loading…"
-                               FontFamily="Segoe UI"
+                               FontFamily="{DynamicResource UiFontFamily}"
                                FontSize="13"
                                Foreground="#D9FFFFFF"
                                VerticalAlignment="Center">
@@ -194,7 +194,7 @@
                             Padding="10,3">
                         <TextBlock x:Name="VersionText"
                                    Text="v0.0.0"
-                                   FontFamily="Segoe UI"
+                                   FontFamily="{DynamicResource UiFontFamily}"
                                    FontSize="11"
                                    Foreground="#B3FFFFFF">
                             <TextBlock.Effect>
