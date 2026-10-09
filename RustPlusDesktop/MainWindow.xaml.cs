@@ -1,4 +1,4 @@
-﻿using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 using RustPlusDesk.Models;
 using RustPlusDesk.Services;
@@ -241,9 +241,14 @@ public partial class MainWindow : WpfUi.FluentWindow
     private BitmapSource? _mapBaseBmp; // Original-Map ohne Marker
     private readonly List<(double uPx, double vPx, string? label)> _staticMarkers = new();
     private bool _isShuttingDown = false;
-    private const double CompactSidebarWidth = 64;
-    private const double MinExpandedSidebarWidth = 360;
-    private const double MaxExpandedSidebarWidth = 480;
+    // The rail is icons only (64) or icons with names (200); everything sized off the rail
+    // (collapsed column, panel content, overlay insets) follows RailWidth.
+    private const double CompactRailWidth = 64;
+    private const double LabelledRailWidth = 200;
+    private double RailWidth => TrackingService.RailShowLabels ? LabelledRailWidth : CompactRailWidth;
+    private double CompactSidebarWidth => RailWidth;
+    private double MinExpandedSidebarWidth => 360 + RailWidth - CompactRailWidth;
+    private double MaxExpandedSidebarWidth => 480 + RailWidth - CompactRailWidth;
     private const int SidebarAnimationDurationMs = 180;
     private const int SidebarHoverExpandDelayMs = 200;
     private double _expandedSidebarWidth = 420;
@@ -473,13 +478,13 @@ public partial class MainWindow : WpfUi.FluentWindow
             }
         }
 
-        if (savedMaximized)
-        {
-            this.WindowState = WindowState.Maximized;
-        }
+        // Applied after the window is shown (ApplyStartupWindowState), never here: see there.
+        _startMaximized = savedMaximized;
 
         this.PreviewKeyDown += MainWindow_PreviewKeyDown;
         _isSidebarPinnedExpanded = TrackingService.SidebarPinned;
+        ApplyRailLayout();
+        LabelStaticRailButtons();
         _expandedSidebarWidth = Math.Clamp(TrackingService.SidebarWidth, MinExpandedSidebarWidth, MaxExpandedSidebarWidth);
         TrackLeftPanelOverlayVisibility();
         SetSidebarExpanded(_isSidebarPinnedExpanded);
@@ -770,8 +775,6 @@ public partial class MainWindow : WpfUi.FluentWindow
         // Initial tracking status update and hook global events
         TrackingService.OnOnlinePlayersUpdated -= OnOnlinePlayersUpdated;
         TrackingService.OnOnlinePlayersUpdated += OnOnlinePlayersUpdated;
-        TrackingService.OnTrackingNotification -= OnTrackingNotification;
-        TrackingService.OnTrackingNotification += OnTrackingNotification;
         OnOnlinePlayersUpdated();
         _vm.IsInitializing = false;
         
@@ -793,9 +796,10 @@ public partial class MainWindow : WpfUi.FluentWindow
         _pairing.Listening += (_, __) => Dispatcher.BeginInvoke(new Action(() =>
         {
             _vm.IsPairingRunning = true;
-            _vm.IsPairingBusy = true; // Update UI button state
+            _vm.IsPairingBusy = false; // Listener is active and running
             _vm.IsPairingFaulted = false; // a running listener is by definition not faulted
             TxtPairingState.Text = "";
+            _vm.NotifyFcmChanged();
             UpdatePairingGuideSnackbar();
             ScheduleFcmHealthCheck();
         }));
@@ -809,6 +813,10 @@ public partial class MainWindow : WpfUi.FluentWindow
         _pairing.RegistrationCompleted += (_, __) => Dispatcher.BeginInvoke(new Action(() =>
         {
             _vm.NotifyFcmChanged();
+            if (!string.IsNullOrEmpty(TrackingService.SteamId64))
+            {
+                ShowInfoSnackbar("Rust+ Companion Connected", $"Linked Steam ID: {TrackingService.SteamId64}", WpfUi.ControlAppearance.Success);
+            }
             _ = StartTutorialOnboardingIfReadyAsync();
         }));
         _pairing.Failed += (_, msg) => Dispatcher.BeginInvoke(new Action(() =>
@@ -962,7 +970,6 @@ public partial class MainWindow : WpfUi.FluentWindow
             });
         };
         
-        _monumentWatcher.OnDebug += (s, msg) => Dispatcher.BeginInvoke(new Action(() => AppendLog(msg)));
 
         App.CultureChanged += () =>
         {
@@ -2697,6 +2704,8 @@ private sealed record MarkerRef(System.Windows.Shapes.Ellipse Dot, double U_DIP,
         // filter existed for a long while without ever being able to fire: a queued
         // push from two hours ago arrived stamped "now".
         var eventTime = n.EventTime ?? n.Timestamp;
+        if (source == "FCM" && OilRigTriggerRegistry.Lookup(n.EntityId, n.Title) is string oilRigLabel)
+            RecordOilRigAlarm(n, oilRigLabel);
         if ((DateTime.Now - eventTime).TotalMinutes > 5) return;
 
         // Learn the alarm's in-game text before anything can drop this notification.
@@ -3584,7 +3593,8 @@ private sealed record MarkerRef(System.Windows.Shapes.Ellipse Dot, double U_DIP,
         {
             if (this.WindowState == WindowState.Normal)
             {
-                TrackingService.SaveWindowBounds(this.ActualWidth, this.ActualHeight, this.Left, this.Top, false);
+                // Closed before the saved maximize was applied: keep it for next time.
+                TrackingService.SaveWindowBounds(this.ActualWidth, this.ActualHeight, this.Left, this.Top, _startMaximized);
             }
             else if (this.WindowState == WindowState.Maximized)
             {
@@ -4676,17 +4686,17 @@ private sealed record MarkerRef(System.Windows.Shapes.Ellipse Dot, double U_DIP,
     {
         try
         {
-            if (_pairing.IsRunning)
-            {
-                AppendLog("Stopping pairing listener...");
-                await Task.Run(async () => await _pairing.StopAsync());
-                _vm.IsPairingBusy = false;
-            }
+            AppendLog("Stopping pairing listener...");
+            _listenerStarting = false;
+            await Task.Run(async () => await _pairing.StopAsync());
+            _vm.IsPairingBusy = false;
+            _vm.IsPairingRunning = false;
         }
         catch (Exception ex)
         {
             AppendLog("Error on stop: " + ex.Message);
             _vm.IsPairingBusy = false;
+            _vm.IsPairingRunning = false;
         }
     }
     private const int MaxLogLines = 2000;
@@ -7138,6 +7148,108 @@ private sealed record MarkerRef(System.Windows.Shapes.Ellipse Dot, double U_DIP,
             await StartPairingListenerUiWithEdgeAsync(); // der Edge-Flow aus voriger Antwort
     }
 
+    private async void BtnCheckTokenStatus_Click(object sender, RoutedEventArgs e)
+    {
+        AppendLog("🔍 Checking Rust+ companion token status with Facepunch...");
+        try
+        {
+            var result = await RustCompanionAuthService.CheckTokenStatusAsync();
+            var icon = result.Status switch
+            {
+                RustPlusTokenStatus.Valid => MessageBoxImage.Information,
+                RustPlusTokenStatus.Expired => MessageBoxImage.Warning,
+                RustPlusTokenStatus.LoggedOutOrInvalid => MessageBoxImage.Error,
+                RustPlusTokenStatus.Missing => MessageBoxImage.Warning,
+                _ => MessageBoxImage.Error
+            };
+
+            var statusTitle = result.Status switch
+            {
+                RustPlusTokenStatus.Valid => "Token Status: Active & Valid",
+                RustPlusTokenStatus.LoggedOutOrInvalid => "Token Status: Invalid / Logged Out",
+                RustPlusTokenStatus.Expired => "Token Status: Expired",
+                RustPlusTokenStatus.Missing => "Token Status: Missing",
+                _ => "Token Status: Error"
+            };
+
+            var details = new System.Text.StringBuilder();
+            details.AppendLine($"Status: {result.Status}");
+            details.AppendLine($"Message: {result.Message}");
+            if (result.SteamId > 0) details.AppendLine($"Steam ID: {result.SteamId}");
+            if (result.Version > 0) details.AppendLine($"Token Version: {result.Version}");
+            if (result.IssuedAtUtc.HasValue) details.AppendLine($"Issued: {result.IssuedAtUtc.Value.ToLocalTime():g}");
+            if (result.ExpiresAtUtc.HasValue) details.AppendLine($"Expires: {result.ExpiresAtUtc.Value.ToLocalTime():g}");
+
+            AppendLog($"[auth-check] {statusTitle} - {result.Message}");
+
+            MessageBox.Show(details.ToString(), statusTitle, MessageBoxButton.OK, icon);
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"❌ Failed to check token status: {ex.Message}");
+            MessageBox.Show($"Failed to check token: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private async void BtnLogoutThisDevice_Click(object sender, RoutedEventArgs e)
+    {
+        var ask = MessageBox.Show(
+            "Unregister this desktop app from Facepunch push notifications and delete local credentials?\n\nYou will need to pair again to receive notifications.",
+            "Logout (This Device)", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+        if (ask != MessageBoxResult.Yes) return;
+
+        AppendLog("🔌 Logging out this device from Facepunch push notifications...");
+        try
+        {
+            var (success, msg) = await RustCompanionAuthService.LogoutCurrentDeviceAsync();
+            AppendLog($"[logout] {msg}");
+
+            await ResetPairingConfigAsync(stopListenerFirst: true);
+            _vm.NotifyFcmChanged();
+
+            MessageBox.Show("Successfully logged out this device.\nLocal pairing configuration has been cleared.", "Logged Out", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"❌ Logout failed: {ex.Message}");
+            MessageBox.Show($"Logout failed: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private async void BtnLogoutAllDevices_Click(object sender, RoutedEventArgs e)
+    {
+        var ask = MessageBox.Show(
+            "⚠️ GLOBAL LOGOUT / INVALIDATE:\n\nThis will invalidate your Rust+ token on Facepunch servers across ALL devices (including mobile phones and other PCs).\n\nAre you sure you want to proceed?",
+            "Logout from All Devices (Invalidate)", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+        if (ask != MessageBoxResult.Yes) return;
+
+        AppendLog("⚡ Requesting global token invalidation on Facepunch servers...");
+        try
+        {
+            var (success, msg) = await RustCompanionAuthService.LogoutAllDevicesAsync();
+            if (success)
+            {
+                AppendLog($"[auth-invalidate] ✔ {msg}");
+                await ResetPairingConfigAsync(stopListenerFirst: true);
+                _vm.NotifyFcmChanged();
+
+                MessageBox.Show("Your Rust+ token has been invalidated across all devices on Facepunch.\nAll sessions have been revoked.", "All Devices Logged Out", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                AppendLog($"[auth-invalidate] ❌ {msg}");
+                MessageBox.Show($"Failed to invalidate token on Facepunch:\n{msg}", "Invalidation Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"❌ Failed to invalidate: {ex.Message}");
+            MessageBox.Show($"Failed to invalidate: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     private CancellationTokenSource? _statusCts;
 
 
@@ -7846,9 +7958,33 @@ private sealed record MarkerRef(System.Windows.Shapes.Ellipse Dot, double U_DIP,
     {
         if (sender is FrameworkElement { Tag: TabItem tab })
         {
+            CloseLeftPanelOverlays();
             MainTabs.SelectedItem = tab;
             SetSidebarExpanded(true);
         }
+    }
+
+    /// <summary>
+    /// Closes every overlay that covers the left panel. They sit beside the rail, so a rail
+    /// destination has to clear them or the panel it opens stays hidden underneath.
+    /// Closes the same way their own buttons do: settings re-apply, automations save.
+    /// </summary>
+    private void CloseLeftPanelOverlays()
+    {
+        if (AppSettingsPanel.Visibility == Visibility.Visible)
+        {
+            AppSettingsPanel.Visibility = Visibility.Collapsed;
+            ApplySettings();
+        }
+        if (DeviceAutomationPanel.Visibility == Visibility.Visible)
+        {
+            DeviceAutomationPanel.Visibility = Visibility.Collapsed;
+            _vm.Save();
+        }
+        LogicEnginePanel.Visibility = Visibility.Collapsed;
+        ProfitTradesPanel.Visibility = Visibility.Collapsed;
+        BuyXForYPanel.Visibility = Visibility.Collapsed;
+        LfgPanel.Visibility = Visibility.Collapsed;
     }
 
     private void SidebarTabPopover_Opened(object? sender, EventArgs e)
@@ -8022,6 +8158,10 @@ private sealed record MarkerRef(System.Windows.Shapes.Ellipse Dot, double U_DIP,
         if (AppSettingsPanel != null) AppSettingsPanel.IsVisibleChanged += LeftPanelOverlay_IsVisibleChanged;
         if (ProfitTradesPanel != null) ProfitTradesPanel.IsVisibleChanged += LeftPanelOverlay_IsVisibleChanged;
         if (BuyXForYPanel != null) BuyXForYPanel.IsVisibleChanged += LeftPanelOverlay_IsVisibleChanged;
+        // These sit beside the rail now, so they need the unfolded sidebar's width too.
+        if (LogicEnginePanel != null) LogicEnginePanel.IsVisibleChanged += LeftPanelOverlay_IsVisibleChanged;
+        if (DeviceAutomationPanel != null) DeviceAutomationPanel.IsVisibleChanged += LeftPanelOverlay_IsVisibleChanged;
+        if (LfgPanel != null) LfgPanel.IsVisibleChanged += LeftPanelOverlay_IsVisibleChanged;
     }
 
     private void LeftPanelOverlay_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -8044,7 +8184,7 @@ private sealed record MarkerRef(System.Windows.Shapes.Ellipse Dot, double U_DIP,
         }, System.Windows.Threading.DispatcherPriority.Background);
     }
 
-    // True while a left-side overlay (settings / profit trades / buy-x-for-y) is open.
+    // True while a left-side overlay (settings, trades, automation, community hub) is open.
     // While one is open the sidebar must stay unfolded, even when the mouse leaves the
     // sidebar border to interact with the overlay (clicking an option briefly captures
     // the mouse and fires MouseLeave on the underlying border).
@@ -8052,7 +8192,10 @@ private sealed record MarkerRef(System.Windows.Shapes.Ellipse Dot, double U_DIP,
     {
         return AppSettingsPanel?.Visibility == Visibility.Visible ||
                ProfitTradesPanel?.Visibility == Visibility.Visible ||
-               BuyXForYPanel?.Visibility == Visibility.Visible;
+               BuyXForYPanel?.Visibility == Visibility.Visible ||
+               LogicEnginePanel?.Visibility == Visibility.Visible ||
+               DeviceAutomationPanel?.Visibility == Visibility.Visible ||
+               LfgPanel?.Visibility == Visibility.Visible;
     }
 
     private void UpdateSidebarForOverlayVisibility()
@@ -8189,6 +8332,7 @@ private sealed record MarkerRef(System.Windows.Shapes.Ellipse Dot, double U_DIP,
             DeviceAutomationPanel.Visibility = Visibility.Collapsed;
             ProfitTradesPanel.Visibility = Visibility.Collapsed;
             BuyXForYPanel.Visibility = Visibility.Collapsed;
+            LfgPanel.Visibility = Visibility.Collapsed;
             AppSettingsPanel.LoadSettings();
             AppSettingsPanel.Visibility = Visibility.Visible;
         }
@@ -8200,6 +8344,7 @@ private sealed record MarkerRef(System.Windows.Shapes.Ellipse Dot, double U_DIP,
         DeviceAutomationPanel.Visibility = Visibility.Collapsed;
         ProfitTradesPanel.Visibility = Visibility.Collapsed;
         BuyXForYPanel.Visibility = Visibility.Collapsed;
+        LfgPanel.Visibility = Visibility.Collapsed;
         AppSettingsPanel.LoadSettings();
         AppSettingsPanel.Visibility = Visibility.Visible;
         AppSettingsPanel.OpenCategory(category);
@@ -8228,6 +8373,7 @@ private sealed record MarkerRef(System.Windows.Shapes.Ellipse Dot, double U_DIP,
             ProfitTradesPanel.Visibility = Visibility.Collapsed;
             BuyXForYPanel.Visibility = Visibility.Collapsed;
             DeviceAutomationPanel.Visibility = Visibility.Collapsed;
+            LfgPanel.Visibility = Visibility.Collapsed;
             LogicEnginePanel.RefreshListBindings();
             LogicEnginePanel.Visibility = Visibility.Visible;
         }
@@ -8246,6 +8392,7 @@ private sealed record MarkerRef(System.Windows.Shapes.Ellipse Dot, double U_DIP,
         ProfitTradesPanel.Visibility = Visibility.Collapsed;
         BuyXForYPanel.Visibility = Visibility.Collapsed;
         LogicEnginePanel.Visibility = Visibility.Collapsed;
+        LfgPanel.Visibility = Visibility.Collapsed;
         DeviceAutomationPanel.RefreshListBindings();
         DeviceAutomationPanel.Visibility = Visibility.Visible;
         _ = OfferNewFeatureTutorialOnceAsync("device-automation");
