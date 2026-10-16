@@ -1,5 +1,26 @@
 # Avalonia migration handoff — 2026-10-17
 
+## Usage checkpoint — implementation stopped at 97%
+
+- Source remains **`e6233b53`**, followed by verified icon handoff **`428a07ba`**; both are pushed to
+  `origin/codex/avalonia-migration`. This following documentation-only checkpoint saves the final
+  import/chat-mapping investigation. No additional implementation was started at 97%.
+- Latest verification remains **273 passing tests** here and in source-only isolation, clean Debug/
+  Release and three successful self-contained publishes. No new native/live acceptance is claimed.
+- Five-hour usage reached **97%**. The reported reset is **2026-10-17 00:27:26 UTC**, which is
+  **03:27:26 Asia/Beirut**. Be careful: PowerShell Get-Date -Format u formats local time with a Z suffix;
+  it does not convert local time to UTC. The clock tool confirmed the actual UTC time separately.
+- Existing heartbeat `resume-avalonia-migration-after-usage-reset` was updated, not duplicated, for a
+  **one-time 03:29 Beirut continuation on October 17**. Tool confirmed ACTIVE. The PC must stay awake
+  with Codex open. On waking, check usage first and do not implement while it remains at/above 97%.
+  No account reset credits were consumed. This is local work, not a cloud executor.
+- Next implementation remains the complete cloud snapshot sharing/restore/import workflow below.
+  CLOUD-CONTRACT.md now records exact chat mapping allocation, manual-zero-ID preservation, upkeep
+  classification and the original DTO mapper's alarm/rig metadata loss. Use direct source/coverage
+  checks; graph metadata changed for the WPF files, so their exact relevant ranges were read.
+- Overall production-ready/full-parity goal remains active and unfinished. No genuine feature blocker
+  is being asserted; implementation is waiting for the user's required account-capacity reset.
+
 ## Latest verified source — custom device icons
 
 - **`e6233b53`**, `codex/avalonia-migration`, adds local custom icons end to end. Prior verified plan

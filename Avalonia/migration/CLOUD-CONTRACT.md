@@ -105,6 +105,17 @@ relevant source was read directly. The backend repository was not edited.
 - Imported devices retain nested DTO metadata and existing chat-command references. Device quota is
   enforced by cloud upload against recursive leaf count; it is not evidence of a local import limit.
   Count zero leaves as empty even if empty groups remain, so an accidental upload cannot erase devices.
+- Final source check before the usage checkpoint: ServerProfile.SyncChatCommands preserves mappings
+  for existing entity IDs, retains manual EntityId=0 mappings, and assigns new switchN/upkeep/upkeepN
+  names using the lowest unused index with case-insensitive comparison. Count+1 is incorrect after
+  deleting a middle entry. Upkeep candidates include storage monitors whose storage is unknown,
+  identified as a tool cupboard, or empty; retain that distinction when porting storage metadata.
+  The reference removes mappings for nonzero IDs absent from its complete tree. Do not infer absence
+  from an incomplete network snapshot while implementing import.
+- DeviceDataModule.MapDtoToDevice currently copies custom icons but omits InGameAlarmTitle and
+  OilRigTrigger. The portable import must preserve alarm metadata and inspect the rig-rule export
+  semantics rather than reproduce this loss or silently enable new automation. Nested filtering in
+  MainWindow.Devices checks existing entity IDs recursively; top-level-only deduplication is insufficient.
 
 ## Verified server details and exact next steps
 
