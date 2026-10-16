@@ -14,7 +14,9 @@ reusable components, and explicit platform boundaries. Remove code only after pr
 
 ## Workspace and delivery
 
-- Work on `beta` in the existing repository, per Jawad's explicit instruction. Do not switch branches.
+- Work on `codex/avalonia-migration`, isolated from `beta` per Jawad's latest instruction. Use the
+  attached `avalonia-migration` worktree; leave the original `D:/Development/rustplus-desktop` checkout
+  on `beta`. Commit/push only migration changes to `origin/codex/avalonia-migration`.
 - Keep **all migration changes inside `Avalonia/`**. Treat the existing application as reference code.
 - Reuse or copy proven source, tests, branding, and assets from the existing repository; preserve
   licensing and provenance. Never require `../RustPlusDesktop`, private credentials, or a private

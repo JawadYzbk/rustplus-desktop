@@ -1,5 +1,19 @@
 # Avalonia migration handoff — 2026-10-16
 
+## Current isolated branch — supersedes beta development instructions below
+
+- Jawad requested a dedicated branch from beta after the layout checkpoint.
+- Branch: **`codex/avalonia-migration`**, created from beta at **`35dee2b2`** (layout source `6cc3f083`).
+- Active workspace: **`C:/Users/Jawad/.codex/worktrees/avalonia-migration/rustplus-desktop`**.
+- Make migration changes only in this worktree's **`Avalonia/`** folder. Push to
+  **`origin/codex/avalonia-migration`**; do not continue migration commits on beta.
+- The original `D:/Development/rustplus-desktop` checkout stays on beta with its unrelated current
+  work intact. Existing migration history remains on beta; no history was removed or rewritten.
+- This worktree starts from the verified source checkpoint. Ignored build outputs and local
+  credentials are not copied. Build/publish here before launching a preview from this workspace.
+
+Earlier beta paths/push targets below are historical; the branch and workspace above take precedence.
+
 ## Latest continuation — requested layout
 
 - Source checkpoint **`6cc3f083`** adds Jawad's supplied responsive layout inside `Avalonia/` only.
@@ -140,5 +154,5 @@ no cloud task was configured. The resumed account/pairing slice is committed as 
 as `9fd4ee6`, local device organization as `a8cf2a4`, recycler as `61d2eab`, socket teardown/alarm-title
 as `d4bba03a`. Inspect Git status/log for the documentation checkpoint. Latest checkpoint usage reading
 was 95%; new feature implementation stopped while finishing verified saves. At 97%, stop
-implementation, commit/push completed verified work to origin/beta and update this handoff. Leave
+implementation, commit/push completed verified work to origin/codex/avalonia-migration and update this handoff. Leave
 unrelated `.serena/` and `rustplus.proto` unchanged. The full production-readiness goal remains unfinished.

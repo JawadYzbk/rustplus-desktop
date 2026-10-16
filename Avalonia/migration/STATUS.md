@@ -2,6 +2,8 @@
 
 Started 2026-10-16 from `beta` at `e1bf6594`. This is the first independently buildable migration slice.
 All migration source lives inside `Avalonia/`. Migration edits do not modify the existing Windows app.
+Active development is now isolated on `codex/avalonia-migration`, branched from beta at `35dee2b2`;
+use the attached `avalonia-migration` worktree. The original checkout remains on beta.
 
 **Acceptance scope:** every shipped feature must be available in Avalonia, with nearly the same design.
 The initial saved-server preview is groundwork, not fulfillment of that scope. No feature may be
