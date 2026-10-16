@@ -16,9 +16,11 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
   Explicit profile-sync permission binds the displayed cloud/verified Steam identities, checks the
   server's first binding, and supports revocation without a current Steam login. Account tabs and a
   sidebar Cloud entry preserve the requested shell layout. See `CLOUD-CONTRACT.md` for exact scope.
-  Cloud device synchronization/import, limits, other consent types, provider/session workflows and
+  Fresh profile checks show the actual cloud plan and device quota without tier-name fallbacks or
+  persisting limits as authority. Sign-in refreshes the plan; offline/failed operations clear it.
+  Cloud device synchronization/import, quota enforcement at upload, other consent types, provider/session workflows and
   live authenticated acceptance remain pending; permission recording does not start any device uploads.
-  **256 tests pass** in this worktree and a source-only external copy with a separate restored package
+  **270 tests pass** in this worktree and a source-only external copy with a separate restored package
   cache. Debug/Release builds and all three self-contained publishes succeed. Native Windows callback/
   cancellation smoke passes, with the previously observed WebView2 shutdown warning. A fresh anonymous
   website handoff reaches login; no personal credentials or live authenticated cloud exchange were used.
@@ -123,7 +125,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Rust+ connection/reconnect | Authenticated status session, fallback, immediate socket-disconnect handling, cancellation and recovery | Native/live-server acceptance; soft/full modes and remaining feature subscriptions |
 | Live map/markers/overlays | Not ported | Separate coordinate/state logic from rendering; choose portable map/helper hosting |
 | Smart devices/automation/timers | Confirmed switches, nested group commands, alarm/storage state, subscriptions, local alias/group/move/reorder editor | Live-server acceptance, drag gestures, empty-group cleanup, cloud sync, add/delete/import/transfer, custom icons, automation, timers, alarm notifications/audio and original layout |
-| Cloud identity/consent | Website handoff, safe legacy sessions, explicit identity-scoped profile-sync permission/revocation, confirmed local sign-out | Live authentication/version acceptance, capabilities/limits, other consents, device sharing/import/restore barriers and remaining account/provider/session workflows |
+| Cloud identity/consent | Website handoff, safe legacy sessions, explicit identity-scoped profile-sync permission/revocation, confirmed local sign-out, verified plan/device allowance | Live authentication/version acceptance, upload quota enforcement, other consents, device sharing/import/restore barriers and remaining account/provider/session workflows |
 | Chat/team/clan | Not ported | Port protocol/services, moderation/history, synchronization and presentation |
 | Cameras | Not ported | Validate camera SDK/runtime, stream decoding and portable rendering |
 | Genetics Lab/web tools | Not ported | Decide and verify portable web hosting/bridge rather than copying WebView2 |

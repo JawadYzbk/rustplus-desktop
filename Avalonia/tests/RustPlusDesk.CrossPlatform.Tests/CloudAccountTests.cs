@@ -109,6 +109,8 @@ public sealed class CloudAccountTests
         Assert.AreEqual(Steam, result.Identity.SteamId);
         Assert.IsNull(result.Consent);
         Assert.AreEqual("Bearer " + Fixture.Token, fixture.Requests.Single().Bearer);
+        Assert.AreEqual("profile", fixture.Requests.Single().Route);
+        Assert.AreEqual(new CloudPlan("fixture-plan", false, true, 17), result.Plan);
         Assert.IsTrue((await File.ReadAllTextAsync(fixture.Path)).Contains("FutureUser"));
     }
 
@@ -129,6 +131,44 @@ public sealed class CloudAccountTests
         Assert.AreEqual("cloud-user-b", saved["User"]!["Id"]!.GetValue<string>());
         Assert.IsNull(saved["User"]!["FutureUser"]);
         Assert.IsNull(saved["AvaloniaSyncConsent"]);
+    }
+
+    [DataTestMethod]
+    [DataRow("[]", false, -1)]
+    [DataRow("{}", false, -1)]
+    [DataRow("{\"sync\":{\"access\":{\"enabled\":true,\"value\":null}}}", true, -1)]
+    [DataRow("{\"sync\":{\"access\":{\"enabled\":true,\"value\":null},\"max_devices\":{\"enabled\":false,\"value\":23}}}", true, 23)]
+    [DataRow("{\"sync\":{\"max_devices\":{\"enabled\":true,\"value\":0}}}", true, 0)]
+    [DataRow("{\"sync\":{\"max_devices\":{\"enabled\":false,\"value\":5}}}", false, 5)]
+    public async Task Check_PlanFactsComeFromServerRows_NotPremiumOrTierFallbacks(string limits, bool canSync, int maximum)
+    {
+        using var fixture = new Fixture { Limits = JsonNode.Parse(limits)!, PlanCode = "custom-plan", Premium = true };
+        await fixture.SeedAsync();
+        var account = await fixture.Service.CheckAsync(CancellationToken.None);
+        Assert.AreEqual(AccountState.Active, account.State);
+        Assert.AreEqual("custom-plan", account.Plan!.Code);
+        Assert.IsTrue(account.Plan.IsPremium);
+        Assert.AreEqual(canSync, account.Plan.CanSync);
+        Assert.AreEqual(maximum < 0 ? (int?)null : maximum, account.Plan.MaxDevices);
+        Assert.IsFalse((await File.ReadAllTextAsync(fixture.Path)).Contains("custom-plan"), "Plan limits must be freshly fetched, not cached as authority.");
+    }
+
+    [DataTestMethod]
+    [DataRow("null")]
+    [DataRow("42")]
+    [DataRow("{\"sync\":[]}")]
+    [DataRow("{\"sync\":{\"max_devices\":{\"enabled\":true}}}")]
+    [DataRow("{\"sync\":{\"max_devices\":{\"value\":5}}}")]
+    [DataRow("{\"sync\":{\"max_devices\":{\"enabled\":true,\"value\":-1}}}")]
+    [DataRow("{\"sync\":{\"max_devices\":{\"enabled\":true,\"value\":\"unlimited\"}}}")]
+    public async Task Check_MalformedPlanCannotGrantCapabilitiesOrOverwriteSavedSession(string limits)
+    {
+        using var fixture = new Fixture { Limits = JsonNode.Parse(limits) };
+        await fixture.SeedAsync();
+        string original = await File.ReadAllTextAsync(fixture.Path);
+        var error = await Assert.ThrowsExceptionAsync<CloudAccountException>(() => fixture.Service.CheckAsync(CancellationToken.None));
+        Assert.AreEqual(CloudFailure.InvalidResponse, error.Failure);
+        Assert.AreEqual(original, await File.ReadAllTextAsync(fixture.Path));
     }
 
     [DataTestMethod]
@@ -158,6 +198,7 @@ public sealed class CloudAccountTests
         if (transportException) fixture.BeforeResponse = _ => throw new HttpRequestException("synthetic-secret-not-for-ui");
         var result = await fixture.Service.CheckAsync(CancellationToken.None);
         Assert.AreEqual(AccountState.Offline, result.State);
+        Assert.IsNull(result.Plan);
         Assert.AreEqual("cloud-user-a", result.Identity!.Id);
         Assert.AreEqual(original, await File.ReadAllTextAsync(fixture.Path));
     }
@@ -184,7 +225,7 @@ public sealed class CloudAccountTests
         await fixture.SeedAsync();
         var granted = await fixture.Service.SetSyncConsentAsync("cloud-user-a", Steam, true, CancellationToken.None);
         Assert.AreEqual(new CloudSyncConsent("cloud-user-a", Steam, true), granted.Consent);
-        CollectionAssert.AreEqual(new[] { "me", "profile/presence", "me", "profile/consent" }, fixture.Requests.Select(request => request.Route).ToArray());
+        CollectionAssert.AreEqual(new[] { "profile", "profile/presence", "me", "profile/consent" }, fixture.Requests.Select(request => request.Route).ToArray());
         var restored = await fixture.Service.CheckAsync(CancellationToken.None);
         Assert.AreEqual(granted.Consent, restored.Consent);
         fixture.Status = HttpStatusCode.ServiceUnavailable;
@@ -196,7 +237,7 @@ public sealed class CloudAccountTests
         var revoked = await fixture.Service.SetSyncConsentAsync("cloud-user-a", null, false, CancellationToken.None);
         Assert.IsNull(revoked.Consent);
         Assert.IsFalse(revoked.Identity!.SyncAccepted);
-        CollectionAssert.AreEqual(new[] { "me", "profile/consent" }, fixture.Requests.Select(request => request.Route).ToArray());
+        CollectionAssert.AreEqual(new[] { "profile", "profile/consent" }, fixture.Requests.Select(request => request.Route).ToArray());
     }
 
     [DataTestMethod]
@@ -325,6 +366,9 @@ public sealed class CloudAccountTests
         public HttpStatusCode Status { get; set; } = HttpStatusCode.OK;
         public string LinkedSteam { get; set; } = "";
         public string UserId { get; set; } = "cloud-user-a";
+        public string PlanCode { get; set; } = "fixture-plan";
+        public bool Premium { get; set; }
+        public JsonNode? Limits { get; set; } = JsonNode.Parse("{\"sync\":{\"access\":{\"enabled\":true,\"value\":null},\"max_devices\":{\"enabled\":true,\"value\":17}}}");
         public bool SyncAccepted { get; set; }
         public bool RefuseBinding { get; set; }
         public Func<Request, Task>? BeforeResponse { get; set; }
@@ -371,6 +415,7 @@ public sealed class CloudAccountTests
                 object data = captured.Route switch
                 {
                     "auth/discord/token" => new { token = Token, user, expires_at = "2050-01-01T00:00:00Z" },
+                    "profile" => new { user, plan_code = fixture.PlanCode, is_premium = fixture.Premium, limits = fixture.Limits },
                     "profile/consent" => new { sync_accepted = fixture.SyncAccepted },
                     "profile/presence" => new { is_online = true },
                     _ => user

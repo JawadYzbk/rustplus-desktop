@@ -7,6 +7,8 @@
                TextWrapping="Wrap" Classes="muted" />
     <TextBlock Text="{Binding Identity}" FontWeight="SemiBold" TextWrapping="Wrap" />
     <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+    <TextBlock Text="{Binding PlanCaption}" FontWeight="SemiBold" TextWrapping="Wrap" />
+    <TextBlock Text="{Binding DeviceAllowance}" Classes="muted" TextWrapping="Wrap" />
     <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" AutomationProperties.Name="Cloud account operation" />
     <WrapPanel>
       <Button Content="_Check cloud status" Command="{Binding CheckCommand}" Margin="0,0,6,6" />

@@ -11,6 +11,30 @@ public sealed class CloudAccountViewModelTests
     public const string Steam = "76561198000000001";
 
     [TestMethod]
+    public async Task SignInRefreshesPlan_AndFailuresCannotRetainAnOldQuota()
+    {
+        int checks = 0;
+        var service = new Service();
+        service.Current = service.Current with { Plan = new("custom", false, true, 23) };
+        service.Check = _ => { checks++; return Task.FromResult(service.Current); };
+        var model = new CloudAccountViewModel(service);
+        await model.SignInCommand.ExecuteAsync(null);
+        Assert.AreEqual(1, checks);
+        StringAssert.Contains(model.PlanCaption, "custom");
+        StringAssert.Contains(model.DeviceAllowance, "23");
+        service.Check = _ => throw new CloudAccountException(CloudFailure.Unavailable);
+        await model.CheckCommand.ExecuteAsync(null);
+        Assert.IsNull(model.Account.Plan);
+        Assert.IsFalse(model.DeviceAllowance.Contains("23"));
+        Assert.AreEqual(AccountState.Unavailable, model.Account.State);
+        service.Current = service.Current with { Plan = new("no-sync", true, false, null) };
+        service.Check = _ => Task.FromResult(service.Current);
+        await model.CheckCommand.ExecuteAsync(null);
+        StringAssert.Contains(model.PlanCaption, "Premium access");
+        StringAssert.Contains(model.DeviceAllowance, "unavailable");
+    }
+
+    [TestMethod]
     public async Task GrantRequiresVerifiedSteamAndAnExplicitConfirmation_ThenTracksTheExactIdentityPair()
     {
         var service = new Service();

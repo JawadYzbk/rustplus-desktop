@@ -32,10 +32,12 @@ public sealed class CloudAccountService(HttpClient http, IAuthenticationBrowser 
         }
         try
         {
-            identity = await MeAsync(session.Token, cancellationToken).ConfigureAwait(false);
+            var profile = await SendAsync("profile", session.Token, null, cancellationToken).ConfigureAwait(false);
+            identity = CloudSessionFile.ParseIdentity(profile["user"]);
+            var plan = ParsePlan(profile);
             session.SetIdentity(identity);
             await session.SaveAsync(cachePath, cancellationToken).ConfigureAwait(false);
-            return session.Account(AccountState.Active, identity);
+            return session.Account(AccountState.Active, identity) with { Plan = plan };
         }
         catch (CloudAccountException ex) when (ex.Failure == CloudFailure.Rejected)
         {
@@ -98,7 +100,9 @@ public sealed class CloudAccountService(HttpClient http, IAuthenticationBrowser 
                 throw new CloudAccountException(CloudFailure.IdentityMismatch);
             var session = await CloudSessionFile.ReadAsync(cachePath, cancellationToken).ConfigureAwait(false);
             if (session.Token.Length == 0 || session.ExpiresAt <= DateTimeOffset.UtcNow) throw new CloudAccountException(CloudFailure.Rejected);
-            var identity = await MeAsync(session.Token, cancellationToken).ConfigureAwait(false);
+            var profile = await SendAsync("profile", session.Token, null, cancellationToken).ConfigureAwait(false);
+            var identity = CloudSessionFile.ParseIdentity(profile["user"]);
+            var plan = ParsePlan(profile);
             if (identity.Id != expectedUserId) throw new CloudAccountException(CloudFailure.IdentityMismatch);
             if (granted)
             {
@@ -118,11 +122,36 @@ public sealed class CloudAccountService(HttpClient http, IAuthenticationBrowser 
             try { await session.SaveAsync(cachePath, cancellationToken).ConfigureAwait(false); }
             catch (Exception ex) when (ex is CloudAccountException or IOException or UnauthorizedAccessException)
             { throw new CloudAccountException(CloudFailure.ConsentNotSaved); }
-            return session.Account(AccountState.Active, identity);
+            return session.Account(AccountState.Active, identity) with { Plan = plan };
         }, cancellationToken);
 
     private async Task<CloudIdentity> MeAsync(string token, CancellationToken ct)
         => CloudSessionFile.ParseIdentity(await SendAsync("me", token, null, ct).ConfigureAwait(false));
+
+    private static CloudPlan ParsePlan(JsonObject profile)
+    {
+        string code = CloudSessionFile.Text(profile["plan_code"], 64);
+        if (string.IsNullOrWhiteSpace(code) || profile["is_premium"] is not JsonValue premium) throw new JsonException();
+        JsonNode? limits = profile["limits"];
+        // PHP encodes an empty associative result as [], not {}.
+        if (limits is JsonArray { Count: 0 }) return new(code, premium.GetValue<bool>(), false, null);
+        var features = limits?.AsObject() ?? throw new JsonException();
+        if (features["sync"] is not { } sync) return new(code, premium.GetValue<bool>(), false, null);
+        var rows = sync.AsObject();
+        bool enabled = false;
+        int? maxDevices = null;
+        foreach (var row in rows)
+        {
+            var detail = row.Value?.AsObject() ?? throw new JsonException();
+            if (detail["enabled"] is not JsonValue flag || !detail.ContainsKey("value")) throw new JsonException();
+            enabled |= flag.GetValue<bool>();
+            int? value = detail["value"]?.GetValue<int>();
+            if (value < 0) throw new JsonException();
+            // The server applies a numeric limit even when that row's enabled flag is false.
+            if (row.Key == "max_devices") maxDevices = value;
+        }
+        return new(code, premium.GetValue<bool>(), enabled, maxDevices);
+    }
 
     private async Task<JsonObject> SendAsync(string route, string? token, object? payload, CancellationToken ct)
     {

@@ -17,7 +17,7 @@ completed companion/native sign-in crash fix or pairing ports.
   Switching accounts drops the old user's metadata and local consent. Atomic private writes
   reject revision conflicts. Expired/401 sessions clear locally; outages retain stored bytes and disable
   verification. 403/version/rate failures retain the session and expose safe messages, never raw bodies.
-- Explicit permission confirmation verifies the displayed cloud identity against fresh `me`, uses only
+- Explicit permission confirmation verifies the displayed cloud identity against fresh `profile`, uses only
   a verified Steam identity from the companion account, and checks any first binding with another `me`
   before `profile/consent`. Existing different Steam links are rejected. Revocation can run without a
   current Steam login. The local grant is scoped to cloud-user plus Steam ID and is cleared after an
@@ -29,9 +29,17 @@ completed companion/native sign-in crash fix or pairing ports.
 - The host uses a separate bearer-only HTTP client with cookies and automatic redirects disabled. Requests report the actual
   Avalonia host assembly version (currently 1.0.0), not the WPF release version. A server 426 is surfaced;
   this preview may be below the live minimum. Do not bypass the gate or claim live cloud acceptance.
-- No device uploads, cloud restoration or imports start from granting this permission. User-facing text
-  explicitly identifies these pending workflows. Additional consent types and plan/capability checks must
-  be ported with the corresponding workflows, not inferred from this profile permission alone.
+- Fresh GET `profile` supplies `data.user`, `plan_code`, `is_premium` and `limits`. The account view
+  displays those verified facts and the device allowance after checking or signing in. Limits are not
+  cached as authority; offline, canceled and failed operations remove the displayed allowance.
+  PHP's empty `limits:[]` is accepted as no capability. Sync is enabled when any sync row is enabled,
+  following PlanLimitService.featureEnabled; numeric max_devices applies regardless of that row's
+  enabled flag, following PlanLimitService.limit. Null means no numeric cap, zero means zero devices.
+  Invalid/missing limit details fail without overwriting the saved session. No tier-name fallback is used.
+- No device uploads, cloud restoration or imports start from granting this permission. Additional
+  consent types and quota enforcement must be ported with the corresponding workflows. Sync routes
+  currently use token abilities and the upload service's numeric quota; displaying the plan's feature
+  flag does not prove the server enforces that flag on every route.
 
 ## Verified reference behavior
 
@@ -69,6 +77,31 @@ the relevant source was read directly. Server source is available read-only in
 - Import fetches `sync/team-devices`, uses team identities plus own Steam identity, and can fall back
   to local overlay data with wipe checks and nested-ID deduplication. It is not a replacement file export.
 
+### Device sharing research retained for the next port
+
+Read-only backend references: `ProfileController`, `PlanLimitService`, `SyncService`,
+`SyncController` and `Legacy/OverlayController`. Coverage reported changed metadata, so their
+relevant source was read directly. The backend repository was not edited.
+
+- GET `overlay?server_key=...` returns the owner's `map_overlay`, `base_markers` and `smart_devices`
+  directly, without a `data` wrapper. GET `sync/team-member-overlay?server_key=...&steam_id=...`
+  returns authorized teammate sections; unknown/unauthorized members yield null sections.
+  The section payloads contain JSON strings, including `smart_devices.device_data`.
+- POST `overlay` updates only supplied sections and acknowledges with `{"status":"success"}`,
+  also without `data`. The current account HTTP helper expects `data`; extract a private raw-JSON
+  request helper only when adding this second real consumer. Bearer tokens must stay in Infrastructure.
+- GET `sync/team-devices?server_key=...` returns `data.devices`, flattened/deduplicated by entity ID
+  across the requester and authorized teammates. It supplies entity/kind/name/alias/icons and owner
+  Steam ID/name, but currently omits alarm titles and OilRigTrigger. Preserve those fields from
+  authorized owner snapshots/local data where available; do not claim the flat endpoint provides them.
+- Original Import gathers team plus own Steam IDs, refreshes member snapshots, tries cloud team
+  devices first, then local overlays if empty. The picker searches/selects/probes devices and excludes
+  nested duplicates. Local snapshots carry WipeTimeUnix because server keys survive wipes while entity
+  IDs can be reused. Verify the exact path/key/wipe comparison before implementing the fallback.
+- Imported devices retain nested DTO metadata and existing chat-command references. Device quota is
+  enforced by cloud upload against recursive leaf count; it is not evidence of a local import limit.
+  Count zero leaves as empty even if empty groups remain, so an accidental upload cannot erase devices.
+
 ## Verified server details and exact next steps
 
 `DesktopOAuthCodeService` allows any HTTP loopback port/path, issues 64 alphanumeric characters and
@@ -78,7 +111,7 @@ part of the contract. `profile/consent` also records profile_sync consent. Prese
 silently refuse another account's Steam ID, so checking `me` afterward is essential. These source files
 were read directly after graph coverage reported changed metadata; no server code was modified.
 
-1. Port plan limits/capabilities and the exact overlay/team-device contracts, including other required
+1. Use the verified plan facts while porting the exact overlay/team-device contracts and other required
    consent types. Extract the existing private HTTP request code only when a second real consumer needs
    it; keep bearer access inside Infrastructure. Do not expose tokens through Core or view models.
 2. Implement restore ownership/readiness before enabling the original Export/cloud-sync toggle. Preserve

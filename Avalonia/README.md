@@ -63,6 +63,8 @@ account and verified Steam ID. You can revoke permission or confirm local cloud 
 sessions and Steam pairing remain available. Device syncing/import are still being migrated and do
 not start when permission is recorded. Server version requirements are respected; this preview may
 require a supported release before the live cloud service accepts it.
+The account view also shows the server-verified plan and device-sync allowance. Failed or offline
+checks clear that allowance; saved plan names and premium status never imply an upload quota.
 
 Paired smart switches, nested groups, alarm state and storage contents load after connecting.
 ON/OFF commands wait for a confirmed state; failed or missing devices do not invalidate the server login.

@@ -12,6 +12,8 @@ public sealed partial class CloudAccountViewModel(ICloudAccountService service) 
     [NotifyPropertyChangedFor(nameof(Identity))]
     [NotifyPropertyChangedFor(nameof(HasSyncConsent))]
     [NotifyPropertyChangedFor(nameof(CloudSteamIdentity))]
+    [NotifyPropertyChangedFor(nameof(PlanCaption))]
+    [NotifyPropertyChangedFor(nameof(DeviceAllowance))]
     [NotifyCanExecuteChangedFor(nameof(RequestSignOutCommand))]
     [NotifyCanExecuteChangedFor(nameof(RequestGrantConsentCommand))]
     [NotifyCanExecuteChangedFor(nameof(RequestRevokeConsentCommand))]
@@ -50,6 +52,11 @@ public sealed partial class CloudAccountViewModel(ICloudAccountService service) 
     [NotifyCanExecuteChangedFor(nameof(ConfirmSignOutCommand))]
     private bool isConfirmingSignOut;
     public string Identity => Account.Identity is { } user ? $"{user.DisplayName} · {user.Email}" : "Rust+ Desktop Cloud";
+    public string PlanCaption => Account.Plan is { } plan ? $"Cloud plan: {plan.Code}" + (plan.IsPremium ? " · Premium access" : "")
+        : "Cloud plan has not been verified. Check cloud status to load it.";
+    public string DeviceAllowance => Account.Plan is not { } plan ? "Device sharing stays unavailable until your plan is verified."
+        : !plan.CanSync ? "Cloud sync is unavailable for this plan."
+        : plan.MaxDevices is { } maximum ? $"Synced devices: up to {maximum:N0}" : "Synced devices: unlimited";
     public string CloudSteamIdentity => Account.Identity?.SteamId is { Length: > 0 } steam ? $"Cloud Steam ID: {steam}" : "No Steam account is linked to this cloud account.";
     public string SteamIdentity => TrustedSteamId.Length == 0 ? "Verify Rust+ sign-in to use the current Steam identity." : $"Current verified Steam ID: {TrustedSteamId}";
     public bool HasSyncConsent => Account.State == AccountState.Active && Account.Consent is { Granted: true } consent &&
@@ -85,13 +92,19 @@ public sealed partial class CloudAccountViewModel(ICloudAccountService service) 
     {
         if (!CanRun) return;
         IsBusy = true;
-        Account = Account with { State = AccountState.Unavailable, Consent = null };
+        Account = Account with { State = AccountState.Unavailable, Consent = null, Plan = null };
         Message = signIn ? "Complete cloud sign-in and approve the handoff in your browser…" : "Checking saved cloud sign-in…";
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(signIn ? TimeSpan.FromMinutes(5) : TimeSpan.FromSeconds(30));
         try
         {
             Account = signIn ? await service.SignInAsync(timeout.Token) : await service.CheckAsync(timeout.Token);
+            if (signIn && Account.State == AccountState.Active)
+            {
+                Message = "Cloud sign-in saved. Checking your cloud plan…";
+                Account = Account with { State = AccountState.Unavailable, Consent = null, Plan = null };
+                Account = await service.CheckAsync(timeout.Token);
+            }
             Message = Account.State switch
             {
                 AccountState.Active => "Signed in to Rust+ Desktop Cloud. Sync permission is separate from signing in.",
@@ -127,7 +140,7 @@ public sealed partial class CloudAccountViewModel(ICloudAccountService service) 
     {
         if (!CanConfirmSignOut || Account.Identity is not { } identity) return;
         IsBusy = true;
-        Account = Account with { State = AccountState.Unavailable, Consent = null };
+        Account = Account with { State = AccountState.Unavailable, Consent = null, Plan = null };
         try
         {
             await service.SignOutAsync(identity.Id, ct);
@@ -145,7 +158,7 @@ public sealed partial class CloudAccountViewModel(ICloudAccountService service) 
     {
         if (!CanConfirmConsent || PendingConsent is not { } granted || Account.Identity is not { } identity) return;
         IsBusy = true;
-        Account = Account with { State = AccountState.Unavailable, Consent = null };
+        Account = Account with { State = AccountState.Unavailable, Consent = null, Plan = null };
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(TimeSpan.FromSeconds(30));
         try

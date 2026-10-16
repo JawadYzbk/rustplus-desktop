@@ -9,7 +9,7 @@ public sealed record CloudIdentity(string Id, string DisplayName, string Email, 
 public sealed record CloudSyncConsent(string UserId, string SteamId, bool Granted);
 
 public sealed record CloudAccount(AccountState State, CloudIdentity? Identity = null, DateTimeOffset? ExpiresAt = null,
-    CloudSyncConsent? Consent = null);
+    CloudSyncConsent? Consent = null, CloudPlan? Plan = null);
 
 public interface ICloudAccountService
 {
