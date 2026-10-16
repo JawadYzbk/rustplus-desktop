@@ -9,6 +9,28 @@ namespace RustPlusDesk.CrossPlatform.Tests;
 public sealed class DeviceProfileEditorTests
 {
     [TestMethod]
+    public async Task CustomIcon_SetResetAndInvalidPair_PreserveNestedMetadataAndRevisionProtection()
+    {
+        using var file = new Fixture();
+        var original = await file.ServerAsync();
+        var before = await file.JsonAsync();
+        var editor = new LegacyDeviceProfileEditor();
+        await Assert.ThrowsExceptionAsync<ArgumentException>(() => editor.SaveIconAsync(file.Path, original, "0/0", 988652725, "smart.alarm", CancellationToken.None));
+        Assert.IsTrue(JsonNode.DeepEquals(before, await file.JsonAsync()));
+        var saved = await editor.SaveIconAsync(file.Path, original, "0/0", 988652725, "smart.switch", CancellationToken.None);
+        Assert.AreEqual(988652725, saved.Server.Devices[0].Children[0].CustomIconId);
+        Assert.AreEqual("smart.switch", saved.Server.Devices[0].Children[0].CustomIconShortName);
+        before[0]!["Devices"]![0]!["Children"]![0]!["CustomIconId"] = 988652725;
+        before[0]!["Devices"]![0]!["Children"]![0]!["CustomIconShortName"] = "smart.switch";
+        Assert.IsTrue(JsonNode.DeepEquals(before, await file.JsonAsync()));
+        await Assert.ThrowsExceptionAsync<ProfileChangedException>(() => editor.SaveIconAsync(file.Path, original, "0/0", null, null, CancellationToken.None));
+        var reset = await editor.SaveIconAsync(file.Path, saved.Server, saved.DeviceKey, null, null, CancellationToken.None);
+        Assert.IsNull(reset.Server.Devices[0].Children[0].CustomIconId);
+        Assert.IsNull(reset.Server.Devices[0].Children[0].CustomIconShortName);
+        Assert.IsTrue(JsonNode.DeepEquals(before[0]!["Devices"]![1], (await file.JsonAsync())[0]!["Devices"]![1]));
+    }
+
+    [TestMethod]
     public async Task Rename_NestedDuplicateEntity_ChangesOnlySelectedAlias_AndBlankRestoresOriginalName()
     {
         using var file = new Fixture();

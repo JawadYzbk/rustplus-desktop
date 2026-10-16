@@ -10,10 +10,21 @@ public sealed partial class DeviceRowViewModel : ObservableObject
     public PairedDevice Definition { get; }
     public IReadOnlyList<DeviceRowViewModel> Children { get; }
     public string Name => Definition.Name;
+    public string DefaultIconShortName => Definition.Kind switch
+    {
+        DeviceKind.Switch => "smart.switch",
+        DeviceKind.Alarm => "smart.alarm",
+        DeviceKind.StorageMonitor => "storage.monitor",
+        DeviceKind.Group => "box.wooden.large",
+        _ => "paper"
+    };
     public string KindLabel => Definition.Kind switch
     {
-        DeviceKind.Switch => "Smart switch", DeviceKind.Alarm => "Smart alarm",
-        DeviceKind.StorageMonitor => "Storage monitor", DeviceKind.Group => "Group", _ => "Unknown device"
+        DeviceKind.Switch => "Smart switch",
+        DeviceKind.Alarm => "Smart alarm",
+        DeviceKind.StorageMonitor => "Storage monitor",
+        DeviceKind.Group => "Group",
+        _ => "Unknown device"
     };
     public bool IsStorage => Definition.Kind == DeviceKind.StorageMonitor;
     public bool SupportsControl => Definition.Kind == DeviceKind.Switch || Definition.Kind == DeviceKind.Group

@@ -8,6 +8,18 @@ namespace RustPlusDesk.Infrastructure.Profiles;
 /// <summary>Moves original JSON subtrees so aliases, nested settings and unknown fields survive.</summary>
 public sealed class LegacyDeviceProfileEditor : IDeviceProfileEditor
 {
+    public Task<DeviceEditResult> SaveIconAsync(string path, ServerSummary original, string deviceKey, int? iconId, string? shortName, CancellationToken cancellationToken)
+    {
+        if (iconId is { } id ? !Items.BundledItemCatalog.Icons.TryGetValue(id, out var icon) || icon.ShortName != shortName : shortName is not null)
+            throw new ArgumentException("Choose an item from the icon catalog.");
+        return EditAsync(path, original, deviceKey, (root, selected) =>
+        {
+            selected.Node["CustomIconId"] = iconId;
+            selected.Node["CustomIconShortName"] = shortName;
+            return selected.Node;
+        }, cancellationToken);
+    }
+
     public Task<DeviceEditResult> RenameAsync(string path, ServerSummary original, string deviceKey, string alias, CancellationToken cancellationToken)
         => EditAsync(path, original, deviceKey, (root, selected) =>
         {

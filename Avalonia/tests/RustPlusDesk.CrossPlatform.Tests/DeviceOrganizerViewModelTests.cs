@@ -13,6 +13,31 @@ namespace RustPlusDesk.CrossPlatform.Tests;
 public sealed class DeviceOrganizerViewModelTests
 {
     [TestMethod]
+    public async Task IconSearchAndSelection_AreExplicit_AndSaveResetKeepTheSelectedDevice()
+    {
+        using var file = new DeviceProfileEditorTests.Fixture();
+        var choices = RustPlusDesk.Infrastructure.Items.BundledItemCatalog.Icons.Values.ToArray();
+        var model = new DeviceOrganizerViewModel(file.Path, await file.ServerAsync(), new LegacyDeviceProfileEditor(), choices);
+        model.Selected = model.Devices[0].Children[0];
+        model.IconSearch = "smart.switch";
+        Assert.AreEqual(1, model.IconChoices.Count());
+        model.SelectedIcon = model.IconChoices.Single();
+        Assert.IsNull((await file.ServerAsync()).Devices[0].Children[0].CustomIconId);
+        await model.SaveIconCommand.ExecuteAsync(null);
+        Assert.AreEqual("0/0", model.Selected!.DeviceKey);
+        Assert.AreEqual(988652725, model.Selected.CustomIconId);
+        Assert.AreEqual(model.Selected.CustomIconId, model.SelectedIcon!.Id);
+        model.IconSearch = "-695978112";
+        Assert.AreEqual("smart.alarm", model.IconChoices.Single().ShortName);
+        await model.ResetIconCommand.ExecuteAsync(null);
+        Assert.IsNull(model.Selected!.CustomIconId);
+        Assert.IsNull(model.SelectedIcon);
+        Assert.IsFalse(model.SaveIconCommand.CanExecute(null));
+        await model.CloseCommand.ExecuteAsync(null);
+        Assert.IsNotNull(await model.Completion);
+    }
+
+    [TestMethod]
     public async Task Rename_Group_MoveAndReorder_KeepSelectionAndUseFreshRevisions()
     {
         using var file = new DeviceProfileEditorTests.Fixture();
@@ -161,6 +186,7 @@ public sealed class DeviceOrganizerViewModelTests
 
     private sealed class WaitingEditor : IDeviceProfileEditor
     {
+        public Task<DeviceEditResult> SaveIconAsync(string path, ServerSummary original, string deviceKey, int? iconId, string? shortName, CancellationToken ct) => throw new AssertFailedException();
         public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public bool Canceled { get; private set; }

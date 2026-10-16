@@ -97,7 +97,11 @@ relevant source was read directly. The backend repository was not edited.
 - Original Import gathers team plus own Steam IDs, refreshes member snapshots, tries cloud team
   devices first, then local overlays if empty. The picker searches/selects/probes devices and excludes
   nested duplicates. Local snapshots carry WipeTimeUnix because server keys survive wipes while entity
-  IDs can be reused. Verify the exact path/key/wipe comparison before implementing the fallback.
+  IDs can be reused. The reference server key is exactly `{Host}-{Port}`; local paths are
+  ApplicationData/RustPlusDesk/Overlays/{serverKey}/{steamId}.json. Validate path segments before
+  using them as filesystem paths. A nonzero WipeTimeUnix differing from the current wipe is stale;
+  otherwise legacy LastUpdatedUnix older than the wipe is stale. Missing current wipe/time cannot
+  prove freshness. Retain this distinction rather than silently claiming old snapshots are current.
 - Imported devices retain nested DTO metadata and existing chat-command references. Device quota is
   enforced by cloud upload against recursive leaf count; it is not evidence of a local import limit.
   Count zero leaves as empty even if empty groups remain, so an accidental upload cannot erase devices.

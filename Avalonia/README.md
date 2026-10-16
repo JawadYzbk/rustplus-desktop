@@ -74,9 +74,11 @@ between groups or the top level, and move it up/down among siblings. Each action
 revision protection and a private backup. Clearing an alias restores the original device name.
 Smart alarms also expose their saved in-game title; blank clears it. This stores local identification
 metadata and preserves existing settings; cloud synchronization remains pending.
+**Custom icon** in the organizer searches the full bundled item catalog. Save applies the selected
+icon; Reset restores the device kind's default. Existing custom icons also appear in the device list.
 
 Unknown settings and empty-group metadata stay intact; an active connection reloads its tree when the
-organizer closes. Cloud synchronization, drag gestures, device deletion/import/transfer, custom icons,
+organizer closes. Cloud synchronization, drag gestures, device deletion/import/transfer,
 automation and alarm audio remain pending.
 
 Use **Edit…** for the selected server's name, host and companion port. The direct-address test uses its

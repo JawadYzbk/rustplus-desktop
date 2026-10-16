@@ -29,7 +29,8 @@ public sealed class DeviceOrganizerViewTests
         await session.Dispatch(async () =>
         {
             var model = new ServersViewModel(new LegacyServerCatalog(), new Picker(), file.Path,
-                new UnusedSessionFactory(), deviceEditor: new LegacyDeviceProfileEditor());
+                new UnusedSessionFactory(), deviceEditor: new LegacyDeviceProfileEditor(),
+                deviceIcons: RustPlusDesk.Infrastructure.Items.BundledItemCatalog.Icons.Values.ToArray());
             var window = new MainWindow { DataContext = model, Width = 1000, Height = 700 };
             try
             {
@@ -69,6 +70,24 @@ public sealed class DeviceOrganizerViewTests
                 var moveDown = view.GetVisualDescendants().OfType<Button>().Single(button => button.Command == editor.MoveDownCommand);
                 var scroll = moveDown.GetVisualAncestors().OfType<ScrollViewer>().First();
                 Assert.IsTrue(moveDown.TranslatePoint(default, scroll)!.Value.Y + moveDown.Bounds.Height <= scroll.Bounds.Height);
+                var iconExpander = view.GetVisualDescendants().OfType<Expander>().Single();
+                iconExpander.IsExpanded = true;
+                editor.IconSearch = "smart.switch";
+                using (var expanded = window.CaptureRenderedFrame()) Assert.IsNotNull(expanded);
+                var iconChoices = view.GetVisualDescendants().OfType<ListBox>().Single();
+                iconChoices.SelectedItem = editor.IconChoices.Single();
+                await editor.SaveIconCommand.ExecuteAsync(null);
+                Assert.AreEqual(988652725, editor.Selected!.CustomIconId);
+                scroll.ScrollToEnd();
+                using (var frame = window.CaptureRenderedFrame())
+                {
+                    Assert.IsNotNull(frame);
+                    frame.Save(Path.Combine(AppContext.BaseDirectory, "ui-device-icons.png"), PngBitmapEncoderOptions.Default);
+                }
+                var saveIcon = view.GetVisualDescendants().OfType<Button>().Single(button => button.Command == editor.SaveIconCommand);
+                var savePoint = saveIcon.TranslatePoint(default, scroll)!.Value;
+                Assert.IsTrue(savePoint.Y >= 0 && savePoint.Y + saveIcon.Bounds.Height <= scroll.Bounds.Height);
+                iconExpander.IsExpanded = false;
                 tree.SelectedItem = editor.Devices[2];
                 using (var alarm = window.CaptureRenderedFrame()) Assert.IsNotNull(alarm);
                 var title = view.GetVisualDescendants().OfType<TextBox>().Single(text => AutomationProperties.GetName(text) == "In-game alarm title");
@@ -80,6 +99,7 @@ public sealed class DeviceOrganizerViewTests
                 await organizing.WaitAsync(TimeSpan.FromSeconds(4));
                 Assert.IsFalse(model.HasOverlay);
                 Assert.AreEqual("Workshop", model.SelectedServer!.Devices[0].Children[0].Name);
+                Assert.AreEqual(988652725, model.SelectedServer.Devices[0].Children[0].CustomIconId);
                 Assert.AreEqual("Fixture raid", model.SelectedServer.Devices[2].InGameAlarmTitle);
             }
             finally { await model.ShutdownAsync(); window.Close(); }

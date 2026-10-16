@@ -8,6 +8,7 @@ public sealed record DeviceEditResult(ServerSummary Server, string DeviceKey);
 /// <summary>Local device organization; device settings and unknown persisted fields remain intact.</summary>
 public interface IDeviceProfileEditor
 {
+    Task<DeviceEditResult> SaveIconAsync(string path, ServerSummary original, string deviceKey, int? iconId, string? shortName, CancellationToken cancellationToken);
     Task<DeviceEditResult> RenameAsync(string path, ServerSummary original, string deviceKey, string alias, CancellationToken cancellationToken);
     Task<DeviceEditResult> SaveAlarmTitleAsync(string path, ServerSummary original, string deviceKey, string title, CancellationToken cancellationToken);
     Task<DeviceEditResult> GroupAsync(string path, ServerSummary original, string deviceKey, string name, CancellationToken cancellationToken);

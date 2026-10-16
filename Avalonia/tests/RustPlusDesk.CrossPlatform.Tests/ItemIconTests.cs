@@ -9,6 +9,28 @@ namespace RustPlusDesk.CrossPlatform.Tests;
 public sealed class ItemIconTests
 {
     [TestMethod]
+    public async Task CustomDeviceIcons_ResolveLegacyIds_ResetToKindDefault_AndDecodeAllAvailableArtwork()
+    {
+        await using var session = HeadlessUnitTestSession.StartNew(typeof(TestAppBuilder));
+        await session.Dispatch(() =>
+        {
+            var catalog = BundledItemCatalog.Icons;
+            Assert.AreEqual(1245, catalog.Count); // The reference data contains two names for ID 1115193056; its last entry wins.
+            int missing = 0;
+            foreach (var item in catalog.Values)
+                if (ItemIcon.Load(item.ShortName) is null) missing++;
+            Assert.AreEqual(22, missing, "The reference pack does not contain these canonical item images; preserve choices with a fallback.");
+            var control = new ItemIcon { DefaultShortName = "smart.alarm", ItemId = 988652725 };
+            Assert.AreSame(ItemIcon.Load("smart.switch"), control.Source);
+            control.ItemId = null;
+            Assert.AreSame(ItemIcon.Load("smart.alarm"), control.Source);
+            control.ShortName = "../unavailable-icon";
+            Assert.AreSame(ItemIcon.Load("smart.alarm"), control.Source);
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [TestMethod]
     public async Task All796RequiredInputAndOutputIcons_AreBundledDecodableAndShared()
     {
         await using var session = HeadlessUnitTestSession.StartNew(typeof(TestAppBuilder));

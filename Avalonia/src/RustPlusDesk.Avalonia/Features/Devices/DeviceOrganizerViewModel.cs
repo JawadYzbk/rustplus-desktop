@@ -21,6 +21,8 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
     public IReadOnlyList<PairedDevice> Devices => current.Devices;
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RenameCommand))]
+    [NotifyCanExecuteChangedFor(nameof(SaveIconCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ResetIconCommand))]
     [NotifyCanExecuteChangedFor(nameof(SaveAlarmTitleCommand))]
     [NotifyPropertyChangedFor(nameof(IsAlarm))]
     [NotifyCanExecuteChangedFor(nameof(GroupCommand))]
@@ -29,6 +31,16 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(MoveDownCommand))]
     private PairedDevice? selected;
     [ObservableProperty] private string alias = "";
+    private readonly IReadOnlyList<DeviceIcon> icons;
+    [ObservableProperty] private string iconSearch = "";
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SaveIconCommand))]
+    private DeviceIcon? selectedIcon;
+    public bool HasIconCatalog => icons.Count > 0;
+    public IEnumerable<DeviceIcon> IconChoices => icons.Where(icon => icon.Name.Contains(IconSearch, StringComparison.OrdinalIgnoreCase)
+        || icon.ShortName.Contains(IconSearch, StringComparison.OrdinalIgnoreCase) || icon.Id.ToString(CultureInfo.InvariantCulture).Contains(IconSearch, StringComparison.Ordinal));
+    partial void OnIconSearchChanged(string value) => OnPropertyChanged(nameof(IconChoices));
+    private bool CanSaveIcon => CanEdit && SelectedIcon is not null;
     [ObservableProperty] private string alarmTitle = "";
     public bool IsAlarm => Selected?.Kind == DeviceKind.Alarm;
     private bool CanEditAlarm => CanEdit && IsAlarm;
@@ -38,6 +50,8 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
     [ObservableProperty] private string message = "Each action saves locally. Cloud synchronization is not available in this preview.";
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RenameCommand))]
+    [NotifyCanExecuteChangedFor(nameof(SaveIconCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ResetIconCommand))]
     [NotifyCanExecuteChangedFor(nameof(SaveAlarmTitleCommand))]
     [NotifyCanExecuteChangedFor(nameof(GroupCommand))]
     [NotifyCanExecuteChangedFor(nameof(MoveCommand))]
@@ -53,9 +67,10 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
     private IReadOnlyList<PairedDevice> Siblings => ParentKey is { } key
         ? Devices.SelectMany(item => item.DescendantsAndSelf()).First(item => item.DeviceKey == key).Children : Devices;
 
-    public DeviceOrganizerViewModel(string path, ServerSummary original, IDeviceProfileEditor editor)
+    public DeviceOrganizerViewModel(string path, ServerSummary original, IDeviceProfileEditor editor, IReadOnlyList<DeviceIcon>? icons = null)
     {
         this.path = path; current = original; this.editor = editor;
+        this.icons = icons ?? [];
         Selected = Devices.FirstOrDefault();
     }
 
@@ -63,6 +78,8 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
     {
         Alias = value?.Alias ?? "";
         AlarmTitle = value?.InGameAlarmTitle ?? "";
+        IconSearch = "";
+        SelectedIcon = icons.FirstOrDefault(icon => icon.Id == value?.CustomIconId || icon.ShortName == value?.CustomIconShortName);
         var choices = new List<DeviceGroupChoice> { new("All devices", null) };
         void Add(IEnumerable<PairedDevice> items, string prefix)
         {
@@ -81,6 +98,10 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task RenameAsync(CancellationToken ct) => SaveAsync((server, key) => editor.RenameAsync(path, server, key, Alias, ct));
+    [RelayCommand(CanExecute = nameof(CanSaveIcon))]
+    private Task SaveIconAsync(CancellationToken ct) => SaveAsync((server, key) => editor.SaveIconAsync(path, server, key, SelectedIcon!.Id, SelectedIcon.ShortName, ct));
+    [RelayCommand(CanExecute = nameof(CanEdit))]
+    private Task ResetIconAsync(CancellationToken ct) => SaveAsync((server, key) => editor.SaveIconAsync(path, server, key, null, null, ct));
     [RelayCommand(CanExecute = nameof(CanEditAlarm))]
     private Task SaveAlarmTitleAsync(CancellationToken ct) => SaveAsync((server, key) => editor.SaveAlarmTitleAsync(path, server, key, AlarmTitle, ct));
     [RelayCommand(CanExecute = nameof(CanEdit))]
@@ -111,7 +132,7 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
         }
         catch (OperationCanceledException) { Message = "Save canceled."; }
         catch (ProfileChangedException) { needsRefresh = true; Message = "The profiles file changed. Close and refresh before organizing again."; }
-        catch (ArgumentException) { Message = "Enter a group name and choose a valid destination."; }
+        catch (ArgumentException) { Message = "Enter a group name, choose a valid destination or select an icon from the catalog."; }
         catch (Exception) { Message = "Unable to save. Check file permissions and available disk space, then close and refresh."; }
         finally { IsBusy = false; }
     }
@@ -130,5 +151,5 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
         foreach (var command in Commands) if (command.ExecutionTask is { } task) await task;
     }
 
-    private IAsyncRelayCommand[] Commands => [RenameCommand, SaveAlarmTitleCommand, GroupCommand, MoveCommand, MoveUpCommand, MoveDownCommand];
+    private IAsyncRelayCommand[] Commands => [RenameCommand, SaveIconCommand, ResetIconCommand, SaveAlarmTitleCommand, GroupCommand, MoveCommand, MoveUpCommand, MoveDownCommand];
 }

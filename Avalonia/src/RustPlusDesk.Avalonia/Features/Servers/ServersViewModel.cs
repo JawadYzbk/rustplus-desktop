@@ -19,7 +19,7 @@ namespace RustPlusDesk.Avalonia.Features.Servers;
 public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFilePicker picker, string initialPath, IServerSessionFactory sessionFactory,
     IServerProfileEditor? profileEditor = null, IServerConnectionTester? connectionTester = null, ICompanionAccountService? accountService = null,
     ICompanionListener? companionListener = null, ICompanionPushHealth? pushHealth = null, IDeviceProfileEditor? deviceEditor = null,
-    IRecyclerCatalog? recyclerCatalog = null, ICloudAccountService? cloudAccountService = null)
+    IRecyclerCatalog? recyclerCatalog = null, ICloudAccountService? cloudAccountService = null, IReadOnlyList<DeviceIcon>? deviceIcons = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = new(sessionFactory);
@@ -235,7 +235,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         IsBusy = true;
         try
         {
-            Organizer = new(SourcePath, selected, deviceEditor!);
+            Organizer = new(SourcePath, selected, deviceEditor!, deviceIcons);
             var saved = await Organizer.Completion.WaitAsync(cancellationToken);
             if (saved is not null)
             {

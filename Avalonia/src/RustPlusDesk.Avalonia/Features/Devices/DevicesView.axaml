@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:RustPlusDesk.Avalonia.Features.Devices"
              xmlns:servers="using:RustPlusDesk.Avalonia.Features.Servers"
+             xmlns:shared="using:RustPlusDesk.Avalonia.Shared.Controls"
              x:Class="RustPlusDesk.Avalonia.Features.Devices.DevicesView" x:DataType="vm:DevicesViewModel">
   <Grid RowDefinitions="Auto,Auto,*" RowSpacing="8">
     <StackPanel Spacing="8">
@@ -30,7 +31,10 @@
               <StackPanel Spacing="8">
                 <StackPanel Spacing="8">
                   <StackPanel Spacing="4">
-                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <Grid ColumnDefinitions="32,*" ColumnSpacing="8">
+                      <shared:ItemIcon Width="32" Height="32" ItemId="{Binding Definition.CustomIconId}" ShortName="{Binding Definition.CustomIconShortName}" DefaultShortName="{Binding DefaultIconShortName}" />
+                      <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    </Grid>
                     <TextBlock Text="{Binding KindLabel}" Classes="muted" FontSize="12" />
                     <TextBlock Text="{Binding StateLabel}" FontWeight="SemiBold" />
                   </StackPanel>

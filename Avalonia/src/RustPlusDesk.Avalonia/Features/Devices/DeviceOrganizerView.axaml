@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:RustPlusDesk.Avalonia.Features.Devices"
              xmlns:models="clr-namespace:RustPlusDesk.Core.Devices;assembly=RustPlusDesk.Core"
+             xmlns:shared="using:RustPlusDesk.Avalonia.Shared.Controls"
              x:Class="RustPlusDesk.Avalonia.Features.Devices.DeviceOrganizerView" x:DataType="vm:DeviceOrganizerViewModel">
   <UserControl.KeyBindings><KeyBinding Gesture="Escape" Command="{Binding CloseCommand}" /></UserControl.KeyBindings>
   <Border Classes="card" Padding="24" Width="760" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -39,6 +40,25 @@
               <Button Content="Move _up" Command="{Binding MoveUpCommand}" />
               <Button Content="Move _down" Command="{Binding MoveDownCommand}" />
             </StackPanel>
+            <Expander Header="Custom icon" IsVisible="{Binding HasIconCatalog}" HorizontalAlignment="Stretch">
+              <StackPanel Spacing="8">
+                <TextBox Text="{Binding IconSearch}" PlaceholderText="Search item icons…" AutomationProperties.Name="Search device icons" />
+                <ListBox ItemsSource="{Binding IconChoices}" SelectedItem="{Binding SelectedIcon, Mode=TwoWay}" Height="160" AutomationProperties.Name="Device icon choices">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="models:DeviceIcon">
+                      <Grid ColumnDefinitions="32,*" ColumnSpacing="8">
+                        <shared:ItemIcon ShortName="{Binding ShortName}" DefaultShortName="paper" Width="32" Height="32" />
+                        <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+                <WrapPanel>
+                  <Button Content="Save _icon" Command="{Binding SaveIconCommand}" Margin="0,0,6,6" />
+                  <Button Content="Reset to _default" Command="{Binding ResetIconCommand}" Margin="0,0,0,6" />
+                </WrapPanel>
+              </StackPanel>
+            </Expander>
           </StackPanel>
         </ScrollViewer>
       </Grid>
