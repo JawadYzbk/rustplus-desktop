@@ -4,9 +4,9 @@ Development preview verified; the full migration remains unfinished. Overall sel
 
 | Axis | Score | Evidence and next improvement |
 | --- | --- | --- |
-| Accuracy | 4 | 202 automated cases pass, including the reference layout at three widths, divider keyboard interaction, collapse/reopen and long names. Prior socket-loss, teardown, alarm-title and icon regressions remain covered. Actual Steam/FCM and native Linux/macOS behavior still need acceptance. |
-| Completeness | 3 | Pairing, local device organization, recycler and the requested responsive panel arrangement are implemented. Remaining navigation, live map/tools/docks, full logs, cloud sharing and most other shipped features remain on STATUS.md. The shell foundation does not establish visual or feature parity. |
-| Clarity | 4 | Core exposes safe contracts; SDK credentials and mutations remain in Infrastructure. Keep the distinction between the temporary text feed and the full notification center explicit. |
+| Accuracy | 4 | 256 cases pass in the worktree and source-only isolation. Cloud tests cover real loopback delivery through fake cloud exchange/private save, cancellation/rebinding, legacy cache, account-switch isolation, scoped consent/revocation, conflicts, safe errors and lifecycle/UI ownership. Native Windows browser smoke and three target publishes pass. Live Steam/FCM/cloud and native Linux/macOS still need acceptance. |
+| Completeness | 3 | Pairing, local device organization, recycler, requested responsive panels and cloud identity/profile permission are implemented. Cloud sharing/import/limits and most other shipped features remain on STATUS.md. These verified slices do not establish full visual or feature parity. |
+| Clarity | 4 | Core exposes safe contracts; credentials and mutations remain in Infrastructure. Browser contracts and private writes are shared. Cloud permission is explicitly separate from pending automatic device synchronization. |
 | Actionability | 4 | README includes build/run and account workflows; tests use disposable fixtures. Live validation requires the user's Steam consent and a paired Rust server. |
 | Conciseness | 4 | Account and profile writes share one private atomic writer; the existing transport is reused for direct re-pair probes. Reconnect, persistence and UI coordination need separate tests and cannot safely be reduced to a single event handler. |
 

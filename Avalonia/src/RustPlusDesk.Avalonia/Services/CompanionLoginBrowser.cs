@@ -5,7 +5,7 @@ using RustPlusDesk.Core.Accounts;
 namespace RustPlusDesk.Avalonia.Services;
 
 /// <summary>Owns a native authentication dialog through completion, cancellation and application shutdown.</summary>
-public sealed class CompanionLoginBrowser(Window owner) : ICompanionLoginBrowser
+public sealed class CompanionLoginBrowser(Window owner) : IAuthenticationBrowser
 {
     public async Task<Uri?> AuthenticateAsync(Uri requestUri, Uri callbackUri, CancellationToken cancellationToken)
     {

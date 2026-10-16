@@ -16,13 +16,13 @@ public sealed class CompanionAccountService : ICompanionAccountService
 {
     private static readonly Uri Endpoint = new("https://companion-rust.facepunch.com/");
     private readonly HttpClient http;
-    private readonly ICompanionLoginBrowser browser;
+    private readonly IAuthenticationBrowser browser;
     private readonly Func<CancellationToken, Task<Credentials>> acquirePush;
 
-    public CompanionAccountService(HttpClient http, ICompanionLoginBrowser browser)
+    public CompanionAccountService(HttpClient http, IAuthenticationBrowser browser)
         : this(http, browser, ct => new FcmRegistration(http).AcquireCredentialsAsync(ct)) { }
 
-    internal CompanionAccountService(HttpClient http, ICompanionLoginBrowser browser, Func<CancellationToken, Task<Credentials>> acquirePush)
+    internal CompanionAccountService(HttpClient http, IAuthenticationBrowser browser, Func<CancellationToken, Task<Credentials>> acquirePush)
     { this.http = http; this.browser = browser; this.acquirePush = acquirePush; }
 
     public async Task<CompanionAccount> CheckAsync(string configPath, CancellationToken cancellationToken)

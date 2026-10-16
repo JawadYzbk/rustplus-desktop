@@ -12,6 +12,7 @@ using RustPlusDesk.Infrastructure.Profiles;
 using RustPlusDesk.Infrastructure.Connections;
 using RustPlusDesk.Infrastructure.Accounts;
 using RustPlusDesk.Infrastructure.Items;
+using RustPlusDesk.Infrastructure.Cloud;
 
 namespace RustPlusDesk.Avalonia;
 
@@ -42,12 +43,15 @@ public sealed partial class App : Application
             var window = new MainWindow();
             var sessions = new RustPlusSessionFactory();
             var accountHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+            var cloudHttp = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false }) { Timeout = TimeSpan.FromSeconds(30) };
             var accounts = new CompanionAccountService(accountHttp, new CompanionLoginBrowser(window));
             var pushHealth = new CompanionPushHealth(accountHttp, accounts);
             var servers = new ServersViewModel(new LegacyServerCatalog(),
                 new ProfileFilePicker(window), LegacyServerCatalog.DefaultPath, sessions, new LegacyServerProfileEditor(), sessions, accounts, new CompanionListener(pushHealth), pushHealth,
-                new LegacyDeviceProfileEditor(), new BundledRecyclerCatalog());
-            desktop.Exit += (_, _) => accountHttp.Dispose();
+                new LegacyDeviceProfileEditor(), new BundledRecyclerCatalog(),
+                new CloudAccountService(cloudHttp, new SystemLoginBrowser(window), CloudAccountService.DefaultCachePath,
+                    typeof(App).Assembly.GetName().Version!.ToString(3)));
+            desktop.Exit += (_, _) => { accountHttp.Dispose(); cloudHttp.Dispose(); };
             window.DataContext = servers;
             window.Opened += async (_, _) => await servers.InitializeCommand.ExecuteAsync(null);
             bool closing = false, shutdownComplete = false;

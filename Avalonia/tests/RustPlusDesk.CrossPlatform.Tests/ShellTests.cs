@@ -17,12 +17,98 @@ using RustPlusDesk.Avalonia.Shell;
 using RustPlusDesk.Core.Servers;
 using RustPlusDesk.Core.Connections;
 using RustPlusDesk.Core.Devices;
+using RustPlusDesk.Core.Accounts;
 
 namespace RustPlusDesk.CrossPlatform.Tests;
 
 [TestClass]
 public sealed class ShellTests
 {
+    [TestMethod]
+    public async Task CloudAccount_OpensFromSidebar_ConfirmsPermissionAndLocalSignOut_AtMinimumSize()
+    {
+        await using var session = HeadlessUnitTestSession.StartNew(typeof(TestAppBuilder));
+        await session.Dispatch(async () =>
+        {
+            var service = new CloudAccountViewModelTests.Service();
+            var model = new ServersViewModel(new PreviewCatalog(), new UnusedPicker(), "profiles.json", new PreviewSessionFactory(),
+                cloudAccountService: service);
+            var window = new MainWindow { DataContext = model, Width = 1000, Height = 700, RequestedThemeVariant = ThemeVariant.Dark };
+            try
+            {
+                window.Show();
+                model.OpenCloudAccountCommand.Execute(null);
+                using (var opening = window.CaptureRenderedFrame()) Assert.IsNotNull(opening);
+                Assert.IsTrue(model.IsAccountOpen);
+                Assert.AreEqual(1, model.AccountSectionIndex);
+                var cloud = model.Cloud!;
+                await cloud.CheckCommand.ExecuteAsync(null);
+                cloud.SetSteamAccount(new(AccountState.Active, CloudAccountViewModelTests.Steam));
+                using (var frame = window.CaptureRenderedFrame())
+                {
+                    Assert.IsNotNull(frame);
+                    frame.Save(Path.Combine(AppContext.BaseDirectory, "ui-cloud-account.png"), PngBitmapEncoderOptions.Default);
+                }
+                var view = window.GetVisualDescendants().OfType<RustPlusDesk.Avalonia.Features.Cloud.CloudAccountView>().Single();
+                Assert.IsTrue(view.IsEffectivelyVisible);
+                Assert.AreSame(cloud, view.DataContext);
+                var grant = view.GetVisualDescendants().OfType<Button>().Single(button => ReferenceEquals(button.Command, cloud.RequestGrantConsentCommand));
+                Assert.IsTrue(grant.IsEnabled);
+                grant.Command!.Execute(null);
+                Assert.IsTrue(cloud.IsConfirmingConsent);
+                Assert.AreEqual(0, service.Consents);
+                var confirm = view.GetVisualDescendants().OfType<Button>().Single(button => ReferenceEquals(button.Command, cloud.ConfirmConsentCommand));
+                confirm.Command!.Execute(null);
+                await cloud.ConfirmConsentCommand.ExecutionTask!;
+                Assert.IsTrue(cloud.HasSyncConsent);
+                cloud.RequestSignOutCommand.Execute(null);
+                using (var confirmation = window.CaptureRenderedFrame()) Assert.IsNotNull(confirmation);
+                var scroll = view.GetVisualAncestors().OfType<ScrollViewer>().First();
+                scroll.ScrollToEnd();
+                using (var frame = window.CaptureRenderedFrame())
+                {
+                    Assert.IsNotNull(frame);
+                    frame.Save(Path.Combine(AppContext.BaseDirectory, "ui-cloud-signout.png"), PngBitmapEncoderOptions.Default);
+                }
+                var close = window.GetVisualDescendants().OfType<Button>().Single(button => ReferenceEquals(button.Command, model.CloseAccountCommand));
+                var point = close.TranslatePoint(default, window)!.Value;
+                Assert.IsTrue(point.Y >= 0 && point.Y + close.Bounds.Height <= window.ClientSize.Height);
+                await cloud.ConfirmSignOutCommand.ExecuteAsync(null);
+                Assert.AreEqual(1, service.SignOuts);
+                await model.CloseAccountCommand.ExecuteAsync(null);
+                Assert.IsFalse(model.HasOverlay);
+                Assert.IsTrue(model.RefreshCommand.CanExecute(null));
+            }
+            finally { await model.ShutdownAsync(); window.Close(); }
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [TestMethod]
+    public async Task CloudStartupCheck_IsOwnedAndAwaitedDuringShutdown_WithoutCompanionServices()
+    {
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var service = new CloudAccountViewModelTests.Service
+        {
+            Check = async ct =>
+            {
+                started.TrySetResult();
+                try { await Task.Delay(Timeout.Infinite, ct); }
+                finally { await release.Task; }
+                return new(AccountState.Missing);
+            }
+        };
+        var model = new ServersViewModel(new PreviewCatalog(), new UnusedPicker(), "profiles.json", new PreviewSessionFactory(), cloudAccountService: service);
+        await model.InitializeCommand.ExecuteAsync(null);
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var shutdown = model.ShutdownAsync();
+        Assert.IsFalse(shutdown.IsCompleted);
+        release.TrySetResult();
+        await shutdown;
+        Assert.IsFalse(model.Cloud!.IsBusy);
+    }
+
     [DataTestMethod]
     [DataRow(1000, 700)]
     [DataRow(1380, 1000)]

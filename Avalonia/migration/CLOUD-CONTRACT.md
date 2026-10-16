@@ -1,8 +1,37 @@
-# Cloud discovery checkpoint — 2026-10-16
+# Cloud account and sharing contracts — 2026-10-16
 
-Research only; no cloud authentication, consent or device sharing port has been implemented yet.
-Jawad's layout correction took priority during this continuation. Continue with these contracts after
-the layout slice. Do not repeat the completed companion/native sign-in crash fix or pairing ports.
+Cloud identity/session and explicit profile-sync consent are implemented on the isolated migration
+branch. Device sharing/import and automatic synchronization remain unfinished. Do not repeat the
+completed companion/native sign-in crash fix or pairing ports.
+
+## Implemented account boundary
+
+- Core exposes credential-free `CloudAccount`/`CloudIdentity` and `ICloudAccountService`. Both browser
+  adapters implement the shared `IAuthenticationBrowser`; the proven Steam native dialog is unchanged.
+- Cloud sign-in uses the default system browser, an available loopback port on 127.0.0.1 and a fresh
+  256-bit nonce path. The listener accepts local GET callbacks only, owns cancellation/cleanup and never
+  echoes codes. Infrastructure checks exact URI, duplicate/error fields and the server's 64-character
+  code shape before exchanging it. The browser return page does not claim authentication succeeded.
+- The session cache is the reference path: ApplicationData/RustPlusDesk/cache/cloud_desktop_token.json.
+  Pascal-case legacy sessions restore; unknown root fields and same-owner user fields survive updates.
+  Switching accounts drops the old user's metadata and local consent. Atomic private writes
+  reject revision conflicts. Expired/401 sessions clear locally; outages retain stored bytes and disable
+  verification. 403/version/rate failures retain the session and expose safe messages, never raw bodies.
+- Explicit permission confirmation verifies the displayed cloud identity against fresh `me`, uses only
+  a verified Steam identity from the companion account, and checks any first binding with another `me`
+  before `profile/consent`. Existing different Steam links are rejected. Revocation can run without a
+  current Steam login. The local grant is scoped to cloud-user plus Steam ID and is cleared after an
+  observed remote revocation/link change or new sign-in. Offline/uncertain results cannot grant sync.
+- Account → Cloud and the sidebar Cloud button expose status, website sign-in, permission confirmation,
+  revocation, confirmed local sign-out and website account management. Startup checking is owned;
+  close/shutdown cancel and await cloud operations. Steam identity changes cancel pending consent.
+  Cloud sign-out leaves Steam and other cloud sessions intact.
+- The host uses a separate bearer-only HTTP client with cookies and automatic redirects disabled. Requests report the actual
+  Avalonia host assembly version (currently 1.0.0), not the WPF release version. A server 426 is surfaced;
+  this preview may be below the live minimum. Do not bypass the gate or claim live cloud acceptance.
+- No device uploads, cloud restoration or imports start from granting this permission. User-facing text
+  explicitly identifies these pending workflows. Additional consent types and plan/capability checks must
+  be ported with the corresponding workflows, not inferred from this profile permission alone.
 
 ## Verified reference behavior
 
@@ -25,8 +54,8 @@ the relevant source was read directly. Server source is available read-only in
   providers and has_password. Bearer tokens stay out of presentation, exceptions and logs.
 - GET `me` validates/restores a session. Reference behavior clears rejected/expired sessions and
   retains saved sessions on transient network failures. Reference logout is local, not remote revocation.
-- Reference cache key is `cloud_desktop_token`, JSON fields Token/User/ExpiresAt. Determine its exact
-  location and compatibility before writing. Reuse the private, revision-safe atomic writer; never
+- Reference cache key is `cloud_desktop_token`, JSON fields Token/User/ExpiresAt. Its location and
+  compatibility are now confirmed above. Reuse the private, revision-safe atomic writer; never
   save passwords or overwrite unknown fields. Separate cloud identity from Steam companion identity.
 - POST `me/consents` records consent_type/granted/metadata. POST `profile/consent` with `{accepted}`
   confirms cloud sync permission. Confirmation is scoped to cloud-user plus Steam identity and must
@@ -40,21 +69,35 @@ the relevant source was read directly. Server source is available read-only in
 - Import fetches `sync/team-devices`, uses team identities plus own Steam identity, and can fall back
   to local overlay data with wipe checks and nested-ID deduplication. It is not a replacement file export.
 
-## Exact next checks
+## Verified server details and exact next steps
 
-1. Read server `DesktopOAuthCodeService.php` to verify allowed loopback URIs, nonce paths, expiry and
-   one-time code consumption. The controller preserves the supplied path, but its validator has not
-   yet been inspected. Use a random callback nonce and exact URI/query validation if supported.
-2. Read route middleware, TokenIssuer/UserResource, MeConsentController and ProfileController consent/
-   Steam binding. Verify version gates; never bypass official-client or minimum-version requirements.
-   The WPF product version is 10.2.0; the Avalonia preview still has default assembly version metadata.
-3. Reuse the proven native Steam browser unchanged. Hosted cloud login should use the system browser
-   as the reference does, with an owned, cancellable loopback listener. Inspect any existing broker's
-   cancellation contract before choosing it; do not leave a listener behind after cancellation.
-4. Implement a bounded safe identity/session/consent feature with fake HTTP/browser/storage tests,
-   then wire its real view and lifetime. Validate hosted login without entering personal credentials.
-5. Port sharing/import only after identity, limits, consent and restoration safeguards are verified.
+`DesktopOAuthCodeService` allows any HTTP loopback port/path, issues 64 alphanumeric characters and
+stores single-use codes for 300 seconds. `User` uses UUID string IDs. TokenIssuer gives real-account
+Sanctum sessions a 30-day expiry. Auth and authenticated routes use EnsureMinimumClientVersion; 426 is
+part of the contract. `profile/consent` also records profile_sync consent. Presence first-binding can
+silently refuse another account's Steam ID, so checking `me` afterward is essential. These source files
+were read directly after graph coverage reported changed metadata; no server code was modified.
 
-An anonymous read-only GET to the public desktop-connect URL reached `/login` with HTTP 200. No
-credentials were entered, no login/consent form was submitted, and no live token/callback was accepted.
-Its anonymous HTML is ignored under `artifacts/cloud-contract/`; do not commit it or print CSRF values.
+1. Port plan limits/capabilities and the exact overlay/team-device contracts, including other required
+   consent types. Extract the existing private HTTP request code only when a second real consumer needs
+   it; keep bearer access inside Infrastructure. Do not expose tokens through Core or view models.
+2. Implement restore ownership/readiness before enabling the original Export/cloud-sync toggle. Preserve
+   empty-snapshot protection, wipe checks, safe DTO fields, unknown local metadata and revision checks.
+   Keep the local automatic-sync switch separate from profile permission, default it off and persist
+   disabling it immediately even offline. A saved grant alone must never start an uploader.
+3. Port Import with team identities/cloud snapshots plus the reference local-overlay fallback. Preserve
+   nested deduplication, alarm titles, chat command references and plan limits. Do not invent file export.
+4. Validate actual authenticated website handoff, Steam/FCM and live sharing only with the user's consent
+   and credentials entered by the user. Align the real release version at release time; no version spoofing.
+5. Finish provider/session/account workflows, native OS browser/DPI/permissions and full feature backlog.
+
+Verification includes local real-HTTP loopback delivery → fake cloud exchange → private cache write,
+callback rejection, listener cancellation/rebinding, malformed sessions/responses, conflicts, provider
+restore, identity binding/refusal, revocation, safe errors, UI commands and startup/shutdown ownership.
+A fresh cookie-free anonymous GET with a nonce callback/variable port reached `/login` with HTTP 200.
+No credentials were entered, forms submitted or live authenticated token/consent exchange accepted.
+
+Server-side caveat: the reference code redeemer currently calls cache get and forget separately.
+The client exchanges once, but concurrent server-side redemption was not tested; local callback tests
+do not establish atomic one-time enforcement by the backend. Do not modify the API repository as part
+of this migration without additional authorization.

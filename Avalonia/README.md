@@ -56,6 +56,14 @@ Network/provider failures remain inconclusive and do not trigger renewal. **Chec
 opens Steam authentication automatically. Live Steam/Facepunch/FCM acceptance still needs verification;
 automated checks use local callbacks, synthetic credentials and fake transports.
 
+The sidebar **Cloud** button (also Account → Cloud) checks or restores a saved website session,
+opens website sign-in in your system browser and confirms the return to this app. Cloud sign-in is
+separate from Steam pairing. Sync permission requires explicit confirmation for the displayed cloud
+account and verified Steam ID. You can revoke permission or confirm local cloud sign-out; other cloud
+sessions and Steam pairing remain available. Device syncing/import are still being migrated and do
+not start when permission is recorded. Server version requirements are respected; this preview may
+require a supported release before the live cloud service accepts it.
+
 Paired smart switches, nested groups, alarm state and storage contents load after connecting.
 ON/OFF commands wait for a confirmed state; failed or missing devices do not invalidate the server login.
 Storage uses the bundled Rust item names, including quantity, blueprint and upkeep information.
@@ -64,6 +72,7 @@ between groups or the top level, and move it up/down among siblings. Each action
 revision protection and a private backup. Clearing an alias restores the original device name.
 Smart alarms also expose their saved in-game title; blank clears it. This stores local identification
 metadata and preserves existing settings; cloud synchronization remains pending.
+
 Unknown settings and empty-group metadata stay intact; an active connection reloads its tree when the
 organizer closes. Cloud synchronization, drag gestures, device deletion/import/transfer, custom icons,
 automation and alarm audio remain pending.

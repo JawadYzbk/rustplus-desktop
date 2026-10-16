@@ -317,7 +317,7 @@ public sealed class CompanionAccountTests
         public void Dispose() { http.Dispose(); System.IO.Directory.Delete(Directory, recursive: true); }
     }
 
-    private sealed class Browser : ICompanionLoginBrowser
+    private sealed class Browser : IAuthenticationBrowser
     {
         public Uri? Request { get; private set; }
         public Uri? Callback { get; private set; }

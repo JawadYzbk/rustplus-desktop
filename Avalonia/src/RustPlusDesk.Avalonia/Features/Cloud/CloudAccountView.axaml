@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RustPlusDesk.Avalonia.Features.Cloud"
+             x:Class="RustPlusDesk.Avalonia.Features.Cloud.CloudAccountView" x:DataType="vm:CloudAccountViewModel">
+  <StackPanel Spacing="14">
+    <TextBlock Text="Rust+ Desktop Cloud" FontSize="22" FontWeight="SemiBold" />
+    <TextBlock Text="Use your website account to access cloud services. Steam pairing and cloud sign-in are separate."
+               TextWrapping="Wrap" Classes="muted" />
+    <TextBlock Text="{Binding Identity}" FontWeight="SemiBold" TextWrapping="Wrap" />
+    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+    <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" AutomationProperties.Name="Cloud account operation" />
+    <WrapPanel>
+      <Button Content="_Check cloud status" Command="{Binding CheckCommand}" Margin="0,0,6,6" />
+      <Button Content="_Sign in on website" Classes="accent" Command="{Binding SignInCommand}" Margin="0,0,6,6" />
+      <Button Content="_Cancel" Command="{Binding CancelCommand}" IsVisible="{Binding IsBusy}" Margin="0,0,0,6" />
+    </WrapPanel>
+    <TextBlock Text="Cloud synchronization" FontSize="16" FontWeight="SemiBold" />
+    <TextBlock Text="{Binding CloudSteamIdentity}" Classes="muted" TextWrapping="Wrap" />
+    <TextBlock Text="{Binding SteamIdentity}" Classes="muted" TextWrapping="Wrap" />
+    <TextBlock Text="Sign in to Rust+ with Steam and verify your cloud session before granting sync permission. Automatic device syncing and import are still being migrated."
+               TextWrapping="Wrap" Classes="muted" />
+    <TextBlock Text="Sync permission confirmed for the current cloud and Steam identities." TextWrapping="Wrap" IsVisible="{Binding HasSyncConsent}" />
+    <WrapPanel>
+      <Button Content="_Allow sync…" Command="{Binding RequestGrantConsentCommand}" Margin="0,0,6,6" />
+      <Button Content="_Revoke permission…" Command="{Binding RequestRevokeConsentCommand}" Margin="0,0,0,6" />
+    </WrapPanel>
+    <StackPanel Spacing="10" IsVisible="{Binding IsConfirmingConsent}">
+      <TextBlock Text="{Binding ConsentExplanation}" TextWrapping="Wrap" />
+      <WrapPanel>
+        <Button Content="_Confirm permission change" Command="{Binding ConfirmConsentCommand}" Margin="0,0,6,6" />
+        <Button Content="_Keep current settings" Command="{Binding KeepCurrentSettingsCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,0,6" />
+      </WrapPanel>
+    </StackPanel>
+    <Button Content="Sign out of _cloud…" Command="{Binding RequestSignOutCommand}" HorizontalAlignment="Left" />
+    <StackPanel Spacing="10" IsVisible="{Binding IsConfirmingSignOut}">
+      <TextBlock Text="Remove cloud sign-in from this device? Other sessions, existing cloud data and Steam pairing remain available." TextWrapping="Wrap" />
+      <WrapPanel>
+        <Button Content="_Confirm local sign-out" Command="{Binding ConfirmSignOutCommand}" Margin="0,0,6,6" />
+        <Button Content="Keep _signed in" Command="{Binding KeepCurrentSettingsCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,0,6" />
+      </WrapPanel>
+    </StackPanel>
+    <HyperlinkButton Content="Manage cloud account on the website" NavigateUri="https://rustplusdesktop.cloud/dashboard" HorizontalAlignment="Left" />
+  </StackPanel>
+</UserControl>
