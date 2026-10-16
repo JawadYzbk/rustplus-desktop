@@ -1,5 +1,39 @@
 # Avalonia migration handoff — 2026-10-17
 
+## Latest verified source — custom device icons
+
+- **`e6233b53`**, `codex/avalonia-migration`, adds local custom icons end to end. Prior verified plan
+  source is `5f4d8a9c` and its handoff `badf0463`. A following documentation-only commit records this
+  checkpoint. All edits stay in the dedicated worktree's `Avalonia/`; push only the dedicated branch.
+- **273 tests pass** here and in the external source-only copy. Debug/Release are clean; all three
+  self-contained win-x64/linux-x64/osx-arm64 publishes succeed. The expanded icon picker was rendered
+  and checked at 1000×700. These are Windows-host checks, not native Linux/macOS acceptance.
+- CustomIconId/CustomIconShortName survive catalog projection, nested organization and connection
+  reloads. Organize devices → Custom icon supports name/short-name/signed-ID search, preview, explicit
+  Save and Reset. Selection alone does not write. The shared private editor validates ID/name pairs,
+  preserves other JSON and rejects stale revisions. Close/shutdown own both new commands.
+- ItemIcon now resolves legacy ID-only icons, then short names, then kind defaults. The existing
+  BundledItemCatalog supplies safe DeviceIcon records and retains its previous last-ID-wins naming
+  behavior. App/root pass the catalog into the existing organizer; no new service/dependency was added.
+- 1,245 canonical item choices; 1,223 copied/bundled images, including 427 new unchanged reference
+  images. The original data has 1,246 entries with one duplicate ID. 22 canonical images remain absent
+  from the source pack and use fallbacks. See `DEVICE-ICONS.md` for evidence and remaining direct-click,
+  double-click/keyboard, localization and native visual gaps. Do not call full icon parity complete.
+- Import investigation verified exact original key/path/wipe rules and saved them in CLOUD-CONTRACT.md.
+  Server key is Host-Port; local overlay is ApplicationData/RustPlusDesk/Overlays/{key}/{steamId}.json.
+  Recorded nonzero wipe mismatch is stale; legacy write timestamp before current wipe is stale. Treat
+  unknown wipe/time as unknown, not proof of freshness. Validate filesystem segments in the portable port.
+- **Next required work remains cloud snapshot sharing/import.** The icon metadata prerequisite is now
+  carried through the local app. Use the retained contracts below; do not restart account/plan/icon work.
+  Add restore ownership/barrier before uploading, local default-off sync enablement separate from
+  consent, zero-leaf snapshot protection, fresh upload quotas, authorized owner metadata and the
+  team/local wipe-aware import picker. Then continue the full STATUS.md backlog and OS acceptance.
+- Latest usage check: **94% five-hour used**, reset timestamp `1792196846`. At 97%, stop implementation
+  and checkpoint verified work. Goal remains production-ready full parity and is active/unfinished.
+  No personal credentials or live authenticated cloud/Steam/FCM acceptance were used in this slice.
+
+The plan checkpoint and earlier constraints below remain historical evidence.
+
 ## Latest verified source — plan/device allowance
 
 - **`5f4d8a9c`** on **`codex/avalonia-migration`** adds verified cloud plan/device allowance.
