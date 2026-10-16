@@ -1,5 +1,59 @@
 # Avalonia migration handoff — 2026-10-16
 
+## Latest verified source — cloud accounts
+
+- **`ff0fda59`**, `codex/avalonia-migration`, contains cloud identity/session and profile-sync permission.
+  Active workspace remains `C:/Users/Jawad/.codex/worktrees/avalonia-migration/rustplus-desktop`;
+  all edits are inside `Avalonia/`. Push only to `origin/codex/avalonia-migration`.
+- **256 tests pass** in this worktree and the source-only external copy. Debug/Release are clean and
+  self-contained win-x64/linux-x64/osx-arm64 publishes succeed. Native Windows Steam-browser local
+  callback/cancellation smoke passes (the known WebView2 unregister warning remains at process exit).
+  No real Steam/FCM/cloud sign-in, consent update, token exchange or sharing was accepted with credentials.
+- Account → Cloud and the sidebar Cloud button use `CloudAccountViewModel`, `CloudAccountService`,
+  `CloudSessionFile` and `SystemLoginBrowser`. The browser uses Avalonia's OS launcher on the UI thread;
+  the owned loopback listener uses an available 127.0.0.1 port and random 256-bit nonce path. Local tests
+  exercise actual HTTP callback delivery through fake cloud exchange and private cache writes.
+- The shared browser contract is now `IAuthenticationBrowser`; the native Steam implementation is
+  otherwise unchanged. Tokens stay inside Infrastructure. Legacy Pascal-case cloud sessions restore
+  from ApplicationData/RustPlusDesk/cache/cloud_desktop_token.json. Updates preserve unknown root and
+  same-user metadata; switching cloud accounts drops the previous user's metadata and local consent.
+- Explicit profile permission checks the displayed cloud ID and verified Steam ID; first binding must
+  be confirmed by fresh `me`. Observed revocation/link changes invalidate the stored grant. Offline,
+  failed and canceled operations cannot leave a verified UI grant. Local sign-out requires confirmation
+  and leaves Steam and other cloud sessions intact. Startup/close/shutdown own cancellation and cleanup.
+- A fresh cookie-free anonymous GET with the nonce callback reached `/login` (HTTP 200). This is not
+  proof of authenticated acceptance. The actual preview assembly version is 1.0.0; a live minimum-version
+  gate may reject it with 426. Respect that response; do not advertise a copied WPF release version.
+- The latest account usage check was **63% five-hour used**. At 97%, stop implementation and reserve
+  capacity for verified commits/pushes and updating this handoff. The overall production-ready goal
+  remains active and unfinished; this feature checkpoint does not shrink its scope.
+
+### Exact next work
+
+1. Read `CLOUD-CONTRACT.md`, `STATUS.md`, `PROMPT.md` and `LAYOUT.md`. Do not repeat the implemented
+   account/native-crash/pairing/layout/recycler work. Retain every shipped feature and the supplied layout.
+2. Port cloud capabilities/plan limits and the original device snapshot/sharing/import workflows.
+   Reference DeviceDataModule, SharingModels, MainWindow.Devices and DeviceImportWindow. Export is the
+   consent-based cloud-sync toggle; Import is team snapshots plus local-overlay/wipe-aware fallback.
+3. Keep local automatic-sync enablement separate from permission, default it off, and persist local
+   disabling even offline. Implement the cloud-owned restore barrier before any uploader; preserve
+   empty-snapshot protection, nested DTO fields/alarm titles, plan limits and revision-safe local writes.
+   A saved profile permission alone must never start device uploads. Other consent types remain pending.
+4. Extract private cloud HTTP request/session access only for the second real consumer; do not expose
+   bearer tokens in Core/VMs. Source contract research is already recorded; avoid starting it over.
+5. Continue all remaining map, device, chat/team, cameras, tools, settings/localization, notifications,
+   integrations, packaging/updater and native OS acceptance work in the parity table. Never infer
+   production readiness from these tests or cross-publishes alone. Live user authentication and native
+   Linux/macOS/DPI/default-browser acceptance remain required.
+
+Graph project for this folder: `RustPlusDesk-Avalonia-Migration`, Tier 2. Its initial index did not
+refresh the new untracked cloud symbols during this slice; coverage checks and exact source/tests were
+used. Check current generation/coverage before relying on it. Use the original D-project for WPF
+reference discovery and read flagged source ranges directly. Backend source is read-only in
+`D:/Development/Rustplusdesktop-full-stack-api`; see the redemption race caveat in CLOUD-CONTRACT.md.
+The isolated copy is recorded in ignored `Avalonia/artifacts/isolation-path.txt`; no build or credentials
+are committed. Published local executables are under this worktree's `Avalonia/artifacts/publish/`.
+
 ## Current isolated branch — supersedes beta development instructions below
 
 - Jawad requested a dedicated branch from beta after the layout checkpoint.
@@ -14,7 +68,7 @@
 
 Earlier beta paths/push targets below are historical; the branch and workspace above take precedence.
 
-## Latest continuation — requested layout
+## Earlier checkpoint — requested layout
 
 - Source checkpoint **`6cc3f083`** adds Jawad's supplied responsive layout inside `Avalonia/` only.
   It follows the prior verified `d4bba03a`/documentation `d6069990` checkpoints and preserves intervening
