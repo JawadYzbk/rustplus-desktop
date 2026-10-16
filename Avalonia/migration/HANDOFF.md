@@ -1,4 +1,46 @@
-# Avalonia migration handoff — 2026-10-16
+# Avalonia migration handoff — 2026-10-17
+
+## Latest verified source — plan/device allowance
+
+- **`5f4d8a9c`** on **`codex/avalonia-migration`** adds verified cloud plan/device allowance.
+  Previous cloud source is `ff0fda59`; its documentation checkpoint is `84c82136`.
+  A following documentation-only commit records this handoff. Push only to
+  **`origin/codex/avalonia-migration`**. The dedicated branch was created from beta at `35dee2b2`.
+- Active folder: **`C:/Users/Jawad/.codex/worktrees/avalonia-migration/rustplus-desktop`**.
+  All migration changes remain under `Avalonia/`. The original `D:/Development/rustplus-desktop`
+  stays on beta (`fb0a2a5b` when checked), with unrelated WPF/localization/untracked work intact.
+  Existing beta history was not removed, reset or rewritten.
+- **270 tests pass** both here and in the source-only external copy. Debug/Release build cleanly;
+  self-contained win-x64/linux-x64/osx-arm64 publishes succeed. The minimum-size cloud account render
+  and fixed Close action were checked. No new live credentials or native OS acceptance were used.
+  The previous native Windows Steam callback/cancellation smoke remains valid and was not repeated.
+- `CloudAccountService.CheckAsync` now reads `profile` for fresh identity/plan/limits, validates the
+  entire relevant plan before writing the session, and returns a credential-free `CloudPlan`.
+  PHP empty arrays, missing features, nullable/zero quotas and disabled numeric rows match the
+  read-only backend helpers. Malformed plans retain the saved bytes; no tier/premium inference or
+  cached quota authority exists. Sync route enforcement differs from the feature flag; see contract.
+- Sign-in refreshes the plan; check/sign-in/consent/sign-out invalidate the old UI allowance before
+  I/O, so failures/offline/cancellation cannot leave a stale verified quota. Account view displays it.
+  This implements plan display, not uploading, import or local automatic-sync enablement.
+- Next: use `CLOUD-CONTRACT.md`'s retained device-sharing research. Implement the original device
+  snapshot/restore workflow and cloud-owned restore barrier before any uploader; keep local sync
+  enablement default-off and separate from profile permission. Persist disabling even offline.
+  Protect zero actual leaf snapshots and enforce fresh numeric quotas only on uploads.
+- For the second real cloud consumer, extract private raw JSON request/session access: overlay GET
+  and POST do not use the account helper's `data` wrapper. Keep tokens inside Infrastructure.
+  Team device flattening omits alarm titles/OilRigTrigger; preserve metadata through authorized owner
+  snapshots/local overlays. Verify exact server key, overlay path and wipe comparison before fallback.
+  Then implement picker/probes/deduplication/import with chat-command compatibility. No fake file export.
+- Overall goal remains every shipped feature with close layout parity and production readiness.
+  Large remaining ports and live Steam/FCM/cloud, native Linux/macOS/DPI/browser/distribution checks
+  are still required. Current preview assembly version remains 1.0.0; respect live 426 responses.
+- Latest five-hour usage checkpoint was **79% used**. At 97%, stop implementation, verify and save
+  completed work only, push this dedicated branch, and update the handoff with exact gaps.
+  Graph coverage for new cloud files is still untracked in the initial migration generation;
+  exact source/tests were used. Check freshness/coverage again before graph claims.
+
+The sections below retain earlier verified checkpoints and constraints; this section supersedes their
+current-source counts and next-step plan-display work.
 
 ## Latest verified source — cloud accounts
 
