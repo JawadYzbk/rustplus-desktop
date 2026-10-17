@@ -1,6 +1,56 @@
-# Avalonia migration handoff — 2026-10-17
+# Avalonia migration handoff — 2026-10-18
 
-**Plan of record: [PARITY-PLAN.md](PARITY-PLAN.md)** — same functionality as WPF, enterprise UI/UX redesign allowed.
+**Plan of record: [PARITY-PLAN.md](PARITY-PLAN.md).** Bar set by Jawad on 2026-10-18: *same functionality as the WPF
+app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
+every finished slice with its commit.
+
+## Where things stand (end of 2026-10-18)
+
+- Branch `codex/avalonia-migration`, worked **in the main checkout** `D:/Development/rustplus-desktop`
+  (the old Codex worktree was only detached). Pushed to `origin`. Latest commit: `6e176f08`.
+  Only `Avalonia/` changes; leave untracked `.serena/` and root `rustplus.proto` alone.
+- **404 tests pass** (Debug). Release build was last verified at the raid slice; publishes were not rerun.
+- Done this session, in order: device delete + empty-group cleanup, raid calculator, parity plan, Fluent
+  System Icons font + `Icon` control + dark default + labelled rail, live map (image, reference geometry,
+  grid, 51 monument icons/names, pan/zoom), live markers (2 s poll, reference icons/rotation), shared
+  settings store over `tracking_settings.json` + map Layers flyout, team/clan chat, device search/type filter,
+  design pass 1 (tokens + button/chip/panel styles, icon toolbars, compact device rows, status pills,
+  Cloud/Account in the rail), team dock restyle + wrapping map toolbar.
+
+## Start tomorrow with
+
+1. `get_usage` first; stop new work at 97% (see the user's usage-limits rule).
+2. Finish **design pass 2** (small): the bottom chat/activity panel polish, the recycler and raid page headers
+   (use `Border.panel`, `TextBlock.title/section`, `Button.primary/subtle/icon`, `ToggleButton.chip`), and the
+   modal dialogs (account, cloud, organizer, import, server editor). Keep every command; tests locate buttons
+   by `Command` or `AutomationProperties.Name`, so keep those names.
+3. Then continue PARITY-PLAN in order. Highest-value next slices:
+   - **1.4** death markers + heatmap, no-build zones, keycards, recycler markers (then enable Deaths/No Build chips).
+   - **2.2 rest**: chat search, context menu (copy, Steam ID, mention, centre map), avatars, emoji.
+   - **0.5** log panel (filter, expand, safe timestamped log stream) replacing the "Activity" tab content.
+   - **4.1** notifications inbox, **4.6** shop search/trade, **3.2** hotkeys window.
+4. Record each finished slice in the PARITY-PLAN progress table with its commit, then commit + push.
+
+## How to work (proven patterns)
+
+- Port behaviour from the WPF reference first (grep the reference file, copy rules/constants verbatim into
+  `Core`), add the SDK call to `Infrastructure/Connections/RustPlusTransport.cs` behind a Core capability
+  interface (`IServerMapSession`, `IServerMarkerSession`, `IServerChatSession` pattern), run it from
+  `ConnectionViewModel`'s connected loop (`Map.RunAsync`, `Chat.RunAsync`), then the view.
+- Settings: use `IAppSettingsStore` (`ServersViewModel.AppSettings`) with reference key names from
+  `TrackingSettings` (add constants to `SettingKeys`); never write keys you did not change.
+- Icons: `<icons:Icon Symbol="Name24" />` uses the reference WPF-UI symbol names (`FluentSymbol.g.cs`).
+- Tests: headless UI via `UiTestSession.Current.Dispatch`; synthetic map/markers in `MapTests`.
+  Rendered screenshots land in `tests/.../bin/Debug/net10.0/ui-*.png` — look at them after UI changes.
+- Shell gotchas: long heredocs/`python -c` with quotes break in this Bash tool — write a script file in the
+  scratchpad and run it; Python strings eat `\b` (use raw strings or the Edit tool for regexes).
+
+## Not claimed
+
+No full parity, no native Linux/macOS acceptance, no live Steam/FCM/cloud/real-server acceptance. The rest of
+this file below is the older history of earlier checkpoints.
+
+
 
 ## Latest verified checkpoint — device delete and empty-group cleanup
 
