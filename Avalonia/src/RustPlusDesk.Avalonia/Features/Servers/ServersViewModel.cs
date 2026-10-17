@@ -23,10 +23,18 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     ICompanionListener? companionListener = null, ICompanionPushHealth? pushHealth = null, IDeviceProfileEditor? deviceEditor = null,
     IRecyclerCatalog? recyclerCatalog = null, ICloudAccountService? cloudAccountService = null, IReadOnlyList<DeviceIcon>? deviceIcons = null,
     ICloudDeviceRestore? cloudDeviceRestore = null, IDeviceSyncPreferences? deviceSyncPreferences = null, ICloudDeviceSynchronizer? deviceSynchronizer = null,
-    IDeviceImporter? deviceImporter = null, IRaidCatalog? raidCatalog = null, IRaidPlanStore? raidPlanStore = null)
+    IDeviceImporter? deviceImporter = null, IRaidCatalog? raidCatalog = null, IRaidPlanStore? raidPlanStore = null,
+    RustPlusDesk.Core.Settings.IAppSettingsStore? appSettings = null)
     : ObservableObject
 {
-    public ConnectionViewModel Connection { get; } = new(sessionFactory);
+    public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
+
+    private static ConnectionViewModel CreateConnection(IServerSessionFactory factory, RustPlusDesk.Core.Settings.IAppSettingsStore? settings)
+    {
+        var connection = new ConnectionViewModel(factory);
+        if (settings is not null) connection.Map.UseSettings(settings);
+        return connection;
+    }
     public CompanionAccountViewModel? Account { get; private set; }
     public CompanionListenerViewModel? Listener { get; private set; }
     public bool HasListener => Listener is not null;
@@ -85,7 +93,9 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [ObservableProperty] private bool isSidebarOpen = true;
     [RelayCommand] private void ToggleSidebar() => IsSidebarOpen = !IsSidebarOpen;
     /// <summary>Reference rail "labels" toggle: icon-only rail or icon + label navigation.</summary>
-    [ObservableProperty] private bool isRailExpanded;
+    [ObservableProperty] private bool isRailExpanded = appSettings?.Get(RustPlusDesk.Core.Settings.SettingKeys.RailShowLabels, false) ?? false;
+    partial void OnIsRailExpandedChanged(bool value) => appSettings?.Set(RustPlusDesk.Core.Settings.SettingKeys.RailShowLabels, value);
+    public RustPlusDesk.Core.Settings.IAppSettingsStore? AppSettings => appSettings;
     [RelayCommand] private void ToggleRailLabels() => IsRailExpanded = !IsRailExpanded;
     [RelayCommand] private void ShowDevices() { WorkspaceIndex = 0; IsSidebarOpen = true; }
     [RelayCommand] private void OpenRecycler() { if (HasRecyclerTool) WorkspaceIndex = 1; }
@@ -556,6 +566,11 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         ImportDevicesCommand.Cancel();
         await raidPlanLoad;
         if (Raid is not null) await Raid.FlushAsync();
+        if (appSettings is not null)
+        {
+            try { await appSettings.FlushAsync(); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* Settings stay in memory; WPF defaults remain on disk. */ }
+        }
         if (DeviceSync is not null) await DeviceSync.StopAsync();
         if (Account is not null) await Account.StopAsync();
         if (Listener is not null) await Listener.StopListeningAsync();

@@ -30,6 +30,29 @@
                           ToolTip.Tip="Show vending machines" AutomationProperties.Name="Shops">
               <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Cart24" FontSize="16" /><TextBlock Text="Shops" /></StackPanel>
             </ToggleButton>
+            <Button x:Name="LayersButton" Padding="10,4" ToolTip.Tip="Map layer settings" AutomationProperties.Name="Layers">
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Layer24" FontSize="16" /><TextBlock Text="Layers" /></StackPanel>
+              <Button.Flyout>
+                <Flyout Placement="BottomEdgeAlignedLeft">
+                  <StackPanel Width="300" Spacing="10" Margin="4">
+                    <TextBlock Text="Map layers" FontWeight="SemiBold" />
+                    <TextBlock Text="Monument style" Classes="muted" FontSize="12" />
+                    <ComboBox ItemsSource="{Binding Connection.Map.MonumentStyles}" SelectedIndex="{Binding Connection.Map.MonumentDisplayMode}"
+                              HorizontalAlignment="Stretch" AutomationProperties.Name="Monument style" />
+                    <Grid ColumnDefinitions="*,48"><TextBlock Text="Monument size" Classes="muted" FontSize="12" />
+                      <TextBlock Grid.Column="1" Text="{Binding Connection.Map.MonumentScale, StringFormat='{}{0:0.0}x'}" HorizontalAlignment="Right" FontSize="12" /></Grid>
+                    <Slider Minimum="0.5" Maximum="3" Value="{Binding Connection.Map.MonumentScale}" AutomationProperties.Name="Monument size" />
+                    <Grid ColumnDefinitions="*,48"><TextBlock Text="Monument opacity" Classes="muted" FontSize="12" />
+                      <TextBlock Grid.Column="1" Text="{Binding Connection.Map.MonumentOpacity, StringFormat='{}{0:0%}'}" HorizontalAlignment="Right" FontSize="12" /></Grid>
+                    <Slider Minimum="0.1" Maximum="1" Value="{Binding Connection.Map.MonumentOpacity}" AutomationProperties.Name="Monument opacity" />
+                    <Grid ColumnDefinitions="*,48"><TextBlock Text="Grid opacity" Classes="muted" FontSize="12" />
+                      <TextBlock Grid.Column="1" Text="{Binding Connection.Map.GridOpacity, StringFormat='{}{0:0%}'}" HorizontalAlignment="Right" FontSize="12" /></Grid>
+                    <Slider Minimum="0.1" Maximum="1" Value="{Binding Connection.Map.GridOpacity}" AutomationProperties.Name="Grid opacity" />
+                    <CheckBox Content="Show shops automatically when connecting" IsChecked="{Binding Connection.Map.AutoLoadShops}" />
+                  </StackPanel>
+                </Flyout>
+              </Button.Flyout>
+            </Button>
             <Button Command="{Binding Connection.Map.ResetViewCommand}" IsEnabled="{Binding Connection.Map.HasMap}" Padding="10,4"
                     ToolTip.Tip="Fit the whole map (Home)" AutomationProperties.Name="Fit map">
               <icons:Icon Symbol="Target24" FontSize="16" />
@@ -45,6 +68,8 @@
         <Grid x:Name="MapContent" RowDefinitions="*,Auto">
         <map:MapSurface Grid.RowSpan="2" x:Name="Surface" Image="{Binding Connection.Map.Image}" Geometry="{Binding Connection.Map.Geometry}"
                         Monuments="{Binding Connection.Map.Monuments}" ShowGrid="{Binding Connection.Map.ShowGrid}"
+                        MonumentScale="{Binding Connection.Map.MonumentScale}" MonumentOpacity="{Binding Connection.Map.MonumentOpacity}"
+                        GridOpacity="{Binding Connection.Map.GridOpacity}" MonumentNames="{Binding Connection.Map.ShowMonumentNames}"
                         Markers="{Binding Connection.Map.Markers}" ShowPlayers="{Binding Connection.Map.ShowPlayers}" ShowShops="{Binding Connection.Map.ShowShops}"
                         ShowMonuments="{Binding Connection.Map.ShowMonuments}" ResetRequest="{Binding Connection.Map.ViewResetRequest}"
                         IsVisible="{Binding Connection.Map.HasMap}" AutomationProperties.Name="Server map" />

@@ -60,3 +60,6 @@ old host is retired, remove its superseded implementation after the parity check
 - `src/RustPlusDesk.Avalonia/Assets/Fonts/FluentSystemIcons-Regular.ttf` and the generated `Shared/Icons/FluentSymbol.g.cs`
   name table come from the WPF-UI 3.0.5 package (MIT) used by the reference app; the font is Microsoft's
   Fluent UI System Icons (MIT).
+- `src/RustPlusDesk.Avalonia/Assets/Fonts/PermanentMarker.ttf` (Permanent Marker, Apache License 2.0) is copied unchanged from the
+  reference app for its monument "Names" map style. Monument and marker icons are copied from the reference
+  `Assets/icons` pack and downscaled to at most 128 px.

@@ -2,6 +2,7 @@ using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using RustPlusDesk.Core.Map;
+using RustPlusDesk.Core.Settings;
 
 namespace RustPlusDesk.Avalonia.Features.Map;
 
@@ -31,6 +32,37 @@ public sealed partial class MapViewModel : ObservableObject
     public bool HasMap => Image is not null;
 
     [RelayCommand] private void ResetView() => ViewResetRequest++;
+
+    // Layers (reference PopupLayers), persisted in the shared tracking_settings.json.
+    private IAppSettingsStore? settings;
+    [ObservableProperty] private int monumentDisplayMode;
+    [ObservableProperty] private double monumentScale = 1.0;
+    [ObservableProperty] private double monumentOpacity = 1.0;
+    [ObservableProperty] private double gridOpacity = 0.7;
+    [ObservableProperty] private bool autoLoadShops = true;
+    [ObservableProperty] private bool isLayersOpen;
+    public IReadOnlyList<string> MonumentStyles { get; } = ["Icons", "Names"];
+    public bool ShowMonumentNames => MonumentDisplayMode == 1;
+    [RelayCommand] private void ToggleLayers() => IsLayersOpen = !IsLayersOpen;
+
+    /// <summary>Loads layer settings with the reference defaults and clamps; later edits are written back.</summary>
+    public void UseSettings(IAppSettingsStore store)
+    {
+        settings = null;
+        MonumentDisplayMode = Math.Clamp(store.Get(SettingKeys.MapMonumentDisplayMode, 0), 0, 1);
+        MonumentScale = Math.Clamp(store.Get(SettingKeys.MapMonumentScale, 1.0), 0.5, 3);
+        MonumentOpacity = Math.Clamp(store.Get(SettingKeys.MapMonumentOpacity, 1.0), 0.1, 1);
+        GridOpacity = Math.Clamp(store.Get(SettingKeys.MapGridOpacity, 0.7), 0.1, 1);
+        AutoLoadShops = store.Get(SettingKeys.AutoLoadShops, true);
+        ShowShops = AutoLoadShops;
+        settings = store;
+    }
+
+    partial void OnMonumentDisplayModeChanged(int value) { OnPropertyChanged(nameof(ShowMonumentNames)); settings?.Set(SettingKeys.MapMonumentDisplayMode, value); }
+    partial void OnMonumentScaleChanged(double value) => settings?.Set(SettingKeys.MapMonumentScale, value);
+    partial void OnMonumentOpacityChanged(double value) => settings?.Set(SettingKeys.MapMonumentOpacity, value);
+    partial void OnGridOpacityChanged(double value) => settings?.Set(SettingKeys.MapGridOpacity, value);
+    partial void OnAutoLoadShopsChanged(bool value) => settings?.Set(SettingKeys.AutoLoadShops, value);
 
     public void Reset()
     {

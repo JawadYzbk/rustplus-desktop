@@ -23,6 +23,10 @@ public sealed class MapSurface : Control
     public static readonly StyledProperty<IReadOnlyList<MapMarker>?> MarkersProperty = AvaloniaProperty.Register<MapSurface, IReadOnlyList<MapMarker>?>(nameof(Markers));
     public static readonly StyledProperty<bool> ShowPlayersProperty = AvaloniaProperty.Register<MapSurface, bool>(nameof(ShowPlayers), true);
     public static readonly StyledProperty<bool> ShowShopsProperty = AvaloniaProperty.Register<MapSurface, bool>(nameof(ShowShops), true);
+    public static readonly StyledProperty<double> MonumentScaleProperty = AvaloniaProperty.Register<MapSurface, double>(nameof(MonumentScale), 1.0);
+    public static readonly StyledProperty<double> MonumentOpacityProperty = AvaloniaProperty.Register<MapSurface, double>(nameof(MonumentOpacity), 1.0);
+    public static readonly StyledProperty<double> GridOpacityProperty = AvaloniaProperty.Register<MapSurface, double>(nameof(GridOpacity), 0.7);
+    public static readonly StyledProperty<bool> MonumentNamesProperty = AvaloniaProperty.Register<MapSurface, bool>(nameof(MonumentNames));
     public static readonly StyledProperty<int> ResetRequestProperty = AvaloniaProperty.Register<MapSurface, int>(nameof(ResetRequest));
 
     public Bitmap? Image { get => GetValue(ImageProperty); set => SetValue(ImageProperty, value); }
@@ -31,6 +35,12 @@ public sealed class MapSurface : Control
     public bool ShowGrid { get => GetValue(ShowGridProperty); set => SetValue(ShowGridProperty, value); }
     public bool ShowMonuments { get => GetValue(ShowMonumentsProperty); set => SetValue(ShowMonumentsProperty, value); }
     public int ResetRequest { get => GetValue(ResetRequestProperty); set => SetValue(ResetRequestProperty, value); }
+    public double MonumentScale { get => GetValue(MonumentScaleProperty); set => SetValue(MonumentScaleProperty, value); }
+    public double MonumentOpacity { get => GetValue(MonumentOpacityProperty); set => SetValue(MonumentOpacityProperty, value); }
+    public double GridOpacity { get => GetValue(GridOpacityProperty); set => SetValue(GridOpacityProperty, value); }
+    /// <summary>Reference "Names" style: monument names in Permanent Marker instead of icons.</summary>
+    public bool MonumentNames { get => GetValue(MonumentNamesProperty); set => SetValue(MonumentNamesProperty, value); }
+    private static readonly Typeface MarkerFace = new(new FontFamily("avares://RustPlusDesk.Avalonia/Assets/Fonts#Permanent Marker"));
     public IReadOnlyList<MapMarker>? Markers { get => GetValue(MarkersProperty); set => SetValue(MarkersProperty, value); }
     public bool ShowPlayers { get => GetValue(ShowPlayersProperty); set => SetValue(ShowPlayersProperty, value); }
     public bool ShowShops { get => GetValue(ShowShopsProperty); set => SetValue(ShowShopsProperty, value); }
@@ -54,7 +64,7 @@ public sealed class MapSurface : Control
     static MapSurface()
     {
         AffectsRender<MapSurface>(ImageProperty, GeometryProperty, MonumentsProperty, ShowGridProperty, ShowMonumentsProperty,
-            MarkersProperty, ShowPlayersProperty, ShowShopsProperty);
+            MarkersProperty, ShowPlayersProperty, ShowShopsProperty, MonumentScaleProperty, MonumentOpacityProperty, GridOpacityProperty, MonumentNamesProperty);
         ClipToBoundsProperty.OverrideDefaultValue<MapSurface>(true);
         FocusableProperty.OverrideDefaultValue<MapSurface>(true);
     }
@@ -189,9 +199,11 @@ public sealed class MapSurface : Control
         using (context.PushTransform(Matrix.CreateScale(scale, scale) * Matrix.CreateTranslation(offset)))
         {
             context.DrawImage(image, new Rect(image.Size));
-            if (ShowGrid && Geometry is { WorldSize: > 0 } geometry) DrawGrid(context, geometry);
+            if (ShowGrid && Geometry is { WorldSize: > 0 } geometry)
+                using (context.PushOpacity(GridOpacity)) DrawGrid(context, geometry);
         }
-        if (ShowMonuments && Geometry is { } world && Monuments is { Count: > 0 } monuments) DrawMonuments(context, world, monuments);
+        if (ShowMonuments && Geometry is { } world && Monuments is { Count: > 0 } monuments)
+            using (context.PushOpacity(MonumentOpacity)) DrawMonuments(context, world, monuments);
         if (Geometry is { } live && Markers is { Count: > 0 } markers) DrawMarkers(context, live, markers);
         if (Geometry is { } labelled) DrawHoverLabel(context, labelled);
     }
@@ -351,8 +363,19 @@ public sealed class MapSurface : Control
         {
             var (ix, iy) = geometry.WorldToImage(monument.X, monument.Y);
             var centre = ImageToScreen(ix, iy);
-            double size = MonumentIconSize * MonumentCatalog.IconScale(monument.Token);
-            if (LoadIcon(MonumentCatalog.IconFile(monument.Token, monument.DisplayName)) is { } icon)
+            double size = MonumentIconSize * MonumentScale * MonumentCatalog.IconScale(monument.Token);
+            if (MonumentNames && !MonumentCatalog.IsTrainTunnel(monument.Token))
+            {
+                // Reference text style: dark Permanent Marker, 9pt stretched 1.18× horizontally, scaled with the monument size.
+                var name = new FormattedText(monument.DisplayName, System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+                    MarkerFace, 9 * MonumentScale * 1.3, new SolidColorBrush(Color.FromArgb(220, 0, 0, 0)));
+                var stretch = Matrix.CreateTranslation(-centre.X, -centre.Y) * Matrix.CreateScale(1.18, 1) * Matrix.CreateTranslation(centre.X, centre.Y);
+                using (context.PushTransform(stretch))
+                    context.DrawText(name, new Point(centre.X - name.Width / 2, centre.Y - name.Height / 2));
+                continue;
+            }
+            string? file = MonumentNames ? "assets_markers_train.png" : MonumentCatalog.IconFile(monument.Token, monument.DisplayName);
+            if (LoadIcon(file) is { } icon)
                 context.DrawImage(icon, new Rect(centre.X - size / 2, centre.Y - size / 2, size, size));
             else
                 context.DrawEllipse(Brushes.OrangeRed, new Pen(Brushes.Black, 1.5), centre, size / 10, size / 10);
