@@ -8,6 +8,8 @@ public sealed record TeamMemberRow(ServerTeamMember Member)
 {
     public string Name => string.IsNullOrWhiteSpace(Member.Name) ? Member.SteamId
         : new string(Member.Name.Where(c => !char.IsControl(c)).Take(256).ToArray());
+    public bool IsOnline => Member.IsOnline == true;
+    public bool IsDead => Member.IsAlive == false;
     public string State => (Member.IsOnline switch { true => "Online", false => "Offline", _ => "Connection unknown" }) +
         (Member.IsAlive switch { true => " · Alive", false => " · Dead", _ => "" });
 }

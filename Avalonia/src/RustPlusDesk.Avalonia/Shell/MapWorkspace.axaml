@@ -12,7 +12,7 @@
     <Grid RowDefinitions="Auto,*">
       <Border Background="{DynamicResource SurfaceAlt}" Padding="16,10" BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,0,0,1">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <WrapPanel ItemSpacing="8" LineSpacing="6" VerticalAlignment="Center">
             <TextBlock Text="Map" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" />
             <ToggleButton Classes="chip" IsChecked="{Binding Connection.Map.ShowGrid}" IsEnabled="{Binding Connection.Map.HasMap}"
                           ToolTip.Tip="Show the map grid" AutomationProperties.Name="Grid">
@@ -57,7 +57,7 @@
                     ToolTip.Tip="Fit the whole map (Home)" AutomationProperties.Name="Fit map">
               <icons:Icon Symbol="Target24" FontSize="16" />
             </Button>
-          </StackPanel>
+          </WrapPanel>
           <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" IsVisible="{Binding Connection.IsConnected}">
             <TextBlock Text="{Binding Connection.Population, StringFormat='Players {0}'}" />
             <TextBlock Text="{Binding Connection.ServerTime}" />
@@ -99,7 +99,7 @@
     </Grid>
     <GridSplitter Grid.Row="1" Height="4" ResizeDirection="Rows" Background="{DynamicResource CardBorder}"
                   AutomationProperties.Name="Resize activity panel" />
-    <Border Grid.Row="2" Background="{DynamicResource Surface}" Padding="12,8" x:Name="ActivityPanel">
+    <Border Grid.Row="2" Background="{DynamicResource Surface}" Padding="14,4,14,10" x:Name="ActivityPanel">
       <TabControl Padding="0" AutomationProperties.Name="Chat and activity">
         <TabItem Header="Team chat" FontSize="14">
           <chat:ChatView DataContext="{Binding Connection.Chat}" Margin="0,6,0,0" />
