@@ -266,7 +266,8 @@ public sealed class ShellTests
                 Assert.IsFalse(Application.Current.Styles.OfType<FluentTheme>().Any());
             }
             else Assert.AreEqual(DensityStyle.Compact, Application.Current!.Styles.OfType<FluentTheme>().Single().DensityStyle);
-            Assert.AreEqual(ThemeVariant.Default, Application.Current.RequestedThemeVariant);
+            // The reference app is always dark; light remains available through explicit theme requests.
+            Assert.AreEqual(ThemeVariant.Dark, Application.Current.RequestedThemeVariant);
             var connectionFactory = new PreviewSessionFactory();
             var model = new ServersViewModel(new PreviewCatalog(), new UnusedPicker(), "profiles.json", connectionFactory);
             var window = new MainWindow { DataContext = model, RequestedThemeVariant = ThemeVariant.Dark };

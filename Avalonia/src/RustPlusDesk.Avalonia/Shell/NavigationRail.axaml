@@ -1,32 +1,47 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:RustPlusDesk.Avalonia.Features.Servers"
+             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
              x:Class="RustPlusDesk.Avalonia.Shell.NavigationRail" x:DataType="vm:ServersViewModel">
+  <!-- Navigation follows the reference RailCatalog order; areas appear here as they are ported. -->
   <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,0,1,0">
-    <Grid RowDefinitions="Auto,*,Auto" Margin="7,12">
-      <StackPanel Spacing="12">
-        <Button Classes="rail" Content="☰" Command="{Binding ToggleSidebarCommand}"
-                ToolTip.Tip="Show or hide server and device panel" AutomationProperties.Name="Toggle server and device panel" />
-        <Button Classes="rail" Classes.selected="{Binding !IsToolSelected}" Command="{Binding ShowDevicesCommand}"
-                ToolTip.Tip="Devices" AutomationProperties.Name="Devices">
-          <Path Width="20" Height="20" Stretch="Uniform" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.5"
-                Data="M 4,0 L 4,5 M 0,5 L 8,5 8,13 0,13 Z M 4,13 L 4,20 M 16,0 L 16,10 M 12,10 L 20,10 20,17 12,17 Z M 16,17 L 16,20" />
+    <Grid RowDefinitions="Auto,*,Auto" Margin="8,10,7,10">
+      <StackPanel Spacing="4">
+        <Button Classes="nav" Command="{Binding ToggleSidebarCommand}" ToolTip.Tip="Show or hide server and device panel"
+                AutomationProperties.Name="Toggle server and device panel">
+          <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Navigation24" />
+            <TextBlock Grid.Column="1" Classes="navLabel" Text="Servers panel" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
-        <Button Classes="rail" Classes.selected="{Binding IsRecyclerSelected}" Command="{Binding OpenRecyclerCommand}"
-                IsVisible="{Binding HasRecyclerTool}" ToolTip.Tip="Recycler" AutomationProperties.Name="Recycler">
-          <Path Width="22" Height="22" Stretch="Uniform" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.7"
-                Data="M 6,6 L 10,0 17,11 M 11,10 L 17,11 18,5 M 18,14 L 21,20 8,20 M 11,16 L 8,20 11,24 M 5,20 L 0,20 6,9 M 1,11 L 6,9 8,14" />
+        <Border Height="1" Margin="6,6" Background="{DynamicResource CardBorder}" />
+        <Button Classes="nav" Classes.selected="{Binding !IsToolSelected}" Command="{Binding ShowDevicesCommand}"
+                ToolTip.Tip="Monitor and control paired smart devices" AutomationProperties.Name="Devices">
+          <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Connector24" />
+            <TextBlock Grid.Column="1" Classes="navLabel" Text="Devices" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
-        <Button Classes="rail" Classes.selected="{Binding IsRaidSelected}" Command="{Binding OpenRaidCommand}"
-                IsVisible="{Binding HasRaidTool}" ToolTip.Tip="Raid calculator" AutomationProperties.Name="Raid calculator">
-          <Path Width="20" Height="22" Stretch="Uniform" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.6"
-                Data="M 10,0 C 14,4 15,9 14,15 L 6,15 C 5,9 6,4 10,0 Z M 6,11 L 2,15 2,19 6,17 M 14,11 L 18,15 18,19 14,17 M 8,15 L 8,19 M 12,15 L 12,19 M 10,6 A 1.5,1.5 0 1 1 10,9 A 1.5,1.5 0 1 1 10,6" />
+        <TextBlock Classes="navSection" Text="TOOLS" IsVisible="{Binding IsRailExpanded}" />
+        <Border Height="1" Margin="6,6" Background="{DynamicResource CardBorder}" IsVisible="{Binding !IsRailExpanded}" />
+        <Button Classes="nav" Classes.selected="{Binding IsRaidSelected}" Command="{Binding OpenRaidCommand}" IsVisible="{Binding HasRaidTool}"
+                ToolTip.Tip="Calculate raid costs and required materials" AutomationProperties.Name="Raid calculator">
+          <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Rocket24" />
+            <TextBlock Grid.Column="1" Classes="navLabel" Text="Raid Calculator" IsVisible="{Binding IsRailExpanded}" /></Grid>
+        </Button>
+        <Button Classes="nav" Classes.selected="{Binding IsRecyclerSelected}" Command="{Binding OpenRecyclerCommand}" IsVisible="{Binding HasRecyclerTool}"
+                ToolTip.Tip="Calculate component yields for wild and safe-zone recyclers" AutomationProperties.Name="Recycler">
+          <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Recycle32" />
+            <TextBlock Grid.Column="1" Classes="navLabel" Text="Recycling Calculator" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
       </StackPanel>
-      <Button Grid.Row="2" Classes="rail" Command="{Binding OpenAccountCommand}" IsVisible="{Binding HasAccount}"
-              ToolTip.Tip="Account and pairing" AutomationProperties.Name="Account and pairing">
-        <Path Width="20" Height="20" Stretch="Uniform" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.5"
-              Data="M 10,1 A 4,4 0 1 1 10,9 A 4,4 0 1 1 10,1 M 2,20 L 2,17 C 2,10 18,10 18,17 L 18,20" />
-      </Button>
+      <StackPanel Grid.Row="2" Spacing="4">
+        <Button Classes="nav" Command="{Binding OpenAccountCommand}" IsVisible="{Binding HasAccount}"
+                ToolTip.Tip="Account and pairing" AutomationProperties.Name="Account and pairing">
+          <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Person24" />
+            <TextBlock Grid.Column="1" Classes="navLabel" Text="Account" IsVisible="{Binding IsRailExpanded}" /></Grid>
+        </Button>
+        <Button Classes="nav" Command="{Binding ToggleRailLabelsCommand}" ToolTip.Tip="Show or hide navigation labels"
+                AutomationProperties.Name="Toggle navigation labels">
+          <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="PanelLeftExpand20" />
+            <TextBlock Grid.Column="1" Classes="navLabel" Text="Collapse" IsVisible="{Binding IsRailExpanded}" /></Grid>
+        </Button>
+      </StackPanel>
     </Grid>
   </Border>
 </UserControl>

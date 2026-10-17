@@ -26,7 +26,7 @@
         <Button Content="_Account" Command="{Binding OpenAccountCommand}" IsVisible="{Binding HasAccount}" />
       </StackPanel>
     </Grid>
-    <Grid Grid.Row="1" ColumnDefinitions="60,*" IsEnabled="{Binding !HasOverlay}">
+    <Grid Grid.Row="1" ColumnDefinitions="Auto,*" IsEnabled="{Binding !HasOverlay}">
       <shell:NavigationRail />
       <SplitView Grid.Column="1" x:Name="WorkspaceSplit" DisplayMode="Inline" IsPaneOpen="{Binding IsSidebarOpen, Mode=TwoWay}" OpenPaneLength="400">
         <SplitView.Pane>

@@ -56,3 +56,7 @@ and upstream attribution when copying or distributing it.
 
 The original implementation stays in place during migration. When a feature is fully ported and the
 old host is retired, remove its superseded implementation after the parity checks in `migration/PROMPT.md`.
+
+- `src/RustPlusDesk.Avalonia/Assets/Fonts/FluentSystemIcons-Regular.ttf` and the generated `Shared/Icons/FluentSymbol.g.cs`
+  name table come from the WPF-UI 3.0.5 package (MIT) used by the reference app; the font is Microsoft's
+  Fluent UI System Icons (MIT).

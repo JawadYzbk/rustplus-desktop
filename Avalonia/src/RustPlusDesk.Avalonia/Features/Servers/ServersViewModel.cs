@@ -84,6 +84,9 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     public bool HasRecyclerTool => recyclerCatalog is not null;
     [ObservableProperty] private bool isSidebarOpen = true;
     [RelayCommand] private void ToggleSidebar() => IsSidebarOpen = !IsSidebarOpen;
+    /// <summary>Reference rail "labels" toggle: icon-only rail or icon + label navigation.</summary>
+    [ObservableProperty] private bool isRailExpanded;
+    [RelayCommand] private void ToggleRailLabels() => IsRailExpanded = !IsRailExpanded;
     [RelayCommand] private void ShowDevices() { WorkspaceIndex = 0; IsSidebarOpen = true; }
     [RelayCommand] private void OpenRecycler() { if (HasRecyclerTool) WorkspaceIndex = 1; }
     public bool HasRaidTool => raidCatalog is not null && raidPlanStore is not null;

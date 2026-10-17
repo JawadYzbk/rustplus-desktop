@@ -106,3 +106,4 @@ Record each finished slice here with its commit.
 | --- | --- | --- |
 | Device delete + empty-group cleanup (3.1 part) | `fb864401` | Hotkey/overlay cleanup waits for 3.2/1.5 |
 | Raid calculator (tools) | `592a0893` | See RAID.md |
+| 0.1 dark default + Fluent System Icons font/`Icon` control (7,808 reference symbol names); 0.2 rail with reference icons/order and label toggle | next commit | Label state not yet persisted; more items join as areas are ported |
