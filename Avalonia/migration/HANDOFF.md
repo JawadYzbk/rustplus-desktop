@@ -1,5 +1,48 @@
 # Avalonia migration handoff — 2026-10-17
 
+## Latest verified checkpoint — live Team dock and direct icon access
+
+- **`d7bbf34c`**, pushed to `origin/codex/avalonia-migration`, follows import source `9c42634a` and
+  docs `e46ef67a`. Automatic sync source is `7d1b6ff4`. A following documentation-only commit records
+  this handoff. All migration work remains inside the attached worktree's Avalonia/; original
+  D:/Development/rustplus-desktop remains beta and unrelated WPF/backend/SDK/.serena/root proto work
+  was preserved.
+- **358 tests pass** in this worktree and the external source-only copy. Debug/Release build cleanly;
+  win-x64/linux-x64/osx-arm64 self-contained publishes succeed. Latest Windows release for testing:
+  **`C:/Users/Jawad/.codex/worktrees/avalonia-migration/rustplus-desktop/Avalonia/artifacts/publish/win-x64-latest/RustPlusDesk.Avalonia.exe`**.
+  Keep all accompanying files. No production-ready or full-parity claim is justified.
+- Core team records now retain online/alive state. The independent, owned ten-second TeamViewModel
+  loop displays offline/dead players, marks failed refreshes as stale and rejects late canceled
+  snapshots. Connection teardown cancels/awaits it and resets the roster. The collapsible dock stays
+  above activity, with scrolling/clamping against available map space. Minimum 1000×700 checks use
+  24 members, long names and the maximum activity height. This is read-only: no cloud team membership
+  or chat/master preferences are posted. Full map/team/chat/master behavior remains unported.
+- Device/group icon buttons open the existing organizer with the exact key/entity selected and the
+  shared picker expanded. The command takes a safe PairedDevice reference; stale/mismatched targets
+  cannot silently select another node. Opening never writes; Save/Reset keep revision/private-backup
+  behavior. A nested duplicate-ID UI test verifies only the clicked node changes. Existing organizer
+  calls still pass null to open normally. Icon-picker expansion is now bound to its view model, and
+  the obsolete no-cloud-sync message was corrected. Remaining double-click/localization/artwork and
+  native accessibility acceptance are not claimed complete.
+- **Next implementation:** remaining device add/delete/transfer/empty-group cleanup and live map
+  renderer/markers/tools/shop docks, then full team/master/chat/presence and remaining account/consent,
+  notification/audio/settings/localization/distribution ports. Re-read STATUS.md, LAYOUT.md,
+  CLOUD-CONTRACT.md, CLOUD-DEVICE-SYNC.md and DEVICE-IMPORT.md; do not repeat verified sync/import/team
+  roster/icon work. Backend team heartbeat also elects a master and overwrites chat flags: preserve
+  actual preferences/execution semantics before publishing membership. No backend edits are authorized.
+- Live Steam/FCM/cloud and real Rust server/wipe acceptance still require user-entered credentials and
+  appropriate servers. Native Linux/macOS appearance/runtime and full Windows distribution acceptance
+  remain pending. The host sends real preview version 1.0.0; respect 426, never impersonate WPF 10.2.0.
+- Latest usage check: **96% five-hour used**, reset **2026-10-17 11:20:52 UTC / 14:20:52 Beirut**.
+  Implementation is checkpointed; do not begin another unit as capacity approaches the required 97%
+  stop. Check usage before resuming. No reset credits were consumed. The completed one-time reset
+  automation was deleted; no new future continuation/cloud task was scheduled.
+- Migration graph is still stale/not-tracking newer files. Coverage checks and exact source/test
+  evidence were used. Source isolation is the Temp/rustplus-avalonia-cloud-* copy recorded in
+  artifacts/isolation-path.txt; run it from that directory with its absolute artifacts/nuget cache.
+
+Earlier checkpoints below are historical and retain contract/research details.
+
 ## Latest verified source — guarded shared-device import
 
 - **`9c42634a`** on `codex/avalonia-migration`, following automatic sync `7d1b6ff4` and documentation
