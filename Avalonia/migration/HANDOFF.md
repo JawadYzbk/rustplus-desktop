@@ -1,5 +1,44 @@
 # Avalonia migration handoff — 2026-10-17
 
+## Latest verified source — own cloud recovery
+
+- **`a3b58d4f`**, `codex/avalonia-migration`, implements explicit recovery of the owner's missing cloud
+  devices/groups. It follows the previous `e6233b53` icon source and `f903ca83` usage checkpoint.
+  A following documentation-only commit records this handoff; push only the dedicated origin branch.
+- **309 tests pass** in this worktree and source-only external copy. Debug/Release build without
+  warnings/errors; win-x64/linux-x64/osx-arm64 self-contained publishes succeed. Recovery UI checks
+  drive real HTTP-fixture/private-profile preview/confirmation/save at 1000×700, including long names.
+- The user's Windows Release build was produced first at `artifacts/publish/win-x64/`. A separate,
+  newer preview with recovery is **`artifacts/publish/win-x64-recovery/RustPlusDesk.Avalonia.exe`**.
+  Keep its accompanying files. No app was launched against personal cached credentials by the agent.
+- Devices → Recover cloud devices requires verified Steam/cloud identities and scoped profile consent.
+  Preview refreshes private identity/consent, reads the unwrapped own overlay response and exposes only
+  safe DTO data. Confirm re-fetches it, checks its revision and the exact local profile revision, then
+  merges missing nodes using the private writer/backup. Existing aliases/settings/manual chat mappings
+  and unknown local data win. Empty groups recover; ambiguous group/leaf ID collisions fail atomically.
+- The private CloudApiClient is now shared by accounts and recovery. Do not extract another token
+  transport or expose tokens in Core/VMs. SharedDeviceCodec is the explicit inbound field projection;
+  LegacyDeviceSnapshotMerger adds safe nodes and lowest-free case-insensitive chat command mappings.
+  Rig annotations survive as data, without creating enabled automation rules.
+- A snapshot saved before the profile's saved wipe is blocked. Other timestamps do not prove current
+  entity validity. The manual screen explicitly requires acknowledgment. **This is not automatic
+  restore/upload readiness.** No uploader, background-sync toggle or full teammate picker is implemented.
+  Read CLOUD-DEVICE-RECOVERY.md and the retained CLOUD-CONTRACT.md before continuing.
+- Next port the complete automatic restore-before-upload workflow and persisted default-off sync
+  switch (disable immediately even offline), fresh upload quotas, zero-leaf snapshot protection and
+  owned cancellation. Add current-server wipe/entity validation before automatic restoration. Then
+  finish the original team/cloud/local-overlay import picker with probes, nested deduplication and
+  chat/rig semantics. Do not replace the shipped workflow with manual recovery alone.
+- The one-time heartbeat was delivered at 06:20 UTC / 09:20 Beirut; capacity was restored to 2% and
+  implementation resumed. Latest subsequent usage check was 17%. Keep the 97% checkpoint rule.
+  No rate-limit reset credits, personal credentials or backend edits were used. The full migration,
+  map/native OS/live auth/distribution acceptance and production-ready objective remain unfinished.
+- Migration graph remains the old initial generation and does not track these cloud files. Coverage
+  checks and exact source/tests were used; revalidate before graph-based claims. The active worktree
+  is still C:/Users/Jawad/.codex/worktrees/avalonia-migration/rustplus-desktop; only Avalonia/ changed.
+
+The earlier usage checkpoint below is historical; capacity has since reset.
+
 ## Usage checkpoint — implementation stopped at 97%
 
 - Source remains **`e6233b53`**, followed by verified icon handoff **`428a07ba`**; both are pushed to
