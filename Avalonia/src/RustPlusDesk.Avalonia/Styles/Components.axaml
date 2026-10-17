@@ -17,6 +17,9 @@
           <SolidColorBrush x:Key="ConnectionDanger">#EF5350</SolidColorBrush>
           <SolidColorBrush x:Key="ConnectionPending">#FFCA28</SolidColorBrush>
           <SolidColorBrush x:Key="ConnectionRePair">#FF7043</SolidColorBrush>
+          <SolidColorBrush x:Key="SurfaceHover">#1FFFFFFF</SolidColorBrush>
+          <SolidColorBrush x:Key="AccentSoft">#2260CDFF</SolidColorBrush>
+          <SolidColorBrush x:Key="OnAccent">#05202C</SolidColorBrush>
           <SolidColorBrush x:Key="RaidSulfur">#F2C14E</SolidColorBrush>
           <SolidColorBrush x:Key="RaidSulfurSoft">#26F2C14E</SolidColorBrush>
           <SolidColorBrush x:Key="RaidSulfurBorder">#55F2C14E</SolidColorBrush>
@@ -39,6 +42,9 @@
           <SolidColorBrush x:Key="ConnectionDanger">#BB2323</SolidColorBrush>
           <SolidColorBrush x:Key="ConnectionPending">#875C00</SolidColorBrush>
           <SolidColorBrush x:Key="ConnectionRePair">#B33A16</SolidColorBrush>
+          <SolidColorBrush x:Key="SurfaceHover">#12000000</SolidColorBrush>
+          <SolidColorBrush x:Key="AccentSoft">#1A006E99</SolidColorBrush>
+          <SolidColorBrush x:Key="OnAccent">#FFFFFF</SolidColorBrush>
           <SolidColorBrush x:Key="RaidSulfur">#8A5F00</SolidColorBrush>
           <SolidColorBrush x:Key="RaidSulfurSoft">#26E0A800</SolidColorBrush>
           <SolidColorBrush x:Key="RaidSulfurBorder">#66B58400</SolidColorBrush>
@@ -79,6 +85,93 @@
   </Style>
   <Style Selector="ListBoxItem">
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+  </Style>
+  <!-- Design system: primary / subtle / icon buttons, chips, section captions, panels. -->
+  <Style Selector="Button.primary">
+    <Setter Property="Background" Value="{DynamicResource Accent}" />
+    <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Padding" Value="14,6" />
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+  <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Accent}" />
+    <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
+    <Setter Property="Opacity" Value="0.9" />
+  </Style>
+  <Style Selector="Button.subtle, Button.icon">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+  <Style Selector="Button.subtle:pointerover /template/ ContentPresenter, Button.icon:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+  </Style>
+  <Style Selector="Button.icon">
+    <Setter Property="Width" Value="32" />
+    <Setter Property="Height" Value="32" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.icon icons|Icon, Button.subtle icons|Icon">
+    <Setter Property="FontSize" Value="17" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSubtle}" />
+  </Style>
+  <Style Selector="Button.icon:pointerover icons|Icon, Button.subtle:pointerover icons|Icon">
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+  </Style>
+  <Style Selector="Button:disabled, ToggleButton:disabled">
+    <Setter Property="Opacity" Value="0.4" />
+  </Style>
+  <Style Selector="ToggleButton.chip">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="16" />
+    <Setter Property="Padding" Value="12,4" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+  <Style Selector="ToggleButton.chip:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+  </Style>
+  <Style Selector="ToggleButton.chip:checked /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+    <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+  </Style>
+  <Style Selector="ToggleButton.chip icons|Icon">
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSubtle}" />
+  </Style>
+  <Style Selector="ToggleButton.chip:checked icons|Icon">
+    <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+  </Style>
+  <Style Selector="TextBlock.section">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="LetterSpacing" Value="0.6" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSubtle}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBlock.title">
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.panel">
+    <Setter Property="Background" Value="{DynamicResource SurfaceAlt}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="12,10" />
+  </Style>
+  <Style Selector="Border.pill">
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Padding" Value="10,3" />
+    <Setter Property="Background" Value="{DynamicResource SurfaceAlt}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+    <Setter Property="BorderThickness" Value="1" />
   </Style>
   <Style Selector="Button.nav">
     <Setter Property="MinWidth" Value="44" />

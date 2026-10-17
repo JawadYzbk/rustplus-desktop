@@ -4,47 +4,53 @@
              xmlns:models="clr-namespace:RustPlusDesk.Core.Servers;assembly=RustPlusDesk.Core"
              xmlns:shared="using:RustPlusDesk.Avalonia.Shared.Controls"
              xmlns:connections="using:RustPlusDesk.Avalonia.Features.Connections"
+             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
              x:Class="RustPlusDesk.Avalonia.Features.Servers.ServersView"
              x:DataType="vm:ServersViewModel">
-  <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
-    <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
-      <StackPanel Spacing="4">
-        <TextBlock Text="SERVERS" FontSize="12" FontWeight="SemiBold" Classes="muted" />
-      </StackPanel>
-      <WrapPanel Grid.Row="1">
-        <Button Content="_Refresh" Command="{Binding RefreshCommand}" Margin="0,0,6,4" />
-        <Button Content="_Open profiles…" Command="{Binding OpenFileCommand}" Margin="0,0,6,4" />
-        <Button Content="_Edit…" Command="{Binding EditCommand}" Margin="0,0,0,4" />
-      </WrapPanel>
-    </Grid>
-    <TextBlock Grid.Row="1" Text="{Binding SourcePath}" Classes="muted" TextTrimming="CharacterEllipsis" FontSize="10" ToolTip.Tip="{Binding SourcePath}"
-               AutomationProperties.Name="Profiles file location" />
-    <ProgressBar Grid.Row="2" IsIndeterminate="True" IsVisible="{Binding IsBusy}"
-                 AutomationProperties.Name="Loading saved servers" />
-    <Grid Grid.Row="4">
-      <StackPanel Spacing="8">
-        <TextBlock Text="CONNECTION SERVICES" Classes="muted" FontSize="11" FontWeight="SemiBold" />
-        <Border IsVisible="{Binding HasServers}">
-          <connections:ConnectionStatusView DataContext="{Binding Connection}" />
-        </Border>
-        <WrapPanel IsVisible="{Binding HasListener}">
-          <Button Content="Start _listening" Command="{Binding Listener.StartCommand}" Margin="0,0,6,4" />
-          <Button Content="_Stop listening" Command="{Binding Listener.StopCommand}" Margin="0,0,0,4" />
-        </WrapPanel>
+  <StackPanel Spacing="10">
+    <Grid ColumnDefinitions="*,Auto">
+      <TextBlock Text="SERVERS" Classes="section" ToolTip.Tip="{Binding SourcePath}" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
+        <Button Classes="icon" Command="{Binding RefreshCommand}" ToolTip.Tip="Reload saved servers" AutomationProperties.Name="Refresh servers">
+          <icons:Icon Symbol="ArrowClockwise24" /></Button>
+        <Button Classes="icon" Command="{Binding OpenFileCommand}" ToolTip.Tip="Open a profiles.json file" AutomationProperties.Name="Open profiles file">
+          <icons:Icon Symbol="FolderOpen24" /></Button>
+        <Button Classes="icon" Command="{Binding EditCommand}" ToolTip.Tip="Edit the selected server" AutomationProperties.Name="Edit server">
+          <icons:Icon Symbol="Edit24" /></Button>
       </StackPanel>
     </Grid>
-    <shared:StatusPanel Grid.Row="3" Classes="compact" Title="{Binding StatusTitle}" Message="{Binding StatusMessage}"
-                        IsVisible="{Binding ShowStatus}" VerticalAlignment="Center" />
-    <ComboBox Grid.Row="3" x:Name="SavedServerSelector" ItemsSource="{Binding Servers}" SelectedItem="{Binding SelectedServer, Mode=TwoWay}" IsVisible="{Binding HasServers}"
-              AutomationProperties.Name="Saved servers" HorizontalAlignment="Stretch">
+    <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" AutomationProperties.Name="Loading saved servers" />
+    <shared:StatusPanel Classes="compact" Title="{Binding StatusTitle}" Message="{Binding StatusMessage}" IsVisible="{Binding ShowStatus}" />
+    <ComboBox x:Name="SavedServerSelector" ItemsSource="{Binding Servers}" SelectedItem="{Binding SelectedServer, Mode=TwoWay}" IsVisible="{Binding HasServers}"
+              AutomationProperties.Name="Saved servers" HorizontalAlignment="Stretch" ToolTip.Tip="{Binding SourcePath}">
       <ComboBox.ItemTemplate>
         <DataTemplate x:DataType="models:ServerSummary">
-          <StackPanel Spacing="3" ToolTip.Tip="{Binding Host}">
-            <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-            <TextBlock Text="{Binding Port, StringFormat='Port {0}'}" FontSize="11" Classes="muted" />
-          </StackPanel>
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" ToolTip.Tip="{Binding Host}">
+            <icons:Icon Symbol="Server24" FontSize="18" Foreground="{DynamicResource TextSubtle}" />
+            <StackPanel Grid.Column="1" Spacing="1">
+              <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+              <TextBlock Text="{Binding Port, StringFormat='Port {0}'}" FontSize="11" Classes="muted" />
+            </StackPanel>
+          </Grid>
         </DataTemplate>
       </ComboBox.ItemTemplate>
     </ComboBox>
-  </Grid>
+    <TextBlock Text="CONNECTION" Classes="section" Margin="0,6,0,0" IsVisible="{Binding HasServers}" />
+    <connections:ConnectionStatusView DataContext="{Binding Connection}" IsVisible="{Binding $parent[UserControl].((vm:ServersViewModel)DataContext).HasServers}" />
+    <Border Classes="panel" Padding="10,6" IsVisible="{Binding HasListener}">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+        <Ellipse Width="8" Height="8" Classes="connection-dot" Classes.connected="{Binding Listener.IsRunning, FallbackValue=False}" VerticalAlignment="Center" />
+        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+          <TextBlock Text="Pairing listener" FontSize="12" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding Listener.Status, FallbackValue=''}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+        </StackPanel>
+        <Panel Grid.Column="2" VerticalAlignment="Center">
+          <Button Classes="subtle" Content="Start" Command="{Binding Listener.StartCommand}" IsVisible="{Binding !Listener.IsRunning, FallbackValue=True}"
+                  AutomationProperties.Name="Start listening for pairing" />
+          <Button Classes="subtle" Content="Stop" Command="{Binding Listener.StopCommand}" IsVisible="{Binding Listener.IsRunning, FallbackValue=False}"
+                  AutomationProperties.Name="Stop listening for pairing" />
+        </Panel>
+      </Grid>
+    </Border>
+  </StackPanel>
 </UserControl>

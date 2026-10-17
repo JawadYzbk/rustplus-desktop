@@ -14,23 +14,23 @@
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
           <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
             <TextBlock Text="Map" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" />
-            <ToggleButton IsChecked="{Binding Connection.Map.ShowGrid}" IsEnabled="{Binding Connection.Map.HasMap}" Padding="10,4"
+            <ToggleButton Classes="chip" IsChecked="{Binding Connection.Map.ShowGrid}" IsEnabled="{Binding Connection.Map.HasMap}"
                           ToolTip.Tip="Show the map grid" AutomationProperties.Name="Grid">
               <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Grid24" FontSize="16" /><TextBlock Text="Grid" /></StackPanel>
             </ToggleButton>
-            <ToggleButton IsChecked="{Binding Connection.Map.ShowMonuments}" IsEnabled="{Binding Connection.Map.HasMap}" Padding="10,4"
+            <ToggleButton Classes="chip" IsChecked="{Binding Connection.Map.ShowMonuments}" IsEnabled="{Binding Connection.Map.HasMap}"
                           ToolTip.Tip="Show monuments" AutomationProperties.Name="Monuments">
               <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Location24" FontSize="16" /><TextBlock Text="Monuments" /></StackPanel>
             </ToggleButton>
-            <ToggleButton IsChecked="{Binding Connection.Map.ShowPlayers}" IsEnabled="{Binding Connection.Map.HasMap}" Padding="10,4"
+            <ToggleButton Classes="chip" IsChecked="{Binding Connection.Map.ShowPlayers}" IsEnabled="{Binding Connection.Map.HasMap}"
                           ToolTip.Tip="Show team players" AutomationProperties.Name="Players">
               <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="People24" FontSize="16" /><TextBlock Text="Players" /></StackPanel>
             </ToggleButton>
-            <ToggleButton IsChecked="{Binding Connection.Map.ShowShops}" IsEnabled="{Binding Connection.Map.HasMap}" Padding="10,4"
+            <ToggleButton Classes="chip" IsChecked="{Binding Connection.Map.ShowShops}" IsEnabled="{Binding Connection.Map.HasMap}"
                           ToolTip.Tip="Show vending machines" AutomationProperties.Name="Shops">
               <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Cart24" FontSize="16" /><TextBlock Text="Shops" /></StackPanel>
             </ToggleButton>
-            <Button x:Name="LayersButton" Padding="10,4" ToolTip.Tip="Map layer settings" AutomationProperties.Name="Layers">
+            <Button x:Name="LayersButton" Classes="subtle" ToolTip.Tip="Map layer settings" AutomationProperties.Name="Layers">
               <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Layer24" FontSize="16" /><TextBlock Text="Layers" /></StackPanel>
               <Button.Flyout>
                 <Flyout Placement="BottomEdgeAlignedLeft">
@@ -53,7 +53,7 @@
                 </Flyout>
               </Button.Flyout>
             </Button>
-            <Button Command="{Binding Connection.Map.ResetViewCommand}" IsEnabled="{Binding Connection.Map.HasMap}" Padding="10,4"
+            <Button Classes="icon" Command="{Binding Connection.Map.ResetViewCommand}" IsEnabled="{Binding Connection.Map.HasMap}"
                     ToolTip.Tip="Fit the whole map (Home)" AutomationProperties.Name="Fit map">
               <icons:Icon Symbol="Target24" FontSize="16" />
             </Button>
@@ -76,11 +76,14 @@
         <ScrollViewer HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding !Connection.Map.HasMap}" Margin="20">
         <Border Classes="card" MaxWidth="360" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center">
           <StackPanel Spacing="14">
+            <Border Width="56" Height="56" CornerRadius="28" Background="{DynamicResource AccentSoft}" HorizontalAlignment="Center">
+              <icons:Icon Symbol="Map24" FontSize="26" Foreground="{DynamicResource Accent}" />
+            </Border>
             <TextBlock Text="Ready to explore the map?" FontSize="20" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" />
             <TextBlock Text="{Binding Connection.ServerName}" TextAlignment="Center" TextWrapping="Wrap" />
-            <Button Content="_Connect" Classes="accent" Command="{Binding Connection.ConnectCommand}"
+            <Button Content="_Connect" Classes="primary" Command="{Binding Connection.ConnectCommand}"
                     IsVisible="{Binding !Connection.IsActive}" HorizontalAlignment="Center" />
-            <Button Content="_Disconnect" Command="{Binding Connection.DisconnectCommand}"
+            <Button Content="_Disconnect" Classes="subtle" Command="{Binding Connection.DisconnectCommand}"
                     IsVisible="{Binding Connection.IsActive}" HorizontalAlignment="Center" />
             <TextBlock Text="{Binding Connection.Map.Message}" Classes="muted" FontSize="12" TextAlignment="Center" TextWrapping="Wrap"
                        IsVisible="{Binding Connection.Map.Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />

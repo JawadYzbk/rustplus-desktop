@@ -2,26 +2,30 @@
              xmlns:vm="using:RustPlusDesk.Avalonia.Features.Devices"
              xmlns:servers="using:RustPlusDesk.Avalonia.Features.Servers"
              xmlns:shared="using:RustPlusDesk.Avalonia.Shared.Controls"
+             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
              x:Class="RustPlusDesk.Avalonia.Features.Devices.DevicesView" x:DataType="vm:DevicesViewModel">
   <Grid RowDefinitions="Auto,Auto,*" RowSpacing="8">
-    <StackPanel Spacing="8">
-      <StackPanel Spacing="4">
-        <TextBlock Text="Devices" FontSize="18" FontWeight="SemiBold" />
-        <TextBlock Text="{Binding Message}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
-      </StackPanel>
-      <WrapPanel>
-        <Button Content="_Organize…" Margin="0,0,6,4" Command="{Binding $parent[Window].((servers:ServersViewModel)DataContext).OrganizeDevicesCommand}"
-                IsVisible="{Binding $parent[Window].((servers:ServersViewModel)DataContext).HasDeviceEditor, FallbackValue=False}" />
-        <Button Content="_Refresh devices" Command="{Binding RefreshCommand}" Margin="0,0,0,4" />
-        <Button Content="_Import devices…" Margin="6,0,0,4"
-                Command="{Binding $parent[Window].((servers:ServersViewModel)DataContext).ImportDevicesCommand}"
-                ToolTip.Tip="Connect to this server to import shared team devices or local snapshots."
-                IsVisible="{Binding $parent[Window].((servers:ServersViewModel)DataContext).HasDeviceImporter, FallbackValue=False}" />
-        <Button Content="Recover _cloud devices…" Margin="6,0,0,4"
-                ToolTip.Tip="Verify cloud and Steam sign-in, then allow sync in Account → Cloud."
-                Command="{Binding $parent[Window].((servers:ServersViewModel)DataContext).RecoverCloudDevicesCommand}"
-                IsVisible="{Binding $parent[Window].((servers:ServersViewModel)DataContext).HasCloudDeviceRestore, FallbackValue=False}" />
-      </WrapPanel>
+    <StackPanel Spacing="4">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Text="Devices" Classes="title" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
+          <Button Classes="icon" Command="{Binding RefreshCommand}" ToolTip.Tip="Refresh device states" AutomationProperties.Name="Refresh devices">
+            <icons:Icon Symbol="ArrowClockwise24" /></Button>
+          <Button Classes="icon" Command="{Binding $parent[Window].((servers:ServersViewModel)DataContext).OrganizeDevicesCommand}"
+                  IsVisible="{Binding $parent[Window].((servers:ServersViewModel)DataContext).HasDeviceEditor, FallbackValue=False}"
+                  ToolTip.Tip="Organize: rename, group, move, icons, delete" AutomationProperties.Name="Organize devices">
+            <icons:Icon Symbol="TextBulletListTree24" /></Button>
+          <Button Classes="icon" Command="{Binding $parent[Window].((servers:ServersViewModel)DataContext).ImportDevicesCommand}"
+                  IsVisible="{Binding $parent[Window].((servers:ServersViewModel)DataContext).HasDeviceImporter, FallbackValue=False}"
+                  ToolTip.Tip="Import shared team devices or local snapshots (connect first)" AutomationProperties.Name="Import devices">
+            <icons:Icon Symbol="ArrowDownload24" /></Button>
+          <Button Classes="icon" Command="{Binding $parent[Window].((servers:ServersViewModel)DataContext).RecoverCloudDevicesCommand}"
+                  IsVisible="{Binding $parent[Window].((servers:ServersViewModel)DataContext).HasCloudDeviceRestore, FallbackValue=False}"
+                  ToolTip.Tip="Recover devices from your cloud backup" AutomationProperties.Name="Recover cloud devices">
+            <icons:Icon Symbol="CloudArrowDown24" /></Button>
+        </StackPanel>
+      </Grid>
+      <TextBlock Text="{Binding Message}" Classes="muted" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding HasDevices}" />
     </StackPanel>
     <StackPanel Grid.Row="1" Spacing="6">
       <Grid ColumnDefinitions="*,110" ColumnSpacing="8" IsVisible="{Binding HasDevices}">
@@ -33,49 +37,59 @@
     </StackPanel>
     <Grid Grid.Row="2">
       <TextBlock Text="No devices match this search." Classes="muted" IsVisible="{Binding HasNoMatches}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,12" />
-      <Border Classes="card" IsVisible="{Binding !HasDevices}" VerticalAlignment="Center">
-        <TextBlock Text="No devices paired for this server." TextWrapping="Wrap" Classes="muted" />
-      </Border>
+      <StackPanel IsVisible="{Binding !HasDevices}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Margin="12">
+        <Border Width="64" Height="64" CornerRadius="32" Background="{DynamicResource SurfaceAlt}" HorizontalAlignment="Center">
+          <icons:Icon Symbol="Connector24" FontSize="28" Foreground="{DynamicResource TextSubtle}" />
+        </Border>
+        <TextBlock Text="No devices found" FontWeight="SemiBold" HorizontalAlignment="Center" />
+        <TextBlock Text="Pair a smart switch, alarm or storage monitor in Rust to see it here." Classes="muted" FontSize="12"
+                   TextWrapping="Wrap" TextAlignment="Center" MaxWidth="260" />
+      </StackPanel>
       <TreeView ItemsSource="{Binding Devices}" IsVisible="{Binding HasDevices}" Background="Transparent"
                 AutomationProperties.Name="Paired smart devices" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
         <TreeView.Styles>
-          <Style Selector="TreeViewItem"><Setter Property="IsExpanded" Value="True" /></Style>
+          <Style Selector="TreeViewItem"><Setter Property="IsExpanded" Value="True" /><Setter Property="Padding" Value="0" /><Setter Property="MinHeight" Value="0" /></Style>
+          <Style Selector="Border.deviceRow">
+            <Setter Property="Background" Value="{DynamicResource SurfaceAlt}" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+          </Style>
           <Style Selector="TreeViewItem" x:DataType="vm:DeviceRowViewModel"><Setter Property="IsVisible" Value="{Binding IsMatch}" /></Style>
         </TreeView.Styles>
         <TreeView.DataTemplates>
           <TreeDataTemplate DataType="vm:DeviceRowViewModel" x:DataType="vm:DeviceRowViewModel" ItemsSource="{Binding Children}">
-            <Border Classes="card" Margin="0,0,0,8" Padding="12">
-              <StackPanel Spacing="8">
-                <StackPanel Spacing="8">
-                  <StackPanel Spacing="4">
-                    <Grid ColumnDefinitions="32,*" ColumnSpacing="8">
-                      <Button Width="32" Height="32" Padding="0" Background="Transparent" BorderThickness="0"
-                              Command="{Binding $parent[Window].((servers:ServersViewModel)DataContext).OrganizeDevicesCommand}"
-                              CommandParameter="{Binding Definition}" ToolTip.Tip="Customize device icon"
-                              AutomationProperties.Name="{Binding Name, StringFormat='Customize icon for {0}'}">
-                        <shared:ItemIcon Width="32" Height="32" ItemId="{Binding Definition.CustomIconId}" ShortName="{Binding Definition.CustomIconShortName}" DefaultShortName="{Binding DefaultIconShortName}" />
-                      </Button>
-                      <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" />
-                    </Grid>
-                    <TextBlock Text="{Binding KindLabel}" Classes="muted" FontSize="12" />
-                    <TextBlock Text="{Binding StateLabel}" FontWeight="SemiBold" />
+            <Border Classes="deviceRow">
+              <StackPanel Spacing="6">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                  <Button Width="30" Height="30" Padding="0" Classes="subtle"
+                          Command="{Binding $parent[Window].((servers:ServersViewModel)DataContext).OrganizeDevicesCommand}"
+                          CommandParameter="{Binding Definition}" ToolTip.Tip="Customize device icon"
+                          AutomationProperties.Name="{Binding Name, StringFormat='Customize icon for {0}'}">
+                    <shared:ItemIcon Width="26" Height="26" ItemId="{Binding Definition.CustomIconId}" ShortName="{Binding Definition.CustomIconShortName}" DefaultShortName="{Binding DefaultIconShortName}" />
+                  </Button>
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
+                    <TextBlock Classes="muted" FontSize="11" TextTrimming="CharacterEllipsis">
+                      <Run Text="{Binding KindLabel}" /><Run Text=" · " /><Run Text="{Binding StateLabel}" />
+                    </TextBlock>
                   </StackPanel>
-                  <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding SupportsControl}">
-                    <Button Content="ON" Command="{Binding TurnOnCommand}" AutomationProperties.Name="Turn device on" />
-                    <Button Content="OFF" Command="{Binding TurnOffCommand}" AutomationProperties.Name="Turn device off" />
+                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center" IsVisible="{Binding SupportsControl}">
+                    <Button Classes="subtle" Content="On" Padding="10,3" FontSize="12" Command="{Binding TurnOnCommand}" AutomationProperties.Name="Turn device on" />
+                    <Button Classes="subtle" Content="Off" Padding="10,3" FontSize="12" Command="{Binding TurnOffCommand}" AutomationProperties.Name="Turn device off" />
                   </StackPanel>
-                </StackPanel>
+                </Grid>
                 <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" AutomationProperties.Name="Waiting for device confirmation" />
-                <TextBlock Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}" TextWrapping="Wrap" Classes="muted" />
-                <StackPanel IsVisible="{Binding IsStorage}" Spacing="6">
-                  <TextBlock Text="{Binding StorageCaption}" Classes="muted" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource ConnectionDanger}" />
+                <StackPanel IsVisible="{Binding IsStorage}" Spacing="2" Margin="40,0,0,0">
+                  <TextBlock Text="{Binding StorageCaption}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
                   <ItemsControl ItemsSource="{Binding Items}">
                     <ItemsControl.ItemTemplate>
                       <DataTemplate x:DataType="vm:StorageItemViewModel">
-                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12" Margin="0,3">
-                          <TextBlock Text="{Binding Name}" TextWrapping="Wrap" />
-                          <TextBlock Grid.Column="1" Text="Blueprint" IsVisible="{Binding IsBlueprint}" Classes="muted" />
-                          <TextBlock Grid.Column="2" Text="{Binding Quantity}" />
+                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" Margin="0,1">
+                          <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                          <TextBlock Grid.Column="1" Text="BP" IsVisible="{Binding IsBlueprint}" Classes="muted" FontSize="11" />
+                          <TextBlock Grid.Column="2" Text="{Binding Quantity}" FontSize="12" FontWeight="SemiBold" />
                         </Grid>
                       </DataTemplate>
                     </ItemsControl.ItemTemplate>

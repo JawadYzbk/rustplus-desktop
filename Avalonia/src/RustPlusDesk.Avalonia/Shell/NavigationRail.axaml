@@ -31,6 +31,11 @@
         </Button>
       </StackPanel>
       <StackPanel Grid.Row="2" Spacing="4">
+        <Button Classes="nav" Command="{Binding OpenCloudAccountCommand}" IsVisible="{Binding HasCloudAccount}"
+                ToolTip.Tip="Cloud account, sync and backups" AutomationProperties.Name="Cloud account">
+          <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Cloud24" />
+            <TextBlock Grid.Column="1" Classes="navLabel" Text="Cloud" IsVisible="{Binding IsRailExpanded}" /></Grid>
+        </Button>
         <Button Classes="nav" Command="{Binding OpenAccountCommand}" IsVisible="{Binding HasAccount}"
                 ToolTip.Tip="Account and pairing" AutomationProperties.Name="Account and pairing">
           <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Person24" />

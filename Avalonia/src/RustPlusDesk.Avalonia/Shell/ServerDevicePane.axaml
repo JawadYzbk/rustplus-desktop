@@ -4,20 +4,11 @@
              xmlns:devices="using:RustPlusDesk.Avalonia.Features.Devices"
              x:Class="RustPlusDesk.Avalonia.Shell.ServerDevicePane" x:DataType="vm:ServersViewModel">
   <Border Background="{DynamicResource Surface}" Padding="12,16,12,10">
-    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
-      <ScrollViewer MaxHeight="330" HorizontalScrollBarVisibility="Disabled">
+    <Grid RowDefinitions="Auto,*" RowSpacing="16">
+      <ScrollViewer MaxHeight="360" HorizontalScrollBarVisibility="Disabled">
         <servers:ServersView />
       </ScrollViewer>
       <devices:DevicesView Grid.Row="1" DataContext="{Binding Connection.Devices}" />
-      <Border Grid.Row="2" BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,1,0,0" Padding="0,10,0,0">
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-          <TextBlock Text="{Binding Listener.Status}" Classes="muted" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center" />
-          <WrapPanel Grid.Column="1">
-            <Button Content="_Cloud" Command="{Binding OpenCloudAccountCommand}" IsVisible="{Binding HasCloudAccount}" Margin="0,0,6,0" />
-            <Button Content="_Account" Command="{Binding OpenAccountCommand}" IsVisible="{Binding HasAccount}" />
-          </WrapPanel>
-        </Grid>
-      </Border>
     </Grid>
   </Border>
 </UserControl>
