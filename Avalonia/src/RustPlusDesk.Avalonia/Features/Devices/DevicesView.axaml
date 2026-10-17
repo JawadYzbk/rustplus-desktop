@@ -40,7 +40,12 @@
                 <StackPanel Spacing="8">
                   <StackPanel Spacing="4">
                     <Grid ColumnDefinitions="32,*" ColumnSpacing="8">
-                      <shared:ItemIcon Width="32" Height="32" ItemId="{Binding Definition.CustomIconId}" ShortName="{Binding Definition.CustomIconShortName}" DefaultShortName="{Binding DefaultIconShortName}" />
+                      <Button Width="32" Height="32" Padding="0" Background="Transparent" BorderThickness="0"
+                              Command="{Binding $parent[Window].((servers:ServersViewModel)DataContext).OrganizeDevicesCommand}"
+                              CommandParameter="{Binding Definition}" ToolTip.Tip="Customize device icon"
+                              AutomationProperties.Name="{Binding Name, StringFormat='Customize icon for {0}'}">
+                        <shared:ItemIcon Width="32" Height="32" ItemId="{Binding Definition.CustomIconId}" ShortName="{Binding Definition.CustomIconShortName}" DefaultShortName="{Binding DefaultIconShortName}" />
+                      </Button>
                       <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" />
                     </Grid>
                     <TextBlock Text="{Binding KindLabel}" Classes="muted" FontSize="12" />

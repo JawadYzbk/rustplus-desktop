@@ -9,6 +9,10 @@ reference screens/components; `migration/STATUS.md` distinguishes working behavi
 The shell follows the supplied layout: left navigation rail, server/device panel, main map area,
 bottom activity panel and status bar. The side panel scales, resizes and collapses; Recycler opens
 from the rail. See [layout guidance](migration/LAYOUT.md). Live map rendering is still pending.
+The collapsible **Team** dock shows the connected server's roster, including offline/alive/dead state,
+refreshes every ten seconds, reports stale updates and clears when disconnected. It publishes no
+cloud membership or chat/master preferences. The latest Windows preview is
+`artifacts/publish/win-x64-latest/RustPlusDesk.Avalonia.exe`; keep its accompanying files.
 
 ## Build and run
 
@@ -99,6 +103,7 @@ Smart alarms also expose their saved in-game title; blank clears it. This stores
 metadata and preserves existing settings; automatic sync shares the safe title metadata when enabled.
 **Custom icon** in the organizer searches the full bundled item catalog. Save applies the selected
 icon; Reset restores the device kind's default. Existing custom icons also appear in the device list.
+Click a device/group icon to open that node's shared picker directly. Opening it never saves a change.
 
 Unknown settings and empty-group metadata stay intact; an active connection reloads its tree when the
 organizer closes. Drag gestures, device deletion/transfer,

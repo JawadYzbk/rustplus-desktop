@@ -6,6 +6,7 @@ using RustPlusDesk.Core.Time;
 using RustPlusDesk.Avalonia.Features.Devices;
 using RustPlusDesk.Core.Cloud;
 using RustPlusDesk.Core.Devices;
+using RustPlusDesk.Avalonia.Features.Teams;
 
 namespace RustPlusDesk.Avalonia.Features.Connections;
 
@@ -13,6 +14,7 @@ namespace RustPlusDesk.Avalonia.Features.Connections;
 public sealed partial class ConnectionViewModel(IServerSessionFactory factory) : ObservableObject
 {
     public DevicesViewModel Devices { get; } = new();
+    public TeamViewModel Team { get; } = new();
     private string profilesPath = "";
     private ServerSummary? selectedServer;
     private ServerClock clock = new();
@@ -115,6 +117,7 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
                     StatusMessage = "Connected";
                     var disconnectWatch = CancelOnDisconnectAsync(session.Disconnected, connectedCancellation);
                     var clockUpdates = UpdateClockAsync(connectedCancellation.Token);
+                    var teamUpdates = session is IServerTeamSession team ? Team.RunAsync(team, connectedCancellation.Token) : Task.CompletedTask;
                     var deviceUpdates = target.Devices.Count > 0
                         ? Devices.RunAsync(session.Devices, connectedCancellation.Token) : Task.CompletedTask;
                     try
@@ -149,6 +152,7 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
                         try { await clockUpdates; }
                         catch (OperationCanceledException) when (connectedCancellation.IsCancellationRequested) { }
                         await deviceUpdates;
+                        await teamUpdates;
                     }
                 }
                 catch (ServerConnectionException ex) when (ex.Failure == ConnectionFailure.Unreachable && hasConnected)
@@ -260,6 +264,7 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
 
     private void ResetStatus()
     {
+        Team.Reset();
         sampleTime = null;
         sampleHours = null;
         Population = Queue = ServerTime = "—";

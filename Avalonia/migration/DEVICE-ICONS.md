@@ -28,5 +28,7 @@ part of the pending synchronization port, not a side effect of these local edits
 Checks cover nested data preservation, reset, invalid ID/name pairs, stale writes, search without
 implicit saves, selected-device continuity, default/legacy-ID resolution and decoding every available
 canonical image. The organizer UI test expands the picker, selects/saves through bindings, scrolls its
-actions into view at 1000×700 and keeps Close reachable. Native OS, localization and original direct
-icon-click/double-click/keyboard shortcuts remain acceptance/parity work.
+actions into view at 1000×700 and keeps Close reachable. A device/group icon button now opens the same
+picker directly at the matching key/entity, with keyboard button activation and an accessible name.
+Opening never writes; a nested duplicate-ID fixture verifies explicit save affects only that node.
+Native OS, localization, remaining double-click shortcuts and missing artwork remain parity work.

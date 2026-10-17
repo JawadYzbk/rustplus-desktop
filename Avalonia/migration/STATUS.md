@@ -11,6 +11,14 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- Live collapsible Team dock with online/offline and alive/dead states, independent ten-second polling,
+  stale-update messaging, cancellation/session ownership and disconnect reset. Minimum-size UI checks
+  use 24 members, long names and the maximum activity panel. Direct device/group icon clicks open the
+  shared picker at the correct key/entity; opening does not write. Explicit save/reset retains protections.
+  **358 tests pass** here and in source-only isolation. Debug/Release and three self-contained publishes
+  succeed. Latest Windows build is `artifacts/publish/win-x64-latest/`. Full map/team/chat/master behavior,
+  native OS/live acceptance and the remaining feature ports are still required.
+
 - Connected shared-device import: authorized cloud owner metadata with full-snapshot title/rig
   enrichment, compatible private caching, scoped current-team/own local fallback, current-wipe checks,
   search/select-all/status/progress/explicit save and reload/reconnect. Nested duplicates, mappings and
@@ -158,7 +166,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Live map/markers/overlays | Not ported | Separate coordinate/state logic from rendering; choose portable map/helper hosting |
 | Smart devices/automation/timers | Confirmed switches, nested group commands, alarm/storage state, local organization/icons, own-device sync and guarded shared/local import | Live-server acceptance, drag gestures, empty-group cleanup, add/delete/transfer, missing icon artwork/direct-click shortcuts, automation, timers, alarm notifications/audio and original layout |
 | Cloud identity/consent | Website handoff, scoped permission, local sign-out, fresh quotas, own recovery/automatic sync and import sources | Live authentication/version acceptance, concurrent writers, other consents, team membership/master/chat publication and remaining account/provider/session workflows |
-| Chat/team/clan | Not ported | Port protocol/services, moderation/history, synchronization and presentation |
+| Chat/team/clan | Read-only live roster dock; offline/alive/dead states and safe SDK projection | Full team map, chat/clan, moderation/history, membership publication/master coordination and remaining presentation |
 | Cameras | Not ported | Validate camera SDK/runtime, stream decoding and portable rendering |
 | Genetics Lab/web tools | Not ported | Decide and verify portable web hosting/bridge rather than copying WebView2 |
 | Settings/localization/backups | Not ported | Portable settings models, resources, storage, lossless schema migration |

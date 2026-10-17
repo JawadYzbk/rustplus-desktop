@@ -34,6 +34,8 @@ public sealed class TeamTransportTests
             Assert.AreEqual(2, members.Count);
             Assert.AreEqual("76561198000000002", members[1].SteamId);
             Assert.AreEqual("Offline teammate", members[1].Name);
+            Assert.AreEqual(false, members[1].IsOnline);
+            Assert.AreEqual(true, members[1].IsAlive);
             string safe = System.Text.Json.JsonSerializer.Serialize(members);
             Assert.IsFalse(safe.Contains("123456789"));
             Assert.IsFalse(safe.Contains("PlayerToken"));

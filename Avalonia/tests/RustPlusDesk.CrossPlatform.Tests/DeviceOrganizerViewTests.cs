@@ -11,12 +11,54 @@ using RustPlusDesk.Avalonia.Features.Servers;
 using RustPlusDesk.Avalonia.Services;
 using RustPlusDesk.Avalonia.Shell;
 using RustPlusDesk.Infrastructure.Profiles;
+using RustPlusDesk.Core.Devices;
 
 namespace RustPlusDesk.CrossPlatform.Tests;
 
 [TestClass]
 public sealed class DeviceOrganizerViewTests
 {
+    [TestMethod]
+    public async Task ClickingNestedDeviceIcon_OpensItsSharedPicker_AndOnlyExplicitSaveChangesThatNode()
+    {
+        using var file = new DeviceProfileEditorTests.Fixture();
+        var before = await File.ReadAllBytesAsync(file.Path);
+        await UiTestSession.Current.Dispatch(async () =>
+        {
+            var model = new ServersViewModel(new LegacyServerCatalog(), new Picker(), file.Path, new UnusedSessionFactory(),
+                deviceEditor: new LegacyDeviceProfileEditor(), deviceIcons: RustPlusDesk.Infrastructure.Items.BundledItemCatalog.Icons.Values.ToArray());
+            var window = new MainWindow { DataContext = model, Width = 1000, Height = 700 };
+            try
+            {
+                await model.RefreshCommand.ExecuteAsync(null);
+                window.Show();
+                using (var frame = window.CaptureRenderedFrame()) Assert.IsNotNull(frame);
+                var icon = window.GetVisualDescendants().OfType<Button>().Single(button => ReferenceEquals(button.Command, model.OrganizeDevicesCommand)
+                    && button.CommandParameter is PairedDevice { DeviceKey: "0/0" });
+                icon.Command!.Execute(icon.CommandParameter);
+                Task modal = model.OrganizeDevicesCommand.ExecutionTask!;
+                var editor = model.Organizer!;
+                Assert.AreEqual("0/0", editor.Selected!.DeviceKey);
+                Assert.IsTrue(editor.IsIconPickerOpen);
+                CollectionAssert.AreEqual(before, await File.ReadAllBytesAsync(file.Path));
+                using (var frame = window.CaptureRenderedFrame()) Assert.IsNotNull(frame);
+                var picker = window.GetVisualDescendants().OfType<DeviceOrganizerView>().Single().GetVisualDescendants().OfType<Expander>().Single();
+                Assert.IsTrue(picker.IsExpanded);
+                editor.IconSearch = "smart.alarm";
+                editor.SelectedIcon = editor.IconChoices.Single();
+                await editor.SaveIconCommand.ExecuteAsync(null);
+                await editor.CloseCommand.ExecuteAsync(null);
+                await modal.WaitAsync(TimeSpan.FromSeconds(3));
+                Assert.AreEqual(-695978112, model.SelectedServer!.Devices[0].Children[0].CustomIconId);
+                Assert.IsNull(model.SelectedServer.Devices[1].CustomIconId);
+                await model.OrganizeDevicesCommand.ExecuteAsync(new PairedDevice(999, "Stale row", DeviceKind.Switch) { DeviceKey = "0/0" });
+                Assert.IsFalse(model.HasOverlay);
+            }
+            finally { await model.ShutdownAsync(); window.Close(); }
+            return true;
+        }, default);
+    }
+
     [TestMethod]
     public async Task Organizer_UsesTypedBindingsAndWorkingButtons_AtMinimumWindowSize()
     {
@@ -37,7 +79,7 @@ public sealed class DeviceOrganizerViewTests
                 await model.RefreshCommand.ExecuteAsync(null);
                 window.Show();
                 using (var before = window.CaptureRenderedFrame()) Assert.IsNotNull(before);
-                var open = window.GetVisualDescendants().OfType<Button>().Single(button => button.Command == model.OrganizeDevicesCommand);
+                var open = window.GetVisualDescendants().OfType<Button>().Single(button => button.Command == model.OrganizeDevicesCommand && button.CommandParameter is null);
                 Assert.IsTrue(open.IsEffectivelyVisible);
                 Assert.IsTrue(open.IsEffectivelyEnabled);
                 open.Command!.Execute(null);

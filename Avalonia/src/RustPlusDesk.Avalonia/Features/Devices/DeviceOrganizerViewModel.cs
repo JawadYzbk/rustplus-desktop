@@ -33,6 +33,7 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
     [ObservableProperty] private string alias = "";
     private readonly IReadOnlyList<DeviceIcon> icons;
     [ObservableProperty] private string iconSearch = "";
+    [ObservableProperty] private bool isIconPickerOpen;
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SaveIconCommand))]
     private DeviceIcon? selectedIcon;
@@ -47,7 +48,7 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
     [ObservableProperty] private string groupName = "Group";
     [ObservableProperty] private IReadOnlyList<DeviceGroupChoice> destinations = [];
     [ObservableProperty] private DeviceGroupChoice? destination;
-    [ObservableProperty] private string message = "Each action saves locally. Cloud synchronization is not available in this preview.";
+    [ObservableProperty] private string message = "Each action saves locally. Enabled device sync resumes after you close this editor.";
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RenameCommand))]
     [NotifyCanExecuteChangedFor(nameof(SaveIconCommand))]

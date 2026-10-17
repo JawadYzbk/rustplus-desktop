@@ -358,13 +358,21 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     }
 
     [RelayCommand(CanExecute = nameof(CanOrganizeDevices))]
-    private async Task OrganizeDevicesAsync(CancellationToken cancellationToken)
+    private async Task OrganizeDevicesAsync(PairedDevice? device, CancellationToken cancellationToken)
     {
         if (!CanOrganizeDevices || SelectedServer is not { } selected) return;
+        if (device is not null && !selected.Devices.SelectMany(item => item.DescendantsAndSelf())
+            .Any(item => item.DeviceKey == device.DeviceKey && item.EntityId == device.EntityId)) return;
         IsBusy = true;
         try
         {
             Organizer = new(SourcePath, selected, deviceEditor!, deviceIcons);
+            if (device is not null)
+            {
+                Organizer.Selected = Organizer.Devices.SelectMany(item => item.DescendantsAndSelf())
+                    .First(item => item.DeviceKey == device.DeviceKey && item.EntityId == device.EntityId);
+                Organizer.IsIconPickerOpen = Organizer.HasIconCatalog;
+            }
             var saved = await Organizer.Completion.WaitAsync(cancellationToken);
             if (saved is not null)
             {

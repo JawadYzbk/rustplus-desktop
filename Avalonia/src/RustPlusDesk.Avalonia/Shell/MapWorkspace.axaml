@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:RustPlusDesk.Avalonia.Features.Servers" xmlns:account="clr-namespace:RustPlusDesk.Core.Accounts;assembly=RustPlusDesk.Core"
+             xmlns:teams="using:RustPlusDesk.Avalonia.Features.Teams"
              x:Class="RustPlusDesk.Avalonia.Shell.MapWorkspace" x:DataType="vm:ServersViewModel">
   <Grid>
     <Grid.RowDefinitions>
@@ -18,6 +19,7 @@
         </Grid>
       </Border>
       <Border Grid.Row="1" Background="{DynamicResource MapBackground}" Padding="20">
+        <Grid x:Name="MapContent" RowDefinitions="*,Auto">
         <ScrollViewer HorizontalScrollBarVisibility="Disabled">
         <Border Classes="card" MaxWidth="360" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center">
           <StackPanel Spacing="14">
@@ -32,6 +34,9 @@
           </StackPanel>
         </Border>
         </ScrollViewer>
+        <teams:TeamView Grid.Row="1" DataContext="{Binding Connection.Team}" MaxHeight="{Binding #MapContent.Bounds.Height}"
+                        HorizontalAlignment="Left" VerticalAlignment="Bottom" />
+        </Grid>
       </Border>
     </Grid>
     <GridSplitter Grid.Row="1" Height="4" ResizeDirection="Rows" Background="{DynamicResource CardBorder}"

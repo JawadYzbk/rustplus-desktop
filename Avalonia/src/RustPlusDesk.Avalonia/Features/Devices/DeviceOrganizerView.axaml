@@ -40,7 +40,7 @@
               <Button Content="Move _up" Command="{Binding MoveUpCommand}" />
               <Button Content="Move _down" Command="{Binding MoveDownCommand}" />
             </StackPanel>
-            <Expander Header="Custom icon" IsVisible="{Binding HasIconCatalog}" HorizontalAlignment="Stretch">
+            <Expander Header="Custom icon" IsVisible="{Binding HasIconCatalog}" IsExpanded="{Binding IsIconPickerOpen, Mode=TwoWay}" HorizontalAlignment="Stretch">
               <StackPanel Spacing="8">
                 <TextBox Text="{Binding IconSearch}" PlaceholderText="Search item icons…" AutomationProperties.Name="Search device icons" />
                 <ListBox ItemsSource="{Binding IconChoices}" SelectedItem="{Binding SelectedIcon, Mode=TwoWay}" Height="160" AutomationProperties.Name="Device icon choices">

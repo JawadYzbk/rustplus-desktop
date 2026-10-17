@@ -95,7 +95,7 @@ internal sealed class RustPlusTransport : IRustTransport, IServerTeamSession
             if (!response.IsSuccess || response.Data is null)
                 throw new ServerConnectionException(ConnectionFailureClassifier.Response(response.Error?.Message));
             return (response.Data.Members ?? []).Select(member => new ServerTeamMember(
-                member.SteamId.ToString(System.Globalization.CultureInfo.InvariantCulture), member.Name ?? "")).ToArray();
+                member.SteamId.ToString(System.Globalization.CultureInfo.InvariantCulture), member.Name ?? "", member.IsOnline, member.IsAlive)).ToArray();
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception ex) { throw new ServerConnectionException(ConnectionFailureClassifier.Exception(ex, companionSocket)); }
