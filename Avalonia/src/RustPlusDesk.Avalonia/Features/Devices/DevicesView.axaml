@@ -13,6 +13,10 @@
         <Button Content="_Organize…" Margin="0,0,6,4" Command="{Binding $parent[Window].((servers:ServersViewModel)DataContext).OrganizeDevicesCommand}"
                 IsVisible="{Binding $parent[Window].((servers:ServersViewModel)DataContext).HasDeviceEditor, FallbackValue=False}" />
         <Button Content="_Refresh devices" Command="{Binding RefreshCommand}" Margin="0,0,0,4" />
+        <Button Content="Recover _cloud devices…" Margin="6,0,0,4"
+                ToolTip.Tip="Verify cloud and Steam sign-in, then allow sync in Account → Cloud."
+                Command="{Binding $parent[Window].((servers:ServersViewModel)DataContext).RecoverCloudDevicesCommand}"
+                IsVisible="{Binding $parent[Window].((servers:ServersViewModel)DataContext).HasCloudDeviceRestore, FallbackValue=False}" />
       </WrapPanel>
     </StackPanel>
     <ProgressBar Grid.Row="1" IsIndeterminate="True" IsVisible="{Binding IsRefreshing}" AutomationProperties.Name="Refreshing devices" />

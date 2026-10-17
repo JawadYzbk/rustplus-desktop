@@ -66,6 +66,12 @@ require a supported release before the live cloud service accepts it.
 The account view also shows the server-verified plan and device-sync allowance. Failed or offline
 checks clear that allowance; saved plan names and premium status never imply an upload quota.
 
+After verifying both identities and allowing sync, select the matching server and use **Recover cloud
+devices…** in Devices. Load and review your own cloud snapshot, acknowledge the current-map check,
+then restore missing devices/groups. Existing local settings stay intact; changed snapshots/files
+require a reload. This recovery does not upload devices or enable automatic synchronization.
+Snapshots known to predate the saved server wipe are blocked; live entity validation is still pending.
+
 Paired smart switches, nested groups, alarm state and storage contents load after connecting.
 ON/OFF commands wait for a confirmed state; failed or missing devices do not invalidate the server login.
 Storage uses the bundled Rust item names, including quantity, blueprint and upkeep information.

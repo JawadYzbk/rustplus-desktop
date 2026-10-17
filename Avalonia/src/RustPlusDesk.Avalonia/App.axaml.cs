@@ -50,7 +50,8 @@ public sealed partial class App : Application
                 new ProfileFilePicker(window), LegacyServerCatalog.DefaultPath, sessions, new LegacyServerProfileEditor(), sessions, accounts, new CompanionListener(pushHealth), pushHealth,
                 new LegacyDeviceProfileEditor(), new BundledRecyclerCatalog(),
                 new CloudAccountService(cloudHttp, new SystemLoginBrowser(window), CloudAccountService.DefaultCachePath,
-                    typeof(App).Assembly.GetName().Version!.ToString(3)), BundledItemCatalog.Icons.Values.OrderBy(icon => icon.Name).ToArray());
+                    typeof(App).Assembly.GetName().Version!.ToString(3)), BundledItemCatalog.Icons.Values.OrderBy(icon => icon.Name).ToArray(),
+                new CloudDeviceRestore(cloudHttp, CloudAccountService.DefaultCachePath, typeof(App).Assembly.GetName().Version!.ToString(3)));
             desktop.Exit += (_, _) => { accountHttp.Dispose(); cloudHttp.Dispose(); };
             window.DataContext = servers;
             window.Opened += async (_, _) => await servers.InitializeCommand.ExecuteAsync(null);

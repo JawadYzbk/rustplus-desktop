@@ -1,7 +1,8 @@
 # Cloud account and sharing contracts — 2026-10-16
 
 Cloud identity/session and explicit profile-sync consent are implemented on the isolated migration
-branch. Device sharing/import and automatic synchronization remain unfinished. Do not repeat the
+branch. Explicit own-device recovery is implemented; see `CLOUD-DEVICE-RECOVERY.md`. Full teammate
+sharing/import and automatic synchronization remain unfinished. Do not repeat the
 completed companion/native sign-in crash fix or pairing ports.
 
 ## Implemented account boundary
@@ -40,6 +41,10 @@ completed companion/native sign-in crash fix or pairing ports.
   consent types and quota enforcement must be ported with the corresponding workflows. Sync routes
   currently use token abilities and the upload service's numeric quota; displaying the plan's feature
   flag does not prove the server enforces that flag on every route.
+- Explicit own-device recovery now uses the owner's unwrapped overlay response, fresh profile/scoped
+  consent checks, safe DTO parsing and a revision-protected missing-only merge. The HTTP helper is
+  extracted privately and reused. Automatic restore readiness must still be established before any
+  uploader; manual acknowledgment of unknown wipe freshness is not evidence for automatic readiness.
 
 ## Verified reference behavior
 

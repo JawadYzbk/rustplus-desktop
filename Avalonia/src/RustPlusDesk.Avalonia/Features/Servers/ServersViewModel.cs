@@ -19,7 +19,8 @@ namespace RustPlusDesk.Avalonia.Features.Servers;
 public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFilePicker picker, string initialPath, IServerSessionFactory sessionFactory,
     IServerProfileEditor? profileEditor = null, IServerConnectionTester? connectionTester = null, ICompanionAccountService? accountService = null,
     ICompanionListener? companionListener = null, ICompanionPushHealth? pushHealth = null, IDeviceProfileEditor? deviceEditor = null,
-    IRecyclerCatalog? recyclerCatalog = null, ICloudAccountService? cloudAccountService = null, IReadOnlyList<DeviceIcon>? deviceIcons = null)
+    IRecyclerCatalog? recyclerCatalog = null, ICloudAccountService? cloudAccountService = null, IReadOnlyList<DeviceIcon>? deviceIcons = null,
+    ICloudDeviceRestore? cloudDeviceRestore = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = new(sessionFactory);
@@ -35,6 +36,12 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     public bool HasCompanionAccount => accountService is not null;
     public bool HasCloudAccount => cloudAccountService is not null;
     public CloudAccountViewModel? Cloud { get; private set; }
+    public bool HasCloudDeviceRestore => cloudDeviceRestore is not null;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasCloudRecovery))]
+    [NotifyPropertyChangedFor(nameof(HasOverlay))]
+    private CloudDeviceRestoreViewModel? cloudRecovery;
+    public bool HasCloudRecovery => CloudRecovery is not null;
     [ObservableProperty] private int accountSectionIndex;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasOverlay))]
@@ -47,6 +54,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(EditCommand))]
     [NotifyCanExecuteChangedFor(nameof(OrganizeDevicesCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RecoverCloudDevicesCommand))]
     private ServerSummary? selectedServer;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasEditor))]
@@ -59,7 +67,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     public bool HasOrganizer => Organizer is not null;
     public bool HasDeviceEditor => deviceEditor is not null;
     public bool HasEditor => Editor is not null;
-    public bool HasOverlay => HasEditor || HasOrganizer || IsAccountOpen;
+    public bool HasOverlay => HasEditor || HasOrganizer || HasCloudRecovery || IsAccountOpen;
     public bool HasRecyclerTool => recyclerCatalog is not null;
     [ObservableProperty] private bool isSidebarOpen = true;
     [RelayCommand] private void ToggleSidebar() => IsSidebarOpen = !IsSidebarOpen;
@@ -115,6 +123,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         if (Cloud is null && cloudAccountService is not null)
         {
             Cloud = new(cloudAccountService);
+            Cloud.PropertyChanged += (_, _) => RecoverCloudDevicesCommand.NotifyCanExecuteChanged();
             Cloud.SetSteamAccount(Account?.Account);
             OnPropertyChanged(nameof(Cloud));
         }
@@ -216,6 +225,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [NotifyCanExecuteChangedFor(nameof(OpenFileCommand))]
     [NotifyCanExecuteChangedFor(nameof(EditCommand))]
     [NotifyCanExecuteChangedFor(nameof(OrganizeDevicesCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RecoverCloudDevicesCommand))]
     private bool isBusy;
 
     [ObservableProperty] private string sourcePath = initialPath;
@@ -227,6 +237,33 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     private bool CanLoad => !IsBusy && !HasOverlay;
     private bool CanEdit => CanLoad && SelectedServer is not null && profileEditor is not null && connectionTester is not null;
     private bool CanOrganizeDevices => CanLoad && SelectedServer?.Devices.Count > 0 && deviceEditor is not null;
+    private bool CanRecoverCloudDevices => CanLoad && !shuttingDown && SelectedServer is not null &&
+        cloudDeviceRestore is not null && Cloud is { HasSyncConsent: true };
+
+    [RelayCommand(CanExecute = nameof(CanRecoverCloudDevices))]
+    private async Task RecoverCloudDevicesAsync(CancellationToken ct)
+    {
+        if (!CanRecoverCloudDevices || SelectedServer is not { } selected || Cloud?.Account.Identity is not { } identity) return;
+        IsBusy = true;
+        try
+        {
+            CloudRecovery = new(SourcePath, selected, identity.Id, Cloud.TrustedSteamId, cloudDeviceRestore!);
+            if (await CloudRecovery.Completion.WaitAsync(ct))
+            {
+                bool reconnect = Connection.IsConnected;
+                await LoadAsync(SourcePath, CancellationToken.None);
+                if (reconnect && !shuttingDown && SelectedServer is not null) Connection.ConnectCommand.Execute(null);
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+        finally
+        {
+            if (CloudRecovery is { } recovery) await recovery.StopAsync();
+            CloudRecovery = null;
+            IsBusy = false;
+            await RefreshPairingsAsync();
+        }
+    }
 
     [RelayCommand(CanExecute = nameof(CanOrganizeDevices))]
     private async Task OrganizeDevicesAsync(CancellationToken cancellationToken)
@@ -376,6 +413,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         OpenFileCommand.Cancel();
         EditCommand.Cancel();
         OrganizeDevicesCommand.Cancel();
+        RecoverCloudDevicesCommand.Cancel();
         if (Account is not null) await Account.StopAsync();
         if (Listener is not null) await Listener.StopListeningAsync();
         if (Cloud is not null) await Cloud.StopAsync();
@@ -384,6 +422,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         if (OpenFileCommand.ExecutionTask is { } open) await open;
         if (EditCommand.ExecutionTask is { } edit) await edit;
         if (OrganizeDevicesCommand.ExecutionTask is { } organize) await organize;
+        if (RecoverCloudDevicesCommand.ExecutionTask is { } recovery) await recovery;
         if (InitializeCommand.ExecutionTask is { } initialize) await initialize;
     }
 }

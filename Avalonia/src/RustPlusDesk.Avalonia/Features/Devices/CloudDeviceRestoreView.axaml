@@ -1,0 +1,37 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RustPlusDesk.Avalonia.Features.Devices"
+             xmlns:cloud="clr-namespace:RustPlusDesk.Core.Cloud;assembly=RustPlusDesk.Core"
+             x:Class="RustPlusDesk.Avalonia.Features.Devices.CloudDeviceRestoreView" x:DataType="vm:CloudDeviceRestoreViewModel">
+  <UserControl.KeyBindings><KeyBinding Gesture="Escape" Command="{Binding CloseCommand}" /></UserControl.KeyBindings>
+  <Border Classes="card" Width="760" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center">
+    <Grid RowDefinitions="Auto,Auto,250,Auto,Auto" RowSpacing="12" KeyboardNavigation.TabNavigation="Cycle">
+      <StackPanel Spacing="6">
+        <TextBlock Text="Recover own cloud devices" FontSize="20" FontWeight="SemiBold" />
+        <TextBlock Text="{Binding ServerName}" TextWrapping="Wrap" MaxHeight="36" TextTrimming="CharacterEllipsis" />
+        <TextBlock Text="{Binding IdentityCaption}" Classes="muted" TextWrapping="Wrap" MaxHeight="36" />
+      </StackPanel>
+      <WrapPanel Grid.Row="1">
+        <Button Content="_Load snapshot" Command="{Binding PreviewCommand}" Margin="0,0,12,0" />
+        <TextBlock Text="{Binding SnapshotCaption}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="470" />
+      </WrapPanel>
+      <TreeView Grid.Row="2" ItemsSource="{Binding Devices}" AutomationProperties.Name="Own cloud snapshot devices" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+        <TreeView.Styles><Style Selector="TreeViewItem"><Setter Property="IsExpanded" Value="True" /></Style></TreeView.Styles>
+        <TreeView.DataTemplates>
+          <TreeDataTemplate DataType="cloud:SharedDevice" ItemsSource="{Binding Children}">
+            <TextBlock Text="{Binding DisplayName}" TextWrapping="Wrap" />
+          </TreeDataTemplate>
+        </TreeView.DataTemplates>
+      </TreeView>
+      <StackPanel Grid.Row="3" Spacing="8">
+        <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" AutomationProperties.Name="Cloud device recovery" />
+        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+        <CheckBox Content="I reviewed these devices and will check their IDs on the current map."
+                  IsChecked="{Binding Acknowledged}" IsEnabled="{Binding !IsBusy}" />
+      </StackPanel>
+      <Grid Grid.Row="4" ColumnDefinitions="*,Auto">
+        <Button Content="_Restore missing devices" Command="{Binding RestoreCommand}" HorizontalAlignment="Left" />
+        <Button Grid.Column="1" Content="_Close" Command="{Binding CloseCommand}" />
+      </Grid>
+    </Grid>
+  </Border>
+</UserControl>

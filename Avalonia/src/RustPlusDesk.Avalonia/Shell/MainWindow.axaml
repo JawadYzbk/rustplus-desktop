@@ -63,6 +63,9 @@
     <Border Grid.RowSpan="3" Background="#B0000000" IsVisible="{Binding HasOrganizer}">
       <devices:DeviceOrganizerView DataContext="{Binding Organizer}" />
     </Border>
+    <Border Grid.RowSpan="3" Background="#B0000000" IsVisible="{Binding HasCloudRecovery}">
+      <devices:CloudDeviceRestoreView DataContext="{Binding CloudRecovery}" />
+    </Border>
     <Border Grid.RowSpan="3" Background="#B0000000" IsVisible="{Binding IsAccountOpen}">
       <Border Classes="card" Width="520" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center">
         <Grid RowDefinitions="Auto,Auto" RowSpacing="16" KeyboardNavigation.TabNavigation="Cycle">

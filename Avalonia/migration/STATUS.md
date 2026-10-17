@@ -11,6 +11,14 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- Explicit own-cloud device recovery: safe preview, identity/consent validation, snapshot re-fetch and
+  revision checking, recursive missing-device/group merge, preserved local settings and chat mappings,
+  private backups and owned cancellation. Old recorded-wipe snapshots are blocked; unknown freshness
+  requires acknowledgment. See `CLOUD-DEVICE-RECOVERY.md`. Automatic restore/upload coordination,
+  the persisted sync toggle and full teammate/local-fallback import remain required.
+  **309 tests pass** here and in source-only isolation; Debug/Release are clean and all three
+  cross-publishes succeed. The recovery Windows preview is in `artifacts/publish/win-x64-recovery/`.
+
 - Local custom device icons: preserved IDs/short names, full canonical item search, explicit save/reset,
   legacy-ID lookup and kind defaults in the device list. Unknown metadata and revisions stay protected.
   See `DEVICE-ICONS.md`: 1,245 choices and 1,223 bundled images; 22 reference images remain missing.
@@ -131,7 +139,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Rust+ connection/reconnect | Authenticated status session, fallback, immediate socket-disconnect handling, cancellation and recovery | Native/live-server acceptance; soft/full modes and remaining feature subscriptions |
 | Live map/markers/overlays | Not ported | Separate coordinate/state logic from rendering; choose portable map/helper hosting |
 | Smart devices/automation/timers | Confirmed switches, nested group commands, alarm/storage state, subscriptions, local alias/group/move/reorder editor, local custom icons | Live-server acceptance, drag gestures, empty-group cleanup, cloud sync, add/delete/import/transfer, missing icon artwork/direct-click shortcuts, automation, timers, alarm notifications/audio and original layout |
-| Cloud identity/consent | Website handoff, safe legacy sessions, explicit identity-scoped profile-sync permission/revocation, confirmed local sign-out, verified plan/device allowance | Live authentication/version acceptance, upload quota enforcement, other consents, device sharing/import/restore barriers and remaining account/provider/session workflows |
+| Cloud identity/consent | Website handoff, safe legacy sessions, scoped profile permission/revocation, local sign-out, verified plan/device allowance, explicit own-device recovery | Live authentication/version acceptance, upload quota enforcement, other consents, persisted sync toggle, automatic restore/upload barrier, full team/local-fallback import and remaining account/provider/session workflows |
 | Chat/team/clan | Not ported | Port protocol/services, moderation/history, synchronization and presentation |
 | Cameras | Not ported | Validate camera SDK/runtime, stream decoding and portable rendering |
 | Genetics Lab/web tools | Not ported | Decide and verify portable web hosting/bridge rather than copying WebView2 |
