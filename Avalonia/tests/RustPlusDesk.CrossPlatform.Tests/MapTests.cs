@@ -154,13 +154,95 @@ public sealed class MapTests
             context.DrawEllipse(new SolidColorBrush(Color.FromRgb(112, 138, 84)), null, new Point(512, 512), 330, 300);
         }
         using var stream = new MemoryStream();
-        target.Save(stream);
+        target.Save(stream, PngBitmapEncoderOptions.Default);
         return new ServerMap(stream.ToArray(), 1024, 1024, 500, 4500,
             [new("large_oil_rig", 4300, 300), new("mining_quarry_sulfur_display_name", 2000, 2500), new("fishing_village_a", 900, 3800)]);
     }
 
-    private sealed class MapSession(ServerMap map) : IServerMapSession
+    internal static IReadOnlyList<MapMarker> SyntheticMarkers() =>
+    [
+        new(1, MapMarkerKind.Player, 2200, 2300) { Name = "Teammate", SteamId = 76561198000000001 },
+        new(2, MapMarkerKind.VendingMachine, 1500, 1500) { Name = "Scrap shop", Orders = [new(-932201673, 10, 1, 50, 3)] },
+        new(3, MapMarkerKind.VendingMachine, 1600, 1500) { Name = "Empty", IsOutOfStock = true },
+        new(4, MapMarkerKind.CargoShip, 300, 2000) { Rotation = 90 },
+        new(5, MapMarkerKind.PatrolHelicopter, 3000, 3000) { Rotation = 45 },
+        new(6, MapMarkerKind.GenericRadius, 2500, 2500) { Radius = 120, Color = 0xFFFF0000 },
+        new(7, MapMarkerKind.Crate, 2600, 1200)
+    ];
+
+    [TestMethod]
+    public async Task MapViewModel_PollsMarkersAfterTheMapLoads()
     {
+        await UiTestSession.Current.Dispatch(async () =>
+        {
+            var model = new MapViewModel { MarkerInterval = TimeSpan.FromMilliseconds(30) };
+            var session = new MapSession(SyntheticMap()) { Markers = SyntheticMarkers() };
+            using var cts = new CancellationTokenSource();
+            var running = model.RunAsync(session, cts.Token);
+            await CompanionListenerViewModelTests.Eventually(() => model.Markers.Count == 7 && session.MarkerCalls >= 2);
+            session.FailMarkers = true;
+            int before = session.MarkerCalls;
+            await CompanionListenerViewModelTests.Eventually(() => session.MarkerCalls > before + 1);
+            Assert.AreEqual(7, model.Markers.Count, "A failed poll keeps the last markers.");
+            cts.Cancel();
+            await running.WaitAsync(TimeSpan.FromSeconds(4));
+            model.Reset();
+            Assert.AreEqual(0, model.Markers.Count);
+            return true;
+        }, default);
+    }
+
+    [TestMethod]
+    public async Task MapSurface_DrawsMarkersHoversThemAndRespectsToggles()
+    {
+        await UiTestSession.Current.Dispatch(async () =>
+        {
+            var model = new MapViewModel();
+            model.Apply(SyntheticMap());
+            var surface = new MapSurface { Image = model.Image, Geometry = model.Geometry, Monuments = model.Monuments, Markers = SyntheticMarkers() };
+            var window = new Window { Width = 900, Height = 700, Content = surface };
+            try
+            {
+                window.Show();
+                using (var frame = window.CaptureRenderedFrame()) Assert.IsNotNull(frame);
+                Point At(MapMarker marker) { var (x, y) = model.Geometry!.WorldToImage(marker.X, marker.Y); return surface.ImageToScreen(x, y); }
+                var shop = surface.Markers!.First(marker => marker.Name == "Scrap shop");
+                window.MouseMove(At(shop));
+                Assert.AreSame(shop, surface.HoveredMarker);
+                StringAssert.StartsWith(MapSurface.Describe(shop, 4500), "Scrap shop · 1 offer · ");
+                var player = surface.Markers!.First(marker => marker.Kind == MapMarkerKind.Player);
+                window.MouseMove(At(player));
+                Assert.AreSame(player, surface.HoveredMarker);
+                using (var frame = window.CaptureRenderedFrame())
+                {
+                    Assert.IsNotNull(frame);
+                    frame.Save(Path.Combine(AppContext.BaseDirectory, "ui-map-markers.png"), PngBitmapEncoderOptions.Default);
+                }
+                surface.ShowPlayers = false;
+                window.MouseMove(At(player) + new Vector(1, 0));
+                Assert.IsNull(surface.HoveredMarker);
+                surface.ShowShops = false;
+                window.MouseMove(At(shop));
+                Assert.IsNull(surface.HoveredMarker);
+                Assert.IsNotNull(MapSurface.MarkerIcon("cargo.png"));
+                Assert.IsNotNull(MapSurface.MarkerIcon("vending_orange.png"));
+            }
+            finally { window.Close(); }
+            await Task.CompletedTask;
+            return true;
+        }, default);
+    }
+
+    private sealed class MapSession(ServerMap map) : IServerMarkerSession
+    {
+        public IReadOnlyList<MapMarker> Markers { get; init; } = [];
+        public bool FailMarkers { get; set; }
+        public int MarkerCalls { get; private set; }
+        public Task<IReadOnlyList<MapMarker>> ReadMarkersAsync(CancellationToken ct)
+        {
+            MarkerCalls++;
+            return FailMarkers ? Task.FromException<IReadOnlyList<MapMarker>>(new ServerConnectionException(ConnectionFailure.Unreachable)) : Task.FromResult(Markers);
+        }
         public int FailuresBeforeSuccess { get; init; }
         public int Calls { get; private set; }
         public IDeviceClient Devices { get; } = new TestDeviceClient();

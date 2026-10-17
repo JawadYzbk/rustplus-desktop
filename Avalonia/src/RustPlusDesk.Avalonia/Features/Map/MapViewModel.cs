@@ -20,6 +20,12 @@ public sealed partial class MapViewModel : ObservableObject
     [ObservableProperty] private bool isLoading;
     [ObservableProperty] private bool showGrid = true;
     [ObservableProperty] private bool showMonuments = true;
+    [ObservableProperty] private bool showPlayers = true;
+    [ObservableProperty] private bool showShops = true;
+    /// <summary>Latest live markers (players, shops, events); replaced as a whole on every poll.</summary>
+    [ObservableProperty] private IReadOnlyList<MapMarker> markers = [];
+    /// <summary>Reference poll interval for dynamic markers.</summary>
+    internal TimeSpan MarkerInterval { get; init; } = TimeSpan.FromSeconds(2);
     /// <summary>Incremented when the view should fit the whole map again.</summary>
     [ObservableProperty] private int viewResetRequest;
     public bool HasMap => Image is not null;
@@ -32,6 +38,7 @@ public sealed partial class MapViewModel : ObservableObject
         Image = null;
         Geometry = null;
         Monuments = [];
+        Markers = [];
         Message = "";
         IsLoading = false;
         old?.Dispose();
@@ -50,7 +57,7 @@ public sealed partial class MapViewModel : ObservableObject
                     var map = await session.ReadMapAsync(ct).WaitAsync(ct);
                     ct.ThrowIfCancellationRequested();
                     Apply(map);
-                    return;
+                    break;
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
                 catch (Exception)
@@ -60,8 +67,30 @@ public sealed partial class MapViewModel : ObservableObject
                 }
             }
         }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { return; }
         finally { IsLoading = false; }
+        if (session is IServerMarkerSession live) await PollMarkersAsync(live, ct);
+    }
+
+    private async Task PollMarkersAsync(IServerMarkerSession session, CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(MarkerInterval);
+        try
+        {
+            do
+            {
+                try
+                {
+                    var current = await session.ReadMarkersAsync(ct).WaitAsync(ct);
+                    ct.ThrowIfCancellationRequested();
+                    Markers = current;
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+                // A missed poll keeps the last markers; connection loss is handled by the connection owner.
+                catch (Exception) { }
+            } while (await timer.WaitForNextTickAsync(ct));
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
     }
 
     internal void Apply(ServerMap map)

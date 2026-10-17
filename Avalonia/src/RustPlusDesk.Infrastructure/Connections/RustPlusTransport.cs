@@ -5,7 +5,7 @@ using RustPlusDesk.Core.Map;
 
 namespace RustPlusDesk.Infrastructure.Connections;
 
-internal sealed class RustPlusTransport : IRustTransport, IServerTeamSession, IServerMapSession
+internal sealed class RustPlusTransport : IRustTransport, IServerTeamSession, IServerMarkerSession
 {
     private readonly RustPlus api;
     private readonly bool companionSocket;
@@ -125,6 +125,23 @@ internal sealed class RustPlusTransport : IRustTransport, IServerTeamSession, IS
                 throw new ServerConnectionException(ConnectionFailure.Unreachable);
             string background = $"#{data.Background.R:X2}{data.Background.G:X2}{data.Background.B:X2}";
             return new ServerMap(image, (int)width, (int)height, (int)(data.OceanMargin ?? 0), worldSize, monuments, background);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (ServerConnectionException) { throw; }
+        catch (Exception ex) { throw new ServerConnectionException(ConnectionFailureClassifier.Exception(ex, companionSocket)); }
+    }
+
+    public async Task<IReadOnlyList<MapMarker>> ReadMarkersAsync(CancellationToken ct)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromSeconds(8)); // reference marker poll budget
+        try
+        {
+            await requests.WaitAsync(timeout.Token).ConfigureAwait(false);
+            var response = await api.GetMapMarkersAsync(timeout.Token).WaitAsync(timeout.Token).ConfigureAwait(false);
+            if (!response.IsSuccess || response.Data is null)
+                throw new ServerConnectionException(ConnectionFailureClassifier.Response(response.Error?.Message));
+            return RustPlusMarkerMapper.Map(response.Data);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (ServerConnectionException) { throw; }

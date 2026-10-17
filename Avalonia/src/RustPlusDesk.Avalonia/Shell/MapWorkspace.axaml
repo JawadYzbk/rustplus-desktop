@@ -22,6 +22,14 @@
                           ToolTip.Tip="Show monuments" AutomationProperties.Name="Monuments">
               <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Location24" FontSize="16" /><TextBlock Text="Monuments" /></StackPanel>
             </ToggleButton>
+            <ToggleButton IsChecked="{Binding Connection.Map.ShowPlayers}" IsEnabled="{Binding Connection.Map.HasMap}" Padding="10,4"
+                          ToolTip.Tip="Show team players" AutomationProperties.Name="Players">
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="People24" FontSize="16" /><TextBlock Text="Players" /></StackPanel>
+            </ToggleButton>
+            <ToggleButton IsChecked="{Binding Connection.Map.ShowShops}" IsEnabled="{Binding Connection.Map.HasMap}" Padding="10,4"
+                          ToolTip.Tip="Show vending machines" AutomationProperties.Name="Shops">
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Cart24" FontSize="16" /><TextBlock Text="Shops" /></StackPanel>
+            </ToggleButton>
             <Button Command="{Binding Connection.Map.ResetViewCommand}" IsEnabled="{Binding Connection.Map.HasMap}" Padding="10,4"
                     ToolTip.Tip="Fit the whole map (Home)" AutomationProperties.Name="Fit map">
               <icons:Icon Symbol="Target24" FontSize="16" />
@@ -37,6 +45,7 @@
         <Grid x:Name="MapContent" RowDefinitions="*,Auto">
         <map:MapSurface Grid.RowSpan="2" x:Name="Surface" Image="{Binding Connection.Map.Image}" Geometry="{Binding Connection.Map.Geometry}"
                         Monuments="{Binding Connection.Map.Monuments}" ShowGrid="{Binding Connection.Map.ShowGrid}"
+                        Markers="{Binding Connection.Map.Markers}" ShowPlayers="{Binding Connection.Map.ShowPlayers}" ShowShops="{Binding Connection.Map.ShowShops}"
                         ShowMonuments="{Binding Connection.Map.ShowMonuments}" ResetRequest="{Binding Connection.Map.ViewResetRequest}"
                         IsVisible="{Binding Connection.Map.HasMap}" AutomationProperties.Name="Server map" />
         <ScrollViewer HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding !Connection.Map.HasMap}" Margin="20">
