@@ -106,4 +106,5 @@ Record each finished slice here with its commit.
 | --- | --- | --- |
 | Device delete + empty-group cleanup (3.1 part) | `fb864401` | Hotkey/overlay cleanup waits for 3.2/1.5 |
 | Raid calculator (tools) | `592a0893` | See RAID.md |
-| 0.1 dark default + Fluent System Icons font/`Icon` control (7,808 reference symbol names); 0.2 rail with reference icons/order and label toggle | next commit | Label state not yet persisted; more items join as areas are ported |
+| 0.1 dark default + Fluent System Icons font/`Icon` control (7,808 reference symbol names); 0.2 rail with reference icons/order and label toggle | `a1e7825b` | Label state not yet persisted; more items join as areas are ported |
+| 1.1 live map: server map image, reference world geometry, grid (cell math + labels), 51 monument icons/names, pan/zoom/fit/keyboard, hover label with grid ref, Grid/Monuments toggles | next commit | Monument `Canon` also strips trailing "display name" (reference bug left raw tokens without icons). Pending in 1.x: custom HD maps/cache, monument text mode, scale/opacity sliders, monument list panel, deep sea |

@@ -1,10 +1,11 @@
 using RustPlusApi;
 using RustPlusDesk.Core.Connections;
 using RustPlusDesk.Core.Devices;
+using RustPlusDesk.Core.Map;
 
 namespace RustPlusDesk.Infrastructure.Connections;
 
-internal sealed class RustPlusTransport : IRustTransport, IServerTeamSession
+internal sealed class RustPlusTransport : IRustTransport, IServerTeamSession, IServerMapSession
 {
     private readonly RustPlus api;
     private readonly bool companionSocket;
@@ -98,6 +99,35 @@ internal sealed class RustPlusTransport : IRustTransport, IServerTeamSession
                 member.SteamId.ToString(System.Globalization.CultureInfo.InvariantCulture), member.Name ?? "", member.IsOnline, member.IsAlive)).ToArray();
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception ex) { throw new ServerConnectionException(ConnectionFailureClassifier.Exception(ex, companionSocket)); }
+    }
+
+    /// <summary>Map image and monuments, with the world size from server info (the reference's GetMapWithMonumentsAsync).</summary>
+    public async Task<ServerMap> ReadMapAsync(CancellationToken ct)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        // Map payloads are large JPEGs; the reference allowed them a longer budget than status calls.
+        timeout.CancelAfter(TimeSpan.FromSeconds(30));
+        try
+        {
+            await requests.WaitAsync(timeout.Token).ConfigureAwait(false);
+            var info = await api.GetInfoAsync(timeout.Token).WaitAsync(timeout.Token).ConfigureAwait(false);
+            if (!info.IsSuccess || info.Data is null)
+                throw new ServerConnectionException(ConnectionFailureClassifier.Response(info.Error?.Message));
+            await requests.WaitAsync(timeout.Token).ConfigureAwait(false);
+            var map = await api.GetMapAsync(timeout.Token).WaitAsync(timeout.Token).ConfigureAwait(false);
+            if (!map.IsSuccess || map.Data?.JpgImage is not { Length: > 0 } image)
+                throw new ServerConnectionException(ConnectionFailureClassifier.Response(map.Error?.Message));
+            var data = map.Data;
+            var monuments = (data.Monuments ?? []).Where(monument => !string.IsNullOrWhiteSpace(monument.Name) && monument.X is not null && monument.Y is not null)
+                .Select(monument => new MapMonument(monument.Name!, monument.X!.Value, monument.Y!.Value, monument.IsCustomName == true)).ToArray();
+            if (info.Data.MapSize is not { } worldSize || worldSize == 0 || data.Width is not { } width || data.Height is not { } height)
+                throw new ServerConnectionException(ConnectionFailure.Unreachable);
+            string background = $"#{data.Background.R:X2}{data.Background.G:X2}{data.Background.B:X2}";
+            return new ServerMap(image, (int)width, (int)height, (int)(data.OceanMargin ?? 0), worldSize, monuments, background);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (ServerConnectionException) { throw; }
         catch (Exception ex) { throw new ServerConnectionException(ConnectionFailureClassifier.Exception(ex, companionSocket)); }
     }
 }

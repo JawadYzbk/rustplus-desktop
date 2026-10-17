@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:RustPlusDesk.Avalonia.Features.Servers" xmlns:account="clr-namespace:RustPlusDesk.Core.Accounts;assembly=RustPlusDesk.Core"
-             xmlns:teams="using:RustPlusDesk.Avalonia.Features.Teams"
+             xmlns:teams="using:RustPlusDesk.Avalonia.Features.Teams" xmlns:map="using:RustPlusDesk.Avalonia.Features.Map"
+             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
              x:Class="RustPlusDesk.Avalonia.Shell.MapWorkspace" x:DataType="vm:ServersViewModel">
   <Grid>
     <Grid.RowDefinitions>
@@ -11,16 +12,34 @@
     <Grid RowDefinitions="Auto,*">
       <Border Background="{DynamicResource SurfaceAlt}" Padding="16,10" BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,0,0,1">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-          <TextBlock Text="Map" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <TextBlock Text="Map" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <ToggleButton IsChecked="{Binding Connection.Map.ShowGrid}" IsEnabled="{Binding Connection.Map.HasMap}" Padding="10,4"
+                          ToolTip.Tip="Show the map grid" AutomationProperties.Name="Grid">
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Grid24" FontSize="16" /><TextBlock Text="Grid" /></StackPanel>
+            </ToggleButton>
+            <ToggleButton IsChecked="{Binding Connection.Map.ShowMonuments}" IsEnabled="{Binding Connection.Map.HasMap}" Padding="10,4"
+                          ToolTip.Tip="Show monuments" AutomationProperties.Name="Monuments">
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Location24" FontSize="16" /><TextBlock Text="Monuments" /></StackPanel>
+            </ToggleButton>
+            <Button Command="{Binding Connection.Map.ResetViewCommand}" IsEnabled="{Binding Connection.Map.HasMap}" Padding="10,4"
+                    ToolTip.Tip="Fit the whole map (Home)" AutomationProperties.Name="Fit map">
+              <icons:Icon Symbol="Target24" FontSize="16" />
+            </Button>
+          </StackPanel>
           <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" IsVisible="{Binding Connection.IsConnected}">
             <TextBlock Text="{Binding Connection.Population, StringFormat='Players {0}'}" />
             <TextBlock Text="{Binding Connection.ServerTime}" />
           </StackPanel>
         </Grid>
       </Border>
-      <Border Grid.Row="1" Background="{DynamicResource MapBackground}" Padding="20">
+      <Border Grid.Row="1" Background="{DynamicResource MapBackground}">
         <Grid x:Name="MapContent" RowDefinitions="*,Auto">
-        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <map:MapSurface Grid.RowSpan="2" x:Name="Surface" Image="{Binding Connection.Map.Image}" Geometry="{Binding Connection.Map.Geometry}"
+                        Monuments="{Binding Connection.Map.Monuments}" ShowGrid="{Binding Connection.Map.ShowGrid}"
+                        ShowMonuments="{Binding Connection.Map.ShowMonuments}" ResetRequest="{Binding Connection.Map.ViewResetRequest}"
+                        IsVisible="{Binding Connection.Map.HasMap}" AutomationProperties.Name="Server map" />
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding !Connection.Map.HasMap}" Margin="20">
         <Border Classes="card" MaxWidth="360" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center">
           <StackPanel Spacing="14">
             <TextBlock Text="Ready to explore the map?" FontSize="20" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" />
@@ -29,13 +48,15 @@
                     IsVisible="{Binding !Connection.IsActive}" HorizontalAlignment="Center" />
             <Button Content="_Disconnect" Command="{Binding Connection.DisconnectCommand}"
                     IsVisible="{Binding Connection.IsActive}" HorizontalAlignment="Center" />
-            <TextBlock Text="Live map rendering is still being migrated. Server connections and device controls are available in this preview."
-                       Classes="muted" FontSize="12" TextAlignment="Center" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding Connection.Map.Message}" Classes="muted" FontSize="12" TextAlignment="Center" TextWrapping="Wrap"
+                       IsVisible="{Binding Connection.Map.Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <TextBlock Text="Connect to a selected server to load the live Rust map and team." Classes="muted" FontSize="12"
+                       TextAlignment="Center" TextWrapping="Wrap" IsVisible="{Binding !Connection.IsActive}" />
           </StackPanel>
         </Border>
         </ScrollViewer>
         <teams:TeamView Grid.Row="1" DataContext="{Binding Connection.Team}" MaxHeight="{Binding #MapContent.Bounds.Height}"
-                        HorizontalAlignment="Left" VerticalAlignment="Bottom" />
+                        HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="20,0,20,20" />
         </Grid>
       </Border>
     </Grid>
