@@ -1,5 +1,52 @@
 # Avalonia migration handoff — 2026-10-17
 
+## Latest verified source — automatic own-device synchronization
+
+- **`7d1b6ff`** on `codex/avalonia-migration` adds the explicit default-off, cloud/Steam-scoped local
+  device sync preference, offline disabling/suppression, connected restore-before-upload and fresh
+  quota enforcement. It follows own-recovery source `a3b58d4f` and documentation `1d2a2035`.
+- **333 tests pass** in the worktree and source-only external copy. Debug/Release builds are clean;
+  self-contained win-x64/linux-x64/osx-arm64 publishes succeed. The newest Windows app is
+  **`Avalonia/artifacts/publish/win-x64-sync/RustPlusDesk.Avalonia.exe`**, with accompanying files.
+- Account → Cloud exposes Enable/confirm, Stop and Retry. Consent alone does not enable sync. A
+  separate private `cache/avalonia_device_sync.json` stores owner/Steam/enablement/generation. Stop
+  suppresses this process before disk work, even offline; persistence failures are explicitly reported.
+- CloudDeviceSynchronizer reuses CloudDeviceRestore, SharedDeviceCodec and CloudApiClient. Its barrier
+  is scoped to profile/cloud/Steam/connection/preference generation/live wipe. Fresh own snapshots
+  are probed and re-fetched before missing-only merge. Any changed local file returns for root-owned
+  reload/reconnect before uploading. Known old wipes, unknown live wipe/snapshot freshness, missing
+  entities, malformed data, empty-leaf lists, quota/permission/revision changes block uploads.
+- Export derives rig targets from enabled local SmartAlarm rules and immediate conditional steps,
+  matching the original registry. Recovered annotations without matching rules pause upload; no rule
+  is enabled implicitly and no rig classification is silently erased. Alarm titles/icons survive.
+- ConnectionViewModel owns and awaits sync before socket disposal. Root pauses cycles for editors/
+  account changes and reloads after restore outside that connection-owned task. Live wipe changes
+  cancel sync before reconnecting. UI tests drive actual fixture HTTP/profile writes through recovery,
+  reconnection, upload and offline stop at 1000×700, with visible confirmation.
+- UI fixtures now share one dispatcher and dispose it at assembly cleanup. Separate sessions exposed
+  framework-cached hyperlink decorations belonging to the first UI thread. The integration condition
+  also tolerates null server selection during a normal reload. Final full suites pass after both fixes.
+- Read **CLOUD-DEVICE-SYNC.md** for exact safeguards and limitations. The overlay backend has no CAS:
+  a final GET cannot make GET+POST atomic against another writer. SDK binary-state reads do not prove
+  switch-versus-alarm identity. No authenticated/live Rust/cloud/FCM or native Linux/macOS acceptance
+  was performed. Real preview version remains 1.0.0; a live 426 must not be bypassed.
+- **Next:** full original team-device import picker using connected team/own identities, authorized
+  member snapshots, flat endpoint fallback and safe local-overlay fallback, current-wipe validation,
+  live probes, selection, nested deduplication and retained chat/rig semantics. SDK source root is
+  `D:/Development/RustPlusApi/src/RustPlusApi` (not the earlier incorrect nested path); its ServerInfo
+  WipeTime maps protocol Unix seconds to UTC. Team APIs are not yet projected into Core sessions.
+- Continue every remaining STATUS.md feature and OS/distribution acceptance item; this is still a
+  development preview. Latest usage check: **48% five-hour used**, reset `1792236052`. Observe 97% stop
+  and checkpoint. No reset credits, backend edits or personal credentials were used.
+- Keep edits inside the attached worktree's Avalonia/. Original D:/Development/rustplus-desktop stays
+  beta. The migration graph remains stale/not-tracking newer cloud files; use coverage + source/tests.
+  Run isolation commands with their external directory as working directory and an absolute separate
+  package cache; relative RestorePackagesPath from the worktree root creates an unwanted root cache.
+  The generated root cache from this check was verified and removed; no unrelated files were changed.
+
+The earlier recovery checkpoint below is historical; the automatic own-device slice above supersedes
+its next-step instructions without completing teammate import or the overall migration.
+
 ## Latest verified source — own cloud recovery
 
 - **`a3b58d4f`**, `codex/avalonia-migration`, implements explicit recovery of the owner's missing cloud
