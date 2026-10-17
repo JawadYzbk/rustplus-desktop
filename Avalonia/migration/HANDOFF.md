@@ -1,5 +1,18 @@
 # Avalonia migration handoff — 2026-10-17
 
+## Usage checkpoint — continuation stopped at 98%
+
+- Authoritative account usage on the next goal continuation is **98% five-hour used**, above the
+  required 97% implementation stop. No implementation or test reruns were started in this continuation.
+  Reset remains **2026-10-17 11:20:52 UTC / 14:20:52 Beirut**. No reset credits were consumed.
+- Source remains verified **`d7bbf34c`**, with prior documentation **`471e5739`**, already pushed to
+  origin/codex/avalonia-migration. The working tree was clean before this documentation-only update.
+  Retained verification is 358 passing tests in both locations, clean builds and three publishes.
+- The full production-ready goal is unfinished. The previous goal turn made verified implementation
+  progress; this is the first consecutive continuation blocked by the confirmed capacity threshold.
+  Keep the goal active. Recheck account usage after reset, then follow the exact next steps below.
+  The completed one-time heartbeat was removed; no replacement automation is scheduled.
+
 ## Latest verified checkpoint — live Team dock and direct icon access
 
 - **`d7bbf34c`**, pushed to `origin/codex/avalonia-migration`, follows import source `9c42634a` and
