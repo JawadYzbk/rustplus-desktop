@@ -13,6 +13,8 @@ using RustPlusDesk.Core.Recycling;
 using RustPlusDesk.Avalonia.Features.Recycling;
 using RustPlusDesk.Core.Cloud;
 using RustPlusDesk.Avalonia.Features.Cloud;
+using RustPlusDesk.Avalonia.Features.Raid;
+using RustPlusDesk.Core.Raid;
 
 namespace RustPlusDesk.Avalonia.Features.Servers;
 
@@ -21,7 +23,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     ICompanionListener? companionListener = null, ICompanionPushHealth? pushHealth = null, IDeviceProfileEditor? deviceEditor = null,
     IRecyclerCatalog? recyclerCatalog = null, ICloudAccountService? cloudAccountService = null, IReadOnlyList<DeviceIcon>? deviceIcons = null,
     ICloudDeviceRestore? cloudDeviceRestore = null, IDeviceSyncPreferences? deviceSyncPreferences = null, ICloudDeviceSynchronizer? deviceSynchronizer = null,
-    IDeviceImporter? deviceImporter = null)
+    IDeviceImporter? deviceImporter = null, IRaidCatalog? raidCatalog = null, IRaidPlanStore? raidPlanStore = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = new(sessionFactory);
@@ -84,32 +86,66 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [RelayCommand] private void ToggleSidebar() => IsSidebarOpen = !IsSidebarOpen;
     [RelayCommand] private void ShowDevices() { WorkspaceIndex = 0; IsSidebarOpen = true; }
     [RelayCommand] private void OpenRecycler() { if (HasRecyclerTool) WorkspaceIndex = 1; }
+    public bool HasRaidTool => raidCatalog is not null && raidPlanStore is not null;
+    [RelayCommand] private void OpenRaid() { if (HasRaidTool) WorkspaceIndex = 2; }
     [ObservableProperty]
     private RecyclerViewModel? recycler;
     [ObservableProperty]
+    private RaidCalculatorViewModel? raid;
+    private Task raidPlanLoad = Task.CompletedTask;
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsRecyclerSelected))]
-    [NotifyCanExecuteChangedFor(nameof(CloseRecyclerCommand))]
+    [NotifyPropertyChangedFor(nameof(IsRaidSelected))]
+    [NotifyPropertyChangedFor(nameof(IsToolSelected))]
+    [NotifyCanExecuteChangedFor(nameof(CloseToolCommand))]
     private int workspaceIndex;
     public bool IsRecyclerSelected => WorkspaceIndex == 1;
+    public bool IsRaidSelected => WorkspaceIndex == 2;
+    /// <summary>A tool workspace replaces the map; the server sidebar stays available.</summary>
+    public bool IsToolSelected => WorkspaceIndex != 0;
     [ObservableProperty] private string toolMessage = "";
 
     partial void OnWorkspaceIndexChanged(int value)
     {
-        if (value != 1 || Recycler is not null) return;
-        try
+        if (value == 1 && Recycler is null)
         {
-            if (recyclerCatalog is null) { WorkspaceIndex = 0; return; }
-            Recycler = new(recyclerCatalog.Load());
-            ToolMessage = "";
+            try
+            {
+                if (recyclerCatalog is null) { WorkspaceIndex = 0; return; }
+                Recycler = new(recyclerCatalog.Load());
+                ToolMessage = "";
+            }
+            catch (Exception)
+            {
+                WorkspaceIndex = 0;
+                ToolMessage = "Unable to load the bundled recycling catalog. Check or reinstall this preview.";
+            }
         }
-        catch (Exception)
+        else if (value == 2 && Raid is null)
         {
-            WorkspaceIndex = 0;
-            ToolMessage = "Unable to load the bundled recycling catalog. Check or reinstall this preview.";
+            try
+            {
+                if (raidCatalog is null || raidPlanStore is null) { WorkspaceIndex = 0; return; }
+                Raid = new(raidCatalog.Load(), raidPlanStore);
+                raidPlanLoad = LoadRaidPlanAsync(Raid);
+                ToolMessage = "";
+            }
+            catch (Exception)
+            {
+                WorkspaceIndex = 0;
+                ToolMessage = "Unable to load the bundled raid dataset. Check or reinstall this preview.";
+            }
         }
     }
-    [RelayCommand(CanExecute = nameof(IsRecyclerSelected))]
-    private void CloseRecycler() => WorkspaceIndex = 0;
+
+    private static async Task LoadRaidPlanAsync(RaidCalculatorViewModel model)
+    {
+        try { await model.LoadPlanAsync(CancellationToken.None); }
+        catch (Exception) { model.StatusMessage = "The saved raid plan could not be restored."; }
+    }
+
+    [RelayCommand(CanExecute = nameof(IsToolSelected))]
+    private void CloseTool() => WorkspaceIndex = 0;
 
     [RelayCommand]
     private void OpenAccount()
@@ -515,6 +551,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         OrganizeDevicesCommand.Cancel();
         RecoverCloudDevicesCommand.Cancel();
         ImportDevicesCommand.Cancel();
+        await raidPlanLoad;
+        if (Raid is not null) await Raid.FlushAsync();
         if (DeviceSync is not null) await DeviceSync.StopAsync();
         if (Account is not null) await Account.StopAsync();
         if (Listener is not null) await Listener.StopListeningAsync();

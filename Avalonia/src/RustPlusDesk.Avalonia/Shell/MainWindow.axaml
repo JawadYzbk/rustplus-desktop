@@ -3,7 +3,7 @@
         xmlns:servers="using:RustPlusDesk.Avalonia.Features.Servers"
         xmlns:devices="using:RustPlusDesk.Avalonia.Features.Devices"
         xmlns:accounts="using:RustPlusDesk.Avalonia.Features.Accounts"
-        xmlns:recycling="using:RustPlusDesk.Avalonia.Features.Recycling"
+        xmlns:recycling="using:RustPlusDesk.Avalonia.Features.Recycling" xmlns:raid="using:RustPlusDesk.Avalonia.Features.Raid"
         xmlns:shell="using:RustPlusDesk.Avalonia.Shell"
         xmlns:cloud="using:RustPlusDesk.Avalonia.Features.Cloud"
         x:Class="RustPlusDesk.Avalonia.Shell.MainWindow"
@@ -11,7 +11,7 @@
         Title="Rust+ Desktop — Cross-platform preview"
         Icon="/Assets/app.ico" Width="1380" Height="950" MinWidth="1000" MinHeight="700"
         WindowDecorations="Full">
-  <Window.KeyBindings><KeyBinding Gesture="Escape" Command="{Binding CloseRecyclerCommand}" /></Window.KeyBindings>
+  <Window.KeyBindings><KeyBinding Gesture="Escape" Command="{Binding CloseToolCommand}" /></Window.KeyBindings>
   <Grid RowDefinitions="42,*,26">
     <Grid ColumnDefinitions="*,Auto" Margin="14,0" IsEnabled="{Binding !HasOverlay}">
       <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
@@ -37,14 +37,23 @@
           </Grid>
         </SplitView.Pane>
         <Grid>
-          <shell:MapWorkspace x:Name="MapArea" IsVisible="{Binding !IsRecyclerSelected}" />
+          <shell:MapWorkspace x:Name="MapArea" IsVisible="{Binding !IsToolSelected}" />
           <Border Classes="card" CornerRadius="0" Padding="16" IsVisible="{Binding IsRecyclerSelected}">
             <Grid RowDefinitions="Auto,*" RowSpacing="12">
               <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Text="Recycling calculator" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" />
-                <Button Grid.Column="1" Content="_Close" Command="{Binding CloseRecyclerCommand}" />
+                <Button Grid.Column="1" Content="_Close" Command="{Binding CloseToolCommand}" />
               </Grid>
               <recycling:RecyclerView Grid.Row="1" DataContext="{Binding Recycler}" />
+            </Grid>
+          </Border>
+          <Border Classes="card" CornerRadius="0" Padding="16" IsVisible="{Binding IsRaidSelected}">
+            <Grid RowDefinitions="Auto,*" RowSpacing="8">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="Raid calculator" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" />
+                <Button Grid.Column="1" Content="_Close" Command="{Binding CloseToolCommand}" />
+              </Grid>
+              <raid:RaidCalculatorView Grid.Row="1" DataContext="{Binding Raid}" />
             </Grid>
           </Border>
         </Grid>

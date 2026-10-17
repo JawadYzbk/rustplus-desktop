@@ -7,5 +7,6 @@
     <EmbeddedResource Include="Assets/rust-item-list.json" LogicalName="RustPlusDesk.Infrastructure.Items.json" />
     <EmbeddedResource Include="Assets/recycler-items.json" LogicalName="RustPlusDesk.Infrastructure.RecyclerItems.json" />
     <EmbeddedResource Include="Assets/Recycling-Data.json" LogicalName="RustPlusDesk.Infrastructure.RecyclingData.json" />
+    <EmbeddedResource Include="Assets/raid-data.json" LogicalName="RustPlusDesk.Infrastructure.RaidData.json" />
   </ItemGroup>
 </Project>

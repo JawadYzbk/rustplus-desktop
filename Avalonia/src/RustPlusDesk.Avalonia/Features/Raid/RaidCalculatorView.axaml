@@ -1,0 +1,326 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RustPlusDesk.Avalonia.Features.Raid"
+             xmlns:core="clr-namespace:RustPlusDesk.Core.Raid;assembly=RustPlusDesk.Core"
+             xmlns:shared="using:RustPlusDesk.Avalonia.Shared.Controls"
+             x:Class="RustPlusDesk.Avalonia.Features.Raid.RaidCalculatorView" x:DataType="vm:RaidCalculatorViewModel">
+  <UserControl.Styles>
+    <Style Selector="Border.raidPanel">
+      <Setter Property="Background" Value="{DynamicResource SurfaceAlt}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="12" />
+    </Style>
+    <Style Selector="Border.statTile">
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="16,11" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+    </Style>
+    <Style Selector="TextBlock.caption">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSubtle}" />
+    </Style>
+    <Style Selector="Button.targetCard">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="8" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Transitions">
+        <Transitions><TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.14" /></Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Button.targetCard:pointerover">
+      <Setter Property="RenderTransform" Value="scale(1.04)" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+    </Style>
+    <Style Selector="Button.iconButton">
+      <Setter Property="Width" Value="30" />
+      <Setter Property="Height" Value="30" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="ListBox.chips ListBoxItem">
+      <Setter Property="Margin" Value="0,0,6,6" />
+      <Setter Property="Padding" Value="11,4" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="ListBox.chips ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource RaidAccentSoft}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,Auto,*" x:Name="Root">
+    <!-- Header actions: details toggle, copy summary, clear (with inline confirmation). -->
+    <Grid ColumnDefinitions="*,Auto" Margin="2,0,2,12">
+      <TextBlock Text="{Binding DataCaption}" Classes="muted" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+        <CheckBox Content="Details" IsChecked="{Binding ShowDetails}" ToolTip.Tip="Show damage, overkill and ingredient breakdowns" />
+        <Button Content="_Copy summary" Click="CopySummary" IsEnabled="{Binding HasPlan}"
+                ToolTip.Tip="Copy a Discord-ready summary" AutomationProperties.Name="Copy raid summary" />
+        <Button Content="C_lear plan" Command="{Binding ClearCommand}" IsEnabled="{Binding HasPlan}" IsVisible="{Binding !IsClearConfirming}"
+                AutomationProperties.Name="Clear raid plan" />
+        <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsClearConfirming}">
+          <TextBlock Text="Clear every target from this raid plan?" VerticalAlignment="Center" />
+          <Button Content="Clear" Command="{Binding ClearCommand}" Foreground="{DynamicResource ConnectionDanger}" AutomationProperties.Name="Confirm clear raid plan" />
+          <Button Content="Cancel" Command="{Binding CancelClearCommand}" AutomationProperties.Name="Cancel clear raid plan" />
+        </StackPanel>
+      </StackPanel>
+    </Grid>
+
+    <!-- Hero stat band: total sulfur is the headline number. -->
+    <Grid Grid.Row="1" ColumnDefinitions="1.6*,8,*,8,*" Margin="0,0,0,12" IsVisible="{Binding HasPlan}">
+      <Border Classes="statTile" Background="{DynamicResource RaidSulfurSoft}" BorderBrush="{DynamicResource RaidSulfurBorder}">
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+          <shared:ItemIcon ShortName="sulfur" Width="40" Height="40" />
+          <StackPanel Grid.Column="1" VerticalAlignment="Center">
+            <TextBlock Classes="caption" Foreground="{DynamicResource RaidSulfur}" Text="TOTAL SULFUR" />
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <TextBlock FontSize="30" FontWeight="Bold" Text="{Binding TotalSulfurText}" AutomationProperties.Name="Total sulfur" />
+              <TextBlock Margin="0,0,0,5" VerticalAlignment="Bottom" Classes="muted" Text="sulfur" />
+            </StackPanel>
+          </StackPanel>
+        </Grid>
+      </Border>
+      <Border Grid.Column="2" Classes="statTile">
+        <StackPanel VerticalAlignment="Center">
+          <TextBlock Classes="caption" Text="RAID ITEMS" />
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <TextBlock FontSize="26" FontWeight="Bold" Foreground="{DynamicResource Accent}" Text="{Binding TotalRaidItemsText}" />
+            <TextBlock Margin="0,0,0,4" VerticalAlignment="Bottom" Classes="muted" Text="to craft" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <Border Grid.Column="4" Classes="statTile">
+        <StackPanel VerticalAlignment="Center">
+          <TextBlock Classes="caption" Text="BENCH REQUIRED" />
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <TextBlock FontSize="26" FontWeight="Bold" Text="{Binding HighestWorkbench}" />
+            <TextBlock Margin="0,0,0,4" VerticalAlignment="Bottom" Classes="muted" Text="workbench tier" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <Grid Grid.Row="2" x:Name="Columns" ColumnDefinitions="330,10,*,10,300">
+      <!-- Catalogue -->
+      <Border x:Name="CatalogPanel" Classes="raidPanel" Padding="12">
+        <Grid RowDefinitions="Auto,Auto,*">
+          <TextBox Text="{Binding SearchText}" PlaceholderText="Search targets…" AutomationProperties.Name="Search raid targets" />
+          <ListBox Grid.Row="1" Classes="chips" Margin="0,10,0,8" Background="Transparent" ItemsSource="{Binding Categories}"
+                   SelectedItem="{Binding SelectedCategory, Mode=TwoWay}" AutomationProperties.Name="Target category"
+                   ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
+            <ListBox.ItemTemplate><DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" FontSize="11.5" /></DataTemplate></ListBox.ItemTemplate>
+          </ListBox>
+          <Grid Grid.Row="2">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+              <ItemsControl ItemsSource="{Binding FilteredTargets}">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:RaidTargetCardViewModel">
+                    <Button Classes="targetCard" Height="150" Margin="0,0,6,8" Command="{Binding $parent[UserControl].((vm:RaidCalculatorViewModel)DataContext).AddTargetCommand}"
+                            CommandParameter="{Binding}" AutomationProperties.Name="{Binding AutomationName}" ToolTip.Tip="{Binding CardTitle}">
+                      <Grid RowDefinitions="78,*,18">
+                        <vm:RaidTargetImage IconName="{Binding IconName}" Width="74" Height="74" Stretch="Uniform" HorizontalAlignment="Center" />
+                        <TextBlock Grid.Row="1" Margin="1,4,1,1" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding CardTitle}"
+                                   FontSize="12" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Row="2" HorizontalAlignment="Center" Text="{Binding CardMeta}" FontSize="11" Classes="muted" />
+                      </Grid>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" IsVisible="{Binding IsCatalogueEmpty}">
+              <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold" Text="No matching targets" />
+              <TextBlock HorizontalAlignment="Center" Classes="muted" Text="Try another search or category." />
+            </StackPanel>
+          </Grid>
+        </Grid>
+      </Border>
+
+      <!-- Plan -->
+      <Border Grid.Column="2" Classes="raidPanel" Padding="12">
+        <Grid RowDefinitions="Auto,*">
+          <DockPanel Margin="2,0,2,10">
+            <WrapPanel DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center">
+              <ToggleButton x:Name="SmartMixButton" Margin="8,2,0,2" Content="{Binding SmartMixCaption}" IsChecked="{Binding IsSmartMixOpen, Mode=TwoWay}"
+                            ToolTip.Tip="Select multiple raid items for the smart combination search" AutomationProperties.Name="Select smart mix raid items" />
+              <ComboBox Width="190" Margin="8,2,0,2" ItemsSource="{Binding ComparisonModes}" SelectedItem="{Binding SelectedComparison, Mode=TwoWay}"
+                        AutomationProperties.Name="Method comparison mode">
+                <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:RaidComparisonChoice"><TextBlock Text="{Binding DisplayName}" /></DataTemplate></ComboBox.ItemTemplate>
+              </ComboBox>
+            </WrapPanel>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock FontSize="15" FontWeight="SemiBold" Text="Raid plan" TextTrimming="CharacterEllipsis" />
+              <TextBlock FontSize="11" Classes="muted" Text="{Binding PlanCountCaption}" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+          </DockPanel>
+          <Popup PlacementTarget="{Binding #SmartMixButton}" Placement="BottomEdgeAlignedRight" IsLightDismissEnabled="True"
+                 IsOpen="{Binding IsSmartMixOpen, Mode=TwoWay}">
+            <Border Width="280" MaxHeight="410" Padding="8" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource CardBorder}"
+                    BorderThickness="1" CornerRadius="8">
+              <ScrollViewer>
+                <ItemsControl ItemsSource="{Binding GlobalMethods}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:RaidGlobalMethodChoice">
+                      <CheckBox Margin="3,2" IsChecked="{Binding IsSelected}" AutomationProperties.Name="{Binding DisplayName}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <shared:ItemIcon ShortName="{Binding Source.ItemShortname}" Width="22" Height="22" />
+                          <TextBlock VerticalAlignment="Center" Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" MaxWidth="200" />
+                        </StackPanel>
+                      </CheckBox>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+            </Border>
+          </Popup>
+          <Grid Grid.Row="1">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsPlanEmpty}">
+              <TextBlock HorizontalAlignment="Center" FontSize="14" FontWeight="SemiBold" Text="No targets selected" />
+              <TextBlock HorizontalAlignment="Center" Classes="muted" Text="Choose a target from the catalogue." />
+            </StackPanel>
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding HasPlan}">
+              <ItemsControl ItemsSource="{Binding PlanItems}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:RaidPlanItemViewModel">
+                    <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" CornerRadius="10"
+                            Padding="11" Margin="0,0,0,9">
+                      <Grid RowDefinitions="Auto,Auto,Auto">
+                        <Grid ColumnDefinitions="44,*,Auto">
+                          <vm:RaidTargetImage IconName="{Binding IconName}" Width="34" Height="34" Stretch="Uniform" />
+                          <StackPanel Grid.Column="1" Margin="7,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                            <TextBlock FontSize="11" Classes="muted" Text="{Binding Subtitle}" TextTrimming="CharacterEllipsis" />
+                          </StackPanel>
+                          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+                            <Button Classes="iconButton" Content="−" Command="{Binding DecrementCommand}" ToolTip.Tip="Decrease quantity" AutomationProperties.Name="Decrease target quantity" />
+                            <NumericUpDown Value="{Binding Quantity, Mode=TwoWay}" Minimum="1" Maximum="9999" Increment="1" FormatString="0" ShowButtonSpinner="False"
+                                           Width="52" MinHeight="30" Height="30" Padding="2" HorizontalContentAlignment="Center" AutomationProperties.Name="Target quantity" />
+                            <Button Classes="iconButton" Content="+" Command="{Binding IncrementCommand}" ToolTip.Tip="Increase quantity" AutomationProperties.Name="Increase target quantity" />
+                            <Button Classes="iconButton" Margin="4,0,0,0" Content="⧉" Command="{Binding Owner.DuplicateCommand}" CommandParameter="{Binding}"
+                                    ToolTip.Tip="Duplicate target" AutomationProperties.Name="Duplicate target" />
+                            <Button Classes="iconButton" Content="✕" Command="{Binding Owner.RemoveCommand}" CommandParameter="{Binding}"
+                                    ToolTip.Tip="Remove target" AutomationProperties.Name="Remove target" />
+                          </StackPanel>
+                        </Grid>
+                        <Grid Grid.Row="1" Margin="0,10,0,0" ColumnDefinitions="*,Auto">
+                          <ComboBox HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ItemsSource="{Binding Methods}" SelectedItem="{Binding SelectedMethod, Mode=TwoWay}"
+                                    AutomationProperties.Name="Destruction method" MaxDropDownHeight="460">
+                            <ComboBox.ItemTemplate>
+                              <DataTemplate x:DataType="vm:RaidMethodViewModel">
+                                <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="6" ToolTip.Tip="{Binding DisplayText}">
+                                  <ItemsControl ItemsSource="{Binding ComponentShortNames}" VerticalAlignment="Center">
+                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="3" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><shared:ItemIcon ShortName="{Binding}" Width="22" Height="22" /></DataTemplate></ItemsControl.ItemTemplate>
+                                  </ItemsControl>
+                                  <TextBlock Grid.Column="1" Text="{Binding DisplayText}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                  <Border Grid.Column="2" Padding="6,1" CornerRadius="4" Background="{DynamicResource RaidAccentSoft}" BorderBrush="{DynamicResource Accent}" BorderThickness="1"
+                                          VerticalAlignment="Center" IsVisible="{Binding HasDeliveryLabel}" ToolTip.Tip="Requires a siege weapon — not a hand-placed explosive">
+                                    <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" Text="{Binding DeliveryLabel}" />
+                                  </Border>
+                                  <TextBlock Grid.Column="3" Margin="4,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource RaidSulfur}" Text="{Binding SulfurText}" />
+                                </Grid>
+                              </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                          </ComboBox>
+                          <Border Grid.Column="1" Margin="8,0,0,0" Padding="10,0" MinWidth="86" CornerRadius="7" Background="{DynamicResource RaidSulfurSoft}"
+                                  BorderBrush="{DynamicResource RaidSulfurBorder}" BorderThickness="1" IsVisible="{Binding SelectedHasSulfur}">
+                            <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" HorizontalAlignment="Center">
+                              <shared:ItemIcon ShortName="sulfur" Width="16" Height="16" />
+                              <TextBlock VerticalAlignment="Center" FontWeight="Bold" Foreground="{DynamicResource RaidSulfur}" Text="{Binding SulfurBadgeText}" />
+                            </StackPanel>
+                          </Border>
+                        </Grid>
+                        <StackPanel Grid.Row="2" Margin="1,7,1,0">
+                          <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Border Padding="7,2" CornerRadius="5" Background="{DynamicResource RaidBestSoft}" BorderBrush="{DynamicResource RaidBest}" BorderThickness="1"
+                                    IsVisible="{Binding IsUsingCheapest}">
+                              <TextBlock FontSize="11" FontWeight="Bold" Foreground="{DynamicResource RaidBest}" Text="✓ CHEAPEST BOOM" />
+                            </Border>
+                            <Button Padding="7,2" Background="{DynamicResource RaidSulfurSoft}" Command="{Binding UseCheapestCommand}" IsVisible="{Binding HasCostComparison}"
+                                    ToolTip.Tip="Switch to the cheapest method" AutomationProperties.Name="Switch to the cheapest method">
+                              <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource RaidSulfur}" Text="{Binding CostComparisonText}" />
+                            </Button>
+                          </StackPanel>
+                          <StackPanel Margin="0,5,0,0" IsVisible="{Binding Owner.ShowDetails}">
+                            <TextBlock Text="{Binding SelectedMethod.CostText, FallbackValue=''}" FontSize="11" Classes="muted" TextWrapping="Wrap" />
+                            <TextBlock Margin="0,2,0,0" Text="{Binding SelectedMethod.DamageText, FallbackValue=''}" FontSize="11" Classes="muted" />
+                            <TextBlock Margin="0,2,0,0" Text="{Binding MethodWarning}" FontSize="11" Foreground="{DynamicResource RaidWarning}" TextWrapping="Wrap" />
+                          </StackPanel>
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </Grid>
+        </Grid>
+      </Border>
+
+      <!-- Shopping list -->
+      <Border x:Name="ShoppingPanel" Grid.Column="4" Classes="raidPanel" Padding="14">
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
+          <TextBlock FontSize="15" FontWeight="SemiBold" Text="Raid summary" />
+          <TextBlock Grid.Row="1" Margin="0,4,0,10" FontSize="11" Classes="muted" Text="Raid items and raw crafting ingredients" TextWrapping="Wrap" />
+          <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+              <StackPanel Margin="0,28,0,0" HorizontalAlignment="Center" IsVisible="{Binding IsPlanEmpty}">
+                <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold" Text="Nothing to total yet" />
+                <TextBlock HorizontalAlignment="Center" Classes="muted" Text="Add a target to see raid costs." />
+              </StackPanel>
+              <StackPanel IsVisible="{Binding HasPlan}">
+                <TextBlock Margin="0,0,0,8" Classes="caption" Text="BOOM REQUIRED" />
+                <ItemsControl ItemsSource="{Binding BoomTotals}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="core:RaidItemTotal">
+                      <Grid ColumnDefinitions="34,*,Auto" Margin="0,0,0,7">
+                        <shared:ItemIcon ShortName="{Binding Source.ItemShortname}" Width="24" Height="24" />
+                        <TextBlock Grid.Column="1" Margin="7,0" VerticalAlignment="Center" Text="{Binding Source.DisplayName}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="2" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource RaidWarning}" Text="{Binding Amount, StringFormat='×{0}'}" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Border Height="1" Margin="0,6,0,10" Background="{DynamicResource CardBorder}" />
+                <TextBlock Margin="0,0,0,8" Classes="caption" Text="RAW RESOURCES" />
+                <ItemsControl ItemsSource="{Binding ResourceTotals}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="core:RaidResourceTotal">
+                      <Grid ColumnDefinitions="34,*,Auto" Margin="0,0,0,7">
+                        <shared:ItemIcon ShortName="{Binding Shortname}" ItemId="{Binding ItemId}" Width="24" Height="24" />
+                        <TextBlock Grid.Column="1" Margin="7,0" VerticalAlignment="Center" Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="2" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" Text="{Binding Amount, StringFormat='{}{0:0.#}'}" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
+          <StackPanel Grid.Row="3">
+            <Border Margin="0,8,0,0" Padding="8" Background="{DynamicResource RaidSulfurSoft}" CornerRadius="6" IsVisible="{Binding HasUnavailableCosts}">
+              <TextBlock FontSize="11" Foreground="{DynamicResource RaidWarning}" TextWrapping="Wrap"
+                         Text="Some selected methods have no crafting cost in the dataset; their resources are excluded." />
+            </Border>
+            <TextBlock Margin="0,8,0,0" FontSize="11" Classes="muted" TextWrapping="Wrap"
+                       Text="Gunpowder, explosives, timing, and cooked/ore conversions are shown only when supplied by the dataset. Current data is already expanded to raw ingredients." />
+            <TextBlock Margin="0,8,0,0" FontSize="11" Foreground="{DynamicResource RaidWarning}" Text="{Binding StatusMessage}" TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Polite" />
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

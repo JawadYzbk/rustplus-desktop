@@ -181,7 +181,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Settings/localization/backups | Not ported | Portable settings models, resources, storage, lossless schema migration |
 | Tray/hotkeys/audio/speech/capture | Not ported | Platform capability audit and adapters with truthful availability |
 | Installer/updater | Not ported | Native packaging, signing, updater, permissions and upgrade-path validation |
-| Raid calculator | Not ported | Preserve catalog, per-target methods, smart mixes, resource shopping list, persisted plans, clipboard and responsive layout |
+| Raid calculator | Ported workspace tab: reference engine/tests, 165-target catalogue with artwork, categories/search, per-target methods, curated and smart mixes, comparison modes, cheapest nudge, totals, shared raid-plan.json, Discord summary copy, reference breakpoints | Tutorial targets, localization, entrance animations and native visual acceptance |
 | Recycler calculator | Offline catalog, calculations, quantity shortcuts, filters/paging, comparisons, icons and stateful workspace | Original navigation integration, tutorial targets, localization and native visual/accessibility acceptance |
 | Shop search/trades | Not ported | Preserve filters, vending offers, alerts, shopping/profit workflows and map links |
 | Map drawing/routes/layers/3D | Not ported | Preserve editing, grouping, import/export, keycards, no-build zones, monument overlays and helper integration |

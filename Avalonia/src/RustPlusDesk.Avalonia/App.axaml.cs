@@ -12,6 +12,7 @@ using RustPlusDesk.Infrastructure.Profiles;
 using RustPlusDesk.Infrastructure.Connections;
 using RustPlusDesk.Infrastructure.Accounts;
 using RustPlusDesk.Infrastructure.Items;
+using RustPlusDesk.Infrastructure.Raid;
 using RustPlusDesk.Infrastructure.Cloud;
 
 namespace RustPlusDesk.Avalonia;
@@ -54,7 +55,8 @@ public sealed partial class App : Application
                     typeof(App).Assembly.GetName().Version!.ToString(3)), BundledItemCatalog.Icons.Values.OrderBy(icon => icon.Name).ToArray(),
                 new CloudDeviceRestore(cloudHttp, CloudAccountService.DefaultCachePath, typeof(App).Assembly.GetName().Version!.ToString(3)), syncPreferences,
                 new CloudDeviceSynchronizer(cloudHttp, CloudAccountService.DefaultCachePath, typeof(App).Assembly.GetName().Version!.ToString(3), syncPreferences),
-                new DeviceImporter(cloudHttp, CloudAccountService.DefaultCachePath, typeof(App).Assembly.GetName().Version!.ToString(3), syncPreferences, DeviceImporter.DefaultOverlayRoot));
+                new DeviceImporter(cloudHttp, CloudAccountService.DefaultCachePath, typeof(App).Assembly.GetName().Version!.ToString(3), syncPreferences, DeviceImporter.DefaultOverlayRoot),
+                new BundledRaidCatalog(), new RaidPlanStore(RaidPlanStore.DefaultPath));
             desktop.Exit += (_, _) => { accountHttp.Dispose(); cloudHttp.Dispose(); };
             window.DataContext = servers;
             window.Opened += async (_, _) => await servers.InitializeCommand.ExecuteAsync(null);
