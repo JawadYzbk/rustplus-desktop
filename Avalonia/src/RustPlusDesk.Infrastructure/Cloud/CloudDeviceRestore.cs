@@ -50,6 +50,10 @@ public sealed class CloudDeviceRestore(HttpClient http, string cachePath, string
         });
 
     public Task<CloudDeviceRestoreResult> RestoreAsync(string path, ServerSummary server, CloudDeviceSnapshot preview, CancellationToken ct)
+        => RestoreAsync(path, server, preview, skipDeleted: false, ct);
+
+    /// <summary>Automatic sync skips locally deleted entities; an explicit user restore brings everything back.</summary>
+    internal Task<CloudDeviceRestoreResult> RestoreAsync(string path, ServerSummary server, CloudDeviceSnapshot preview, bool skipDeleted, CancellationToken ct)
         => GuardAsync(async () =>
         {
             if (preview.ProfileKey != server.ProfileKey) throw new CloudAccountException(CloudFailure.IdentityMismatch);
@@ -64,10 +68,15 @@ public sealed class CloudDeviceRestore(HttpClient http, string cachePath, string
             {
                 var profile = Find(document, server.ProfileKey, current.SteamId);
                 index = document.IndexOf(profile);
-                added = LegacyDeviceSnapshotMerger.Merge(profile, current.Devices);
+                var devices = skipDeleted ? WithoutDeleted(current.Devices, DeletedDeviceLog.Read(profile)) : current.Devices;
+                added = LegacyDeviceSnapshotMerger.Merge(profile, devices);
             }, server.SourceRevision, ct).ConfigureAwait(false);
             return new CloudDeviceRestoreResult(result[index], added.Devices, added.Groups);
         });
+
+    internal static IReadOnlyList<SharedDevice> WithoutDeleted(IReadOnlyList<SharedDevice> devices, IReadOnlyCollection<uint> deleted)
+        => deleted.Count == 0 ? devices : devices.Where(device => !deleted.Contains(device.EntityId))
+            .Select(device => device with { Children = WithoutDeleted(device.Children, deleted) }).ToArray();
 
     internal static void RequireConsent(CloudSessionFile session, CloudIdentity identity, string userId, string steamId)
     {

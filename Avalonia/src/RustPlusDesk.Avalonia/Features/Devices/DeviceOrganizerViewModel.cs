@@ -29,6 +29,7 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(MoveCommand))]
     [NotifyCanExecuteChangedFor(nameof(MoveUpCommand))]
     [NotifyCanExecuteChangedFor(nameof(MoveDownCommand))]
+    [NotifyCanExecuteChangedFor(nameof(DeleteCommand))]
     private PairedDevice? selected;
     [ObservableProperty] private string alias = "";
     private readonly IReadOnlyList<DeviceIcon> icons;
@@ -58,7 +59,14 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(MoveCommand))]
     [NotifyCanExecuteChangedFor(nameof(MoveUpCommand))]
     [NotifyCanExecuteChangedFor(nameof(MoveDownCommand))]
+    [NotifyCanExecuteChangedFor(nameof(DeleteCommand))]
     private bool isBusy;
+    /// <summary>Deletion is irreversible, so the first press only asks for confirmation.</summary>
+    [ObservableProperty] private bool isDeleteConfirming;
+    public string DeleteConfirmation => Selected is not { } item ? "" : item.Kind == DeviceKind.Group
+        ? $"Delete \"{item.Name}\" and the {Leaves(item)} device(s) inside it? Owned oil-rig rules and chat commands are removed too."
+        : $"Delete \"{item.Name}\"? Its oil-rig rules and chat command are removed too.";
+    private static int Leaves(PairedDevice item) => item.DescendantsAndSelf().Count(device => device.Kind != DeviceKind.Group);
     private bool needsRefresh;
     private bool CanEdit => !closing && !IsBusy && !needsRefresh && Selected is not null;
     private bool CanMoveUp => CanEdit && Position > 0;
@@ -77,6 +85,8 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
 
     partial void OnSelectedChanged(PairedDevice? value)
     {
+        IsDeleteConfirming = false;
+        OnPropertyChanged(nameof(DeleteConfirmation));
         Alias = value?.Alias ?? "";
         AlarmTitle = value?.InGameAlarmTitle ?? "";
         IconSearch = "";
@@ -113,6 +123,38 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
     private Task MoveUpAsync(CancellationToken ct) => ReorderAsync(-1, ct);
     [RelayCommand(CanExecute = nameof(CanMoveDown))]
     private Task MoveDownAsync(CancellationToken ct) => ReorderAsync(1, ct);
+
+    [RelayCommand(CanExecute = nameof(CanEdit))]
+    private async Task DeleteAsync(CancellationToken ct)
+    {
+        if (!IsDeleteConfirming) { IsDeleteConfirming = true; return; }
+        IsDeleteConfirming = false;
+        if (!CanEdit) return;
+        string? parent = ParentKey;
+        int position = Position;
+        IsBusy = true;
+        try
+        {
+            var result = await editor.DeleteAsync(path, current, Selected!.DeviceKey, ct);
+            changed |= result.Server.SourceRevision != current.SourceRevision;
+            current = result.Server;
+            OnPropertyChanged(nameof(Devices));
+            var all = Devices.SelectMany(item => item.DescendantsAndSelf()).ToArray();
+            string prefix = parent is null ? "" : parent + "/";
+            Selected = all.FirstOrDefault(item => item.DeviceKey == prefix + position.ToString(CultureInfo.InvariantCulture))
+                ?? all.FirstOrDefault(item => item.DeviceKey == prefix + (position - 1).ToString(CultureInfo.InvariantCulture))
+                ?? all.FirstOrDefault(item => item.DeviceKey == parent) ?? Devices.FirstOrDefault();
+            Message = $"Deleted {result.RemovedDevices} device(s)" + (result.RemovedRules > 0 ? $", {result.RemovedRules} oil-rig rule(s)" : "")
+                + (result.RemovedCommands > 0 ? $", {result.RemovedCommands} chat command(s)" : "") + ". Enabled device sync uploads the change after you close this editor.";
+        }
+        catch (OperationCanceledException) { Message = "Delete canceled."; }
+        catch (ProfileChangedException) { needsRefresh = true; Message = "The profiles file changed. Close and refresh before organizing again."; }
+        catch (Exception) { Message = "Unable to delete. Check file permissions and available disk space, then close and refresh."; }
+        finally { IsBusy = false; }
+    }
+
+    [RelayCommand]
+    private void CancelDelete() => IsDeleteConfirming = false;
 
     private Task ReorderAsync(int delta, CancellationToken ct)
         => Position + delta < 0 || Position + delta >= Siblings.Count ? Task.CompletedTask
@@ -152,5 +194,5 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
         foreach (var command in Commands) if (command.ExecutionTask is { } task) await task;
     }
 
-    private IAsyncRelayCommand[] Commands => [RenameCommand, SaveIconCommand, ResetIconCommand, SaveAlarmTitleCommand, GroupCommand, MoveCommand, MoveUpCommand, MoveDownCommand];
+    private IAsyncRelayCommand[] Commands => [RenameCommand, SaveIconCommand, ResetIconCommand, SaveAlarmTitleCommand, GroupCommand, MoveCommand, MoveUpCommand, MoveDownCommand, DeleteCommand];
 }

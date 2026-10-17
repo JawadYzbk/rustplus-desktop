@@ -163,6 +163,42 @@ public sealed class DeviceSynchronizationTests
         Assert.IsNull(exported[0]!["LogicRules"]);
     }
 
+    [TestMethod]
+    public async Task LocallyDeletedDevices_AreNotProbedOrRestored_AndTheNextUploadDropsThem_WhileExplicitRestoreStillWorks()
+    {
+        using var f = new CloudDeviceRestoreTests.Fixture();
+        var editor = new RustPlusDesk.Infrastructure.Profiles.LegacyDeviceProfileEditor();
+        var deleted = await editor.DeleteAsync(f.Profiles.Path, await f.Profiles.ServerAsync(), "1", default);
+        await editor.DeleteAsync(f.Profiles.Path, deleted.Server, "0", default);
+        // The deleted switch no longer exists in game; probing it would block every fresh session.
+        var devices = new TestDeviceClient { Read = (device, _) => Task.FromResult(new DeviceSnapshot(device.EntityId, IsMissing: device.EntityId == 7)) };
+        var service = f.Synchronizer(new Preferences());
+        Assert.AreEqual(DeviceSynchronizationOutcome.Restored, await Cycle(f, service, devices));
+        var restored = await f.Profiles.ServerAsync();
+        Assert.IsFalse(restored.Devices.SelectMany(device => device.DescendantsAndSelf()).Any(device => device.EntityId is 7 or 2147483649 or 8));
+        Assert.AreEqual(DeviceSynchronizationOutcome.Uploaded, await Cycle(f, service, devices));
+        string json = f.Uploads.Single()["smart_devices"]!["device_data"]!.GetValue<string>();
+        Assert.IsFalse(json.Contains("\"EntityId\":7", StringComparison.Ordinal));
+        Assert.IsTrue(json.Contains("\"EntityId\":9", StringComparison.Ordinal));
+
+        // The cloud copy no longer carries the deleted entities, so later sessions cannot resurrect them.
+        var cloud = await f.PreviewAsync(restored);
+        Assert.IsFalse(cloud.Devices.SelectMany(Flatten).Any(device => device.EntityId is 7 or 2147483649));
+    }
+
+    [TestMethod]
+    public async Task ExplicitRestore_StillBringsBackLocallyDeletedDevices()
+    {
+        using var f = new CloudDeviceRestoreTests.Fixture();
+        var editor = new RustPlusDesk.Infrastructure.Profiles.LegacyDeviceProfileEditor();
+        var deleted = await editor.DeleteAsync(f.Profiles.Path, await f.Profiles.ServerAsync(), "1", default);
+        deleted = await editor.DeleteAsync(f.Profiles.Path, deleted.Server, "0", default);
+        var manual = await f.Service.RestoreAsync(f.Profiles.Path, deleted.Server, await f.PreviewAsync(deleted.Server), default);
+        Assert.IsTrue(manual.Server.Devices.SelectMany(device => device.DescendantsAndSelf()).Any(device => device.EntityId == 7));
+    }
+
+    private static IEnumerable<SharedDevice> Flatten(SharedDevice device) => device.Children.SelectMany(Flatten).Prepend(device);
+
     private static async Task<DeviceSynchronizationOutcome> Cycle(CloudDeviceRestoreTests.Fixture f, ICloudDeviceSynchronizer service, TestDeviceClient? devices = null)
         => (await service.SynchronizeAsync(f.Profiles.Path, await f.Profiles.ServerAsync(), "cloud-user", CloudDeviceRestoreTests.Fixture.Steam,
             "session", Wipe, devices ?? new TestDeviceClient(), default)).Outcome;

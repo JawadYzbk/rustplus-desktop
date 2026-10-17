@@ -136,13 +136,26 @@ public sealed class DeviceOrganizerViewTests
                 Assert.IsTrue(title.IsEffectivelyVisible);
                 title.Text = "Fixture raid";
                 await editor.SaveAlarmTitleCommand.ExecuteAsync(null);
+                Assert.AreEqual("Fixture raid", editor.Devices[2].InGameAlarmTitle);
+                var delete = view.GetVisualDescendants().OfType<Button>().Single(button => AutomationProperties.GetName(button) == "Delete selected device or group");
+                delete.Command!.Execute(null);
+                using (var confirming = window.CaptureRenderedFrame()) Assert.IsNotNull(confirming);
+                Assert.IsFalse(delete.IsEffectivelyVisible);
+                var confirm = view.GetVisualDescendants().OfType<Button>().Single(button => AutomationProperties.GetName(button) == "Confirm delete");
+                Assert.IsTrue(confirm.IsEffectivelyVisible);
+                var confirmPoint = confirm.TranslatePoint(default, window)!.Value;
+                Assert.IsTrue(confirmPoint.X >= 0 && confirmPoint.X + confirm.Bounds.Width <= window.ClientSize.Width);
+                confirm.Command!.Execute(null);
+                await ((IAsyncRelayCommand)confirm.Command).ExecutionTask!;
+                Assert.AreEqual(2, editor.Devices.Count);
+                Assert.IsFalse(editor.Devices.Any(device => device.EntityId == 99));
                 var close = view.GetVisualDescendants().OfType<Button>().Single(button => button.Command == editor.CloseCommand);
                 close.Command!.Execute(null);
                 await organizing.WaitAsync(TimeSpan.FromSeconds(4));
                 Assert.IsFalse(model.HasOverlay);
                 Assert.AreEqual("Workshop", model.SelectedServer!.Devices[0].Children[0].Name);
                 Assert.AreEqual(988652725, model.SelectedServer.Devices[0].Children[0].CustomIconId);
-                Assert.AreEqual("Fixture raid", model.SelectedServer.Devices[2].InGameAlarmTitle);
+                Assert.AreEqual(2, model.SelectedServer.Devices.Count);
             }
             finally { await model.ShutdownAsync(); window.Close(); }
             return true;

@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 using RustPlusDesk.Core.Cloud;
 using RustPlusDesk.Core.Devices;
 using RustPlusDesk.Core.Servers;
+using RustPlusDesk.Infrastructure.Profiles;
 
 namespace RustPlusDesk.Infrastructure.Cloud;
 
@@ -56,7 +57,9 @@ public sealed class CloudDeviceSynchronizer(HttpClient http, string cachePath, s
             }
             if (!ready)
             {
-                foreach (var device in All(preview.Devices).Where(device => !device.IsGroup))
+                // Entities deleted locally are neither probed nor restored; the next upload drops them from the cloud.
+                var restorable = CloudDeviceRestore.WithoutDeleted(preview.Devices, DeletedDeviceLog.Read(before));
+                foreach (var device in All(restorable).Where(device => !device.IsGroup))
                 {
                     if (verified.Contains((device.EntityId, device.Kind))) continue;
                     var kind = Kind(device.Kind);
@@ -72,7 +75,7 @@ public sealed class CloudDeviceSynchronizer(HttpClient http, string cachePath, s
                 var restorePreference = await preferences.ReadAsync(ct).ConfigureAwait(false);
                 if (!restorePreference.Allows(userId, steamId) || restorePreference.Revision != preference.Revision)
                     return Result(DeviceSynchronizationOutcome.Disabled);
-                var restored = await recovery.RestoreAsync(path, server, preview, ct).ConfigureAwait(false);
+                var restored = await recovery.RestoreAsync(path, server, preview, skipDeleted: true, ct).ConfigureAwait(false);
                 ready = true;
                 knownCloudRevision = preview.Revision;
                 if (restored.Server.SourceRevision != server.SourceRevision)

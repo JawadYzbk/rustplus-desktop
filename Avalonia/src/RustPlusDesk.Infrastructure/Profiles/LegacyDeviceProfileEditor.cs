@@ -42,7 +42,7 @@ public sealed class LegacyDeviceProfileEditor : IDeviceProfileEditor
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         return EditAsync(path, original, deviceKey, (root, selected) =>
         {
-            var ids = All(root).Select(node => node["EntityId"]?.GetValue<uint>() ?? 0).ToHashSet();
+            var ids = All(root).Select(EntityId).ToHashSet();
             uint id;
             do { id = 0x80000000 | (uint)Random.Shared.Next(1, int.MaxValue); } while (ids.Contains(id));
             var group = new JsonObject
@@ -71,14 +71,48 @@ public sealed class LegacyDeviceProfileEditor : IDeviceProfileEditor
             int position = index ?? destination.Count;
             if (position < 0 || position > destination.Count) throw new ArgumentException("Choose a valid position.");
             destination.Insert(position, selected.Node);
+            // The reference drop handler prunes groups a move leaves empty; the moved node itself stays.
+            RemoveEmptyGroups(root, selected.Node);
             return selected.Node;
         }, cancellationToken);
+
+    public async Task<DeviceDeleteResult> DeleteAsync(string path, ServerSummary original, string deviceKey, CancellationToken cancellationToken)
+    {
+        int devices = 0, rules = 0, commands = 0;
+        var saved = await UpdateProfileAsync(path, original, profile =>
+        {
+            var root = profile["Devices"]?.AsArray() ?? throw new ProfileChangedException();
+            var selected = Find(root, deviceKey);
+            var removed = All([selected.Node]).ToArray();
+            selected.Parent.RemoveAt(selected.Index);
+            devices = removed.Count(node => node["IsGroup"]?.GetValue<bool>() != true);
+            // A duplicate entity elsewhere in the tree keeps its rules, bindings and cloud copy.
+            var remaining = All(root).Select(EntityId).ToHashSet();
+            var ids = removed.Select(EntityId).Where(id => id != 0 && !remaining.Contains(id)).ToHashSet();
+            rules = RemoveWhere(profile["LogicRules"] as JsonArray, rule => IsOwnedOilRigRule(rule, ids));
+            commands = RemoveWhere(profile["SwitchCommandMappings"] as JsonArray, mapping => ids.Contains(EntityId(mapping)))
+                + RemoveWhere(profile["UpkeepCommandMappings"] as JsonArray, mapping => ids.Contains(EntityId(mapping)));
+            DeletedDeviceLog.Record(profile, ids);
+        }, cancellationToken).ConfigureAwait(false);
+        return new(saved, devices, rules, commands);
+    }
 
     private static async Task<DeviceEditResult> EditAsync(string path, ServerSummary original, string deviceKey,
         Func<JsonArray, (JsonArray Parent, int Index, JsonObject Node), JsonObject> update, CancellationToken ct)
     {
-        int profileIndex = -1;
         string? updatedKey = null;
+        var saved = await UpdateProfileAsync(path, original, profile =>
+        {
+            var devices = profile["Devices"]?.AsArray() ?? throw new ProfileChangedException();
+            var edited = update(devices, Find(devices, deviceKey));
+            updatedKey = KeyFor(devices, edited) ?? throw new ProfileChangedException();
+        }, ct).ConfigureAwait(false);
+        return new(saved, updatedKey!);
+    }
+
+    private static async Task<ServerSummary> UpdateProfileAsync(string path, ServerSummary original, Action<JsonObject> update, CancellationToken ct)
+    {
+        int profileIndex = -1;
         var saved = await LegacyProfileStore.UpdateAsync(path, document =>
         {
             var matches = document.Select((node, index) => (Node: node!, Index: index)).Where(pair =>
@@ -86,12 +120,41 @@ public sealed class LegacyDeviceProfileEditor : IDeviceProfileEditor
                     pair.Node["SteamId64"]?.GetValue<string>()) == original.ProfileKey).ToArray();
             if (matches.Length != 1) throw new ProfileChangedException();
             profileIndex = matches[0].Index;
-            var devices = matches[0].Node["Devices"]?.AsArray() ?? throw new ProfileChangedException();
-            var edited = update(devices, Find(devices, deviceKey));
-            updatedKey = KeyFor(devices, edited) ?? throw new ProfileChangedException();
+            update(matches[0].Node.AsObject());
         }, original.SourceRevision, ct).ConfigureAwait(false);
-        return new(saved[profileIndex], updatedKey!);
+        return saved[profileIndex];
     }
+
+    /// <summary>Matches the reference sweep: SmartAlarm rules keyed to a removed entity that start an oil-rig timer.</summary>
+    private static bool IsOwnedOilRigRule(JsonNode? rule, HashSet<uint> ids)
+    {
+        if (rule?["TriggerType"]?.GetValue<string>() != "SmartAlarm" || !ids.Contains(EntityId(rule, "TriggerEntityId"))) return false;
+        if (rule["Steps"] is not JsonArray steps) return false;
+        return steps.SelectMany(step => step?["ConditionalSteps"] is JsonArray nested ? nested.Prepend(step) : [step])
+            .Any(step => step?["StepType"]?.GetValue<string>() == "StartTimer" && step["TimerTarget"]?.GetValue<string>() is "SmallOilRig" or "LargeOilRig");
+    }
+
+    private static int RemoveWhere(JsonArray? items, Func<JsonNode?, bool> remove)
+    {
+        if (items is null) return 0;
+        int count = 0;
+        for (int i = items.Count - 1; i >= 0; i--)
+            if (remove(items[i])) { items.RemoveAt(i); count++; }
+        return count;
+    }
+
+    private static void RemoveEmptyGroups(JsonArray nodes, JsonObject keep)
+    {
+        for (int i = nodes.Count - 1; i >= 0; i--)
+        {
+            if (nodes[i] is not JsonObject node || node["IsGroup"]?.GetValue<bool>() != true) continue;
+            if (node["Children"] is JsonArray children) RemoveEmptyGroups(children, keep);
+            if (!ReferenceEquals(node, keep) && (node["Children"] as JsonArray)?.Count is null or 0) nodes.RemoveAt(i);
+        }
+    }
+
+    private static uint EntityId(JsonNode? node) => EntityId(node, "EntityId");
+    private static uint EntityId(JsonNode? node, string property) => node?[property] is JsonValue value && value.TryGetValue(out uint id) ? id : 0;
 
     private static (JsonArray Parent, int Index, JsonObject Node) Find(JsonArray root, string key)
     {
@@ -106,7 +169,7 @@ public sealed class LegacyDeviceProfileEditor : IDeviceProfileEditor
         throw new ProfileChangedException();
     }
 
-    private static IEnumerable<JsonObject> All(JsonArray nodes)
+    private static IEnumerable<JsonObject> All(IEnumerable<JsonNode?> nodes)
     {
         foreach (var node in nodes.OfType<JsonObject>())
         {

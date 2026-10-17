@@ -144,9 +144,18 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 - Account dialog keeps its Close action visible below the scrollable content at the minimum window size.
 - Local device/group organizer supports aliases, grouping a selected subtree, moving between groups/root,
   and sibling ordering. Positional device keys are valid only with the full-file revision, so duplicate
-  entity IDs do not rename the wrong alias. Whole JSON nodes and empty-group metadata are preserved.
+  entity IDs do not rename the wrong alias. Whole JSON nodes and unknown group metadata are preserved;
+  like the reference drop handler, a move prunes groups it leaves empty (never the moved node itself).
   Closing/shutdown awaits writes; changed files are rejected. Closing after a save reloads the selected
-  tree and reconnects an active session. This does not implement cloud sync, drag gestures or deletion cleanup.
+  tree and reconnects an active session. Drag gestures are still pending.
+- Delete (reference `BtnDeleteDevice_Click`) removes a device or whole group subtree after an inline
+  confirmation, plus the oil-rig StartTimer rules owned by a removed SmartAlarm (including immediate
+  conditional steps) and switch/upkeep chat-command bindings. An entity ID still present elsewhere in the
+  tree keeps its rules/bindings. Removed IDs go to a wipe-scoped `DeletedDevices` log in the profile so
+  automatic cloud restore neither probes nor resurrects them; the next upload drops them from the cloud.
+  An explicit user restore still brings them back. Global hotkey cleanup (`hotkeys.json`) and the local
+  map-overlay device copy wait for the hotkey/overlay ports. The reference tooltip says "missing devices
+  only" but its binding enables delete for any selection; the port keeps the actual behavior.
 - Smart-alarm in-game titles can be edited/cleared in the organizer. The writer validates the saved
   device kind, trims blank titles to null and preserves unknown settings. Enabled automatic sync shares safe titles.
 - Offline recycler workspace with all 776 reference inputs, 796 bundled input/output icons, catalog
@@ -164,7 +173,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Pairing/auth/accounts | Native-browser sign-in/status, FCM registration/listener, startup delivery checks, one-shot renewal, server/device pairing and re-pair, private writes, confirmed device/global sign-out | Live Steam/Facepunch/FCM acceptance and ambiguous-match resolution UI |
 | Rust+ connection/reconnect | Authenticated status session, fallback, immediate socket-disconnect handling, cancellation and recovery | Native/live-server acceptance; soft/full modes and remaining feature subscriptions |
 | Live map/markers/overlays | Not ported | Separate coordinate/state logic from rendering; choose portable map/helper hosting |
-| Smart devices/automation/timers | Confirmed switches, nested group commands, alarm/storage state, local organization/icons, own-device sync and guarded shared/local import | Live-server acceptance, drag gestures, empty-group cleanup, add/delete/transfer, missing icon artwork/direct-click shortcuts, automation, timers, alarm notifications/audio and original layout |
+| Smart devices/automation/timers | Confirmed switches, nested group commands, alarm/storage state, local organization/icons/delete with rule+command cleanup, own-device sync and guarded shared/local import | Live-server acceptance, drag gestures, hotkey/overlay cleanup on delete, transfer, missing icon artwork/direct-click shortcuts, automation, timers, alarm notifications/audio and original layout |
 | Cloud identity/consent | Website handoff, scoped permission, local sign-out, fresh quotas, own recovery/automatic sync and import sources | Live authentication/version acceptance, concurrent writers, other consents, team membership/master/chat publication and remaining account/provider/session workflows |
 | Chat/team/clan | Read-only live roster dock; offline/alive/dead states and safe SDK projection | Full team map, chat/clan, moderation/history, membership publication/master coordination and remaining presentation |
 | Cameras | Not ported | Validate camera SDK/runtime, stream decoding and portable rendering |

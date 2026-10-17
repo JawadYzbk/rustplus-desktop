@@ -1,5 +1,19 @@
 # Avalonia migration handoff — 2026-10-17
 
+## Latest verified checkpoint — device delete and empty-group cleanup
+
+- Work now happens in the main checkout `D:/Development/rustplus-desktop` on `codex/avalonia-migration`
+  (the Codex worktree was detached, not removed). Only `Avalonia/` changes; `.serena/` and root
+  `rustplus.proto` stay untracked.
+- **364 tests pass** (Debug and Release, zero warnings). Organizer gains confirmed Delete; editor gains
+  `DeleteAsync` (subtree + owned oil-rig rules + chat-command bindings, duplicate-ID safe) and move-time
+  empty-group pruning. `DeletedDeviceLog` (profile field `DeletedDevices{WipeTime,EntityIds}`) keeps
+  automatic cloud restore from resurrecting or probing deleted entities; explicit restore is unchanged.
+  Details in STATUS.md. Publishes and the external isolation copy were not rerun for this slice.
+- **Next:** device add/transfer and drag gestures, hotkey port (then delete cleans `hotkeys.json`),
+  live map renderer/markers/tools/shop docks, team/master/chat/presence, then account/consent,
+  notification/audio/settings/localization/distribution. Live Steam/FCM/cloud/server acceptance pending.
+
 ## Usage checkpoint — continuation stopped at 98%
 
 - Authoritative account usage on the next goal continuation is **98% five-hour used**, above the

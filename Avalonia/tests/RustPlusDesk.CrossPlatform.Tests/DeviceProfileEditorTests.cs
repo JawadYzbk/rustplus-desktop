@@ -81,13 +81,82 @@ public sealed class DeviceProfileEditorTests
         Assert.AreEqual("0", movedAgain.DeviceKey);
         Assert.AreEqual("Duplicate", movedAgain.Server.Devices[0].Name);
         var ungrouped = await editor.MoveAsync(file.Path, movedAgain.Server, "1/0", null, null, CancellationToken.None);
-        Assert.AreEqual("2", ungrouped.DeviceKey);
-        Assert.AreEqual(0, ungrouped.Server.Devices[1].Children.Count);
+        // Like the reference drop handler, the group the move emptied is pruned.
+        Assert.AreEqual("1", ungrouped.DeviceKey);
+        Assert.AreEqual(2, ungrouped.Server.Devices.Count);
         var after = await file.JsonAsync();
         Assert.IsTrue(JsonNode.DeepEquals(before[0]!["Devices"]![1], after[0]!["Devices"]![0]));
-        Assert.IsTrue(JsonNode.DeepEquals(before[0]!["Devices"]![0]!["Children"]![0], after[0]!["Devices"]![2]));
-        Assert.AreEqual("keep-empty-group", after[0]!["Devices"]![1]!["UnknownGroupSetting"]!.GetValue<string>());
+        Assert.IsTrue(JsonNode.DeepEquals(before[0]!["Devices"]![0]!["Children"]![0], after[0]!["Devices"]![1]));
         Assert.IsTrue(JsonNode.DeepEquals(before[0]!["Automation"], after[0]!["Automation"]));
+    }
+
+    [TestMethod]
+    public async Task Move_KeepsMovedEmptyGroup_AndUnrelatedGroupMetadata()
+    {
+        using var file = new Fixture();
+        var json = await file.JsonAsync();
+        json[0]!["Devices"]!.AsArray().Add(new JsonObject { ["EntityId"] = 2147483650u, ["Kind"] = "Group", ["IsGroup"] = true, ["Alias"] = "Empty", ["Children"] = new JsonArray() });
+        await File.WriteAllTextAsync(file.Path, json.ToJsonString());
+        var moved = await new LegacyDeviceProfileEditor().MoveAsync(file.Path, await file.ServerAsync(), "2", "0", null, CancellationToken.None);
+        Assert.AreEqual("0/1", moved.DeviceKey);
+        Assert.AreEqual("Empty", moved.Server.Devices[0].Children[1].Name);
+        Assert.AreEqual("keep-empty-group", (await file.JsonAsync())[0]!["Devices"]![0]!["UnknownGroupSetting"]!.GetValue<string>());
+    }
+
+    [TestMethod]
+    public async Task Delete_SubtreeRemovesOwnedRigRulesAndCommands_KeepsDuplicateEntityData_AndLogsForCurrentWipe()
+    {
+        using var file = new Fixture();
+        var json = await file.JsonAsync();
+        var profile = json[0]!.AsObject();
+        profile["WipeTime"] = "2026-10-01T00:00:00Z";
+        profile["Devices"]!.AsArray().Add(new JsonObject { ["EntityId"] = 8, ["Kind"] = "SmartAlarm", ["Name"] = "Alarm" });
+        profile["LogicRules"] = JsonNode.Parse("""
+            [{"TriggerType":"SmartAlarm","TriggerEntityId":8,"Steps":[{"StepType":"If","ConditionalSteps":[{"StepType":"StartTimer","TimerTarget":"LargeOilRig"}]}]},
+             {"TriggerType":"SmartAlarm","TriggerEntityId":8,"Steps":[{"StepType":"StartTimer","TimerTarget":"Custom"}]},
+             {"TriggerType":"SmartAlarm","TriggerEntityId":0,"Steps":[{"StepType":"StartTimer","TimerTarget":"SmallOilRig"}]}]
+            """);
+        profile["SwitchCommandMappings"] = JsonNode.Parse("""[{"EntityId":7,"Command":"switch1"},{"EntityId":0,"Command":"switch2"}]""");
+        profile["UpkeepCommandMappings"] = JsonNode.Parse("""[{"EntityId":8,"Command":"upkeep"}]""");
+        await File.WriteAllTextAsync(file.Path, json.ToJsonString());
+        var editor = new LegacyDeviceProfileEditor();
+        var original = await file.ServerAsync();
+
+        // Entity 7 survives at the root, so its binding stays and only the group ID is logged.
+        var group = await editor.DeleteAsync(file.Path, original, "0", CancellationToken.None);
+        Assert.AreEqual(1, group.RemovedDevices);
+        Assert.AreEqual(0, group.RemovedCommands);
+        CollectionAssert.AreEqual(new[] { "Duplicate", "Alarm" }, group.Server.Devices.Select(device => device.Name).ToArray());
+        Assert.AreEqual(1, Directory.GetFiles(file.Directory, "*.bak").Length);
+        await Assert.ThrowsExceptionAsync<ProfileChangedException>(() => editor.DeleteAsync(file.Path, original, "1", CancellationToken.None));
+
+        var alarm = await editor.DeleteAsync(file.Path, group.Server, "1", CancellationToken.None);
+        Assert.AreEqual((1, 1, 1), (alarm.RemovedDevices, alarm.RemovedRules, alarm.RemovedCommands));
+        var after = (await file.JsonAsync())[0]!;
+        Assert.AreEqual(2, after["LogicRules"]!.AsArray().Count);
+        Assert.AreEqual(2, after["SwitchCommandMappings"]!.AsArray().Count);
+        Assert.AreEqual(0, after["UpkeepCommandMappings"]!.AsArray().Count);
+        Assert.AreEqual("2026-10-01T00:00:00Z", after["DeletedDevices"]!["WipeTime"]!.GetValue<string>());
+        CollectionAssert.AreEqual(new uint[] { 2147483649, 8 }, after["DeletedDevices"]!["EntityIds"]!.AsArray().Select(id => id!.GetValue<uint>()).ToArray());
+        Assert.IsTrue(JsonNode.DeepEquals(json[1], (await file.JsonAsync())[1]));
+    }
+
+    [TestMethod]
+    public async Task DeletedDeviceLog_IsReplacedAfterTheSavedWipeChanges()
+    {
+        using var file = new Fixture();
+        var editor = new LegacyDeviceProfileEditor();
+        var first = await editor.DeleteAsync(file.Path, await file.ServerAsync(), "1", CancellationToken.None);
+        Assert.AreEqual(1, first.RemovedDevices); // Entity 7 still exists inside the group, so nothing is logged.
+        var json = await file.JsonAsync();
+        Assert.IsNull(json[0]!["DeletedDevices"]);
+        json[0]!["WipeTime"] = "2026-11-01T00:00:00Z";
+        json[0]!["DeletedDevices"] = JsonNode.Parse("""{"WipeTime":"2026-10-01T00:00:00Z","EntityIds":[5]}""");
+        await File.WriteAllTextAsync(file.Path, json.ToJsonString());
+        await editor.DeleteAsync(file.Path, await file.ServerAsync(), "0", CancellationToken.None);
+        var log = (await file.JsonAsync())[0]!["DeletedDevices"]!;
+        Assert.AreEqual("2026-11-01T00:00:00Z", log["WipeTime"]!.GetValue<string>());
+        CollectionAssert.AreEquivalent(new uint[] { 2147483649, 7 }, log["EntityIds"]!.AsArray().Select(id => id!.GetValue<uint>()).ToArray());
     }
 
     [TestMethod]

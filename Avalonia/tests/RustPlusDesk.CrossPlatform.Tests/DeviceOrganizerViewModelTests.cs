@@ -54,17 +54,51 @@ public sealed class DeviceOrganizerViewModelTests
         Assert.IsFalse(model.Destinations.Any(item => item.DeviceKey?.StartsWith(model.Selected.DeviceKey + "/", StringComparison.Ordinal) == true));
         model.Destination = model.Destinations[0];
         await model.MoveCommand.ExecuteAsync(null);
-        Assert.AreEqual("2", model.Selected!.DeviceKey);
+        // Moving the only child out prunes the emptied "Saved group", as the reference drop does.
+        Assert.AreEqual("1", model.Selected!.DeviceKey);
+        Assert.AreEqual(2, model.Devices.Count);
         Assert.IsFalse(model.MoveDownCommand.CanExecute(null));
         await model.MoveUpCommand.ExecuteAsync(null);
-        Assert.AreEqual("1", model.Selected!.DeviceKey);
+        Assert.AreEqual("0", model.Selected!.DeviceKey);
         await model.MoveDownCommand.ExecuteAsync(null);
-        Assert.AreEqual("2", model.Selected!.DeviceKey);
+        Assert.AreEqual("1", model.Selected!.DeviceKey);
         Assert.IsFalse(model.Completion.IsCompleted);
         await model.CloseCommand.ExecuteAsync(null);
         var saved = await model.Completion;
         Assert.IsNotNull(saved);
-        Assert.AreEqual("Renamed", saved.Devices[2].Children[0].Name);
+        Assert.AreEqual("Renamed", saved.Devices[1].Children[0].Name);
+    }
+
+    [TestMethod]
+    public async Task Delete_RequiresConfirmation_SelectsNeighbour_AndSelectionChangeCancelsConfirmation()
+    {
+        using var file = new DeviceProfileEditorTests.Fixture();
+        var model = new DeviceOrganizerViewModel(file.Path, await file.ServerAsync(), new LegacyDeviceProfileEditor());
+        model.Selected = model.Devices[0];
+        StringAssert.Contains(model.DeleteConfirmation, "1 device(s)");
+        await model.DeleteCommand.ExecuteAsync(null);
+        Assert.IsTrue(model.IsDeleteConfirming);
+        Assert.AreEqual(1, Directory.GetFiles(file.Directory).Length);
+        model.Selected = model.Devices[1];
+        Assert.IsFalse(model.IsDeleteConfirming);
+        model.Selected = model.Devices[0];
+        await model.DeleteCommand.ExecuteAsync(null);
+        model.CancelDeleteCommand.Execute(null);
+        Assert.IsFalse(model.IsDeleteConfirming);
+        Assert.AreEqual(2, model.Devices.Count);
+        await model.DeleteCommand.ExecuteAsync(null);
+        await model.DeleteCommand.ExecuteAsync(null);
+        Assert.AreEqual(1, model.Devices.Count);
+        Assert.AreEqual("Duplicate", model.Selected!.Name);
+        Assert.AreEqual("0", model.Selected.DeviceKey);
+        StringAssert.Contains(model.Message, "Deleted 1 device(s)");
+        await model.DeleteCommand.ExecuteAsync(null);
+        await model.DeleteCommand.ExecuteAsync(null);
+        Assert.AreEqual(0, model.Devices.Count);
+        Assert.IsNull(model.Selected);
+        Assert.IsFalse(model.DeleteCommand.CanExecute(null));
+        await model.CloseCommand.ExecuteAsync(null);
+        Assert.AreEqual(0, (await model.Completion)!.Devices.Count);
     }
 
     [TestMethod]
@@ -201,5 +235,6 @@ public sealed class DeviceOrganizerViewModelTests
         public Task<DeviceEditResult> GroupAsync(string path, ServerSummary original, string deviceKey, string name, CancellationToken ct) => throw new AssertFailedException();
         public Task<DeviceEditResult> SaveAlarmTitleAsync(string path, ServerSummary original, string deviceKey, string title, CancellationToken ct) => throw new AssertFailedException();
         public Task<DeviceEditResult> MoveAsync(string path, ServerSummary original, string deviceKey, string? parentKey, int? index, CancellationToken ct) => throw new AssertFailedException();
+        public Task<DeviceDeleteResult> DeleteAsync(string path, ServerSummary original, string deviceKey, CancellationToken ct) => throw new AssertFailedException();
     }
 }
