@@ -2,10 +2,12 @@ using RustPlusApi;
 using RustPlusDesk.Core.Connections;
 using RustPlusDesk.Core.Devices;
 using RustPlusDesk.Core.Map;
+using RustPlusDesk.Core.Chat;
+using System.Threading.Channels;
 
 namespace RustPlusDesk.Infrastructure.Connections;
 
-internal sealed class RustPlusTransport : IRustTransport, IServerTeamSession, IServerMarkerSession
+internal sealed class RustPlusTransport : IRustTransport, IServerTeamSession, IServerMarkerSession, IServerChatSession
 {
     private readonly RustPlus api;
     private readonly bool companionSocket;
@@ -21,11 +23,71 @@ internal sealed class RustPlusTransport : IRustTransport, IServerTeamSession, IS
         api = new RustPlus(connection, new RustPlusSocketOptions { RequestTimeout = TimeSpan.FromSeconds(6) });
         devices = new RustPlusDeviceClient(api, requests);
         api.Disconnected += OnDisconnected;
+        api.OnTeamChatReceived += OnTeamChat;
+        api.OnClanChatReceived += OnClanChat;
         companionSocket = connection.ServerId is not null;
     }
 
     public ServerStatus InitialStatus { get; private set; } = null!;
     private void OnDisconnected(object? sender, EventArgs e) => disconnected.TrySetResult();
+
+    private readonly Channel<ChatMessage> chat = Channel.CreateBounded<ChatMessage>(new BoundedChannelOptions(500) { FullMode = BoundedChannelFullMode.DropOldest });
+    private void OnTeamChat(object? sender, RustPlusApi.Data.Events.TeamMessageEventArg message)
+        => chat.Writer.TryWrite(new ChatMessage(ChatChannel.Team, message.SteamId, message.Name ?? "", message.Message ?? "", Time(message.Time), Hex(message.Color)));
+    private void OnClanChat(object? sender, RustPlusApi.Data.Events.ClanMessageEventArg message)
+        => chat.Writer.TryWrite(new ChatMessage(ChatChannel.Clan, message.SteamId, message.Name ?? "", message.Message ?? "", Time(message.Time)));
+    private static string Hex(System.Drawing.Color color) => color.IsEmpty ? "" : $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+    private static DateTimeOffset Time(DateTime? utc) => utc is { } value ? new DateTimeOffset(DateTime.SpecifyKind(value, DateTimeKind.Utc)) : DateTimeOffset.UtcNow;
+
+    public async IAsyncEnumerable<ChatMessage> WatchChatAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
+    {
+        await foreach (var message in chat.Reader.ReadAllAsync(ct).ConfigureAwait(false)) yield return message;
+    }
+
+    public async Task<IReadOnlyList<ChatMessage>> ReadChatAsync(ChatChannel channel, CancellationToken ct)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromSeconds(8));
+        try
+        {
+            await requests.WaitAsync(timeout.Token).ConfigureAwait(false);
+            if (channel == ChatChannel.Clan)
+            {
+                var clan = await api.GetClanChatAsync(timeout.Token).WaitAsync(timeout.Token).ConfigureAwait(false);
+                if (!clan.IsSuccess || clan.Data is null) throw new ServerConnectionException(ConnectionFailureClassifier.Response(clan.Error?.Message));
+                return (clan.Data.Messages ?? []).Select(message => new ChatMessage(ChatChannel.Clan, message.SteamId, message.Name ?? "", message.Message ?? "", Time(message.Time))).ToArray();
+            }
+            var team = await api.GetTeamChatAsync(timeout.Token).WaitAsync(timeout.Token).ConfigureAwait(false);
+            if (!team.IsSuccess || team.Data is null) throw new ServerConnectionException(ConnectionFailureClassifier.Response(team.Error?.Message));
+            return (team.Data.Messages ?? []).Select(message => new ChatMessage(ChatChannel.Team, message.SteamId, message.Name ?? "", message.Message ?? "", Time(message.Time), Hex(message.Color))).ToArray();
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (ServerConnectionException) { throw; }
+        catch (Exception ex) { throw new ServerConnectionException(ConnectionFailureClassifier.Exception(ex, companionSocket)); }
+    }
+
+    public async Task SendChatAsync(ChatChannel channel, string text, CancellationToken ct)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromSeconds(8));
+        try
+        {
+            await requests.WaitAsync(timeout.Token).ConfigureAwait(false);
+            if (channel == ChatChannel.Clan)
+            {
+                var clan = await api.SendClanMessageAsync(text, timeout.Token).WaitAsync(timeout.Token).ConfigureAwait(false);
+                if (!clan.IsSuccess) throw new ServerConnectionException(ConnectionFailureClassifier.Response(clan.Error?.Message));
+            }
+            else
+            {
+                var team = await api.SendTeamMessageAsync(text, timeout.Token).WaitAsync(timeout.Token).ConfigureAwait(false);
+                if (!team.IsSuccess) throw new ServerConnectionException(ConnectionFailureClassifier.Response(team.Error?.Message));
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (ServerConnectionException) { throw; }
+        catch (Exception ex) { throw new ServerConnectionException(ConnectionFailureClassifier.Exception(ex, companionSocket)); }
+    }
 
     public async Task InitializeAsync(CancellationToken cancellationToken)
     {
@@ -78,6 +140,9 @@ internal sealed class RustPlusTransport : IRustTransport, IServerTeamSession, IS
         if (disposed) return;
         disposed = true;
         api.Disconnected -= OnDisconnected;
+        api.OnTeamChatReceived -= OnTeamChat;
+        api.OnClanChatReceived -= OnClanChat;
+        chat.Writer.TryComplete();
         disconnected.TrySetResult();
         devices.Dispose();
         try { await api.DisconnectAsync(true).WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false); }

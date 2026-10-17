@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:RustPlusDesk.Avalonia.Features.Servers" xmlns:account="clr-namespace:RustPlusDesk.Core.Accounts;assembly=RustPlusDesk.Core"
              xmlns:teams="using:RustPlusDesk.Avalonia.Features.Teams" xmlns:map="using:RustPlusDesk.Avalonia.Features.Map"
-             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons" xmlns:chat="using:RustPlusDesk.Avalonia.Features.Chat"
              x:Class="RustPlusDesk.Avalonia.Shell.MapWorkspace" x:DataType="vm:ServersViewModel">
   <Grid>
     <Grid.RowDefinitions>
@@ -97,9 +97,12 @@
     <GridSplitter Grid.Row="1" Height="4" ResizeDirection="Rows" Background="{DynamicResource CardBorder}"
                   AutomationProperties.Name="Resize activity panel" />
     <Border Grid.Row="2" Background="{DynamicResource Surface}" Padding="12,8" x:Name="ActivityPanel">
-      <Grid RowDefinitions="Auto,*" RowSpacing="8">
-        <TextBlock Text="Pairing activity" FontWeight="SemiBold" />
-        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+      <TabControl Padding="0" AutomationProperties.Name="Chat and activity">
+        <TabItem Header="Team chat" FontSize="14">
+          <chat:ChatView DataContext="{Binding Connection.Chat}" Margin="0,6,0,0" />
+        </TabItem>
+        <TabItem Header="Activity" FontSize="14">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled" Margin="0,6,0,0">
           <StackPanel Spacing="6">
             <TextBlock Text="{Binding Listener.Status}" Classes="muted" TextWrapping="Wrap" />
             <TextBlock Text="{Binding Listener.HealthMessage}" Classes="muted" TextWrapping="Wrap" IsVisible="{Binding HasListener}" />
@@ -115,7 +118,8 @@
             </ItemsControl>
           </StackPanel>
         </ScrollViewer>
-      </Grid>
+        </TabItem>
+      </TabControl>
     </Border>
   </Grid>
 </UserControl>

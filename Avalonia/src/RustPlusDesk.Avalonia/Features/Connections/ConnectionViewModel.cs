@@ -16,6 +16,7 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
     public DevicesViewModel Devices { get; } = new();
     public TeamViewModel Team { get; } = new();
     public Map.MapViewModel Map { get; } = new();
+    public Chat.ChatViewModel Chat { get; } = new();
     private string profilesPath = "";
     private ServerSummary? selectedServer;
     private ServerClock clock = new();
@@ -120,6 +121,7 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
                     var clockUpdates = UpdateClockAsync(connectedCancellation.Token);
                     var teamUpdates = session is IServerTeamSession team ? Team.RunAsync(team, connectedCancellation.Token) : Task.CompletedTask;
                     var mapUpdates = session is RustPlusDesk.Core.Map.IServerMapSession mapSession ? Map.RunAsync(mapSession, connectedCancellation.Token) : Task.CompletedTask;
+                    var chatUpdates = session is RustPlusDesk.Core.Chat.IServerChatSession chatSession ? Chat.RunAsync(chatSession, connectedCancellation.Token) : Task.CompletedTask;
                     var deviceUpdates = target.Devices.Count > 0
                         ? Devices.RunAsync(session.Devices, connectedCancellation.Token) : Task.CompletedTask;
                     try
@@ -156,6 +158,7 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
                         await deviceUpdates;
                         await teamUpdates;
                         await mapUpdates;
+                        await chatUpdates;
                     }
                 }
                 catch (ServerConnectionException ex) when (ex.Failure == ConnectionFailure.Unreachable && hasConnected)
@@ -269,6 +272,7 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
     {
         Team.Reset();
         Map.Reset();
+        Chat.Reset();
         sampleTime = null;
         sampleHours = null;
         Population = Queue = ServerTime = "—";
