@@ -1,5 +1,7 @@
 # Avalonia migration handoff — 2026-10-17
 
+**Plan of record: [PARITY-PLAN.md](PARITY-PLAN.md)** — same functionality as WPF, enterprise UI/UX redesign allowed.
+
 ## Latest verified checkpoint — device delete and empty-group cleanup
 
 - Work now happens in the main checkout `D:/Development/rustplus-desktop` on `codex/avalonia-migration`
