@@ -23,6 +23,18 @@ public sealed partial class DevicesViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
     private bool isRefreshing;
     [ObservableProperty] private string message = "Connect to load live device state.";
+    [ObservableProperty] private string searchText = "";
+    [ObservableProperty] private DeviceKindFilter kindFilter = DeviceKindFilter.All;
+    public IReadOnlyList<DeviceKindFilter> KindFilters { get; } = Enum.GetValues<DeviceKindFilter>();
+    public bool HasNoMatches => HasDevices && !Devices.Any(row => row.IsMatch);
+    partial void OnSearchTextChanged(string value) => ApplyFilter();
+    partial void OnKindFilterChanged(DeviceKindFilter value) => ApplyFilter();
+
+    private void ApplyFilter()
+    {
+        foreach (var row in AllRows) row.IsMatch = DeviceFilter.Matches(row.Definition, SearchText, KindFilter);
+        OnPropertyChanged(nameof(HasNoMatches));
+    }
     private bool controlling;
 
     public bool HasDevices => Devices.Count > 0;
@@ -39,6 +51,7 @@ public sealed partial class DevicesViewModel : ObservableObject
         byId = AllRows.Where(row => row.Definition.Kind != DeviceKind.Group && row.Definition.EntityId != 0)
             .GroupBy(row => row.Definition.EntityId).ToDictionary(group => group.Key, group => group.ToArray());
         Message = HasDevices ? "Connect to load live device state." : "No devices paired for this server.";
+        ApplyFilter();
     }
 
     public async Task RunAsync(IDeviceClient client, CancellationToken cancellationToken)

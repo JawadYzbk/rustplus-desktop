@@ -8,6 +8,8 @@ public sealed partial class DeviceRowViewModel : ObservableObject
 {
     private readonly Func<DeviceRowViewModel, bool, CancellationToken, Task> control;
     public PairedDevice Definition { get; }
+    /// <summary>Whether the panel's search/kind filter keeps this row visible.</summary>
+    [ObservableProperty] private bool isMatch = true;
     public IReadOnlyList<DeviceRowViewModel> Children { get; }
     public string Name => Definition.Name;
     public string DefaultIconShortName => Definition.Kind switch

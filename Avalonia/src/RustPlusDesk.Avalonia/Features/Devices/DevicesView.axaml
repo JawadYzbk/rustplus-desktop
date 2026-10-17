@@ -23,8 +23,16 @@
                 IsVisible="{Binding $parent[Window].((servers:ServersViewModel)DataContext).HasCloudDeviceRestore, FallbackValue=False}" />
       </WrapPanel>
     </StackPanel>
-    <ProgressBar Grid.Row="1" IsIndeterminate="True" IsVisible="{Binding IsRefreshing}" AutomationProperties.Name="Refreshing devices" />
+    <StackPanel Grid.Row="1" Spacing="6">
+      <Grid ColumnDefinitions="*,110" ColumnSpacing="8" IsVisible="{Binding HasDevices}">
+        <TextBox Text="{Binding SearchText}" PlaceholderText="Search devices…" AutomationProperties.Name="Search devices" />
+        <ComboBox Grid.Column="1" ItemsSource="{Binding KindFilters}" SelectedItem="{Binding KindFilter}" HorizontalAlignment="Stretch"
+                  AutomationProperties.Name="Device type filter" />
+      </Grid>
+      <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsRefreshing}" AutomationProperties.Name="Refreshing devices" />
+    </StackPanel>
     <Grid Grid.Row="2">
+      <TextBlock Text="No devices match this search." Classes="muted" IsVisible="{Binding HasNoMatches}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,12" />
       <Border Classes="card" IsVisible="{Binding !HasDevices}" VerticalAlignment="Center">
         <TextBlock Text="No devices paired for this server." TextWrapping="Wrap" Classes="muted" />
       </Border>
@@ -32,6 +40,7 @@
                 AutomationProperties.Name="Paired smart devices" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
         <TreeView.Styles>
           <Style Selector="TreeViewItem"><Setter Property="IsExpanded" Value="True" /></Style>
+          <Style Selector="TreeViewItem" x:DataType="vm:DeviceRowViewModel"><Setter Property="IsVisible" Value="{Binding IsMatch}" /></Style>
         </TreeView.Styles>
         <TreeView.DataTemplates>
           <TreeDataTemplate DataType="vm:DeviceRowViewModel" x:DataType="vm:DeviceRowViewModel" ItemsSource="{Binding Children}">
