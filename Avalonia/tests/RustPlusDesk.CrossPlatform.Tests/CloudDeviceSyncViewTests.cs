@@ -12,6 +12,8 @@ using RustPlusDesk.Avalonia.Shell;
 using RustPlusDesk.Core.Accounts;
 using RustPlusDesk.Core.Connections;
 using RustPlusDesk.Core.Devices;
+using RustPlusDesk.Core.Cloud;
+using RustPlusDesk.Core.Servers;
 using RustPlusDesk.Infrastructure.Cloud;
 using RustPlusDesk.Infrastructure.Profiles;
 
@@ -20,6 +22,65 @@ namespace RustPlusDesk.CrossPlatform.Tests;
 [TestClass]
 public sealed class CloudDeviceSyncViewTests
 {
+    [TestMethod]
+    public async Task RestoreFinishingAfterAccountModalOpens_DefersReloadUntilTheModalCloses()
+    {
+        using var f = new CloudDeviceRestoreTests.Fixture();
+        await UiTestSession.Current.Dispatch(async () =>
+        {
+            var cloud = new CloudAccountViewModelTests.Service
+            {
+                Current = new(AccountState.Active, new("cloud-user", "Fixture", "fixture@example.test", CloudDeviceRestoreTests.Fixture.Steam, [], false, true),
+                    Consent: new("cloud-user", CloudDeviceRestoreTests.Fixture.Steam, true))
+            };
+            var factory = new Factory();
+            var service = new DeferredRestore();
+            var prefs = new CloudDeviceSyncViewModelTests.Preferences { Value = new("cloud-user", CloudDeviceRestoreTests.Fixture.Steam, true) };
+            var model = new ServersViewModel(new LegacyServerCatalog(), new Picker(), f.Profiles.Path, factory,
+                cloudAccountService: cloud, deviceSyncPreferences: prefs, deviceSynchronizer: service);
+            try
+            {
+                await model.RefreshCommand.ExecuteAsync(null);
+                model.OpenCloudAccountCommand.Execute(null);
+                await model.Cloud!.CheckCommand.ExecuteAsync(null);
+                model.Cloud.SetSteamAccount(new(AccountState.Active, CloudDeviceRestoreTests.Fixture.Steam));
+                await model.CloseAccountCommand.ExecuteAsync(null);
+                model.Connection.ConnectCommand.Execute(null);
+                model.DeviceSync!.RetryCommand.Execute(null);
+                await service.Started.Task.WaitAsync(TimeSpan.FromSeconds(3));
+                var selected = model.SelectedServer;
+                model.OpenCloudAccountCommand.Execute(null);
+                service.Release.TrySetResult();
+                await service.Returned.Task.WaitAsync(TimeSpan.FromSeconds(3));
+                await Task.Yield();
+                Assert.IsTrue(model.IsAccountOpen);
+                Assert.AreSame(selected, model.SelectedServer);
+                Assert.AreEqual(1, factory.Sessions.Count);
+                int cleared = 0;
+                model.PropertyChanged += (_, args) => { if (args.PropertyName == nameof(model.SelectedServer) && model.SelectedServer is null) cleared++; };
+                await model.CloseAccountCommand.ExecuteAsync(null);
+                Assert.IsTrue(cleared > 0);
+                Assert.AreEqual(2, factory.Sessions.Count);
+                Assert.IsTrue(model.Connection.IsConnected);
+            }
+            finally { service.Release.TrySetResult(); await model.ShutdownAsync(); }
+            return true;
+        }, default);
+    }
+
+    private sealed class DeferredRestore : ICloudDeviceSynchronizer
+    {
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Returned { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public async Task<DeviceSynchronizationResult> SynchronizeAsync(string path, ServerSummary server, string user, string steam, string id,
+            DateTimeOffset? wipe, IDeviceClient devices, CancellationToken ct)
+        {
+            Started.TrySetResult(); await Release.Task;
+            Returned.TrySetResult();
+            return new(server, DeviceSynchronizationOutcome.Restored);
+        }
+    }
     [TestMethod]
     public async Task RootFlow_ExplicitOptIn_RecoveryReloadReconnect_Upload_AndOfflineStopAtMinimumSize()
     {

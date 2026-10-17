@@ -78,7 +78,7 @@ public sealed class CloudDeviceRestore(HttpClient http, string cachePath, string
             throw new CloudAccountException(CloudFailure.AccessDenied);
     }
 
-    internal static async Task<JsonObject> ReadProfileAsync(string path, ServerSummary original, string steamId, CancellationToken ct)
+    internal static async Task<JsonObject> ReadProfileAsync(string path, ServerSummary original, string? steamId, CancellationToken ct)
     {
         byte[] bytes = await AtomicPrivateFile.ReadAsync(path, ct).ConfigureAwait(false) ?? throw new ProfileChangedException();
         if (Convert.ToHexString(SHA256.HashData(bytes)) != original.SourceRevision) throw new ProfileChangedException();
@@ -86,12 +86,12 @@ public sealed class CloudDeviceRestore(HttpClient http, string cachePath, string
         return Find(JsonNode.Parse(bytes)!.AsArray(), original.ProfileKey, steamId);
     }
 
-    private static JsonObject Find(JsonArray document, string profileKey, string steamId)
+    internal static JsonObject Find(JsonArray document, string profileKey, string? steamId)
     {
         var matches = document.OfType<JsonObject>().Where(node => LegacyProfileIdentity.Create(node["Host"]!.GetValue<string>(),
             node["Port"]?.GetValue<int>() ?? 28082, node["SteamId64"]?.GetValue<string>()) == profileKey).ToArray();
         if (matches.Length != 1) throw new ProfileChangedException();
-        if (matches[0]["SteamId64"]?.GetValue<string>() != steamId)
+        if (steamId is not null && matches[0]["SteamId64"]?.GetValue<string>() != steamId)
             throw new CloudDeviceRestoreException(CloudDeviceRestoreFailure.ProfileIdentityMismatch);
         return matches[0];
     }

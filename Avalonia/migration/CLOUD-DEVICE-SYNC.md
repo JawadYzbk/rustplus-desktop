@@ -42,8 +42,8 @@ its windows and awaits its operations.
 
 ## Remaining acceptance and limits
 
-- This completes the own-device automatic workflow slice, not the migration. Full team snapshot/flat
-  endpoint/local-overlay import selection, deletions/transfers, rule editing/execution and other cloud
+- This completes the own-device automatic workflow slice, not the migration. Guarded import selection
+  is documented in DEVICE-IMPORT.md. Full team/master/chat publication, deletions/transfers, rule editing/execution and other cloud
   account/consent workflows remain required. Rig annotation conflicts intentionally remain paused until
   their local rules can be reviewed. Do not label those workflows complete.
 - The backend's overlay writer has no compare-and-swap contract. The final GET detects observed changes

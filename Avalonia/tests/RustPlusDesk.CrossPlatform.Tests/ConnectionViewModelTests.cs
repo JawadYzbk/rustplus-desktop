@@ -13,6 +13,43 @@ namespace RustPlusDesk.CrossPlatform.Tests;
 public sealed class ConnectionViewModelTests
 {
     [TestMethod]
+    public async Task DeviceImport_IsOwnedByItsSession_AndRejectsAReconnectedSessionId()
+    {
+        var first = new TestSession();
+        int connections = 0;
+        var model = new ConnectionViewModel(new TestFactory((_, _, _) => Task.FromResult<IServerSession>(connections++ == 0 ? first : new TestSession())));
+        var server = new ServerSummary("Saved server", "localhost", 28082) { ProfileKey = "fixture-key" };
+        model.Select("profiles.json", server);
+        Task connecting = model.ConnectCommand.ExecuteAsync(null);
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        string previous = "";
+        Task importing = model.RunDeviceImportAsync("profiles.json", server, null, async (_, id, ct) =>
+        {
+            previous = id; started.TrySetResult();
+            try { await Task.Delay(Timeout.Infinite, ct); }
+            finally { await release.Task; }
+            return "not reached";
+        }, default);
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        Task stop = model.StopAsync();
+        Assert.IsFalse(stop.IsCompleted);
+        Assert.IsFalse(first.Disposed);
+        release.TrySetResult();
+        try { await importing; Assert.Fail("Must cancel."); } catch (OperationCanceledException) { }
+        await Task.WhenAll(stop, connecting).WaitAsync(TimeSpan.FromSeconds(3));
+        Assert.IsTrue(first.Disposed);
+        model.ConnectCommand.Execute(null);
+        try
+        {
+            await Assert.ThrowsExceptionAsync<DeviceImportException>(() => model.RunDeviceImportAsync("profiles.json", server, previous,
+                (_, id, _) => Task.FromResult(id), default));
+            Assert.AreNotEqual(previous, await model.RunDeviceImportAsync("profiles.json", server, null, (_, id, _) => Task.FromResult(id), default));
+        }
+        finally { await model.StopAsync(); }
+    }
+
+    [TestMethod]
     public async Task LiveWipeChange_CancelsSyncAndReleasesOldSessionBeforeReconnect()
     {
         var old = new ServerStatus("Old wipe", 1, 100, 0, WipeTime: DateTimeOffset.Parse("2026-10-01T00:00:00Z"));
@@ -352,7 +389,7 @@ public sealed class ConnectionViewModelTests
         }
     }
 
-    private sealed class TestSession : IServerSession
+    private sealed class TestSession : IServerTeamSession
     {
         public TaskCompletionSource Disconnection { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public Task Disconnected => Disconnection.Task;
@@ -363,6 +400,7 @@ public sealed class ConnectionViewModelTests
         public bool Disposed { get; private set; }
         public Task<ServerStatus> ReadStatusAsync(CancellationToken cancellationToken)
             => Read?.Invoke(cancellationToken) ?? (ReadError is null ? Task.FromResult(InitialStatus) : Task.FromException<ServerStatus>(ReadError));
+        public Task<IReadOnlyList<ServerTeamMember>> ReadTeamAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<ServerTeamMember>>([]);
         public ValueTask DisposeAsync() { Disposed = true; Disconnection.TrySetResult(); return ValueTask.CompletedTask; }
     }
 

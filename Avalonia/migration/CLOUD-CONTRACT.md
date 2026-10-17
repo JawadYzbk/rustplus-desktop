@@ -2,7 +2,7 @@
 
 Cloud identity/session and explicit profile-sync consent are implemented on the isolated migration
 branch. Explicit own-device recovery and automatic own-device sync are implemented; see
-`CLOUD-DEVICE-RECOVERY.md` and `CLOUD-DEVICE-SYNC.md`. Full teammate import remains unfinished. Do not repeat the
+`CLOUD-DEVICE-RECOVERY.md`, `CLOUD-DEVICE-SYNC.md` and `DEVICE-IMPORT.md`. Full team/master/chat synchronization remains unfinished. Do not repeat the
 completed companion/native sign-in crash fix or pairing ports.
 
 ## Implemented account boundary
@@ -137,8 +137,10 @@ were read directly after graph coverage reported changed metadata; no server cod
 2. Preserve the implemented own-device restore barrier, explicit default-off sync preference, empty-leaf
    protection, live wipe/entity checks, safe DTO fields, fresh quotas and revision checks while adding
    team workflows. Keep consent separate and offline disabling immediate. See CLOUD-DEVICE-SYNC.md.
-3. Port Import with team identities/cloud snapshots plus the reference local-overlay fallback. Preserve
-   nested deduplication, alarm titles, chat command references and plan limits. Do not invent file export.
+3. Preserve the implemented guarded import workflow. Finish team membership publication with the real
+   chat/master preferences and election behavior before claiming complete sharing. The heartbeat both
+   remembers membership and elects a master; never post invented enabled/disabled chat flags. Backend
+   references: TeamFeatureController, TeamPresenceService and CloudTeamBinder, read after coverage checks.
 4. Validate actual authenticated website handoff, Steam/FCM and live sharing only with the user's consent
    and credentials entered by the user. Align the real release version at release time; no version spoofing.
 5. Finish provider/session/account workflows, native OS browser/DPI/permissions and full feature backlog.

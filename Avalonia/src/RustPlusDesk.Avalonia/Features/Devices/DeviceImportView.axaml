@@ -1,0 +1,53 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RustPlusDesk.Avalonia.Features.Devices"
+             xmlns:shared="using:RustPlusDesk.Avalonia.Shared.Controls"
+             x:Class="RustPlusDesk.Avalonia.Features.Devices.DeviceImportView" x:DataType="vm:DeviceImportViewModel">
+  <Border Classes="card" Width="760" Padding="20" HorizontalAlignment="Center" VerticalAlignment="Center">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,220,Auto,Auto,Auto" RowSpacing="8" KeyboardNavigation.TabNavigation="Cycle">
+      <TextBlock Text="Import shared devices" FontSize="22" FontWeight="SemiBold" />
+      <StackPanel Grid.Row="1" Spacing="4">
+        <TextBlock Text="{Binding SourceDescription}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding SourceDescription}" Classes="muted" />
+        <TextBlock Text="{Binding Message}" ToolTip.Tip="{Binding Message}" TextWrapping="Wrap" MaxHeight="54" AutomationProperties.LiveSetting="Polite" />
+      </StackPanel>
+      <WrapPanel Grid.Row="2">
+        <Button Content="_Load shared devices" Command="{Binding LoadCommand}" Margin="0,0,6,0" />
+        <Button Content="_Check device status" Command="{Binding CheckCommand}" Margin="0,0,6,0" />
+        <Button Content="Select _all" Command="{Binding SelectAllCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,6,0" />
+        <Button Content="C_lear selection" Command="{Binding ClearSelectionCommand}" IsEnabled="{Binding !IsBusy}" />
+      </WrapPanel>
+      <TextBox Grid.Row="3" Text="{Binding Search, Mode=TwoWay}" PlaceholderText="Search by device, owner, ID or kind" AutomationProperties.Name="Search shared devices" />
+      <Grid Grid.Row="4">
+      <ListBox ItemsSource="{Binding VisibleItems}" IsEnabled="{Binding !IsBusy}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+        <ListBox.Styles><Style Selector="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style></ListBox.Styles>
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:DeviceImportRowViewModel">
+            <Grid ColumnDefinitions="Auto,Auto,*" Margin="4" ColumnSpacing="10">
+              <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" IsEnabled="{Binding CanChoose}" AutomationProperties.Name="{Binding Name}" />
+              <shared:ItemIcon Grid.Column="1" Width="32" Height="32" ItemId="{Binding Item.Device.CustomIconId}"
+                               ShortName="{Binding Item.Device.CustomIconShortName}" DefaultShortName="{Binding DefaultIconShortName}" />
+              <StackPanel Grid.Column="2" Spacing="2">
+                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
+                <TextBlock Text="{Binding Owner}" TextTrimming="CharacterEllipsis" Classes="muted" ToolTip.Tip="{Binding Owner}" />
+                <TextBlock Text="{Binding Status}" TextTrimming="CharacterEllipsis" Classes="muted" />
+              </StackPanel>
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+      <TextBlock Text="No devices match your search." IsVisible="{Binding HasNoMatches}" HorizontalAlignment="Center" VerticalAlignment="Center" Classes="muted" />
+      </Grid>
+      <StackPanel Grid.Row="5" Spacing="4">
+        <TextBlock Text="{Binding SelectionCaption}" />
+        <TextBlock Text="{Binding CheckingDevice}" IsVisible="{Binding IsBusy}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding CheckingDevice}" />
+      </StackPanel>
+      <CheckBox Grid.Row="6" IsChecked="{Binding AcknowledgeUnknownWipe, Mode=TwoWay}" IsVisible="{Binding NeedsWipeAcknowledgment}" IsEnabled="{Binding !IsBusy}">
+        <TextBlock Text="I checked the selected IDs in Rust; their saved wipe history is unknown." TextWrapping="Wrap" />
+      </CheckBox>
+      <Grid Grid.Row="7" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+        <ProgressBar IsIndeterminate="{Binding IsIndeterminate}" Value="{Binding ProgressPercent}" IsVisible="{Binding IsBusy}" VerticalAlignment="Center" AutomationProperties.Name="Checking or importing shared devices" />
+        <Button Grid.Column="1" Content="_Import selected" Classes="accent" Command="{Binding ImportCommand}" />
+        <Button Grid.Column="2" Content="_Close" Command="{Binding CloseCommand}" />
+      </Grid>
+    </Grid>
+  </Border>
+</UserControl>

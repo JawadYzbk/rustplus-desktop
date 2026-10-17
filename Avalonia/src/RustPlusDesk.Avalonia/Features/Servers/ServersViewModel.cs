@@ -20,7 +20,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     IServerProfileEditor? profileEditor = null, IServerConnectionTester? connectionTester = null, ICompanionAccountService? accountService = null,
     ICompanionListener? companionListener = null, ICompanionPushHealth? pushHealth = null, IDeviceProfileEditor? deviceEditor = null,
     IRecyclerCatalog? recyclerCatalog = null, ICloudAccountService? cloudAccountService = null, IReadOnlyList<DeviceIcon>? deviceIcons = null,
-    ICloudDeviceRestore? cloudDeviceRestore = null, IDeviceSyncPreferences? deviceSyncPreferences = null, ICloudDeviceSynchronizer? deviceSynchronizer = null)
+    ICloudDeviceRestore? cloudDeviceRestore = null, IDeviceSyncPreferences? deviceSyncPreferences = null, ICloudDeviceSynchronizer? deviceSynchronizer = null,
+    IDeviceImporter? deviceImporter = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = new(sessionFactory);
@@ -39,6 +40,13 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [ObservableProperty] private CloudDeviceSyncViewModel? deviceSync;
     public bool HasDeviceSync => deviceSyncPreferences is not null && deviceSynchronizer is not null;
     public bool HasCloudDeviceRestore => cloudDeviceRestore is not null;
+    public bool HasDeviceImporter => deviceImporter is not null;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasDeviceImport))]
+    [NotifyPropertyChangedFor(nameof(HasOverlay))]
+    private DeviceImportViewModel? deviceImport;
+    public bool HasDeviceImport => DeviceImport is not null;
+    private bool observingConnection;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasCloudRecovery))]
     [NotifyPropertyChangedFor(nameof(HasOverlay))]
@@ -51,6 +59,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [NotifyCanExecuteChangedFor(nameof(OpenFileCommand))]
     [NotifyCanExecuteChangedFor(nameof(EditCommand))]
     [NotifyCanExecuteChangedFor(nameof(OrganizeDevicesCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ImportDevicesCommand))]
     private bool isAccountOpen;
 
     [ObservableProperty]
@@ -69,7 +78,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     public bool HasOrganizer => Organizer is not null;
     public bool HasDeviceEditor => deviceEditor is not null;
     public bool HasEditor => Editor is not null;
-    public bool HasOverlay => HasEditor || HasOrganizer || HasCloudRecovery || IsAccountOpen;
+    public bool HasOverlay => HasEditor || HasOrganizer || HasCloudRecovery || HasDeviceImport || IsAccountOpen;
     public bool HasRecyclerTool => recyclerCatalog is not null;
     [ObservableProperty] private bool isSidebarOpen = true;
     [RelayCommand] private void ToggleSidebar() => IsSidebarOpen = !IsSidebarOpen;
@@ -175,6 +184,12 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         var result = await Connection.SynchronizeDevicesAsync(deviceSynchronizer, user, steam, ct);
         if (result?.Outcome == DeviceSynchronizationOutcome.Restored && !shuttingDown && SourcePath == path && SelectedServer == server)
         {
+            if (IsBusy || HasOverlay)
+            {
+                // A modal may open just after a private write committed; refresh after its owner closes.
+                pendingPairingRefresh = true;
+                return result;
+            }
             IsBusy = true;
             try
             {
@@ -248,7 +263,16 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         if (reconnect && !shuttingDown && SelectedServer is not null) Connection.ConnectCommand.Execute(null);
     }
 
-    partial void OnSelectedServerChanged(ServerSummary? value) => Connection.Select(SourcePath, value);
+    partial void OnSelectedServerChanged(ServerSummary? value)
+    {
+        if (!observingConnection)
+        {
+            observingConnection = true;
+            Connection.PropertyChanged += (_, _) => ImportDevicesCommand.NotifyCanExecuteChanged();
+        }
+        Connection.Select(SourcePath, value);
+        ImportDevicesCommand.NotifyCanExecuteChanged();
+    }
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasServers))]
     [NotifyPropertyChangedFor(nameof(ShowStatus))]
@@ -261,6 +285,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [NotifyCanExecuteChangedFor(nameof(EditCommand))]
     [NotifyCanExecuteChangedFor(nameof(OrganizeDevicesCommand))]
     [NotifyCanExecuteChangedFor(nameof(RecoverCloudDevicesCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ImportDevicesCommand))]
     private bool isBusy;
 
     [ObservableProperty] private string sourcePath = initialPath;
@@ -274,6 +299,38 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     private bool CanOrganizeDevices => CanLoad && SelectedServer?.Devices.Count > 0 && deviceEditor is not null;
     private bool CanRecoverCloudDevices => CanLoad && !shuttingDown && SelectedServer is not null &&
         cloudDeviceRestore is not null && Cloud is { HasSyncConsent: true };
+    private bool CanImportDevices => CanLoad && !shuttingDown && SelectedServer is not null && deviceImporter is not null && Connection.CanImportDevices;
+
+    [RelayCommand(CanExecute = nameof(CanImportDevices))]
+    private async Task ImportDevicesAsync(CancellationToken ct)
+    {
+        if (!CanImportDevices || SelectedServer is not { } selected) return;
+        string path = SourcePath, user = Cloud?.Account.Identity?.Id ?? "";
+        IsBusy = true;
+        try
+        {
+            DeviceImport = new(
+                token => Connection.RunDeviceImportAsync(path, selected, null,
+                    (session, id, pending) => deviceImporter!.PreviewAsync(path, selected, user, id, session, pending), token),
+                (preview, selectedIds, progress, token) => Connection.RunDeviceImportAsync(path, selected, preview.ConnectionId,
+                    (session, _, pending) => deviceImporter!.CheckAsync(path, selected, preview, selectedIds, session, pending, progress), token),
+                (preview, selectedIds, acknowledged, progress, token) => Connection.RunDeviceImportAsync(path, selected, preview.ConnectionId,
+                    (session, _, pending) => deviceImporter!.ImportAsync(path, selected, preview, selectedIds, acknowledged, session, pending, progress), token), selected.Name);
+            if (await DeviceImport.Completion.WaitAsync(ct) is not null)
+            {
+                bool reconnect = Connection.IsConnected;
+                await LoadAsync(path, CancellationToken.None);
+                if (reconnect && !shuttingDown && SelectedServer is not null) Connection.ConnectCommand.Execute(null);
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+        finally
+        {
+            if (DeviceImport is { } current) await current.StopAsync();
+            DeviceImport = null; IsBusy = false;
+            await RefreshPairingsAsync();
+        }
+    }
 
     [RelayCommand(CanExecute = nameof(CanRecoverCloudDevices))]
     private async Task RecoverCloudDevicesAsync(CancellationToken ct)
@@ -449,6 +506,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         EditCommand.Cancel();
         OrganizeDevicesCommand.Cancel();
         RecoverCloudDevicesCommand.Cancel();
+        ImportDevicesCommand.Cancel();
         if (DeviceSync is not null) await DeviceSync.StopAsync();
         if (Account is not null) await Account.StopAsync();
         if (Listener is not null) await Listener.StopListeningAsync();
@@ -459,6 +517,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         if (EditCommand.ExecutionTask is { } edit) await edit;
         if (OrganizeDevicesCommand.ExecutionTask is { } organize) await organize;
         if (RecoverCloudDevicesCommand.ExecutionTask is { } recovery) await recovery;
+        if (ImportDevicesCommand.ExecutionTask is { } importing) await importing;
         if (InitializeCommand.ExecutionTask is { } initialize) await initialize;
     }
 }

@@ -4,7 +4,7 @@ using RustPlusDesk.Core.Devices;
 
 namespace RustPlusDesk.Infrastructure.Connections;
 
-internal sealed class RustPlusTransport : IRustTransport
+internal sealed class RustPlusTransport : IRustTransport, IServerTeamSession
 {
     private readonly RustPlus api;
     private readonly bool companionSocket;
@@ -82,5 +82,22 @@ internal sealed class RustPlusTransport : IRustTransport
         try { await api.DisconnectAsync(true).WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false); }
         catch (Exception) { /* Teardown must still release the socket after a failed disconnect. */ }
         finally { api.Dispose(); }
+    }
+
+    public async Task<IReadOnlyList<ServerTeamMember>> ReadTeamAsync(CancellationToken ct)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromSeconds(6));
+        try
+        {
+            await requests.WaitAsync(timeout.Token).ConfigureAwait(false);
+            var response = await api.GetTeamInfoAsync(timeout.Token).WaitAsync(timeout.Token).ConfigureAwait(false);
+            if (!response.IsSuccess || response.Data is null)
+                throw new ServerConnectionException(ConnectionFailureClassifier.Response(response.Error?.Message));
+            return (response.Data.Members ?? []).Select(member => new ServerTeamMember(
+                member.SteamId.ToString(System.Globalization.CultureInfo.InvariantCulture), member.Name ?? "")).ToArray();
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception ex) { throw new ServerConnectionException(ConnectionFailureClassifier.Exception(ex, companionSocket)); }
     }
 }

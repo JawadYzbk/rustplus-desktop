@@ -53,7 +53,8 @@ public sealed partial class App : Application
                 new CloudAccountService(cloudHttp, new SystemLoginBrowser(window), CloudAccountService.DefaultCachePath,
                     typeof(App).Assembly.GetName().Version!.ToString(3)), BundledItemCatalog.Icons.Values.OrderBy(icon => icon.Name).ToArray(),
                 new CloudDeviceRestore(cloudHttp, CloudAccountService.DefaultCachePath, typeof(App).Assembly.GetName().Version!.ToString(3)), syncPreferences,
-                new CloudDeviceSynchronizer(cloudHttp, CloudAccountService.DefaultCachePath, typeof(App).Assembly.GetName().Version!.ToString(3), syncPreferences));
+                new CloudDeviceSynchronizer(cloudHttp, CloudAccountService.DefaultCachePath, typeof(App).Assembly.GetName().Version!.ToString(3), syncPreferences),
+                new DeviceImporter(cloudHttp, CloudAccountService.DefaultCachePath, typeof(App).Assembly.GetName().Version!.ToString(3), syncPreferences, DeviceImporter.DefaultOverlayRoot));
             desktop.Exit += (_, _) => { accountHttp.Dispose(); cloudHttp.Dispose(); };
             window.DataContext = servers;
             window.Opened += async (_, _) => await servers.InitializeCommand.ExecuteAsync(null);

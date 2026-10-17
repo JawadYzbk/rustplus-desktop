@@ -61,7 +61,7 @@ opens website sign-in in your system browser and confirms the return to this app
 separate from Steam pairing. Sync permission requires explicit confirmation for the displayed cloud
 account and verified Steam ID. You can revoke permission or confirm local cloud sign-out; other cloud
 sessions and Steam pairing remain available. Device syncing does not start when permission is recorded.
-Full teammate/local-overlay import remains in migration. Server version requirements are respected; this preview may
+Full team/master/chat synchronization remains in migration. Server version requirements are respected; this preview may
 require a supported release before the live cloud service accepts it.
 The account view also shows the server-verified plan and device-sync allowance. Failed or offline
 checks clear that allowance; saved plan names and premium status never imply an upload quota.
@@ -78,7 +78,16 @@ After verifying both identities and allowing sync, select the matching server an
 devices…** in Devices. Load and review your own cloud snapshot, acknowledge the current-map check,
 then restore missing devices/groups. Existing local settings stay intact; changed snapshots/files
 require a reload. This recovery does not upload devices or enable automatic synchronization.
-Snapshots known to predate the saved server wipe are blocked; live entity validation is still pending.
+Snapshots known to predate the saved server wipe are blocked. Manual recovery requires your current-map
+review; connected automatic sync and import perform separate live entity checks.
+
+When connected, **Import devices…** loads authorized shared devices and current-team local snapshots.
+Search, select all or individual devices, check their live status, then import the selection. Old-wipe
+and already-saved devices stay disabled; unknown history requires acknowledgment. Cloud reads require
+the separate sync enablement and fresh scoped permission. Explicit local fallback also works without
+cloud login. [Import safeguards and remaining team acceptance](migration/DEVICE-IMPORT.md) explain the
+ownership, private cache and live-team requirements. The latest Windows build is
+`artifacts/publish/win-x64-import/RustPlusDesk.Avalonia.exe`, with accompanying files.
 
 Paired smart switches, nested groups, alarm state and storage contents load after connecting.
 ON/OFF commands wait for a confirmed state; failed or missing devices do not invalidate the server login.
@@ -92,7 +101,7 @@ metadata and preserves existing settings; automatic sync shares the safe title m
 icon; Reset restores the device kind's default. Existing custom icons also appear in the device list.
 
 Unknown settings and empty-group metadata stay intact; an active connection reloads its tree when the
-organizer closes. Drag gestures, device deletion/team import/transfer,
+organizer closes. Drag gestures, device deletion/transfer,
 automation and alarm audio remain pending.
 
 Use **Edit…** for the selected server's name, host and companion port. The direct-address test uses its

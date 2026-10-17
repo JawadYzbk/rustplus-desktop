@@ -242,6 +242,7 @@ public sealed class CloudDeviceRestoreTests
         public HttpStatusCode Status { get; set; } = HttpStatusCode.OK;
         public string? Updated { get; set; } = "2026-10-17T00:00:00Z";
         public Func<Task>? OnOverlay { get; set; }
+        public Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage?>>? CustomRequest { get; set; }
         public List<(string Route, HttpMethod Method)> Requests { get; } = [];
         public List<JsonNode> Uploads { get; } = [];
         public int? MaxDevices { get; set; }
@@ -273,6 +274,7 @@ public sealed class CloudDeviceRestoreTests
         public async Task<CloudDeviceSnapshot> PreviewAsync(ServerSummary? server = null)
             => await Service.PreviewAsync(Profiles.Path, server ?? await Profiles.ServerAsync(), "cloud-user", Steam, CancellationToken.None);
         public CloudDeviceSynchronizer Synchronizer(IDeviceSyncPreferences preferences) => new(http, Cache, "1.0.0", preferences);
+        public DeviceImporter Importer(IDeviceSyncPreferences preferences, string root) => new(http, Cache, "1.0.0", preferences, root);
         public void Dispose() { http.Dispose(); Profiles.Dispose(); Directory.Delete(directory, true); }
         private sealed class Handler(Fixture fixture) : HttpMessageHandler
         {
@@ -282,6 +284,7 @@ public sealed class CloudDeviceRestoreTests
                 Assert.AreEqual("1.0.0", request.Headers.GetValues("X-Client-Version").Single());
                 string route = request.RequestUri!.PathAndQuery[8..];
                 fixture.Requests.Add((route, request.Method));
+                if (fixture.CustomRequest is { } custom && await custom(request, ct) is { } supplied) return supplied;
                 if (fixture.Status != HttpStatusCode.OK) return new(fixture.Status) { Content = new StringContent("synthetic-secret-body") };
                 object response;
                 if (route == "profile") response = new

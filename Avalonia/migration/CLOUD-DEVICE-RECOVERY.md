@@ -1,8 +1,8 @@
 # Own cloud device recovery — 2026-10-17
 
 This ports the owner's missing-device recovery as an explicit preview/confirm workflow. Automatic
-own-device coordination is separate and documented in CLOUD-DEVICE-SYNC.md. The full teammate import
-picker remains required; do not treat manual recovery as its replacement.
+own-device coordination is separate and documented in CLOUD-DEVICE-SYNC.md. Connected teammate/local
+import is documented in DEVICE-IMPORT.md; full team/master/chat publication still remains required.
 
 ## Working workflow
 

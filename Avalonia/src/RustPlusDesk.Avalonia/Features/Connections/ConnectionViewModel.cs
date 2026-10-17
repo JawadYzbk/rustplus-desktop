@@ -5,6 +5,7 @@ using RustPlusDesk.Core.Servers;
 using RustPlusDesk.Core.Time;
 using RustPlusDesk.Avalonia.Features.Devices;
 using RustPlusDesk.Core.Cloud;
+using RustPlusDesk.Core.Devices;
 
 namespace RustPlusDesk.Avalonia.Features.Connections;
 
@@ -19,6 +20,22 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
     private double? sampleHours;
     private (IServerSession Session, CancellationTokenSource Lifetime, string Id, DateTimeOffset? Wipe)? activeSession;
     private Task<DeviceSynchronizationResult>? synchronization;
+    private Task? deviceImport;
+    public bool CanImportDevices => IsConnected && activeSession?.Session is IServerTeamSession;
+
+    public async Task<T> RunDeviceImportAsync<T>(string path, ServerSummary server, string? expectedConnection,
+        Func<IServerTeamSession, string, CancellationToken, Task<T>> operation, CancellationToken ct)
+    {
+        if (!CanImportDevices || activeSession is not { } connected || connected.Session is not IServerTeamSession team ||
+            profilesPath != path || selectedServer != server || deviceImport is not null ||
+            expectedConnection is not null && connected.Id != expectedConnection)
+            throw new DeviceImportException(DeviceImportFailure.Disconnected);
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(ct, connected.Lifetime.Token);
+        var task = operation(team, connected.Id, lifetime.Token);
+        deviceImport = task;
+        try { return await task; }
+        finally { if (deviceImport == task) deviceImport = null; }
+    }
 
     public async Task<DeviceSynchronizationResult?> SynchronizeDevicesAsync(ICloudDeviceSynchronizer service, string userId, string steamId, CancellationToken ct)
     {
@@ -32,6 +49,7 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsConnected))]
+    [NotifyPropertyChangedFor(nameof(CanImportDevices))]
     [NotifyPropertyChangedFor(nameof(IsActive))]
     [NotifyPropertyChangedFor(nameof(IsPending))]
     [NotifyPropertyChangedFor(nameof(RequiresRePair))]
@@ -121,6 +139,11 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
                         {
                             try { await pending; }
                             catch (Exception) { /* The sync owner reports its failure; disposal still awaits its completion. */ }
+                        }
+                        if (deviceImport is { } importing)
+                        {
+                            try { await importing; }
+                            catch (Exception) { /* The import owner reports its failure after connected work has stopped. */ }
                         }
                         await disconnectWatch;
                         try { await clockUpdates; }
