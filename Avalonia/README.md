@@ -60,11 +60,19 @@ The sidebar **Cloud** button (also Account → Cloud) checks or restores a saved
 opens website sign-in in your system browser and confirms the return to this app. Cloud sign-in is
 separate from Steam pairing. Sync permission requires explicit confirmation for the displayed cloud
 account and verified Steam ID. You can revoke permission or confirm local cloud sign-out; other cloud
-sessions and Steam pairing remain available. Device syncing/import are still being migrated and do
-not start when permission is recorded. Server version requirements are respected; this preview may
+sessions and Steam pairing remain available. Device syncing does not start when permission is recorded.
+Full teammate/local-overlay import remains in migration. Server version requirements are respected; this preview may
 require a supported release before the live cloud service accepts it.
 The account view also shows the server-verified plan and device-sync allowance. Failed or offline
 checks clear that allowance; saved plan names and premium status never imply an upload quota.
+
+**Enable device sync…** is a separate, default-off choice in Account → Cloud. Confirm it to recover and
+share your own device settings while connected to the matching server. The account panel must be closed
+for a cycle to run. Missing devices are checked and recovered before uploads; the connection reloads
+after recovery. Current wipe/entity checks, fresh quotas and empty-list protection can pause sync with
+an explanation. **Stop device sync** works offline and keeps existing cloud data. See
+[automatic sync behavior and limits](migration/CLOUD-DEVICE-SYNC.md). The newest Windows preview is
+`artifacts/publish/win-x64-sync/RustPlusDesk.Avalonia.exe`; keep the accompanying files.
 
 After verifying both identities and allowing sync, select the matching server and use **Recover cloud
 devices…** in Devices. Load and review your own cloud snapshot, acknowledge the current-map check,
@@ -79,12 +87,12 @@ Use **Organize devices…** to rename devices/groups, wrap a selected subtree in
 between groups or the top level, and move it up/down among siblings. Each action saves locally with
 revision protection and a private backup. Clearing an alias restores the original device name.
 Smart alarms also expose their saved in-game title; blank clears it. This stores local identification
-metadata and preserves existing settings; cloud synchronization remains pending.
+metadata and preserves existing settings; automatic sync shares the safe title metadata when enabled.
 **Custom icon** in the organizer searches the full bundled item catalog. Save applies the selected
 icon; Reset restores the device kind's default. Existing custom icons also appear in the device list.
 
 Unknown settings and empty-group metadata stay intact; an active connection reloads its tree when the
-organizer closes. Cloud synchronization, drag gestures, device deletion/import/transfer,
+organizer closes. Drag gestures, device deletion/team import/transfer,
 automation and alarm audio remain pending.
 
 Use **Edit…** for the selected server's name, host and companion port. The direct-address test uses its

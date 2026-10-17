@@ -27,7 +27,7 @@ public sealed class ShellTests
     [TestMethod]
     public async Task CloudAccount_OpensFromSidebar_ConfirmsPermissionAndLocalSignOut_AtMinimumSize()
     {
-        await using var session = HeadlessUnitTestSession.StartNew(typeof(TestAppBuilder));
+        var session = UiTestSession.Current;
         await session.Dispatch(async () =>
         {
             var service = new CloudAccountViewModelTests.Service();
@@ -115,7 +115,7 @@ public sealed class ShellTests
     [DataRow(2560, 1440)]
     public async Task ReferenceLayout_ResizesCollapsesAndKeepsNavigationAndDevicesAvailable(int width, int height)
     {
-        await using var session = HeadlessUnitTestSession.StartNew(typeof(TestAppBuilder));
+        var session = UiTestSession.Current;
         await session.Dispatch(async () =>
         {
             var model = new ServersViewModel(new PreviewCatalog(), new UnusedPicker(), "profiles.json", new PreviewSessionFactory(),
@@ -196,7 +196,7 @@ public sealed class ShellTests
     [TestMethod]
     public async Task Account_UsesWorkingCommandsAndModalFocusScope_WithoutNativeLoginDuringTest()
     {
-        await using var session = HeadlessUnitTestSession.StartNew(typeof(TestAppBuilder));
+        var session = UiTestSession.Current;
         await session.Dispatch(async () =>
         {
             var service = new CompanionAccountViewModelTests.Service();
@@ -257,7 +257,7 @@ public sealed class ShellTests
     [TestMethod]
     public async Task Shell_RendersBoundServerListAndSharedStatusAtMinimumSize()
     {
-        await using var session = HeadlessUnitTestSession.StartNew(typeof(TestAppBuilder));
+        var session = UiTestSession.Current;
         await session.Dispatch(async () =>
         {
             if (OperatingSystem.IsWindows())

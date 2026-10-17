@@ -164,7 +164,7 @@ public sealed partial class CloudAccountViewModel(ICloudAccountService service) 
         try
         {
             Account = await service.SetSyncConsentAsync(identity.Id, TrustedSteamId.Length == 0 ? null : TrustedSteamId, granted, timeout.Token);
-            Message = granted ? "Cloud sync permission recorded. Automatic device synchronization is still being migrated."
+            Message = granted ? "Cloud sync permission recorded. Automatic device sync stays off until you enable it on this computer."
                 : "Cloud sync permission revoked. Existing cloud data was kept.";
         }
         catch (Exception ex)
@@ -185,7 +185,7 @@ public sealed partial class CloudAccountViewModel(ICloudAccountService service) 
         IsConfirmingSignOut = false;
     }
 
-    private static string FailureMessage(CloudFailure failure) => failure switch
+    internal static string FailureMessage(CloudFailure failure) => failure switch
     {
         CloudFailure.UpgradeRequired => "The cloud service requires a newer client version. Install a supported release before retrying.",
         CloudFailure.Rejected or CloudFailure.InvalidCallback => "Cloud sign-in was not accepted. Start sign-in again and approve the handoff on the website.",

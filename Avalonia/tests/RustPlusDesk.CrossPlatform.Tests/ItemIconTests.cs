@@ -11,7 +11,7 @@ public sealed class ItemIconTests
     [TestMethod]
     public async Task CustomDeviceIcons_ResolveLegacyIds_ResetToKindDefault_AndDecodeAllAvailableArtwork()
     {
-        await using var session = HeadlessUnitTestSession.StartNew(typeof(TestAppBuilder));
+        var session = UiTestSession.Current;
         await session.Dispatch(() =>
         {
             var catalog = BundledItemCatalog.Icons;
@@ -33,7 +33,7 @@ public sealed class ItemIconTests
     [TestMethod]
     public async Task All796RequiredInputAndOutputIcons_AreBundledDecodableAndShared()
     {
-        await using var session = HeadlessUnitTestSession.StartNew(typeof(TestAppBuilder));
+        var session = UiTestSession.Current;
         await session.Dispatch(() =>
         {
             var catalog = new BundledRecyclerCatalog().Load();

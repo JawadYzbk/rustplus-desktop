@@ -25,7 +25,7 @@ public sealed class DeviceOrganizerViewTests
         source[0]!["Devices"]!.AsArray().Add(new System.Text.Json.Nodes.JsonObject
         { ["EntityId"] = 99, ["Kind"] = "SmartAlarm", ["Name"] = "Alarm" });
         await File.WriteAllTextAsync(file.Path, source.ToJsonString());
-        await using var session = HeadlessUnitTestSession.StartNew(typeof(TestAppBuilder));
+        var session = UiTestSession.Current;
         await session.Dispatch(async () =>
         {
             var model = new ServersViewModel(new LegacyServerCatalog(), new Picker(), file.Path,

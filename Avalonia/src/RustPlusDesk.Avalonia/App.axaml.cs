@@ -46,12 +46,14 @@ public sealed partial class App : Application
             var cloudHttp = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false }) { Timeout = TimeSpan.FromSeconds(30) };
             var accounts = new CompanionAccountService(accountHttp, new CompanionLoginBrowser(window));
             var pushHealth = new CompanionPushHealth(accountHttp, accounts);
+            var syncPreferences = new DeviceSyncPreferences(DeviceSyncPreferences.DefaultPath);
             var servers = new ServersViewModel(new LegacyServerCatalog(),
                 new ProfileFilePicker(window), LegacyServerCatalog.DefaultPath, sessions, new LegacyServerProfileEditor(), sessions, accounts, new CompanionListener(pushHealth), pushHealth,
                 new LegacyDeviceProfileEditor(), new BundledRecyclerCatalog(),
                 new CloudAccountService(cloudHttp, new SystemLoginBrowser(window), CloudAccountService.DefaultCachePath,
                     typeof(App).Assembly.GetName().Version!.ToString(3)), BundledItemCatalog.Icons.Values.OrderBy(icon => icon.Name).ToArray(),
-                new CloudDeviceRestore(cloudHttp, CloudAccountService.DefaultCachePath, typeof(App).Assembly.GetName().Version!.ToString(3)));
+                new CloudDeviceRestore(cloudHttp, CloudAccountService.DefaultCachePath, typeof(App).Assembly.GetName().Version!.ToString(3)), syncPreferences,
+                new CloudDeviceSynchronizer(cloudHttp, CloudAccountService.DefaultCachePath, typeof(App).Assembly.GetName().Version!.ToString(3), syncPreferences));
             desktop.Exit += (_, _) => { accountHttp.Dispose(); cloudHttp.Dispose(); };
             window.DataContext = servers;
             window.Opened += async (_, _) => await servers.InitializeCommand.ExecuteAsync(null);

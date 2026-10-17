@@ -11,18 +11,26 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- Own-device automatic restore-before-upload, explicit default-off account-scoped local opt-in, offline
+  disable/suppression, live wipe/entity checks, fresh plan quotas and zero-leaf protection. Owned sync
+  stops with connections/editors/account changes and reloads/reconnects after recovery. Safe export
+  preserves titles/icons and derives rig metadata from local rules; unresolved annotations pause upload.
+  See `CLOUD-DEVICE-SYNC.md` for remaining semantics and backend concurrency limits. Full team/local
+  import, rule workflows and live authenticated acceptance still remain required.
+  Verification: **333 passing cases** in the worktree; clean Debug/Release and self-contained
+  win-x64/linux-x64/osx-arm64 publishes. Latest Windows preview: `artifacts/publish/win-x64-sync/`.
+
 - Explicit own-cloud device recovery: safe preview, identity/consent validation, snapshot re-fetch and
   revision checking, recursive missing-device/group merge, preserved local settings and chat mappings,
   private backups and owned cancellation. Old recorded-wipe snapshots are blocked; unknown freshness
-  requires acknowledgment. See `CLOUD-DEVICE-RECOVERY.md`. Automatic restore/upload coordination,
-  the persisted sync toggle and full teammate/local-fallback import remain required.
+  requires acknowledgment. See `CLOUD-DEVICE-RECOVERY.md`. Full teammate/local-fallback import remains required.
   **309 tests pass** here and in source-only isolation; Debug/Release are clean and all three
   cross-publishes succeed. The recovery Windows preview is in `artifacts/publish/win-x64-recovery/`.
 
 - Local custom device icons: preserved IDs/short names, full canonical item search, explicit save/reset,
   legacy-ID lookup and kind defaults in the device list. Unknown metadata and revisions stay protected.
   See `DEVICE-ICONS.md`: 1,245 choices and 1,223 bundled images; 22 reference images remain missing.
-  Cloud synchronization, localization and the original direct icon-click shortcuts remain pending.
+  Localization and the original direct icon-click shortcuts remain pending.
   **273 tests pass** in the worktree and source-only isolation; Debug/Release compile cleanly.
 
 - Cloud account/session feature with system-browser website handoff, owned nonce/loopback callbacks,
@@ -32,8 +40,8 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
   sidebar Cloud entry preserve the requested shell layout. See `CLOUD-CONTRACT.md` for exact scope.
   Fresh profile checks show the actual cloud plan and device quota without tier-name fallbacks or
   persisting limits as authority. Sign-in refreshes the plan; offline/failed operations clear it.
-  Cloud device synchronization/import, quota enforcement at upload, other consent types, provider/session workflows and
-  live authenticated acceptance remain pending; permission recording does not start any device uploads.
+  Team/local device import, other consent types, provider/session workflows and live authenticated
+  acceptance remain pending; permission recording does not start any device uploads.
   The cloud-plan checkpoint passed **270 tests** in this worktree and a source-only external copy with a separate restored package
   cache. Debug/Release builds and all three self-contained publishes succeed. Native Windows callback/
   cancellation smoke passes, with the previously observed WebView2 shutdown warning. A fresh anonymous
@@ -122,7 +130,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
   Closing/shutdown awaits writes; changed files are rejected. Closing after a save reloads the selected
   tree and reconnects an active session. This does not implement cloud sync, drag gestures or deletion cleanup.
 - Smart-alarm in-game titles can be edited/cleared in the organizer. The writer validates the saved
-  device kind, trims blank titles to null and preserves unknown settings. Cloud title synchronization is pending.
+  device kind, trims blank titles to null and preserves unknown settings. Enabled automatic sync shares safe titles.
 - Offline recycler workspace with all 776 reference inputs, 796 bundled input/output icons, catalog
   precedence, guaranteed/chance comparisons, tick-based processing times, search/categories, paging,
   fill/clear, numeric and click/wheel/Shift input. Reopening retains quantities/filters. Full-width
@@ -138,8 +146,8 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Pairing/auth/accounts | Native-browser sign-in/status, FCM registration/listener, startup delivery checks, one-shot renewal, server/device pairing and re-pair, private writes, confirmed device/global sign-out | Live Steam/Facepunch/FCM acceptance and ambiguous-match resolution UI |
 | Rust+ connection/reconnect | Authenticated status session, fallback, immediate socket-disconnect handling, cancellation and recovery | Native/live-server acceptance; soft/full modes and remaining feature subscriptions |
 | Live map/markers/overlays | Not ported | Separate coordinate/state logic from rendering; choose portable map/helper hosting |
-| Smart devices/automation/timers | Confirmed switches, nested group commands, alarm/storage state, subscriptions, local alias/group/move/reorder editor, local custom icons | Live-server acceptance, drag gestures, empty-group cleanup, cloud sync, add/delete/import/transfer, missing icon artwork/direct-click shortcuts, automation, timers, alarm notifications/audio and original layout |
-| Cloud identity/consent | Website handoff, safe legacy sessions, scoped profile permission/revocation, local sign-out, verified plan/device allowance, explicit own-device recovery | Live authentication/version acceptance, upload quota enforcement, other consents, persisted sync toggle, automatic restore/upload barrier, full team/local-fallback import and remaining account/provider/session workflows |
+| Smart devices/automation/timers | Confirmed switches, nested group commands, alarm/storage state, subscriptions, local alias/group/move/reorder editor, custom icons and safe own-device cloud sync | Live-server acceptance, drag gestures, empty-group cleanup, add/delete/team import/transfer, missing icon artwork/direct-click shortcuts, automation, timers, alarm notifications/audio and original layout |
+| Cloud identity/consent | Website handoff, scoped permission, local sign-out, fresh plan/quota enforcement, own-device recovery and opt-in automatic restore-before-upload | Live authentication/version acceptance, backend concurrent-writer acceptance, other consents, full team/local-fallback import and remaining account/provider/session workflows |
 | Chat/team/clan | Not ported | Port protocol/services, moderation/history, synchronization and presentation |
 | Cameras | Not ported | Validate camera SDK/runtime, stream decoding and portable rendering |
 | Genetics Lab/web tools | Not ported | Decide and verify portable web hosting/bridge rather than copying WebView2 |

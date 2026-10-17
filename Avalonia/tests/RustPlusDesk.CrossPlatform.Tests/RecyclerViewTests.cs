@@ -21,7 +21,7 @@ public sealed class RecyclerViewTests
     [TestMethod]
     public async Task Recycler_RendersAtMinimumSize_AndNumericPointerAndKeyboardInputsWorkWithoutNetwork()
     {
-        await using var session = HeadlessUnitTestSession.StartNew(typeof(TestAppBuilder));
+        var session = UiTestSession.Current;
         await session.Dispatch(async () =>
         {
             var model = new ServersViewModel(new LegacyServerCatalog(), new Picker(), "unused.json",

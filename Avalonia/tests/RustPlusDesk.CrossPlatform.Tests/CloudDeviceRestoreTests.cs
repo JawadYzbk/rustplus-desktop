@@ -243,6 +243,11 @@ public sealed class CloudDeviceRestoreTests
         public string? Updated { get; set; } = "2026-10-17T00:00:00Z";
         public Func<Task>? OnOverlay { get; set; }
         public List<(string Route, HttpMethod Method)> Requests { get; } = [];
+        public List<JsonNode> Uploads { get; } = [];
+        public int? MaxDevices { get; set; }
+        public bool SyncAvailable { get; set; } = true;
+        public bool SnapshotExists { get; set; } = true;
+        public HttpStatusCode UploadStatus { get; set; } = HttpStatusCode.OK;
         public CloudDeviceRestore Service { get; }
         public string Payload { get; set; } = """
             [{"EntityId":2147483649,"IsGroup":true,"Alias":"Remote group","Children":[
@@ -267,6 +272,7 @@ public sealed class CloudDeviceRestoreTests
         }
         public async Task<CloudDeviceSnapshot> PreviewAsync(ServerSummary? server = null)
             => await Service.PreviewAsync(Profiles.Path, server ?? await Profiles.ServerAsync(), "cloud-user", Steam, CancellationToken.None);
+        public CloudDeviceSynchronizer Synchronizer(IDeviceSyncPreferences preferences) => new(http, Cache, "1.0.0", preferences);
         public void Dispose() { http.Dispose(); Profiles.Dispose(); Directory.Delete(directory, true); }
         private sealed class Handler(Fixture fixture) : HttpMessageHandler
         {
@@ -278,7 +284,26 @@ public sealed class CloudDeviceRestoreTests
                 fixture.Requests.Add((route, request.Method));
                 if (fixture.Status != HttpStatusCode.OK) return new(fixture.Status) { Content = new StringContent("synthetic-secret-body") };
                 object response;
-                if (route == "profile") response = new { data = new { user = new { id = fixture.UserId, steam_id = fixture.RemoteSteam, sync_accepted = fixture.Accepted } } };
+                if (route == "profile") response = new
+                {
+                    data = new
+                    {
+                        user = new { id = fixture.UserId, steam_id = fixture.RemoteSteam, sync_accepted = fixture.Accepted },
+                        plan_code = "fixture",
+                        is_premium = false,
+                        limits = new { sync = new { max_devices = new { enabled = fixture.SyncAvailable, value = fixture.MaxDevices } } }
+                    }
+                };
+                else if (request.Method == HttpMethod.Post)
+                {
+                    var posted = JsonNode.Parse(await request.Content!.ReadAsStringAsync(ct))!;
+                    fixture.Uploads.Add(posted);
+                    if (fixture.UploadStatus != HttpStatusCode.OK) return new(fixture.UploadStatus) { Content = new StringContent("private-error") };
+                    fixture.Payload = posted["smart_devices"]!["device_data"]!.GetValue<string>();
+                    fixture.SnapshotExists = true;
+                    fixture.Updated = DateTimeOffset.UtcNow.ToString("O");
+                    response = new { status = "success" };
+                }
                 else
                 {
                     if (fixture.OnOverlay is not null) await fixture.OnOverlay();
@@ -286,7 +311,7 @@ public sealed class CloudDeviceRestoreTests
                     {
                         map_overlay = (object?)null,
                         base_markers = (object?)null,
-                        smart_devices = new { device_data = fixture.Payload, updated_at = fixture.Updated }
+                        smart_devices = fixture.SnapshotExists ? new { device_data = fixture.Payload, updated_at = fixture.Updated } : null
                     };
                 }
                 return new(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(response)) };

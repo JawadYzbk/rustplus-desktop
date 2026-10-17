@@ -20,7 +20,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     IServerProfileEditor? profileEditor = null, IServerConnectionTester? connectionTester = null, ICompanionAccountService? accountService = null,
     ICompanionListener? companionListener = null, ICompanionPushHealth? pushHealth = null, IDeviceProfileEditor? deviceEditor = null,
     IRecyclerCatalog? recyclerCatalog = null, ICloudAccountService? cloudAccountService = null, IReadOnlyList<DeviceIcon>? deviceIcons = null,
-    ICloudDeviceRestore? cloudDeviceRestore = null)
+    ICloudDeviceRestore? cloudDeviceRestore = null, IDeviceSyncPreferences? deviceSyncPreferences = null, ICloudDeviceSynchronizer? deviceSynchronizer = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = new(sessionFactory);
@@ -36,6 +36,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     public bool HasCompanionAccount => accountService is not null;
     public bool HasCloudAccount => cloudAccountService is not null;
     public CloudAccountViewModel? Cloud { get; private set; }
+    [ObservableProperty] private CloudDeviceSyncViewModel? deviceSync;
+    public bool HasDeviceSync => deviceSyncPreferences is not null && deviceSynchronizer is not null;
     public bool HasCloudDeviceRestore => cloudDeviceRestore is not null;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasCloudRecovery))]
@@ -123,9 +125,19 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         if (Cloud is null && cloudAccountService is not null)
         {
             Cloud = new(cloudAccountService);
-            Cloud.PropertyChanged += (_, _) => RecoverCloudDevicesCommand.NotifyCanExecuteChanged();
+            Cloud.PropertyChanged += (_, _) =>
+            {
+                RecoverCloudDevicesCommand.NotifyCanExecuteChanged();
+                UpdateSyncIdentity();
+            };
             Cloud.SetSteamAccount(Account?.Account);
             OnPropertyChanged(nameof(Cloud));
+        }
+        if (DeviceSync is null && HasDeviceSync)
+        {
+            DeviceSync = new(deviceSyncPreferences!, SynchronizeDevicesAsync);
+            UpdateSyncIdentity();
+            DeviceSync.RunCommand.Execute(null);
         }
         if (accountService is null) return;
         if (Account is null)
@@ -149,6 +161,29 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             OnPropertyChanged(nameof(HasListener));
             OnPropertyChanged(nameof(RequiresSignIn));
         }
+    }
+
+    private void UpdateSyncIdentity() => DeviceSync?.SetIdentity(Cloud?.Account.Identity?.Id ?? "", Cloud?.TrustedSteamId ?? "", Cloud?.HasSyncConsent == true);
+    partial void OnIsBusyChanged(bool value) { if (value) DeviceSync?.CancelCycle(); }
+    partial void OnIsAccountOpenChanged(bool value) { if (value) DeviceSync?.CancelCycle(); }
+
+    private async Task<DeviceSynchronizationResult?> SynchronizeDevicesAsync(string user, string steam, CancellationToken ct)
+    {
+        if (shuttingDown || IsBusy || HasOverlay || Cloud?.HasSyncConsent != true || Cloud.Account.Identity?.Id != user ||
+            Cloud.TrustedSteamId != steam || deviceSynchronizer is null || SelectedServer is not { } server) return null;
+        string path = SourcePath;
+        var result = await Connection.SynchronizeDevicesAsync(deviceSynchronizer, user, steam, ct);
+        if (result?.Outcome == DeviceSynchronizationOutcome.Restored && !shuttingDown && SourcePath == path && SelectedServer == server)
+        {
+            IsBusy = true;
+            try
+            {
+                await LoadAsync(path, CancellationToken.None);
+                if (!shuttingDown && SelectedServer is not null) Connection.ConnectCommand.Execute(null);
+            }
+            finally { IsBusy = false; }
+        }
+        return result;
     }
 
     [RelayCommand]
@@ -414,6 +449,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         EditCommand.Cancel();
         OrganizeDevicesCommand.Cancel();
         RecoverCloudDevicesCommand.Cancel();
+        if (DeviceSync is not null) await DeviceSync.StopAsync();
         if (Account is not null) await Account.StopAsync();
         if (Listener is not null) await Listener.StopListeningAsync();
         if (Cloud is not null) await Cloud.StopAsync();

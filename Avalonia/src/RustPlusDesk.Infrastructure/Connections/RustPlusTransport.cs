@@ -44,7 +44,8 @@ internal sealed class RustPlusTransport : IRustTransport
                 throw new ServerConnectionException(ConnectionFailureClassifier.Response(info.Error?.Message));
 
             var data = info.Data;
-            var status = new ServerStatus(data.Name ?? "", data.PlayerCount, data.MaxPlayerCount, data.QueuedPlayerCount);
+            var status = new ServerStatus(data.Name ?? "", data.PlayerCount, data.MaxPlayerCount, data.QueuedPlayerCount,
+                WipeTime: data.WipeTime is { } wipe ? new DateTimeOffset(DateTime.SpecifyKind(wipe, DateTimeKind.Utc)) : null);
             // Time is optional on some modded servers; authenticated server info still proves connectivity.
             try
             {

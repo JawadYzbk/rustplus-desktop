@@ -3,7 +3,7 @@ namespace RustPlusDesk.Core.Connections;
 /// <summary>Portable, credential-free server status received from the companion protocol.</summary>
 public sealed record ServerStatus(string Name, uint? Players, uint? MaxPlayers, uint? Queue,
     double? GameHours = null, double? Sunrise = null, double? Sunset = null,
-    double? DayLengthMinutes = null, double? TimeScale = null);
+    double? DayLengthMinutes = null, double? TimeScale = null, DateTimeOffset? WipeTime = null);
 
 public enum ConnectionPhase { Disconnected, Connecting, Connected, Reconnecting, Failed, RePairRequired, SignInRequired }
 

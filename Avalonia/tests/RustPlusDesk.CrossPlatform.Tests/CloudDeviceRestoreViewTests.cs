@@ -29,7 +29,7 @@ public sealed class CloudDeviceRestoreViewTests
             data[0]!["Name"] = new string('W', 1000);
             await File.WriteAllTextAsync(fixture.Profiles.Path, data.ToJsonString());
         }
-        await using var session = HeadlessUnitTestSession.StartNew(typeof(TestAppBuilder));
+        var session = UiTestSession.Current;
         await session.Dispatch(async () =>
         {
             var account = Account();

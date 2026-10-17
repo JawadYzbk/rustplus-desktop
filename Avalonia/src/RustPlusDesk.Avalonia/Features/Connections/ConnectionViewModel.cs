@@ -4,6 +4,7 @@ using RustPlusDesk.Core.Connections;
 using RustPlusDesk.Core.Servers;
 using RustPlusDesk.Core.Time;
 using RustPlusDesk.Avalonia.Features.Devices;
+using RustPlusDesk.Core.Cloud;
 
 namespace RustPlusDesk.Avalonia.Features.Connections;
 
@@ -16,6 +17,18 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
     private ServerClock clock = new();
     private DateTime? sampleTime;
     private double? sampleHours;
+    private (IServerSession Session, CancellationTokenSource Lifetime, string Id, DateTimeOffset? Wipe)? activeSession;
+    private Task<DeviceSynchronizationResult>? synchronization;
+
+    public async Task<DeviceSynchronizationResult?> SynchronizeDevicesAsync(ICloudDeviceSynchronizer service, string userId, string steamId, CancellationToken ct)
+    {
+        if (!IsConnected || activeSession is not { } connected || selectedServer is not { } server || synchronization is not null) return null;
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(ct, connected.Lifetime.Token);
+        var task = service.SynchronizeAsync(profilesPath, server, userId, steamId, connected.Id, connected.Wipe, connected.Session.Devices, lifetime.Token);
+        synchronization = task;
+        try { return await task; }
+        finally { if (synchronization == task) synchronization = null; }
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsConnected))]
@@ -78,9 +91,10 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
                     retryDelaySeconds = 2;
                     clock = new ServerClock();
                     ApplyStatus(session.InitialStatus);
+                    using var connectedCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    activeSession = (session, connectedCancellation, Guid.NewGuid().ToString("N"), session.InitialStatus.WipeTime);
                     Phase = ConnectionPhase.Connected;
                     StatusMessage = "Connected";
-                    using var connectedCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                     var disconnectWatch = CancelOnDisconnectAsync(session.Disconnected, connectedCancellation);
                     var clockUpdates = UpdateClockAsync(connectedCancellation.Token);
                     var deviceUpdates = target.Devices.Count > 0
@@ -93,6 +107,8 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
                             var status = await session.ReadStatusAsync(connectedCancellation.Token).WaitAsync(connectedCancellation.Token);
                             connectedCancellation.Token.ThrowIfCancellationRequested();
                             ApplyStatus(status);
+                            if (status.WipeTime != session.InitialStatus.WipeTime)
+                                throw new ServerConnectionException(ConnectionFailure.Unreachable);
                         }
                     }
                     catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && session.Disconnected.IsCompletedSuccessfully)
@@ -100,6 +116,12 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
                     finally
                     {
                         connectedCancellation.Cancel();
+                        activeSession = null;
+                        if (synchronization is { } pending)
+                        {
+                            try { await pending; }
+                            catch (Exception) { /* The sync owner reports its failure; disposal still awaits its completion. */ }
+                        }
                         await disconnectWatch;
                         try { await clockUpdates; }
                         catch (OperationCanceledException) when (connectedCancellation.IsCancellationRequested) { }

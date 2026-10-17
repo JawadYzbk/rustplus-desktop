@@ -18,7 +18,7 @@
     <TextBlock Text="Cloud synchronization" FontSize="16" FontWeight="SemiBold" />
     <TextBlock Text="{Binding CloudSteamIdentity}" Classes="muted" TextWrapping="Wrap" />
     <TextBlock Text="{Binding SteamIdentity}" Classes="muted" TextWrapping="Wrap" />
-    <TextBlock Text="Sign in to Rust+ with Steam and verify your cloud session before granting sync permission. Automatic device syncing and import are still being migrated."
+    <TextBlock Text="Sign in to Rust+ with Steam and verify your cloud session before granting sync permission. Enabling automatic device sync on this computer is a separate choice."
                TextWrapping="Wrap" Classes="muted" />
     <TextBlock Text="Sync permission confirmed for the current cloud and Steam identities." TextWrapping="Wrap" IsVisible="{Binding HasSyncConsent}" />
     <WrapPanel>

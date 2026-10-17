@@ -1,8 +1,8 @@
 # Cloud account and sharing contracts — 2026-10-16
 
 Cloud identity/session and explicit profile-sync consent are implemented on the isolated migration
-branch. Explicit own-device recovery is implemented; see `CLOUD-DEVICE-RECOVERY.md`. Full teammate
-sharing/import and automatic synchronization remain unfinished. Do not repeat the
+branch. Explicit own-device recovery and automatic own-device sync are implemented; see
+`CLOUD-DEVICE-RECOVERY.md` and `CLOUD-DEVICE-SYNC.md`. Full teammate import remains unfinished. Do not repeat the
 completed companion/native sign-in crash fix or pairing ports.
 
 ## Implemented account boundary
@@ -38,13 +38,13 @@ completed companion/native sign-in crash fix or pairing ports.
   enabled flag, following PlanLimitService.limit. Null means no numeric cap, zero means zero devices.
   Invalid/missing limit details fail without overwriting the saved session. No tier-name fallback is used.
 - No device uploads, cloud restoration or imports start from granting this permission. Additional
-  consent types and quota enforcement must be ported with the corresponding workflows. Sync routes
+  consent types must be ported with their corresponding workflows. Device uploads enforce fresh quotas. Sync routes
   currently use token abilities and the upload service's numeric quota; displaying the plan's feature
   flag does not prove the server enforces that flag on every route.
 - Explicit own-device recovery now uses the owner's unwrapped overlay response, fresh profile/scoped
   consent checks, safe DTO parsing and a revision-protected missing-only merge. The HTTP helper is
-  extracted privately and reused. Automatic restore readiness must still be established before any
-  uploader; manual acknowledgment of unknown wipe freshness is not evidence for automatic readiness.
+  extracted privately and reused. Automatic sync separately requires live wipe/entity checks and a
+  connection-scoped restore barrier; manual acknowledgment is never evidence for automatic readiness.
 
 ## Verified reference behavior
 
@@ -134,10 +134,9 @@ were read directly after graph coverage reported changed metadata; no server cod
 1. Use the verified plan facts while porting the exact overlay/team-device contracts and other required
    consent types. Extract the existing private HTTP request code only when a second real consumer needs
    it; keep bearer access inside Infrastructure. Do not expose tokens through Core or view models.
-2. Implement restore ownership/readiness before enabling the original Export/cloud-sync toggle. Preserve
-   empty-snapshot protection, wipe checks, safe DTO fields, unknown local metadata and revision checks.
-   Keep the local automatic-sync switch separate from profile permission, default it off and persist
-   disabling it immediately even offline. A saved grant alone must never start an uploader.
+2. Preserve the implemented own-device restore barrier, explicit default-off sync preference, empty-leaf
+   protection, live wipe/entity checks, safe DTO fields, fresh quotas and revision checks while adding
+   team workflows. Keep consent separate and offline disabling immediate. See CLOUD-DEVICE-SYNC.md.
 3. Port Import with team identities/cloud snapshots plus the reference local-overlay fallback. Preserve
    nested deduplication, alarm titles, chat command references and plan limits. Do not invent file export.
 4. Validate actual authenticated website handoff, Steam/FCM and live sharing only with the user's consent

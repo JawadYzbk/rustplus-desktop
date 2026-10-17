@@ -80,7 +80,12 @@
         </StackPanel>
         </TabItem>
         <TabItem Header="Cloud" IsVisible="{Binding HasCloudAccount}" IsEnabled="{Binding !Account.IsBusy, FallbackValue=True}">
-          <cloud:CloudAccountView DataContext="{Binding Cloud}" Margin="0,12,0,0" />
+          <StackPanel Spacing="18" Margin="0,12,0,0">
+            <cloud:CloudAccountView DataContext="{Binding Cloud}" />
+            <Border IsVisible="{Binding HasDeviceSync}">
+              <cloud:CloudDeviceSyncView DataContext="{Binding DeviceSync}" />
+            </Border>
+          </StackPanel>
         </TabItem>
         </TabControl>
         </ScrollViewer>

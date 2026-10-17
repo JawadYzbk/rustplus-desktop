@@ -1,0 +1,22 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RustPlusDesk.Avalonia.Features.Cloud"
+             x:Class="RustPlusDesk.Avalonia.Features.Cloud.CloudDeviceSyncView" x:DataType="vm:CloudDeviceSyncViewModel">
+  <StackPanel Spacing="10">
+    <TextBlock Text="Automatic device sync on this computer" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
+    <TextBlock Text="Off by default. When enabled, missing own cloud devices are checked and recovered before sharing local device settings with your cloud account and team. Empty local lists never clear your cloud snapshot."
+               TextWrapping="Wrap" Classes="muted" />
+    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+    <WrapPanel>
+      <Button Content="Enable device sync…" Command="{Binding RequestEnableCommand}" IsEnabled="{Binding CanEnable}" Margin="0,0,6,6" />
+      <Button Content="Stop device sync" Command="{Binding DisableCommand}" Margin="0,0,6,6" />
+      <Button Content="Retry sync" Command="{Binding RetryCommand}" IsVisible="{Binding IsEnabled}" Margin="0,0,0,6" />
+    </WrapPanel>
+    <StackPanel IsVisible="{Binding IsConfirming}" Spacing="10">
+      <TextBlock Text="Enable automatic device recovery and cloud sharing for the verified cloud and Steam accounts on this computer? You can stop it here even when offline. Existing cloud data is kept when stopped." TextWrapping="Wrap" />
+      <WrapPanel>
+        <Button Content="Confirm enable" Classes="accent" Command="{Binding ConfirmEnableCommand}" IsEnabled="{Binding !IsSaving}" Margin="0,0,6,6" />
+        <Button Content="Keep off" Command="{Binding KeepOffCommand}" IsEnabled="{Binding !IsSaving}" Margin="0,0,0,6" />
+      </WrapPanel>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

@@ -69,7 +69,7 @@ public sealed class CloudDeviceRestore(HttpClient http, string cachePath, string
             return new CloudDeviceRestoreResult(result[index], added.Devices, added.Groups);
         });
 
-    private static void RequireConsent(CloudSessionFile session, CloudIdentity identity, string userId, string steamId)
+    internal static void RequireConsent(CloudSessionFile session, CloudIdentity identity, string userId, string steamId)
     {
         if (identity.Id != userId || identity.SteamId != steamId || session.Identity?.Id != userId || session.Identity?.SteamId != steamId)
             throw new CloudAccountException(CloudFailure.IdentityMismatch);
@@ -78,7 +78,7 @@ public sealed class CloudDeviceRestore(HttpClient http, string cachePath, string
             throw new CloudAccountException(CloudFailure.AccessDenied);
     }
 
-    private static async Task<JsonObject> ReadProfileAsync(string path, ServerSummary original, string steamId, CancellationToken ct)
+    internal static async Task<JsonObject> ReadProfileAsync(string path, ServerSummary original, string steamId, CancellationToken ct)
     {
         byte[] bytes = await AtomicPrivateFile.ReadAsync(path, ct).ConfigureAwait(false) ?? throw new ProfileChangedException();
         if (Convert.ToHexString(SHA256.HashData(bytes)) != original.SourceRevision) throw new ProfileChangedException();
@@ -108,6 +108,7 @@ public sealed class CloudDeviceRestore(HttpClient http, string cachePath, string
     {
         try { return await action().ConfigureAwait(false); }
         catch (HttpRequestException) { throw new CloudAccountException(CloudFailure.Unavailable); }
+        catch (ProfileChangedException) { throw; }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { throw new CloudAccountException(CloudFailure.Unavailable); }
         catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException or ArgumentException or OverflowException)
         { throw new CloudDeviceRestoreException(CloudDeviceRestoreFailure.InvalidSnapshot); }

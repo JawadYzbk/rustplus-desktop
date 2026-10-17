@@ -127,7 +127,7 @@ public sealed class CloudAccountService(HttpClient http, IAuthenticationBrowser 
     private async Task<CloudIdentity> MeAsync(string token, CancellationToken ct)
         => CloudSessionFile.ParseIdentity(await SendAsync("me", token, null, ct).ConfigureAwait(false));
 
-    private static CloudPlan ParsePlan(JsonObject profile)
+    internal static CloudPlan ParsePlan(JsonObject profile)
     {
         string code = CloudSessionFile.Text(profile["plan_code"], 64);
         if (string.IsNullOrWhiteSpace(code) || profile["is_premium"] is not JsonValue premium) throw new JsonException();

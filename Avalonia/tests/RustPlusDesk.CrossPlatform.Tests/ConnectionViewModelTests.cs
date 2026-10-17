@@ -4,12 +4,69 @@ using RustPlusDesk.Core.Connections;
 using RustPlusDesk.Core.Servers;
 using RustPlusDesk.Avalonia.Features.Servers;
 using RustPlusDesk.Avalonia.Services;
+using RustPlusDesk.Core.Cloud;
+using RustPlusDesk.Core.Devices;
 
 namespace RustPlusDesk.CrossPlatform.Tests;
 
 [TestClass]
 public sealed class ConnectionViewModelTests
 {
+    [TestMethod]
+    public async Task LiveWipeChange_CancelsSyncAndReleasesOldSessionBeforeReconnect()
+    {
+        var old = new ServerStatus("Old wipe", 1, 100, 0, WipeTime: DateTimeOffset.Parse("2026-10-01T00:00:00Z"));
+        var session = new TestSession { InitialStatus = old, Read = _ => Task.FromResult(old with { WipeTime = old.WipeTime!.Value.AddDays(1) }) };
+        var model = CreateModel(new TestFactory((_, _, _) => Task.FromResult<IServerSession>(session)));
+        Task connected = model.ConnectCommand.ExecuteAsync(null);
+        var service = new PendingSync();
+        Task sync = model.SynchronizeDevicesAsync(service, "user", "steam", default);
+        try
+        {
+            await service.Canceled.Task.WaitAsync(TimeSpan.FromSeconds(6));
+            Assert.IsFalse(session.Disposed);
+            service.Release.TrySetResult();
+            try { await sync; Assert.Fail("Must cancel."); } catch (OperationCanceledException) { }
+            await WaitForPhaseAsync(model, ConnectionPhase.Reconnecting);
+            Assert.IsTrue(session.Disposed);
+        }
+        finally { service.Release.TrySetResult(); await model.StopAsync(); await connected; }
+    }
+
+    [TestMethod]
+    public async Task Disconnect_CancelsAndAwaitsActiveSync_BeforeDisposingItsSession()
+    {
+        var session = new TestSession();
+        var model = CreateModel(new TestFactory((_, _, _) => Task.FromResult<IServerSession>(session)));
+        Task connected = model.ConnectCommand.ExecuteAsync(null);
+        var service = new PendingSync();
+        Task sync = model.SynchronizeDevicesAsync(service, "user", "steam", default);
+        await service.Started.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        Task stopping = model.StopAsync();
+        Assert.IsFalse(stopping.IsCompleted);
+        Assert.IsFalse(session.Disposed);
+        service.Release.TrySetResult();
+        try { await sync; Assert.Fail("Must cancel."); } catch (OperationCanceledException) { }
+        await Task.WhenAll(stopping, connected).WaitAsync(TimeSpan.FromSeconds(3));
+        Assert.IsTrue(session.Disposed);
+        Assert.IsNull(await model.SynchronizeDevicesAsync(service, "user", "steam", default));
+    }
+
+    private sealed class PendingSync : ICloudDeviceSynchronizer
+    {
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Canceled { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public async Task<DeviceSynchronizationResult> SynchronizeAsync(string path, ServerSummary server, string user, string steam,
+            string session, DateTimeOffset? wipe, IDeviceClient devices, CancellationToken ct)
+        {
+            Started.TrySetResult();
+            try { await Task.Delay(Timeout.Infinite, ct); }
+            finally { Canceled.TrySetResult(); await Release.Task; }
+            throw new AssertFailedException("Canceled sync must not finish normally.");
+        }
+    }
+
     [TestMethod]
     public async Task ConnectAsync_VerifiedSession_ShowsStatusAndClock_DisconnectDisposesSession()
     {
