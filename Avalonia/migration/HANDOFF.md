@@ -1,5 +1,48 @@
 # Avalonia migration handoff — 2026-10-17
 
+## Latest verified source — guarded shared-device import
+
+- **`9c42634a`** on `codex/avalonia-migration`, following automatic sync `7d1b6ff4` and documentation
+  `17b0d6da`, adds the connected import picker, authorized flat/member sources, safe cache enrichment,
+  current-team/own local fallback, search/select-all/status/progress/explicit save and reload/reconnect.
+  It is pushed to origin/codex/avalonia-migration. A following docs commit records this checkpoint.
+- **354 tests pass** here and in the source-only external copy. Debug/Release are clean; self-contained
+  win-x64/linux-x64/osx-arm64 publishes succeed. Newest Windows preview:
+  **`Avalonia/artifacts/publish/win-x64-import/RustPlusDesk.Avalonia.exe`**, with accompanying files.
+  No personal credentials or live Rust/cloud/FCM authentication were used.
+- Read DEVICE-IMPORT.md. Core adds credential-free import contracts and optional IServerTeamSession.
+  Actual RustPlusTransport projects all SDK members, including offline players. A real loopback
+  WebSocket/protobuf test exercises the installed SDK, UTC wipe, team data and synthetic auth fields.
+  This is local wire compatibility, not live multiplayer or native Linux/macOS acceptance.
+- Remote sources require the existing separate local sync opt-in and fresh scoped cloud permission.
+  The flat endpoint is the authority for cloud owner IDs; member snapshots preserve alarm/rig fields
+  it omits. Local fallback needs no cloud login and reads only the current live roster plus own ID.
+  Local path/reparse/size checks and private cache backups preserve unrelated map/unknown metadata.
+  Cache failures are reported. Old known wipe entries are disabled; unknown history requires explicit
+  acknowledgment and live entity checks. Imports re-fetch and fingerprint sources before/after probes,
+  then use the shared missing-only private profile merger/mapping allocator. Caller DTOs are ignored.
+- Local duplicate IDs prefer supported current-wipe data; ordering alone does not invalidate hashes.
+  Existing nested IDs remain protected. Check device status covers all supported rows; selection
+  controls/search/progress and custom/default item artwork are wired. Minimum-size light/dark tests
+  include long names. Cancel/shutdown awaits owned work, and old connection IDs cannot be reused.
+- Fixed an own-sync/modal race: a recovery commit finishing just as a modal opens defers the profile
+  refresh until that modal closes. The regression test checks that its selection/session is retained.
+- **Next:** remaining local device add/delete/transfer/cleanup and/or the live map/team workspace,
+  then the complete cloud team/master/chat/presence workflow and other required consent/account ports.
+  TeamFeatureController.heartbeat both remembers membership and elects a master through
+  TeamPresenceService; posting invented chat flags can overwrite another client's settings or elect
+  a client that cannot run those features. The import picker relies on existing server-authorized
+  membership until that workflow is ported. Do not claim complete fresh-team sharing or readiness.
+- Keep all edits inside the attached worktree's Avalonia/. Original D:/Development/rustplus-desktop
+  remains beta; WPF/backend/SDK/.serena/root proto were not modified. Graph generations are stale;
+  coverage checks plus exact source/tests remain necessary. Latest usage check was 80% five-hour;
+  reset is 2026-10-17 11:20:52 UTC / 14:20:52 Beirut. At 97%, checkpoint and stop implementation.
+- The completed one-time reset heartbeat `resume-avalonia-migration-after-usage-reset` was deleted
+  after successful resumption; no replacement automation/cloud task/reset credits were created.
+- Isolation now runs in its own directory with an absolute private package cache under that copy's
+  artifacts/. No unwanted worktree-root cache remains. Read prior checkpoints for full backlog and
+  protocol/account caveats; no production-ready or full-parity claim is justified.
+
 ## Latest verified source — automatic own-device synchronization
 
 - **`7d1b6ff`** on `codex/avalonia-migration` adds the explicit default-off, cloud/Steam-scoped local
