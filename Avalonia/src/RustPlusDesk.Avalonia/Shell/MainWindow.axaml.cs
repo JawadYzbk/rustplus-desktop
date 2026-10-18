@@ -17,6 +17,7 @@ public sealed partial class MainWindow : Window
             {
                 model.Alarms.OpenRequested += ShowAlarms;
                 model.ConsolePopOutRequested += ShowConsolePopout;
+                model.Hotkeys.EditRequested += ShowHotkeys;
             }
         };
     }
@@ -30,6 +31,21 @@ public sealed partial class MainWindow : Window
         alarmWindow = new Features.Alarms.AlarmWindow { DataContext = sender };
         alarmWindow.Closed += (_, _) => alarmWindow = null;
         alarmWindow.Show(this);
+    }
+
+    /// <summary>Global hotkeys need the native window: Win32 on Windows; elsewhere the model reports why they are unavailable.</summary>
+    protected override void OnOpened(EventArgs e)
+    {
+        if (OperatingSystem.IsWindows() && DataContext is Features.Servers.ServersViewModel model)
+            model.Hotkeys.UseGlobalHotkeys(new Features.Hotkeys.Win32GlobalHotkeys(this));
+        base.OnOpened(e);
+    }
+
+    private async void ShowHotkeys(object? sender, Features.Hotkeys.HotkeysEditorViewModel editor)
+    {
+        if (sender is not Features.Hotkeys.HotkeysViewModel hotkeys) return;
+        await new Features.Hotkeys.HotkeysWindow { DataContext = editor }.ShowDialog(this);
+        hotkeys.Apply(editor);
     }
 
     private Features.Console.ConsoleHelperWindow? consoleWindow;

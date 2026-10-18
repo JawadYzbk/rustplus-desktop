@@ -11,6 +11,12 @@
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
           <Button Classes="icon" Command="{Binding RefreshCommand}" ToolTip.Tip="Refresh device states" AutomationProperties.Name="Refresh devices">
             <icons:Icon Symbol="ArrowClockwise24" /></Button>
+          <ToggleButton Classes="chip" Padding="8,3" IsChecked="{Binding $parent[Window].((servers:ServersViewModel)DataContext).Hotkeys.IsActive, Mode=OneWay, FallbackValue=False}"
+                        Command="{Binding $parent[Window].((servers:ServersViewModel)DataContext).Hotkeys.EditCommand}"
+                        ToolTip.Tip="Assign global hotkeys to smart switches" AutomationProperties.Name="Device hotkeys">
+            <StackPanel Orientation="Horizontal" Spacing="5"><icons:Icon Symbol="Keyboard24" FontSize="14" />
+              <TextBlock Text="{Binding $parent[Window].((servers:ServersViewModel)DataContext).Hotkeys.ButtonText, FallbackValue=Hotkeys}" FontSize="12" /></StackPanel>
+          </ToggleButton>
           <Button Classes="icon" Command="{Binding $parent[Window].((servers:ServersViewModel)DataContext).OrganizeDevicesCommand}"
                   IsVisible="{Binding $parent[Window].((servers:ServersViewModel)DataContext).HasDeviceEditor, FallbackValue=False}"
                   ToolTip.Tip="Organize: rename, group, move, icons, delete" AutomationProperties.Name="Organize devices">

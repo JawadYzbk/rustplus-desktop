@@ -26,7 +26,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     IDeviceImporter? deviceImporter = null, IRaidCatalog? raidCatalog = null, IRaidPlanStore? raidPlanStore = null,
     RustPlusDesk.Core.Settings.IAppSettingsStore? appSettings = null, RustPlusDesk.Core.Map.IShopAlertStore? shopAlertStore = null,
     RustPlusDesk.Core.Map.IAlertSound? alertSound = null, RustPlusDesk.Core.Console.IConsoleCommandStore? consoleStore = null,
-    RustPlusDesk.Core.Notifications.INotificationHistoryStore? notificationStore = null)
+    RustPlusDesk.Core.Notifications.INotificationHistoryStore? notificationStore = null,
+    RustPlusDesk.Core.Hotkeys.IHotkeyStore? hotkeyStore = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -170,6 +171,14 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         }
     };
     [RelayCommand] private void OpenNotifications() => WorkspaceIndex = 4;
+    private Hotkeys.HotkeysViewModel? hotkeys;
+    /// <summary>Reference device hotkeys for the selected server.</summary>
+    public Hotkeys.HotkeysViewModel Hotkeys => hotkeys ??= new(hotkeyStore)
+    {
+        Toggle = (ids, parallel, delay) => Connection.Devices.ToggleAsync(ids, parallel, delay),
+        Devices = () => Connection.Devices.Devices.SelectMany(row => row.DescendantsAndSelf()),
+        Log = Activity.Append
+    };
     public bool HasConsoleTool => consoleStore is not null;
     [RelayCommand] private void OpenConsole() { if (HasConsoleTool) WorkspaceIndex = 3; }
     [ObservableProperty]
@@ -373,6 +382,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             try { await ShopAlerts.LoadAsync(cancellationToken); }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Activity.Append("[shops] Saved shop alerts could not be read."); }
             _ = ChatAlerts;
+            try { await Hotkeys.LoadAsync(cancellationToken); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Activity.Append("[hotkeys] Saved hotkeys could not be read."); }
             try { await Notifications.LoadAsync(cancellationToken); }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Activity.Append("[notifications] The notification history could not be read."); }
             EnsureAccountServices();
@@ -441,6 +452,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             };
         }
         Connection.Select(SourcePath, value);
+        Hotkeys.SelectServer(value?.Host, value?.Port);
         ImportDevicesCommand.NotifyCanExecuteChanged();
     }
     [ObservableProperty]
@@ -536,7 +548,10 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         IsBusy = true;
         try
         {
-            Organizer = new(SourcePath, selected, deviceEditor!, deviceIcons);
+            Organizer = new(SourcePath, selected, deviceEditor!, deviceIcons)
+            {
+                DevicesRemoved = ids => Hotkeys.RemoveDevices(selected.Host, selected.Port, ids)
+            };
             if (device is not null)
             {
                 Organizer.Selected = Organizer.Devices.SelectMany(item => item.DescendantsAndSelf())
@@ -689,6 +704,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         if (Raid is not null) await Raid.FlushAsync();
         await consoleLoad;
         if (notifications is not null) await notifications.FlushAsync();
+        if (hotkeys is not null) { hotkeys.Deactivate(); await hotkeys.FlushAsync(); }
         if (ConsoleHelper is not null) await ConsoleHelper.FlushAsync();
         if (shopAlerts is not null) await shopAlerts.FlushAsync();
         if (appSettings is not null)

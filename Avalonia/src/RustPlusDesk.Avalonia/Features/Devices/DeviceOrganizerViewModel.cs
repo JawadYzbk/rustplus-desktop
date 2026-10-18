@@ -135,8 +135,12 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
         IsBusy = true;
         try
         {
+            var removing = Selected!.DescendantsAndSelf().Where(device => device.Kind != DeviceKind.Group).Select(device => (long)device.EntityId).ToHashSet();
             var result = await editor.DeleteAsync(path, current, Selected!.DeviceKey, ct);
             changed |= result.Server.SourceRevision != current.SourceRevision;
+            // An entity paired twice keeps its hotkey while another copy remains.
+            removing.ExceptWith(result.Server.Devices.SelectMany(device => device.DescendantsAndSelf()).Select(device => (long)device.EntityId));
+            if (removing.Count > 0) DevicesRemoved?.Invoke(removing);
             current = result.Server;
             OnPropertyChanged(nameof(Devices));
             var all = Devices.SelectMany(item => item.DescendantsAndSelf()).ToArray();
@@ -155,6 +159,9 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
 
     [RelayCommand]
     private void CancelDelete() => IsDeleteConfirming = false;
+
+    /// <summary>Entity IDs no longer paired after a delete (hotkey cleanup).</summary>
+    public Action<IReadOnlyCollection<long>>? DevicesRemoved { get; set; }
 
     private Task ReorderAsync(int delta, CancellationToken ct)
         => Position + delta < 0 || Position + delta >= Siblings.Count ? Task.CompletedTask

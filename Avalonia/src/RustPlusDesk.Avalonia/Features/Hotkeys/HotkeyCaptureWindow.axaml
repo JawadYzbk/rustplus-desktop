@@ -1,0 +1,18 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+        x:Class="RustPlusDesk.Avalonia.Features.Hotkeys.HotkeyCaptureWindow"
+        Title="Set shortcut" Width="340" SizeToContent="Height" CanResize="False" WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+  <Border Background="{DynamicResource Surface}" Padding="16">
+    <StackPanel Spacing="12">
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <icons:Icon Symbol="Keyboard24" FontSize="20" Foreground="{DynamicResource Accent}" />
+        <TextBlock Text="Press hotkey" Classes="title" VerticalAlignment="Center" />
+      </StackPanel>
+      <Border Background="{DynamicResource SurfaceHover}" CornerRadius="8" Padding="12">
+        <TextBlock x:Name="GestureText" Text="Press desired key combination…" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center"
+                   TextWrapping="Wrap" AutomationProperties.Name="Captured hotkey" />
+      </Border>
+      <TextBlock Text="Press ESC to cancel, Enter to save" Classes="muted" FontSize="12" HorizontalAlignment="Center" />
+    </StackPanel>
+  </Border>
+</Window>

@@ -214,6 +214,52 @@ public sealed partial class DevicesViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Reference hotkey ToggleSequenceAsync: groups expand to their switches, each switch (once, not missing) flips
+    /// from its current state; sequential mode waits <paramref name="delayMs"/> between switches. Commands share the
+    /// session's one-at-a-time queue, so parallel mode simply skips the delay. Returns how many switches confirmed.
+    /// </summary>
+    public async Task<int> ToggleAsync(IReadOnlyCollection<uint> entityIds, bool parallel, int delayMs, CancellationToken cancellationToken = default)
+    {
+        if (active is not { } context) return 0;
+        var targets = new List<DeviceRowViewModel>();
+        foreach (uint id in entityIds.Distinct())
+        {
+            var root = AllRows.FirstOrDefault(row => row.Definition.EntityId == id);
+            if (root is null) continue;
+            if (root.Definition.Kind == DeviceKind.Group) targets.AddRange(root.DescendantsAndSelf().Where(row => row.Definition.Kind == DeviceKind.Switch));
+            else if (root.Definition.Kind == DeviceKind.Switch) targets.Add(root);
+        }
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, context.Token);
+        int confirmed = 0;
+        var switches = targets.DistinctBy(row => row.Definition.EntityId).Where(row => !row.IsMissing).ToList();
+        for (int i = 0; i < switches.Count; i++)
+        {
+            var target = switches[i];
+            bool desired = !(target.IsOn ?? false);
+            await operations.WaitAsync(linked.Token);
+            try
+            {
+                var state = await context.Client.SetSwitchAsync(target.Definition, desired, linked.Token).WaitAsync(linked.Token);
+                if (active == context) Apply(state);
+                if (state.EntityId == target.Definition.EntityId && !state.IsMissing && state.IsOn == desired) confirmed++;
+            }
+            catch (OperationCanceledException) when (linked.IsCancellationRequested) { break; }
+            catch (Exception ex)
+            {
+                if (active == context && byId.TryGetValue(target.Definition.EntityId, out var aliases))
+                    foreach (var alias in aliases) alias.ErrorMessage = FailureMessage(ex);
+            }
+            finally { operations.Release(); }
+            if (!parallel && delayMs > 0 && i < switches.Count - 1)
+            {
+                try { await Task.Delay(delayMs, linked.Token); }
+                catch (OperationCanceledException) { break; }
+            }
+        }
+        return confirmed;
+    }
+
     private void Apply(DeviceSnapshot state)
     {
         if (byId.TryGetValue(state.EntityId, out var rows)) foreach (var row in rows) row.Apply(state);
