@@ -43,6 +43,7 @@ public static class SettingKeys
     public const string MutedNotificationServers = "MutedNotificationServers";     // list of "host:port"
     public const string NotificationsToastEnabled = "NotificationsToastEnabled";   // default true
     public const string MapShowDeathHeatmap = "MapShowDeathHeatmap";       // default false: the map toolbar "Deaths" heatmap
+    public const string SelectedLanguage = "SelectedLanguage";             // "" = installed UI culture (5.2 picker not ported yet)
     public const string HideConsole = "HideConsole";                       // default false: hide the bottom log/console
     public const string AutoConnectEnabled = "AutoConnectEnabled";         // default false: connect the selected server on startup
     public const string AutoStartEnabled = "AutoStartEnabled";             // default false: launch at sign-in (--background)

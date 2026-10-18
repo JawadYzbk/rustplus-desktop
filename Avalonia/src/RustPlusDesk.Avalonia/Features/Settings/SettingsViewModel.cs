@@ -56,6 +56,23 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>The bottom log; Behavior's "Hide console" is its HideConsole switch.</summary>
     public global::RustPlusDesk.Avalonia.Features.Activity.ActivityLogViewModel? Activity { get; init; }
     public bool HasActivity => Activity is not null;
+
+    private RustPlusDesk.Core.Alerts.AlertTemplates? templates;
+    /// <summary>Chat-alert templates (reference "Customize Chat Alert Templates"); rows are built from the reference list.</summary>
+    public RustPlusDesk.Core.Alerts.AlertTemplates? Templates
+    {
+        get => templates;
+        init
+        {
+            templates = value;
+            TemplateRows = value is null ? [] : RustPlusDesk.Core.Alerts.AlertTemplates.Catalog.Select(info => new AlertTemplateRow(info, value)).ToArray();
+        }
+    }
+    public IReadOnlyList<AlertTemplateRow> TemplateRows { get; private init; } = [];
+    public bool HasTemplates => TemplateRows.Count > 0;
+    /// <summary>Raised to scroll the page to the templates (reference OpenSettingsCategory("alert-templates")).</summary>
+    public event Action? TemplatesFocusRequested;
+    public void FocusTemplates() => TemplatesFocusRequested?.Invoke();
     [ObservableProperty] private bool toastsEnabled;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(RetentionText))]

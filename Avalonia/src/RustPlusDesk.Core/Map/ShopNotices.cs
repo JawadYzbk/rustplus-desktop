@@ -15,6 +15,9 @@ public sealed record ShopNotice(ShopNoticeKind Kind, MapMarker Shop, string? Mes
 /// </summary>
 public sealed class ShopNoticeTracker(Func<int, string> itemName, TimeProvider? clock = null)
 {
+    /// <summary>Chat texts (reference AlertTemplateService "AlertNewShop" / "AlertSuspiciousShop").</summary>
+    public Alerts.AlertTemplates Templates { get; set; } = Alerts.AlertTemplates.Defaults;
+
     /// <summary>Reference _deepSeaNpcShopNames: Deep Sea event shops respawn every few hours and would spam chat.</summary>
     public static readonly IReadOnlySet<string> DeepSeaNpcShopNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
@@ -98,7 +101,7 @@ public sealed class ShopNoticeTracker(Func<int, string> itemName, TimeProvider? 
                 string? message = null;
                 if (lived.TotalSeconds <= SuspiciousLifetimeSeconds)
                 {
-                    message = $"Suspicious shop {snap.Name ?? "Shop"} [{grid}] was online {Math.Round(lived.TotalSeconds)}s, sold {Preview(snap, "nothing in stock")}";
+                    message = Templates.Format("AlertSuspiciousShop", snap.Name ?? "Shop", grid, Math.Round(lived.TotalSeconds), Preview(snap, "nothing in stock"));
                     life.AnnouncedSuspicious = true;
                 }
                 notices.Add(new(ShopNoticeKind.SuspiciousShop, snap, message,
@@ -123,7 +126,7 @@ public sealed class ShopNoticeTracker(Func<int, string> itemName, TimeProvider? 
             string name = shop.Name ?? "Shop";
             string grid = MapGrid.Label(worldSize, shop.X, shop.Y);
             string offers = Preview(shop, "no stock");
-            notices.Add(new(ShopNoticeKind.NewShop, shop, $"New shop {name} [{grid}]: {offers}", $"Alert [new shop] {name} [{grid}]: {offers}"));
+            notices.Add(new(ShopNoticeKind.NewShop, shop, Templates.Format("AlertNewShop", name, grid, offers), $"Alert [new shop] {name} [{grid}]: {offers}"));
         }
     }
 

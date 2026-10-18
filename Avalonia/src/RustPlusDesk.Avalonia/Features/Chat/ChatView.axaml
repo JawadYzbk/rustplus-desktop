@@ -39,6 +39,9 @@
               <MenuItem Header="Deselect all" Command="{Binding DeselectAllCommand}">
                 <MenuItem.Icon><icons:Icon Symbol="DismissSquare24" /></MenuItem.Icon>
               </MenuItem>
+              <MenuItem Header="Edit templates" Command="{Binding EditTemplatesCommand}" ToolTip.Tip="Customize the chat alert texts">
+                <MenuItem.Icon><icons:Icon Symbol="Edit24" /></MenuItem.Icon>
+              </MenuItem>
               <Separator />
               <MenuItem Header="Events" IsEnabled="False" />
               <MenuItem Header="Patrol Helicopter" ToggleType="CheckBox" IsChecked="{Binding AnnounceHeli, Mode=OneWay}"

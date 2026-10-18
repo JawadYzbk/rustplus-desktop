@@ -29,7 +29,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Core.Map.IAlertSound? alertSound = null, RustPlusDesk.Core.Console.IConsoleCommandStore? consoleStore = null,
     RustPlusDesk.Core.Notifications.INotificationHistoryStore? notificationStore = null,
     RustPlusDesk.Core.Hotkeys.IHotkeyStore? hotkeyStore = null, RustPlusDesk.Core.Settings.ILaunchAtLogin? launchAtLogin = null,
-    RustPlusDesk.Core.Deaths.IDeathLog? deathLog = null)
+    RustPlusDesk.Core.Deaths.IDeathLog? deathLog = null, RustPlusDesk.Core.Alerts.IAlertTemplateStore? alertTemplateStore = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -60,23 +60,29 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     public Shops.ShopNoticesViewModel? ShopNotices { get; private set; }
     public Alerts.EventAnnouncer? EventAnnouncer { get; private set; }
     public Alerts.PresenceAnnouncer? PresenceAnnouncer { get; private set; }
+    /// <summary>Reference AlertTemplateService: custom chat-alert texts for the app's UI culture.</summary>
+    public RustPlusDesk.Core.Alerts.AlertTemplates AlertTemplates { get; } = new(alertTemplateStore,
+        RustPlusDesk.Core.Alerts.AlertTemplates.CultureFor(appSettings?.Get(RustPlusDesk.Core.Settings.SettingKeys.SelectedLanguage, "")));
 
     private Alerts.ChatAlertsViewModel CreateChatAlerts()
     {
-        var alerts = new Alerts.ChatAlertsViewModel(appSettings, ShopAlerts);
+        var alerts = new Alerts.ChatAlertsViewModel(appSettings, ShopAlerts) { OpenTemplates = OpenAlertTemplates };
         Connection.Chat.Alerts = alerts;
-        ShopNotices = new(new RustPlusDesk.Core.Map.ShopNoticeTracker(RustPlusDesk.Infrastructure.Items.BundledItemCatalog.GetName), Connection.Map, alerts)
+        ShopNotices = new(new RustPlusDesk.Core.Map.ShopNoticeTracker(RustPlusDesk.Infrastructure.Items.BundledItemCatalog.GetName) { Templates = AlertTemplates },
+            Connection.Map, alerts)
         {
             Log = Activity.Append,
             SendTeamChat = text => Connection.Chat.SendAutomatedAsync(text)
         };
         EventAnnouncer = new(Connection.Map, alerts)
         {
+            Templates = AlertTemplates,
             Log = Activity.Append,
             SendTeamChat = text => Connection.Chat.SendAutomatedAsync(text)
         };
         PresenceAnnouncer = new(Connection.Team, Connection.Map, alerts, () => Account?.Account.SteamId)
         {
+            Templates = AlertTemplates,
             Log = Activity.Append,
             SendTeamChat = text => Connection.Chat.SendAutomatedAsync(text)
         };
@@ -225,12 +231,20 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         WorkspaceIndex = 5;
     }
 
+    /// <summary>Reference OpenSettingsCategory("alert-templates").</summary>
+    private void OpenAlertTemplates()
+    {
+        OpenSettings();
+        SettingsPage.FocusTemplates();
+    }
+
     private Settings.SettingsViewModel CreateSettings()
     {
         var model = new Settings.SettingsViewModel(appSettings, key => Servers.FirstOrDefault(server => $"{server.Host}:{server.Port}" == key)?.Name, launchAtLogin)
         {
             Map = Connection.Map,
-            Activity = Activity
+            Activity = Activity,
+            Templates = AlertTemplates
         };
         ObserveStreamerMode();
         model.GenericAlarmPopupChanged += value => Alarms.GenericPopupEnabled = value;

@@ -18,6 +18,8 @@ public sealed class EventAnnouncer
         map.PropertyChanged += MapChanged;
     }
 
+    /// <summary>The app's chat-alert templates (custom_alerts.json).</summary>
+    public RustPlusDesk.Core.Alerts.AlertTemplates Templates { get => tracker.Templates; set => tracker.Templates = value; }
     public Action<string>? Log { get; set; }
     public Func<string, Task>? SendTeamChat { get; set; }
 

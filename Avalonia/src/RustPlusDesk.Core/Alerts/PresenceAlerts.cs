@@ -37,15 +37,17 @@ public sealed class PresenceTracker
     /// Reference AnnouncePresenceChangeAsync texts: "{0} came online @ {1}", "{0} went offline", "{0} died @ {1}",
     /// "{0} respawned @ {1}". Self/team flags split death and respawn; <paramref name="where"/> is the grid or "unknown".
     /// </summary>
-    public static IReadOnlyList<string> Messages(PresenceChange change, PresenceAlertFlags flags, bool isSelf, string name, Func<string> where)
+    public static IReadOnlyList<string> Messages(PresenceChange change, PresenceAlertFlags flags, bool isSelf, string name, Func<string> where,
+        AlertTemplates? templates = null)
     {
+        templates ??= AlertTemplates.Defaults;
         var messages = new List<string>();
         if (change.WasOnline != change.IsOnline && (change.IsOnline ? flags.Online : flags.Offline))
-            messages.Add(change.IsOnline ? $"{name} came online @ {where()}" : $"{name} went offline");
+            messages.Add(change.IsOnline ? templates.Format("AlertPlayerOnlineWithPos", name, where()) : templates.Format("AlertPlayerOffline", name));
         if (change.WasDead != change.IsDead)
         {
             bool announce = change.IsDead ? (isSelf ? flags.DeathSelf : flags.DeathTeam) : (isSelf ? flags.RespawnSelf : flags.RespawnTeam);
-            if (announce) messages.Add(change.IsDead ? $"{name} died @ {where()}" : $"{name} respawned @ {where()}");
+            if (announce) messages.Add(templates.Format(change.IsDead ? "AlertPlayerDied" : "AlertPlayerRespawned", name, where()));
         }
         return messages;
     }

@@ -27,6 +27,7 @@ public sealed class PresenceAnnouncer
         team.Cleared += tracker.Reset;
     }
 
+    public AlertTemplates Templates { get; set; } = AlertTemplates.Defaults;
     public Action<string>? Log { get; set; }
     public Func<string, Task>? SendTeamChat { get; set; }
 
@@ -40,7 +41,7 @@ public sealed class PresenceAnnouncer
         {
             var member = change.Member;
             string name = StreamerMode.Name(member.Name, map.AbbreviateNames);
-            foreach (string message in PresenceTracker.Messages(change, flags, self is { Length: > 0 } && member.SteamId == self, name, () => Where(member)))
+            foreach (string message in PresenceTracker.Messages(change, flags, self is { Length: > 0 } && member.SteamId == self, name, () => Where(member), Templates))
                 _ = DeliverAsync(message);
         }
     }

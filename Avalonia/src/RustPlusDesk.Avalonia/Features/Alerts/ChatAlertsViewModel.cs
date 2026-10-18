@@ -76,6 +76,10 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
 
     [RelayCommand] private void ToggleMaster() => SetMaster(!master);
 
+    /// <summary>Reference EditAlertTemplates_Click: opens Settings at the chat-alert templates.</summary>
+    public Action? OpenTemplates { get; set; }
+    [RelayCommand] private void EditTemplates() => OpenTemplates?.Invoke();
+
     [RelayCommand]
     private void ToggleNewShops()
     {

@@ -11,6 +11,9 @@ public sealed record EventAnnouncementFlags(bool Heli, bool Chinook, bool Vendor
 /// </summary>
 public sealed class EventSpawnTracker
 {
+    /// <summary>Chat texts (reference AlertTemplateService "AlertEventSpawned").</summary>
+    public Alerts.AlertTemplates Templates { get; set; } = Alerts.AlertTemplates.Defaults;
+
     private readonly HashSet<string> known = [];
     private bool firstPoll = true;
 
@@ -53,7 +56,7 @@ public sealed class EventSpawnTracker
                 _ => false
             };
             if (announce && flags.Master && !firstPoll)
-                messages.Add($"{KindText(marker.Kind)} spawned in at {MapGrid.Label(worldSize, marker.X, marker.Y)}");
+                messages.Add(Templates.Format("AlertEventSpawned", KindText(marker.Kind), MapGrid.Label(worldSize, marker.X, marker.Y)));
         }
         firstPoll = false;
         return messages;
