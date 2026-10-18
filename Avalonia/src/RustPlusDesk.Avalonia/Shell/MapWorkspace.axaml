@@ -10,7 +10,7 @@
       <RowDefinition Height="180" MinHeight="90" MaxHeight="400" />
     </Grid.RowDefinitions>
     <Grid RowDefinitions="Auto,*">
-      <Border Background="{DynamicResource SurfaceAlt}" Padding="16,10" BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,0,0,1">
+      <Border Classes="toolbar">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
           <WrapPanel ItemSpacing="8" LineSpacing="6" VerticalAlignment="Center">
             <TextBlock Text="Map" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" />
@@ -101,10 +101,12 @@
                   AutomationProperties.Name="Resize activity panel" />
     <Border Grid.Row="2" Background="{DynamicResource Surface}" Padding="14,4,14,10" x:Name="ActivityPanel">
       <TabControl Padding="0" AutomationProperties.Name="Chat and activity">
-        <TabItem Header="Team chat" FontSize="14">
+        <TabItem FontSize="14" AutomationProperties.Name="Team chat">
+          <TabItem.Header><StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Chat24" FontSize="16" /><TextBlock Text="Team chat" /></StackPanel></TabItem.Header>
           <chat:ChatView DataContext="{Binding Connection.Chat}" Margin="0,6,0,0" />
         </TabItem>
-        <TabItem Header="Activity" FontSize="14">
+        <TabItem FontSize="14" AutomationProperties.Name="Activity">
+          <TabItem.Header><StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Pulse24" FontSize="16" /><TextBlock Text="Activity" /></StackPanel></TabItem.Header>
         <ScrollViewer HorizontalScrollBarVisibility="Disabled" Margin="0,6,0,0">
           <StackPanel Spacing="6">
             <TextBlock Text="{Binding Listener.Status}" Classes="muted" TextWrapping="Wrap" />

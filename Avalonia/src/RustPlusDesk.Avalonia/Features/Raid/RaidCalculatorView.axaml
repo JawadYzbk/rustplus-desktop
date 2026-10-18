@@ -2,6 +2,7 @@
              xmlns:vm="using:RustPlusDesk.Avalonia.Features.Raid"
              xmlns:core="clr-namespace:RustPlusDesk.Core.Raid;assembly=RustPlusDesk.Core"
              xmlns:shared="using:RustPlusDesk.Avalonia.Shared.Controls"
+             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
              x:Class="RustPlusDesk.Avalonia.Features.Raid.RaidCalculatorView" x:DataType="vm:RaidCalculatorViewModel">
   <UserControl.Styles>
     <Style Selector="Border.raidPanel">
@@ -64,14 +65,16 @@
       <TextBlock Text="{Binding DataCaption}" Classes="muted" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
         <CheckBox Content="Details" IsChecked="{Binding ShowDetails}" ToolTip.Tip="Show damage, overkill and ingredient breakdowns" />
-        <Button Content="_Copy summary" Click="CopySummary" IsEnabled="{Binding HasPlan}"
-                ToolTip.Tip="Copy a Discord-ready summary" AutomationProperties.Name="Copy raid summary" />
-        <Button Content="C_lear plan" Command="{Binding ClearCommand}" IsEnabled="{Binding HasPlan}" IsVisible="{Binding !IsClearConfirming}"
-                AutomationProperties.Name="Clear raid plan" />
+        <Button Classes="subtle" Click="CopySummary" IsEnabled="{Binding HasPlan}"
+                ToolTip.Tip="Copy a Discord-ready summary" AutomationProperties.Name="Copy raid summary">
+          <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Copy24" /><AccessText Text="_Copy summary" /></StackPanel></Button>
+        <Button Classes="subtle" Command="{Binding ClearCommand}" IsEnabled="{Binding HasPlan}" IsVisible="{Binding !IsClearConfirming}"
+                AutomationProperties.Name="Clear raid plan">
+          <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Delete24" /><AccessText Text="C_lear plan" /></StackPanel></Button>
         <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsClearConfirming}">
           <TextBlock Text="Clear every target from this raid plan?" VerticalAlignment="Center" />
-          <Button Content="Clear" Command="{Binding ClearCommand}" Foreground="{DynamicResource ConnectionDanger}" AutomationProperties.Name="Confirm clear raid plan" />
-          <Button Content="Cancel" Command="{Binding CancelClearCommand}" AutomationProperties.Name="Cancel clear raid plan" />
+          <Button Classes="danger" Content="Clear" Command="{Binding ClearCommand}" AutomationProperties.Name="Confirm clear raid plan" />
+          <Button Classes="subtle" Content="Cancel" Command="{Binding CancelClearCommand}" AutomationProperties.Name="Cancel clear raid plan" />
         </StackPanel>
       </StackPanel>
     </Grid>

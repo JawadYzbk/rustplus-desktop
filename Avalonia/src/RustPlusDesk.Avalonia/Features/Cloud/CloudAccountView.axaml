@@ -2,7 +2,7 @@
              xmlns:vm="using:RustPlusDesk.Avalonia.Features.Cloud"
              x:Class="RustPlusDesk.Avalonia.Features.Cloud.CloudAccountView" x:DataType="vm:CloudAccountViewModel">
   <StackPanel Spacing="14">
-    <TextBlock Text="Rust+ Desktop Cloud" FontSize="22" FontWeight="SemiBold" />
+    <TextBlock Text="Rust+ Desktop Cloud" FontSize="20" FontWeight="SemiBold" />
     <TextBlock Text="Use your website account to access cloud services. Steam pairing and cloud sign-in are separate."
                TextWrapping="Wrap" Classes="muted" />
     <TextBlock Text="{Binding Identity}" FontWeight="SemiBold" TextWrapping="Wrap" />
@@ -12,7 +12,7 @@
     <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" AutomationProperties.Name="Cloud account operation" />
     <WrapPanel>
       <Button Content="_Check cloud status" Command="{Binding CheckCommand}" Margin="0,0,6,6" />
-      <Button Content="_Sign in on website" Classes="accent" Command="{Binding SignInCommand}" Margin="0,0,6,6" />
+      <Button Content="_Sign in on website" Classes="primary" Command="{Binding SignInCommand}" Margin="0,0,6,6" />
       <Button Content="_Cancel" Command="{Binding CancelCommand}" IsVisible="{Binding IsBusy}" Margin="0,0,0,6" />
     </WrapPanel>
     <TextBlock Text="Cloud synchronization" FontSize="16" FontWeight="SemiBold" />
@@ -36,7 +36,7 @@
     <StackPanel Spacing="10" IsVisible="{Binding IsConfirmingSignOut}">
       <TextBlock Text="Remove cloud sign-in from this device? Other sessions, existing cloud data and Steam pairing remain available." TextWrapping="Wrap" />
       <WrapPanel>
-        <Button Content="_Confirm local sign-out" Command="{Binding ConfirmSignOutCommand}" Margin="0,0,6,6" />
+        <Button Classes="danger" Content="_Confirm local sign-out" Command="{Binding ConfirmSignOutCommand}" Margin="0,0,6,6" />
         <Button Content="Keep _signed in" Command="{Binding KeepCurrentSettingsCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,0,6" />
       </WrapPanel>
     </StackPanel>

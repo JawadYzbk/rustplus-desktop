@@ -25,7 +25,7 @@
       <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Classes="muted" AutomationProperties.LiveSetting="Polite" />
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
         <Button Content="_Cancel" Command="{Binding CancelCommand}" />
-        <Button Content="_Save changes" Command="{Binding SaveCommand}" Classes="accent" IsDefault="True" />
+        <Button Content="_Save changes" Command="{Binding SaveCommand}" Classes="primary" IsDefault="True" />
       </StackPanel>
     </StackPanel>
   </Border>

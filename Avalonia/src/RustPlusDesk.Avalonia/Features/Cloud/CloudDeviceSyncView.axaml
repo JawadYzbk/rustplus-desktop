@@ -14,7 +14,7 @@
     <StackPanel IsVisible="{Binding IsConfirming}" Spacing="10">
       <TextBlock Text="Enable automatic device recovery and cloud sharing for the verified cloud and Steam accounts on this computer? You can stop it here even when offline. Existing cloud data is kept when stopped." TextWrapping="Wrap" />
       <WrapPanel>
-        <Button Content="Confirm enable" Classes="accent" Command="{Binding ConfirmEnableCommand}" IsEnabled="{Binding !IsSaving}" Margin="0,0,6,6" />
+        <Button Content="Confirm enable" Classes="primary" Command="{Binding ConfirmEnableCommand}" IsEnabled="{Binding !IsSaving}" Margin="0,0,6,6" />
         <Button Content="Keep off" Command="{Binding KeepOffCommand}" IsEnabled="{Binding !IsSaving}" Margin="0,0,0,6" />
       </WrapPanel>
     </StackPanel>

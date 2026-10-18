@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:RustPlusDesk.Avalonia.Features.Recycling" xmlns:shared="using:RustPlusDesk.Avalonia.Shared.Controls"
+             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
              x:Class="RustPlusDesk.Avalonia.Features.Recycling.RecyclerView" x:DataType="vm:RecyclerViewModel">
   <Grid RowDefinitions="Auto,216,*,Auto" RowSpacing="10">
     <Grid ColumnDefinitions="*,146" ColumnSpacing="8">
@@ -7,16 +8,17 @@
       <ComboBox Grid.Column="1" ItemsSource="{Binding Categories}" SelectedItem="{Binding Category, Mode=TwoWay}"
                 HorizontalAlignment="Stretch" AutomationProperties.Name="Recycling category" SelectionChanged="FilterChanged" />
     </Grid>
-    <Border Grid.Row="1" Classes="card" Padding="8">
+    <Border Grid.Row="1" Classes="panel">
       <Grid RowDefinitions="Auto,*" RowSpacing="6">
-        <TextBlock Text="ITEM BAY · Click or scroll · Shift changes by 10" FontSize="11" Classes="muted" />
+        <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="ITEM BAY" Classes="section" />
+          <TextBlock Text="Click or scroll · right-click removes · Shift changes by 10" FontSize="11" Classes="muted" VerticalAlignment="Center" /></StackPanel>
         <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" ScrollChanged="InputsScrollChanged" x:Name="InputsScroll">
           <StackPanel>
             <ItemsControl ItemsSource="{Binding Items}">
               <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="5" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:RecyclerItemViewModel">
-                  <Border Classes="card" Padding="4" Margin="2" ToolTip.Tip="{Binding Name}"
+                  <Border Classes="tile" Margin="2" ToolTip.Tip="{Binding Name}"
                           PointerPressed="ItemPressed" PointerWheelChanged="ItemWheelChanged">
                     <StackPanel Spacing="3">
                       <shared:ItemIcon ShortName="{Binding IconKey}" Height="32" Width="32" IsHitTestVisible="False" />
@@ -29,17 +31,17 @@
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <Button Content="_More items" Command="{Binding LoadMoreCommand}" IsVisible="{Binding HasMore}" HorizontalAlignment="Center" />
+            <Button Classes="subtle" Content="_More items" Command="{Binding LoadMoreCommand}" IsVisible="{Binding HasMore}" HorizontalAlignment="Center" Margin="0,6,0,0" />
           </StackPanel>
         </ScrollViewer>
       </Grid>
     </Border>
-    <Border Grid.Row="2" Classes="card" Padding="8">
+    <Border Grid.Row="2" Classes="panel">
       <Grid RowDefinitions="Auto,*" RowSpacing="6">
         <Grid ColumnDefinitions="*,102,102">
-          <TextBlock Text="YIELD BOARD" Classes="muted" FontSize="11" />
-          <TextBlock Grid.Column="1" Text="WILD" HorizontalAlignment="Center" FontSize="11" FontWeight="Bold" />
-          <TextBlock Grid.Column="2" Text="OUTPOST" HorizontalAlignment="Center" FontSize="11" FontWeight="Bold" />
+          <TextBlock Text="YIELD BOARD" Classes="section" />
+          <TextBlock Grid.Column="1" Text="WILD" HorizontalAlignment="Center" Classes="section" Foreground="{DynamicResource ConnectionSuccess}" />
+          <TextBlock Grid.Column="2" Text="OUTPOST" HorizontalAlignment="Center" Classes="section" Foreground="{DynamicResource ConnectionRePair}" />
         </Grid>
         <Grid Grid.Row="1">
           <TextBlock Text="Add items to compare recycling yields." IsVisible="{Binding !HasOutputs}" Classes="muted" TextWrapping="Wrap" />
@@ -66,14 +68,25 @@
     </Border>
     <Grid Grid.Row="3" ColumnDefinitions="*,Auto">
       <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-        <TextBlock Text="Time" FontSize="11" Classes="muted" />
-        <TextBlock Text="{Binding WildTime}" FontSize="11" ToolTip.Tip="Wild recycler time" />
-        <TextBlock Text="{Binding SafeTime}" FontSize="11" ToolTip.Tip="Outpost recycler time" />
+        <icons:Icon Symbol="Timer24" FontSize="15" Foreground="{DynamicResource TextSubtle}" ToolTip.Tip="Recycling time" />
+        <TextBlock Text="{Binding WildTime}" FontSize="12" Foreground="{DynamicResource ConnectionSuccess}" ToolTip.Tip="Wild recycler time" />
+        <TextBlock Text="{Binding SafeTime}" FontSize="12" Foreground="{DynamicResource ConnectionRePair}" ToolTip.Tip="Outpost recycler time" />
       </StackPanel>
       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
-        <Button Content="_Clear all" Command="{Binding ClearCommand}" Padding="8,4" />
-        <Button Content="_Fill stacks" Command="{Binding FillStacksCommand}" Padding="8,4" />
+        <Button Classes="subtle" Command="{Binding ClearCommand}" AutomationProperties.Name="Clear all">
+          <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Delete24" /><AccessText Text="_Clear all" /></StackPanel></Button>
+        <Button Classes="primary" Content="_Fill stacks" Command="{Binding FillStacksCommand}" />
       </StackPanel>
     </Grid>
   </Grid>
+  <UserControl.Styles>
+    <Style Selector="Border.tile">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="4" />
+    </Style>
+    <Style Selector="Border.tile:pointerover"><Setter Property="BorderBrush" Value="{DynamicResource Accent}" /></Style>
+  </UserControl.Styles>
 </UserControl>

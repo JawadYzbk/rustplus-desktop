@@ -4,7 +4,7 @@
              x:Class="RustPlusDesk.Avalonia.Features.Devices.DeviceImportView" x:DataType="vm:DeviceImportViewModel">
   <Border Classes="card" Width="760" Padding="20" HorizontalAlignment="Center" VerticalAlignment="Center">
     <Grid RowDefinitions="Auto,Auto,Auto,Auto,220,Auto,Auto,Auto" RowSpacing="8" KeyboardNavigation.TabNavigation="Cycle">
-      <TextBlock Text="Import shared devices" FontSize="22" FontWeight="SemiBold" />
+      <TextBlock Text="Import shared devices" FontSize="20" FontWeight="SemiBold" />
       <StackPanel Grid.Row="1" Spacing="4">
         <TextBlock Text="{Binding SourceDescription}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding SourceDescription}" Classes="muted" />
         <TextBlock Text="{Binding Message}" ToolTip.Tip="{Binding Message}" TextWrapping="Wrap" MaxHeight="54" AutomationProperties.LiveSetting="Polite" />
@@ -45,7 +45,7 @@
       </CheckBox>
       <Grid Grid.Row="7" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
         <ProgressBar IsIndeterminate="{Binding IsIndeterminate}" Value="{Binding ProgressPercent}" IsVisible="{Binding IsBusy}" VerticalAlignment="Center" AutomationProperties.Name="Checking or importing shared devices" />
-        <Button Grid.Column="1" Content="_Import selected" Classes="accent" Command="{Binding ImportCommand}" />
+        <Button Grid.Column="1" Content="_Import selected" Classes="primary" Command="{Binding ImportCommand}" />
         <Button Grid.Column="2" Content="_Close" Command="{Binding CloseCommand}" />
       </Grid>
     </Grid>
