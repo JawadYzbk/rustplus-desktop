@@ -49,6 +49,23 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         SendTeamChat = text => Connection.Chat.SendAutomatedAsync(text)
     };
 
+    private Alerts.ChatAlertsViewModel? chatAlerts;
+    /// <summary>Chat-alert master switch and flags; creating it also starts the new/suspicious shop notices.</summary>
+    public Alerts.ChatAlertsViewModel ChatAlerts => chatAlerts ??= CreateChatAlerts();
+    public Shops.ShopNoticesViewModel? ShopNotices { get; private set; }
+
+    private Alerts.ChatAlertsViewModel CreateChatAlerts()
+    {
+        var alerts = new Alerts.ChatAlertsViewModel(appSettings, ShopAlerts);
+        Connection.Chat.Alerts = alerts;
+        ShopNotices = new(new RustPlusDesk.Core.Map.ShopNoticeTracker(RustPlusDesk.Infrastructure.Items.BundledItemCatalog.GetName), Connection.Map, alerts)
+        {
+            Log = Activity.Append,
+            SendTeamChat = text => Connection.Chat.SendAutomatedAsync(text)
+        };
+        return alerts;
+    }
+
     private RustPlusDesk.Core.Map.ShopSearch CreateShopSearch()
     {
         var categories = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -310,6 +327,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             cancellationToken.ThrowIfCancellationRequested();
             try { await ShopAlerts.LoadAsync(cancellationToken); }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Activity.Append("[shops] Saved shop alerts could not be read."); }
+            _ = ChatAlerts;
             EnsureAccountServices();
             if (Cloud is not null) Cloud.CheckCommand.Execute(null);
             if (Account is null || Listener is null) return;

@@ -58,6 +58,8 @@ public sealed partial class ChatViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(SendCommand))]
     private bool isConnected;
     [ObservableProperty] private bool hasClan;
+    /// <summary>Chat-alert switch and menu shown in the chat header (set by the shell).</summary>
+    [ObservableProperty] private RustPlusDesk.Avalonia.Features.Alerts.ChatAlertsViewModel? alerts;
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SendCommand))]
     private bool isSending;

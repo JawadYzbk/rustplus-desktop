@@ -27,4 +27,7 @@ public static class SettingKeys
     public const string RailShowLabels = "RailShowLabels";                 // default false
     public const string SidebarWidth = "SidebarWidth";                     // default 420
     public const string GenericAlarmPopupEnabled = "GenericAlarmPopupEnabled"; // default false
+    public const string AnnounceSpawnsMaster = "AnnounceSpawnsMaster";     // default false: chat alerts master
+    public const string AnnounceNewShops = "AnnounceNewShops";             // default false
+    public const string AnnounceSuspiciousShops = "AnnounceSuspiciousShops"; // default false
 }

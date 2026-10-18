@@ -1,9 +1,10 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:RustPlusDesk.Avalonia.Features.Chat"
              xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+             xmlns:alerts="using:RustPlusDesk.Avalonia.Features.Alerts"
              x:Class="RustPlusDesk.Avalonia.Features.Chat.ChatView" x:DataType="vm:ChatViewModel">
   <Grid RowDefinitions="Auto,*,Auto,Auto" RowSpacing="6">
-    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" IsVisible="{Binding IsConnected}">
+    <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
       <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasClan}" VerticalAlignment="Center">
         <RadioButton Classes="chip" Content="Team" IsChecked="{Binding !IsClan}" GroupName="ChatChannel" AutomationProperties.Name="Team chat" />
         <RadioButton Classes="chip" Content="Clan" IsChecked="{Binding IsClan}" GroupName="ChatChannel" AutomationProperties.Name="Clan chat" />
@@ -13,7 +14,44 @@
         <Button Grid.Column="1" Classes="icon" Command="{Binding ClearSearchCommand}" ToolTip.Tip="Clear search" AutomationProperties.Name="Clear chat search"
                 Margin="4,0,0,0"><icons:Icon Symbol="Dismiss24" /></Button>
       </Grid>
-      <ToggleButton Grid.Column="2" Classes="chip" IsChecked="{Binding IsSearchOpen, Mode=OneWay}" Command="{Binding ToggleSearchCommand}"
+      <StackPanel Grid.Column="2" x:Name="AlertsBar" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center"
+                  DataContext="{Binding Alerts}" x:DataType="alerts:ChatAlertsViewModel"
+                  IsVisible="{Binding $parent[UserControl].((vm:ChatViewModel)DataContext).Alerts, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}">
+        <ToggleButton x:Name="AlertsToggle" Classes="chip" IsChecked="{Binding IsMasterOn, Mode=OneWay}" Command="{Binding ToggleMasterCommand}"
+                      ToolTip.Tip="{Binding MasterTip}" AutomationProperties.Name="Chat alerts" Padding="8,4">
+          <StackPanel Orientation="Horizontal" Spacing="5">
+            <icons:Icon Symbol="Alert24" />
+            <Border Classes="count" IsVisible="{Binding ShowCountBadge}" VerticalAlignment="Center">
+              <TextBlock Text="{Binding CountText}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource OnAccent}" />
+            </Border>
+            <Ellipse Width="6" Height="6" Fill="{DynamicResource Accent}" IsVisible="{Binding ShowEmptyDot}" VerticalAlignment="Center" />
+          </StackPanel>
+        </ToggleButton>
+        <Button x:Name="AlertsMenuButton" Classes="icon" ToolTip.Tip="Choose chat alerts" AutomationProperties.Name="Choose chat alerts">
+          <icons:Icon Symbol="ChevronDown24" FontSize="14" />
+          <Button.Flyout>
+            <MenuFlyout Placement="BottomEdgeAlignedRight">
+              <MenuItem Header="Shops" IsEnabled="False" />
+              <MenuItem Header="New shops" ToggleType="CheckBox" IsChecked="{Binding AnnounceNewShops, Mode=OneWay}"
+                        IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleNewShopsCommand}" />
+              <MenuItem Header="Suspicious shops" ToggleType="CheckBox" IsChecked="{Binding AnnounceSuspiciousShops, Mode=OneWay}"
+                        IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleSuspiciousShopsCommand}" />
+              <MenuItem Header="{Binding TradeAlertsHeader}" IsEnabled="{Binding HasTradeAlerts}" ItemsSource="{Binding TradeAlerts}">
+                <MenuItem.ItemContainerTheme>
+                  <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="alerts:TradeAlertMenuItem">
+                    <Setter Property="Header" Value="{Binding Header}" />
+                    <Setter Property="ToggleType" Value="CheckBox" />
+                    <Setter Property="IsChecked" Value="{Binding NotifyChat, Mode=OneWay}" />
+                    <Setter Property="Command" Value="{Binding ToggleCommand}" />
+                  </ControlTheme>
+                </MenuItem.ItemContainerTheme>
+              </MenuItem>
+            </MenuFlyout>
+          </Button.Flyout>
+        </Button>
+      </StackPanel>
+      <ToggleButton Grid.Column="3" Classes="chip" IsChecked="{Binding IsSearchOpen, Mode=OneWay}" Command="{Binding ToggleSearchCommand}"
+                    IsVisible="{Binding IsConnected}"
                     ToolTip.Tip="Search chat" AutomationProperties.Name="Toggle chat search" Padding="8,4"><icons:Icon Symbol="Search24" /></ToggleButton>
     </Grid>
     <Grid Grid.Row="1">
@@ -63,6 +101,13 @@
     </Grid>
   </Grid>
   <UserControl.Styles>
+    <Style Selector="Border.count">
+      <Setter Property="Background" Value="{DynamicResource Accent}" />
+      <Setter Property="CornerRadius" Value="7" />
+      <Setter Property="MinWidth" Value="14" />
+      <Setter Property="Padding" Value="4,0" />
+    </Style>
+    <Style Selector="Border.count TextBlock"><Setter Property="HorizontalAlignment" Value="Center" /></Style>
     <Style Selector="TextBlock.limit"><Setter Property="Foreground" Value="{DynamicResource ConnectionDanger}" /></Style>
   </UserControl.Styles>
 </UserControl>
