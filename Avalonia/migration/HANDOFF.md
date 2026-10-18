@@ -1,4 +1,4 @@
-# Avalonia migration handoff — 2026-10-18 (scheduled run)
+# Avalonia migration handoff — 2026-10-18 (second scheduled run)
 
 **Plan of record: [PARITY-PLAN.md](PARITY-PLAN.md).** Bar set by Jawad on 2026-10-18: *same functionality as the WPF
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
@@ -6,40 +6,41 @@ every finished slice with its commit.
 
 ## Where things stand (scheduled run, 2026-10-18, Linux cloud container)
 
-- Branch `codex/avalonia-migration`, pushed to `origin`. Latest code commit: `dc1fda9e` (docs follow).
+- Branch `codex/avalonia-migration`, pushed to `origin`. Latest code commit: `fc0fd923` (docs follow).
   Only `Avalonia/` changes.
-- **432 tests pass** (Debug, zero warnings) on Linux with the .NET 10.0.112 SDK from Ubuntu's archive
-  (`apt-get install dotnet-sdk-10.0`; Microsoft's dotnet-install host is blocked by this container's proxy).
+- **473 tests pass** (Debug, zero warnings) on Linux with the .NET 10.0.112 SDK from Ubuntu's archive
+  (`apt-get install -y dotnet-sdk-10.0`; Microsoft's dotnet-install host is blocked by this container's proxy).
 - Done this run, in order (each in the PARITY-PLAN progress table):
-  1. `30585e22` fix: a raid change made before the saved plan loads no longer overwrites raid-plan.json
-     (the baseline suite failed on Linux because of this race; regression test added).
-  2. `60927b70` design pass 2: shared `Border.toolbar` page header for map + tool pages (icon, title, Esc close
-     icon), recycler panels/tiles, raid header actions with icons, `Button.danger`, `RadioButton.chip`,
-     primary Send, chat/activity tab icons, dialogs use `primary` (no more `accent`).
-  3. `6e46fcbe` 2.2 chat search + message menu (copy text, copy Steam ID, mention, centre on map, Steam profile).
-     `MapViewModel.CenterOnPlayer/CenterOnWorld` + `MapSurface.FocusRequest` centre at the current zoom.
-  4. `ba348cef` 0.5 Activity log: timestamped 2,000-line log, filter, Expand/Collapse 200/420 px, `LogRedactor`;
-     fed by connection, listener, push health, pairing and tool messages (`ServersViewModel.Activity`).
-  5. `7d92fb6d` 4.6 shop search dock (`Core/Map/ShopSearch.cs` = reference rules; toolbar "Shop search" chip).
-  6. `94545cb7` 4.6 shop trade alerts (`Core/Map/ShopAlerts.cs`, `Infrastructure/Shops`: shop_alerts.json store,
-     `SystemAlertSound` with the reference cash.wav) — team chat + log + sound.
-  7. `dc1fda9e` 4.6 shop search autocomplete.
+  1. `5cf24091` 4.6 new-shop / suspicious-shop notices + chat-alert master switch (AnnounceSpawnsMaster, badge,
+     menu: New shops, Suspicious shops, Trade alerts; reference CheckIfAllOff over the 22 global flags).
+  2. `d2b6b11d` 4.6 Profit trades panel (two-step loops, filters, map centring).
+  3. `de2a81b4` 4.6 Buy X for Y path finder (BFS routes ≤4 trades, strict min/max chains, previews, autocomplete).
+  4. `356f05c2` 4.6 Console Helper tool page + always-on-top popout (bundled console-commands.json, shared
+     console-helper.json, key capture in Rust bind notation).
+  5. `ed6f87ff` 4.1 Notifications inbox (shared cache/notifications_history.json, unread rail badge, filters,
+     mute server, connect from the server tag).
+  6. `fc0fd923` 3.2 Device hotkeys (shared hotkeys.json + hotkey_options.json, editor/capture windows, Win32
+     RegisterHotKey adapter, truthful Linux/macOS unavailability, delete cleanup).
+- The owner's own commit `27f1d234` (3.3 smart-alarm popup) is recorded in the table.
 
 ## Start next run with
 
 1. Setup as in the scheduled prompt; if `dotnet` is missing and dot.net is blocked, use
    `apt-get install -y dotnet-sdk-10.0` (Ubuntu 24.04 archive, 10.0.1xx satisfies global.json rollForward).
 2. Continue PARITY-PLAN. Suggested order of small, self-contained slices:
-   - **4.6 rest**: new-shop / suspicious-shop notices (reference `DetectNewShopsAsync`, `UpdateShopLifetimes` in
-     `Views/MainWindow/Map/MainWindow.Map.Shops.cs`), then profit analysis / buy-X path finder windows.
-   - **4.1** notifications inbox (durable, unread, paging) — the activity log is the natural feed.
-   - **3.2** hotkeys window (reference hotkeys.json) with truthful per-OS availability.
+   - **0.7 toasts** (reference ShowInfoSnackbar): notifications already call for them (NotificationsToastEnabled).
+   - **Alert menu, rest**: add cargo/heli/chinook/vendor/oil rig/deep sea/player alert kinds to the chat-alert menu
+     as their detection is ported (1.2 event timers), then Select all / Deselect all / Edit templates.
    - **2.2 rest**: avatars, emoji picker/autocomplete, quick-command chips (need chat-command profile keys).
    - **1.4** needs the map parse/3D data (no-build zones, keycards) — do 1.6 parsing first; death markers need
-     team positions (team info X/Y is not yet in `ServerTeamMember`).
-3. Alerts/chat routing still lacks profile settings: `ChatAlertsUseClanChannel`, automated-chat master switch and
-   Discord webhooks (see `ChatViewModel.SendAutomatedAsync`). Port them with 5.1 settings.
-4. Record each slice in the PARITY-PLAN table with its commit, commit + push after every slice.
+     team positions (team info X/Y is not yet in `ServerTeamMember`) and a revision-adopting profiles writer.
+   - **5.1** settings overlay: retention days, toasts/sounds, muted-server list (unmute), streamer mode.
+3. Alerts/chat routing still lacks profile settings: `ChatAlertsUseClanChannel`, team feature master (automated
+   chat blocked by another member), Discord webhooks (see `ChatViewModel.SendAutomatedAsync`). Port with 5.1/2.4.
+4. Design-system finding (not yet fixed): `Shared/Icons/Icon` overrides `StyleKey` to `TextBlock`, so selectors
+   written as `icons|Icon` (in Components.axaml for Button.icon/subtle, chip, nav) never match; icons only inherit
+   the parent's Foreground. Use `TextBlock.someClass` on icons (as NotificationsView does) or fix the control.
+5. Record each slice in the PARITY-PLAN table with its commit, commit + push after every slice.
 
 ## How to work (proven patterns)
 
