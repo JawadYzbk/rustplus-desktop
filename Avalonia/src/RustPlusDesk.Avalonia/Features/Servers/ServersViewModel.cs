@@ -158,18 +158,38 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [RelayCommand] private void OpenRaid() { if (HasRaidTool) WorkspaceIndex = 2; }
     private Notifications.NotificationsViewModel? notifications;
     /// <summary>Reference notification centre, fed by Rust+ pushes from the pairing listener.</summary>
-    public Notifications.NotificationsViewModel Notifications => notifications ??= new(notificationStore, appSettings)
+    public Notifications.NotificationsViewModel Notifications => notifications ??= CreateNotifications();
+
+    /// <summary>Stacked toasts (reference ShowInfoSnackbar), shown over the whole window.</summary>
+    public Toasts.ToastsViewModel Toasts { get; } = new();
+
+    private Notifications.NotificationsViewModel CreateNotifications()
     {
-        ConnectToServer = (host, port) =>
+        var model = new Notifications.NotificationsViewModel(notificationStore, appSettings) { ConnectToServer = ConnectToNotificationServer };
+        // Reference OnNotificationAdded: a toast per new row while NotificationsToastEnabled (default on).
+        model.Added += item =>
         {
-            var match = Servers.FirstOrDefault(server => server.Host == host && server.Port == port);
-            if (match is null) return false;
-            SelectedServer = match;
-            WorkspaceIndex = 0;
-            if (Connection.ConnectCommand.CanExecute(null)) Connection.ConnectCommand.Execute(null);
-            return true;
-        }
-    };
+            if (appSettings?.Get(RustPlusDesk.Core.Settings.SettingKeys.NotificationsToastEnabled, true) == false) return;
+            Toasts.Show(item.Title, item.Message, item.Type switch
+            {
+                "Alarm" => RustPlusDesk.Avalonia.Features.Toasts.ToastKind.Danger,
+                "Death" => RustPlusDesk.Avalonia.Features.Toasts.ToastKind.Caution,
+                "Pairing" => RustPlusDesk.Avalonia.Features.Toasts.ToastKind.Success,
+                _ => RustPlusDesk.Avalonia.Features.Toasts.ToastKind.Info
+            });
+        };
+        return model;
+    }
+
+    private bool ConnectToNotificationServer(string host, int port)
+    {
+        var match = Servers.FirstOrDefault(server => server.Host == host && server.Port == port);
+        if (match is null) return false;
+        SelectedServer = match;
+        WorkspaceIndex = 0;
+        if (Connection.ConnectCommand.CanExecute(null)) Connection.ConnectCommand.Execute(null);
+        return true;
+    }
     [RelayCommand] private void OpenNotifications() => WorkspaceIndex = 4;
     private Hotkeys.HotkeysViewModel? hotkeys;
     /// <summary>Reference device hotkeys for the selected server.</summary>

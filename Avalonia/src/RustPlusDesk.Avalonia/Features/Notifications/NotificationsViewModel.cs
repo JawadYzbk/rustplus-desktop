@@ -110,8 +110,12 @@ public sealed partial class NotificationsViewModel : ObservableObject
         var muted = settings?.Get<List<string>>(SettingKeys.MutedNotificationServers, []) ?? [];
         if (!inbox.Add(notification, now(), RetentionDays, muted)) return false;
         Changed();
+        Added?.Invoke(notification);
         return true;
     }
+
+    /// <summary>Reference NotificationAdded: raised for every row that made it into the inbox.</summary>
+    public event Action<InboxNotification>? Added;
 
     /// <summary>Reference row click: marks it read.</summary>
     [RelayCommand]

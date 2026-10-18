@@ -32,5 +32,6 @@ public static class SettingKeys
     public const string AnnounceSuspiciousShops = "AnnounceSuspiciousShops"; // default false
     public const string NotificationsRetentionDays = "NotificationsRetentionDays"; // default 30 (<= 0 means 30)
     public const string MutedNotificationServers = "MutedNotificationServers";     // list of "host:port"
+    public const string NotificationsToastEnabled = "NotificationsToastEnabled";   // default true
     public const string MutedNotificationServerNames = "MutedNotificationServerNames"; // "host:port" → server name
 }

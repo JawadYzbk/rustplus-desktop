@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RustPlusDesk.Avalonia.Features.Toasts"
+             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+             x:Class="RustPlusDesk.Avalonia.Features.Toasts.ToastHost" x:DataType="vm:ToastsViewModel">
+  <ItemsControl ItemsSource="{Binding Items}" AutomationProperties.Name="Notifications toasts" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+    <ItemsControl.ItemTemplate>
+      <DataTemplate x:DataType="vm:ToastItem">
+        <Border Classes="toast" Classes.success="{Binding IsSuccess}" Classes.caution="{Binding IsCaution}" Classes.danger="{Binding IsDanger}">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+            <icons:Icon Symbol="{Binding Symbol}" FontSize="20" VerticalAlignment="Top" Classes="accent" />
+            <StackPanel Grid.Column="1" Spacing="2">
+              <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" IsVisible="{Binding HasTitle}" />
+              <TextBlock Text="{Binding Message}" FontSize="12" TextWrapping="Wrap" Classes="muted" />
+            </StackPanel>
+            <Button Grid.Column="2" Classes="icon" Width="26" Height="26" VerticalAlignment="Top" CommandParameter="{Binding}"
+                    Command="{Binding $parent[UserControl].((vm:ToastsViewModel)DataContext).DismissCommand}" AutomationProperties.Name="Dismiss toast">
+              <icons:Icon Symbol="Dismiss24" FontSize="13" /></Button>
+          </Grid>
+        </Border>
+      </DataTemplate>
+    </ItemsControl.ItemTemplate>
+  </ItemsControl>
+  <UserControl.Styles>
+    <Style Selector="Border.toast">
+      <Setter Property="Background" Value="{DynamicResource Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+      <Setter Property="BorderThickness" Value="4,1,1,1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="12,10" />
+      <Setter Property="Margin" Value="0,8,0,0" />
+      <Setter Property="Width" Value="380" />
+      <Setter Property="BoxShadow" Value="0 6 24 0 #66000000" />
+    </Style>
+    <Style Selector="Border.toast TextBlock.accent"><Setter Property="Foreground" Value="{DynamicResource Accent}" /></Style>
+    <Style Selector="Border.toast.success"><Setter Property="BorderBrush" Value="{DynamicResource ConnectionSuccess}" /></Style>
+    <Style Selector="Border.toast.success TextBlock.accent"><Setter Property="Foreground" Value="{DynamicResource ConnectionSuccess}" /></Style>
+    <Style Selector="Border.toast.caution"><Setter Property="BorderBrush" Value="{DynamicResource Highlight}" /></Style>
+    <Style Selector="Border.toast.caution TextBlock.accent"><Setter Property="Foreground" Value="{DynamicResource Highlight}" /></Style>
+    <Style Selector="Border.toast.danger"><Setter Property="BorderBrush" Value="{DynamicResource ConnectionDanger}" /></Style>
+    <Style Selector="Border.toast.danger TextBlock.accent"><Setter Property="Foreground" Value="{DynamicResource ConnectionDanger}" /></Style>
+  </UserControl.Styles>
+</UserControl>

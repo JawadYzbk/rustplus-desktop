@@ -6,6 +6,7 @@
         xmlns:recycling="using:RustPlusDesk.Avalonia.Features.Recycling" xmlns:raid="using:RustPlusDesk.Avalonia.Features.Raid"
         xmlns:console="using:RustPlusDesk.Avalonia.Features.Console"
         xmlns:notifications="using:RustPlusDesk.Avalonia.Features.Notifications"
+        xmlns:toasts="using:RustPlusDesk.Avalonia.Features.Toasts"
         xmlns:shell="using:RustPlusDesk.Avalonia.Shell"
         xmlns:cloud="using:RustPlusDesk.Avalonia.Features.Cloud"
         xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
@@ -141,5 +142,6 @@
         </Grid>
       </Border>
     </Border>
+    <toasts:ToastHost Grid.RowSpan="3" DataContext="{Binding Toasts}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,16,36" />
   </Grid>
 </Window>
