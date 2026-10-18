@@ -6,9 +6,9 @@ every finished slice with its commit.
 
 ## Where things stand (scheduled run, 2026-10-18, Linux cloud container)
 
-- Branch `codex/avalonia-migration`, pushed to `origin`. Latest code commit: `ab1475ff` (docs follow).
+- Branch `codex/avalonia-migration`, pushed to `origin`. Latest code commit: `e64d1258` (docs follow).
   Only `Avalonia/` changes. The branch also carries merges from `beta` (WPF-side changes, e.g. server-delete cleanup).
-- **549 tests pass** (Debug, zero warnings) on Linux with the .NET 10.0.112 SDK from Ubuntu's archive
+- **561 tests pass** (Debug, zero warnings) on Linux with the .NET 10.0.112 SDK from Ubuntu's archive
   (`apt-get update && apt-get install -y dotnet-sdk-10.0`; dotnet-install.sh is blocked by the proxy).
 - Done this run, in order (each in the PARITY-PLAN progress table):
   1. `38272535` AFK / AFK-return chat alerts: Core `AfkTracker` (0.05 m move, 5 min "AFK: m:ss" text on the team
@@ -27,6 +27,11 @@ every finished slice with its commit.
      port (same files/folders as the reference), `CloudServerForgetter` (pending list + DELETE me/servers/{host-port}).
   6. `ab1475ff` chat alert channel: per-profile ChatAlertsUseClanChannel (`LegacyProfileFlagStore`), "Send alerts to"
      Team/Clan in the chat-alert menu; automated alerts use it.
+  7. `5f71614e` Discord webhook chat alerts: five profile fields (`LegacyDiscordWebhookStore`), `HttpDiscordWebhookSender`,
+     `CloudSignInState` gate, counted like an alert flag, "Discord only" skips in-game chat; Settings > Alerts card.
+  8. `7bc4a26b` profile WipeTime write-back on every map load (`LegacyProfileWipeTimeStore`), fallback for the cache check.
+  9. `e64d1258` Steam avatars (`SteamCommunityAvatarSource`, `AvatarCache` with 30 s retry) on the team dock, map player
+     markers (MapShowSteamMarkers, Layers) and death pin heads.
 - Shared helpers added: `LegacyProfileStore.FindProfile` (profile by identity key), `IProfileFlagStore` for boolean
   profile fields, `CloudApiClient.DeleteAsync`.
 - Deliberately not ported (unchanged): notification sounds, Reduce UI effects, start minimized / close to tray (8.1).
@@ -36,14 +41,13 @@ every finished slice with its commit.
 
 1. Setup as in the scheduled prompt; if `dotnet` is missing: `apt-get update && apt-get install -y dotnet-sdk-10.0`.
 2. Suggested next slices (small, self-contained):
-   - **Discord webhook chat alerts** (reference MainWindow.Map.Chat SendDiscordWebhookAsync + ServerProfile
-     DiscordWebhookChatAlerts{Url,Mention,Tts,Exclusive,Enabled}): per-profile fields (extend `IProfileFlagStore` or add a
-     string field store), webhook POST `{content: "{mention}\n**[{name}]** {message}", tts}`, gated by cloud sign-in
-     (reference IsCloudConnected) and the master; the Enabled flag counts in EnabledCount/CheckIfAllOff (needs a
-     profile-aware count), "Discord only" (Exclusive) skips in-game chat and disables the Team/Clan picker.
-   - **Profile WipeTime write-back** (reference RefreshProfileWipeTimeAsync) so the map cache can fall back to it.
-   - **Player avatars** (Steam avatars for team dock and death pin heads).
-   - **5.1 Map Performance / Team markers** settings categories.
+   - **Team markers settings** (reference Settings > Team markers: MapShowPlayerArrows, profile markers, player label
+     options) and **Map Performance** (MapBitmapScalingMode/MapUseCacheMode/MapRenderScale/MapUseAliasedEdgeMode — decide
+     which have an Avalonia equivalent; none may be inert).
+   - **Team feature master** (reference MainWindow.TeamFeatureMaster: CanSendAutomatedTeamChat blocks automated chat
+     when another team member is the chat master) — needs the cloud presence publication (2.4).
+   - **Cargo / oil rig / deep sea announcements** (AnnounceCargo*, AnnounceOilRig, AnnounceDeepSea flags are read-only so far).
+   - **Team chat commands** (reference ChatCommandsOverlay, CmdAfk etc., profile command names).
 3. Shell wiring note: ServersViewModel is a primary-constructor class; cross-feature objects are created in
    `ObserveStreamerMode()` (first server selection, Notifications/Settings factories) and per-server reloads go in
    `OnSelectedServerChanged` (custom map card, death pins, alert channel).
