@@ -1,4 +1,4 @@
-# Avalonia migration handoff — 2026-10-18 (third scheduled run)
+# Avalonia migration handoff — 2026-10-18 (fourth scheduled run)
 
 **Plan of record: [PARITY-PLAN.md](PARITY-PLAN.md).** Bar set by Jawad on 2026-10-18: *same functionality as the WPF
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
@@ -6,52 +6,48 @@ every finished slice with its commit.
 
 ## Where things stand (scheduled run, 2026-10-18, Linux cloud container)
 
-- Branch `codex/avalonia-migration`, pushed to `origin`. Latest code commit: `1359967c` (docs follow).
-  Only `Avalonia/` changes.
-- **525 tests pass** (Debug, zero warnings) on Linux with the .NET 10.0.112 SDK from Ubuntu's archive
-  (`apt-get update && apt-get install -y dotnet-sdk-10.0`; the first install without `apt-get update` fails).
+- Branch `codex/avalonia-migration`, pushed to `origin`. Latest code commit: `ab1475ff` (docs follow).
+  Only `Avalonia/` changes. The branch also carries merges from `beta` (WPF-side changes, e.g. server-delete cleanup).
+- **549 tests pass** (Debug, zero warnings) on Linux with the .NET 10.0.112 SDK from Ubuntu's archive
+  (`apt-get update && apt-get install -y dotnet-sdk-10.0`; dotnet-install.sh is blocked by the proxy).
 - Done this run, in order (each in the PARITY-PLAN progress table):
-  1. `5fdf1524` 5.1 Settings > General: auto-connect on startup (AutoConnectEnabled, 1 s head start), last selected
-     server restored/remembered (LastSelectedServerKey = reference MatchKey; `ServerSummary.MatchKey` is JsonIgnore'd
-     and kept out of ToString because it carries the Steam ID), launch at sign-in via Core `ILaunchAtLogin` with
-     Windows Run key / XDG autostart / macOS LaunchAgent adapters (`Infrastructure/Platform/LaunchAtLogin.cs`).
-  2. `78433025` chat-alert menu Select all / Deselect all (only ported flags are written; see the row).
-  3. `e8398645` streamer mode (MapAbbreviateNames: map toolbar "Streamer" + Settings > Behavior) across map labels,
-     team dock, header/empty state ("SERVER HIDDEN"), inbox tags/search/mute text, sidebar close; player icon size.
-  4. `577d4892` Hide system console (HideConsole hides the Activity tab; streamer mode turns it on).
-  5. `b011d5c0` death tracking: team reads carry X/Y, spawn/death unix times and map notes (`ServerTeamSnapshot`,
-     default interface method keeps old fakes working); `DeathTracker`/`DeathLocationClassifier` in Core/Deaths;
-     shared `%APPDATA%/RustPlusDesk/deaths/{host-port}.jsonl` (byte-identical reference lines, legacy folder merge).
-  6. `b0b3f726` Death Stats page (rail entry before Raid, filters, cards, sparkline, tables, killers forget/clear,
-     refresh, clear log).
-  7. `4aeabc52` map "Deaths" toggle = death heatmap from the local log (MapShowDeathHeatmap).
-  8. `aa96bd53` player presence chat alerts (online/offline/death/respawn, self/team via the companion Steam ID).
-  9. `1a26ea62` editable chat alert templates (shared custom_alerts.json, Settings section, "Edit templates" menu item);
-     event, shop notice and presence texts go through `AlertTemplates` (Core/Alerts).
-  10. `1359967c` smart alarms to team chat (AnnounceSmartAlerts; `AlarmDecision.Accepted` for popup-less generic alarms).
-- Deliberately not ported (reference settings that are inert or need missing features): notification sounds (the
-  reference only plays them for "Chat" notifications, which it never creates), Reduce UI effects (no Mica/animations
-  in the Avalonia shell yet), start minimized / close to tray (8.1 tray).
+  1. `38272535` AFK / AFK-return chat alerts: Core `AfkTracker` (0.05 m move, 5 min "AFK: m:ss" text on the team
+     dock, one alert per idle stretch, return with "HH:MM"), one-second tick in `TeamViewModel`, "Player AFK" submenu
+     with the AfkAlertMinutes threshold (5/10/15/20/30).
+  2. `f8091853` map disk cache + wipe detection: shared LocalAppData/RustPlusDesk/map_cache/{host}_{port}.png/.json
+     (`MapCacheStore`, reference JSON shape), `MapCacheLoader` behind `MapViewModel.Loader`; server wipe time > 1 min
+     newer or (no wipe time) moved harbors = wipe → cache deleted, local death log cleared, death detection reset;
+     ServerHarbors/ServerCargoTriggers settings kept like the reference.
+  3. `4b511bc7` Custom HD map image: per-profile CustomMapUrl (`LegacyCustomMapUrlStore`), download + _custom.png
+     cache, 1000 m margin (`ServerMap.CustomImage`), Settings > Map card (Apply/Clear/status), reset on wipe.
+  4. `fa98b733` death marker pins: profile DeathMarkers (`LegacyDeathMarkerStore`), capture on alive → dead,
+     per-player caps (MaxSelf/MaxTeamDeathMarkers), map pins with hover label and right-click Rename/Delete,
+     map wipe button, Layers switch/caps/Apply limits/confirmed wipe (`DeathPinsViewModel`).
+  5. `667c6b93` delete server: confirmation overlay, `LegacyServerDeleter` (revision-checked), `ServerLocalDataCleanup`
+     port (same files/folders as the reference), `CloudServerForgetter` (pending list + DELETE me/servers/{host-port}).
+  6. `ab1475ff` chat alert channel: per-profile ChatAlertsUseClanChannel (`LegacyProfileFlagStore`), "Send alerts to"
+     Team/Clan in the chat-alert menu; automated alerts use it.
+- Shared helpers added: `LegacyProfileStore.FindProfile` (profile by identity key), `IProfileFlagStore` for boolean
+  profile fields, `CloudApiClient.DeleteAsync`.
+- Deliberately not ported (unchanged): notification sounds, Reduce UI effects, start minimized / close to tray (8.1).
 - **Owner decision still pending:** GenericRadius "Building Blocked" and crate→vendor announcements (see the 1.2 row).
 
 ## Start next run with
 
 1. Setup as in the scheduled prompt; if `dotnet` is missing: `apt-get update && apt-get install -y dotnet-sdk-10.0`.
 2. Suggested next slices (small, self-contained):
-   - **Death pins (1.4)**: per-profile `DeathMarkers` (Id, SteamId, OriginalName, CustomName, X, Y, TimeOfDeath) in
-     profiles.json need a revision-adopting writer in `Infrastructure/Profiles` (follow LegacyDeviceProfileEditor's
-     revision/backup rules), the own Steam ID (companion account) for the self/team caps (MaxSelfDeathMarkers,
-     MaxTeamDeathMarkers, 1–50), rename/delete context menu, wipe-all, settings dialog. Feed from the team snapshot
-     (dead + position) like reference MainWindow.Team.Core ~line 805.
-   - **AFK / AFK-return alerts** (AnnouncePlayerAfk/AfkReturn + AFK threshold submenu 5–30 min): detection from team
-     positions (reference MainWindow.Team AFK tracking); templates AlertPlayerAfk/AlertPlayerAfkReturn already exist.
-   - **Map cache + wipe detection** (reference LoadMapAsync: LocalAppData/RustPlusDesk/map_cache/{host}_{port}.png/.json,
-     harbor-based wipe check, server WipeTime) → then custom HD map URL (per-profile CustomMapUrl) and death-log wipe clear.
-   - **5.1 Map Performance / Connected services** categories as their features land.
-3. Alerts/chat routing still lacks profile settings: `ChatAlertsUseClanChannel`, team feature master, Discord webhooks.
-4. Shell wiring note: ServersViewModel is a primary-constructor class, so cross-feature subscriptions live in
-   `ObserveStreamerMode()` (called from the first server selection and from the Notifications/Settings factories).
-5. Record each slice in the PARITY-PLAN table with its commit, commit + push after every slice.
+   - **Discord webhook chat alerts** (reference MainWindow.Map.Chat SendDiscordWebhookAsync + ServerProfile
+     DiscordWebhookChatAlerts{Url,Mention,Tts,Exclusive,Enabled}): per-profile fields (extend `IProfileFlagStore` or add a
+     string field store), webhook POST `{content: "{mention}\n**[{name}]** {message}", tts}`, gated by cloud sign-in
+     (reference IsCloudConnected) and the master; the Enabled flag counts in EnabledCount/CheckIfAllOff (needs a
+     profile-aware count), "Discord only" (Exclusive) skips in-game chat and disables the Team/Clan picker.
+   - **Profile WipeTime write-back** (reference RefreshProfileWipeTimeAsync) so the map cache can fall back to it.
+   - **Player avatars** (Steam avatars for team dock and death pin heads).
+   - **5.1 Map Performance / Team markers** settings categories.
+3. Shell wiring note: ServersViewModel is a primary-constructor class; cross-feature objects are created in
+   `ObserveStreamerMode()` (first server selection, Notifications/Settings factories) and per-server reloads go in
+   `OnSelectedServerChanged` (custom map card, death pins, alert channel).
+4. Record each slice in the PARITY-PLAN table with its commit, commit + push after every slice.
 
 ## How to work (proven patterns)
 
