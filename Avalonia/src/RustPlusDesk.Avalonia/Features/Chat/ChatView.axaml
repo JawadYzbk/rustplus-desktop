@@ -58,6 +58,23 @@
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding TogglePlayerOnlineCommand}" />
               <MenuItem Header="Offline Status" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerOffline, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding TogglePlayerOfflineCommand}" />
+              <MenuItem Header="Player AFK" ToggleType="CheckBox" IsChecked="{Binding AnyPlayerAfk, Mode=OneWay}" IsEnabled="{Binding IsMasterOn}">
+                <MenuItem Header="Enabled" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerAfk, Mode=OneWay}"
+                          Command="{Binding TogglePlayerAfkCommand}" ToolTip.Tip="Announce when a team member has not moved for the AFK threshold" />
+                <MenuItem Header="Return from AFK" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerAfkReturn, Mode=OneWay}"
+                          Command="{Binding TogglePlayerAfkReturnCommand}" ToolTip.Tip="Announce when an AFK team member moves again" />
+                <Separator />
+                <MenuItem Header="AFK threshold" ItemsSource="{Binding AfkThresholds}">
+                  <MenuItem.ItemContainerTheme>
+                    <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="alerts:AfkThresholdMenuItem">
+                      <Setter Property="Header" Value="{Binding Header}" />
+                      <Setter Property="ToggleType" Value="Radio" />
+                      <Setter Property="IsChecked" Value="{Binding IsSelected, Mode=OneWay}" />
+                      <Setter Property="Command" Value="{Binding SelectCommand}" />
+                    </ControlTheme>
+                  </MenuItem.ItemContainerTheme>
+                </MenuItem>
+              </MenuItem>
               <MenuItem Header="Self Death" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerDeathSelf, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleDeathSelfCommand}" />
               <MenuItem Header="Team Death" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerDeathTeam, Mode=OneWay}"

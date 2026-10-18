@@ -51,7 +51,7 @@ public sealed class TeamViewModelTests
         failed.Cancel(); await third;
     }
 
-    private sealed class Session : IServerTeamSession
+    internal sealed class Session : IServerTeamSession
     {
         public Func<CancellationToken, Task<IReadOnlyList<ServerTeamMember>>> Read { get; init; } = _ => Task.FromResult<IReadOnlyList<ServerTeamMember>>([]);
         public Task<IReadOnlyList<ServerTeamMember>> ReadTeamAsync(CancellationToken ct) => Read(ct);

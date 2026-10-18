@@ -1,12 +1,15 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using RustPlusDesk.Core.Alerts;
 using RustPlusDesk.Core.Connections;
 using RustPlusDesk.Core.Settings;
 
 namespace RustPlusDesk.Avalonia.Features.Teams;
 
-public sealed record TeamMemberRow(ServerTeamMember Member, bool Abbreviate = false)
+public sealed record TeamMemberRow(ServerTeamMember Member, bool Abbreviate = false, string? AfkText = null)
 {
+    /// <summary>Reference TeamMemberVM.IsAfk: shown after 5 idle minutes with the "AFK: m:ss" text.</summary>
+    public bool IsAfk => AfkText is not null;
     /// <summary>The member's name (streamer mode: first character + "..."), else the abbreviated Steam ID.</summary>
     public string Name => string.IsNullOrWhiteSpace(Member.Name) ? SteamId
         : StreamerMode.Name(new string(Member.Name.Where(c => !char.IsControl(c)).Take(256).ToArray()), Abbreviate);
@@ -34,11 +37,45 @@ public sealed partial class TeamViewModel : ObservableObject
     public event Action<ServerTeamSnapshot>? SnapshotRead;
     /// <summary>Raised when the roster is reset (connection teardown); per-connection trackers start over.</summary>
     public event Action? Cleared;
-    public void Reset() { Members = []; Message = "Connect to a server to see its team."; Cleared?.Invoke(); }
+    public void Reset() { Members = []; Message = "Connect to a server to see its team."; afk.Reset(); Cleared?.Invoke(); }
+
+    private readonly AfkTracker afk = new();
+    /// <summary>Clock for AFK tracking (UTC); replaced by tests.</summary>
+    public Func<DateTime> Now { get; set; } = () => DateTime.UtcNow;
+    /// <summary>Reference AfkAlertMinutes: the idle minutes after which an AFK alert is raised.</summary>
+    public Func<int> AfkThresholdMinutes { get; set; } = () => AfkTracker.DefaultThresholdMinutes;
+    /// <summary>Raised by the one-second AFK tick for every member that went AFK or came back (reference AfkTimer_Tick).</summary>
+    public event Action<AfkAlert>? AfkAlertRaised;
+
+    /// <summary>Reference AfkTimer_Tick: ages the idle clocks, refreshes the AFK texts and raises the alerts.</summary>
+    public void TickAfk()
+    {
+        int threshold = AfkThresholdMinutes();
+        var alerts = afk.Tick(Now(), threshold);
+        ApplyAfkTexts();
+        foreach (var alert in alerts) AfkAlertRaised?.Invoke(alert);
+    }
+
+    private void ApplyAfkTexts()
+    {
+        if (Members.All(row => row.AfkText == afk.AfkText(row.Member.SteamId))) return;
+        Members = Members.Select(row => row with { AfkText = afk.AfkText(row.Member.SteamId) }).ToArray();
+    }
+
+    private async Task RunAfkAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(ct)) TickAfk();
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+    }
 
     public async Task RunAsync(IServerTeamSession session, CancellationToken ct)
     {
         Message = "Loading team…";
+        var afkTicks = RunAfkAsync(ct);
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
         try
         {
@@ -50,7 +87,9 @@ public sealed partial class TeamViewModel : ObservableObject
                     ct.ThrowIfCancellationRequested();
                     var current = snapshot.Members;
                     SnapshotRead?.Invoke(snapshot);
-                    if (!Members.Select(row => row.Member).SequenceEqual(current)) Members = current.Select(member => new TeamMemberRow(member, Abbreviate)).ToArray();
+                    afk.Observe(current, Now());
+                    if (!Members.Select(row => row.Member).SequenceEqual(current))
+                        Members = current.Select(member => new TeamMemberRow(member, Abbreviate, afk.AfkText(member.SteamId))).ToArray();
                     Message = current.Count == 0 ? "No team members reported by this server." : "Current server team";
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
@@ -58,5 +97,6 @@ public sealed partial class TeamViewModel : ObservableObject
             } while (await timer.WaitForNextTickAsync(ct));
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+        await afkTicks;
     }
 }

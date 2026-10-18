@@ -22,6 +22,8 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     private bool newShops;
     private bool suspiciousShops;
     private bool heli, chinook, vendor;
+    private bool playerAfk, playerAfkReturn;
+    private int afkMinutes;
     private bool playerOnline, playerOffline, deathSelf, deathTeam, respawnSelf, respawnTeam;
     private bool smartAlerts;
 
@@ -38,6 +40,10 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
         smartAlerts = settings?.Get(SettingKeys.AnnounceSmartAlerts, false) ?? false;
         playerOnline = settings?.Get(SettingKeys.AnnouncePlayerOnline, false) ?? false;
         playerOffline = settings?.Get(SettingKeys.AnnouncePlayerOffline, false) ?? false;
+        playerAfk = settings?.Get(SettingKeys.AnnouncePlayerAfk, false) ?? false;
+        playerAfkReturn = settings?.Get(SettingKeys.AnnouncePlayerAfkReturn, false) ?? false;
+        afkMinutes = AfkTracker.NormalizeThreshold(settings?.Get(SettingKeys.AfkAlertMinutes, AfkTracker.DefaultThresholdMinutes) ?? AfkTracker.DefaultThresholdMinutes);
+        AfkThresholds = AfkTracker.ThresholdOptions.Select(minutes => new AfkThresholdMenuItem(minutes, this)).ToArray();
         deathSelf = settings?.Get(SettingKeys.AnnouncePlayerDeathSelf, false) ?? false;
         deathTeam = settings?.Get(SettingKeys.AnnouncePlayerDeathTeam, false) ?? false;
         respawnSelf = settings?.Get(SettingKeys.AnnouncePlayerRespawnSelf, false) ?? false;
@@ -59,6 +65,14 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     public bool AnnounceSmartAlerts => master && smartAlerts;
     public bool AnnouncePlayerOnline => master && playerOnline;
     public bool AnnouncePlayerOffline => master && playerOffline;
+    public bool AnnouncePlayerAfk => master && playerAfk;
+    public bool AnnouncePlayerAfkReturn => master && playerAfkReturn;
+    /// <summary>Reference "Player AFK" parent: checked while either AFK alert is on.</summary>
+    public bool AnyPlayerAfk => AnnouncePlayerAfk || AnnouncePlayerAfkReturn;
+    /// <summary>Reference AfkAlertMinutes (default 5): idle minutes before an AFK alert.</summary>
+    public int AfkAlertMinutes => afkMinutes;
+    /// <summary>Reference AFK threshold submenu (5, 10, 15, 20, 30 min).</summary>
+    public IReadOnlyList<AfkThresholdMenuItem> AfkThresholds { get; }
     public bool AnnouncePlayerDeathSelf => master && deathSelf;
     public bool AnnouncePlayerDeathTeam => master && deathTeam;
     public bool AnnouncePlayerRespawnSelf => master && respawnSelf;
@@ -106,6 +120,19 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     [RelayCommand] private void ToggleSmartAlerts() => Flip(ref smartAlerts, SettingKeys.AnnounceSmartAlerts);
     [RelayCommand] private void TogglePlayerOnline() => Flip(ref playerOnline, SettingKeys.AnnouncePlayerOnline);
     [RelayCommand] private void TogglePlayerOffline() => Flip(ref playerOffline, SettingKeys.AnnouncePlayerOffline);
+    [RelayCommand] private void TogglePlayerAfk() => Flip(ref playerAfk, SettingKeys.AnnouncePlayerAfk);
+    [RelayCommand] private void TogglePlayerAfkReturn() => Flip(ref playerAfkReturn, SettingKeys.AnnouncePlayerAfkReturn);
+
+    /// <summary>Reference AfkMinutes_Click: stores the threshold; the alert flags stay as they are.</summary>
+    internal void SetAfkMinutes(int minutes)
+    {
+        if (minutes <= 0 || minutes == afkMinutes) return;
+        afkMinutes = minutes;
+        settings?.Set(SettingKeys.AfkAlertMinutes, minutes);
+        OnPropertyChanged(nameof(AfkAlertMinutes));
+        foreach (var item in AfkThresholds) item.Refresh();
+    }
+
     [RelayCommand] private void ToggleDeathSelf() => Flip(ref deathSelf, SettingKeys.AnnouncePlayerDeathSelf);
     [RelayCommand] private void ToggleDeathTeam() => Flip(ref deathTeam, SettingKeys.AnnouncePlayerDeathTeam);
     [RelayCommand] private void ToggleRespawnSelf() => Flip(ref respawnSelf, SettingKeys.AnnouncePlayerRespawnSelf);
@@ -133,10 +160,11 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     private void SetAll(bool value)
     {
         newShops = suspiciousShops = heli = chinook = vendor = value;
+        playerAfk = playerAfkReturn = value;
         playerOnline = playerOffline = deathSelf = deathTeam = respawnSelf = respawnTeam = smartAlerts = value;
         foreach (string key in new[] { SettingKeys.AnnounceNewShops, SettingKeys.AnnounceSuspiciousShops, SettingKeys.AnnounceHeli,
                      SettingKeys.AnnounceChinook, SettingKeys.AnnounceVendor, SettingKeys.AnnouncePlayerOnline, SettingKeys.AnnouncePlayerOffline,
-                     SettingKeys.AnnouncePlayerDeathSelf, SettingKeys.AnnouncePlayerDeathTeam, SettingKeys.AnnouncePlayerRespawnSelf,
+                     SettingKeys.AnnouncePlayerAfk, SettingKeys.AnnouncePlayerAfkReturn, SettingKeys.AnnouncePlayerDeathSelf, SettingKeys.AnnouncePlayerDeathTeam, SettingKeys.AnnouncePlayerRespawnSelf,
                      SettingKeys.AnnouncePlayerRespawnTeam, SettingKeys.AnnounceSmartAlerts })
             settings?.Set(key, value);
     }
@@ -172,13 +200,13 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
         Refresh();
     }
 
-    private int Local() => new[] { newShops, suspiciousShops, heli, chinook, vendor, playerOnline, playerOffline, deathSelf, deathTeam,
+    private int Local() => new[] { newShops, suspiciousShops, heli, chinook, vendor, playerOnline, playerOffline, playerAfk, playerAfkReturn, deathSelf, deathTeam,
         respawnSelf, respawnTeam, smartAlerts }.Count(flag => flag);
 
     private void Refresh()
     {
         foreach (string name in new[] { nameof(IsMasterOn), nameof(AnnounceNewShops), nameof(AnnounceSuspiciousShops), nameof(AnnounceHeli), nameof(AnnounceChinook),
-                     nameof(AnnounceVendor), nameof(AnnouncePlayerOnline), nameof(AnnouncePlayerOffline), nameof(AnnouncePlayerDeathSelf),
+                     nameof(AnnounceVendor), nameof(AnnouncePlayerOnline), nameof(AnnouncePlayerOffline), nameof(AnnouncePlayerAfk), nameof(AnnouncePlayerAfkReturn), nameof(AnyPlayerAfk), nameof(AnnouncePlayerDeathSelf),
                      nameof(AnnouncePlayerDeathTeam), nameof(AnnouncePlayerRespawnSelf), nameof(AnnouncePlayerRespawnTeam), nameof(AnnounceSmartAlerts), nameof(EnabledCount),
                      nameof(ShowCountBadge), nameof(ShowEmptyDot), nameof(CountText), nameof(MasterTip) })
             OnPropertyChanged(name);
@@ -218,4 +246,24 @@ public sealed partial class TradeAlertMenuItem : ObservableObject
     {
         if (e.PropertyName == nameof(ShopAlertRowViewModel.NotifyChat)) OnPropertyChanged(nameof(NotifyChat));
     }
+}
+
+/// <summary>An AFK threshold menu entry ("5 min" …), checked for the stored threshold.</summary>
+public sealed partial class AfkThresholdMenuItem : ObservableObject
+{
+    private readonly ChatAlertsViewModel owner;
+
+    internal AfkThresholdMenuItem(int minutes, ChatAlertsViewModel owner)
+    {
+        Minutes = minutes;
+        this.owner = owner;
+    }
+
+    public int Minutes { get; }
+    public string Header => Minutes.ToString(CultureInfo.InvariantCulture) + " min";
+    public bool IsSelected => owner.AfkAlertMinutes == Minutes;
+
+    [RelayCommand] private void Select() => owner.SetAfkMinutes(Minutes);
+
+    internal void Refresh() => OnPropertyChanged(nameof(IsSelected));
 }

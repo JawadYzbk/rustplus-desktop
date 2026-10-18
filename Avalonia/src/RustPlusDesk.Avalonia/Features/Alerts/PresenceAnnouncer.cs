@@ -9,7 +9,8 @@ namespace RustPlusDesk.Avalonia.Features.Alerts;
 
 /// <summary>
 /// Reference AnnouncePresenceChangeAsync: team reads are compared with the previous read of the same connection and
-/// online/offline/death/respawn changes are posted to team chat (names follow streamer mode).
+/// online/offline/death/respawn changes are posted to team chat (names follow streamer mode). The team's AFK tick feeds
+/// the reference AFK and AFK-return alerts (AnnouncePlayerAfk/AnnouncePlayerAfkReturn, threshold AfkAlertMinutes).
 /// </summary>
 public sealed class PresenceAnnouncer
 {
@@ -25,6 +26,16 @@ public sealed class PresenceAnnouncer
         this.ownSteamId = ownSteamId;
         team.SnapshotRead += snapshot => Observe(snapshot.Members);
         team.Cleared += tracker.Reset;
+        team.AfkThresholdMinutes = () => alerts.AfkAlertMinutes;
+        team.AfkAlertRaised += ObserveAfk;
+    }
+
+    /// <summary>Reference AfkTimer_Tick announcements; the team still tracks AFK while the flags are off.</summary>
+    public void ObserveAfk(AfkAlert alert)
+    {
+        if (!(alert.Returned ? alerts.AnnouncePlayerAfkReturn : alerts.AnnouncePlayerAfk)) return;
+        string name = StreamerMode.Name(alert.Member.Name, map.AbbreviateNames);
+        _ = DeliverAsync(AfkTracker.Message(alert, name, alerts.AfkAlertMinutes, Templates));
     }
 
     public AlertTemplates Templates { get; set; } = AlertTemplates.Defaults;

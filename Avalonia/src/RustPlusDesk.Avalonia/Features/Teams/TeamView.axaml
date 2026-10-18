@@ -15,10 +15,12 @@
           <ItemsControl ItemsSource="{Binding Members}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:TeamMemberRow">
-                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Margin="4,3">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" Margin="4,3">
                   <Ellipse Width="8" Height="8" Classes="member" Classes.online="{Binding IsOnline}" Classes.dead="{Binding IsDead}" VerticalAlignment="Center" />
                   <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="13" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding SteamId}" />
-                  <TextBlock Grid.Column="2" Text="{Binding State}" Classes="muted" FontSize="11" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="2" Text="{Binding AfkText}" IsVisible="{Binding IsAfk}" Foreground="{DynamicResource ConnectionPending}"
+                             FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" ToolTip.Tip="Has not moved for at least 5 minutes" />
+                  <TextBlock Grid.Column="3" Text="{Binding State}" Classes="muted" FontSize="11" VerticalAlignment="Center" />
                 </Grid>
               </DataTemplate>
             </ItemsControl.ItemTemplate>

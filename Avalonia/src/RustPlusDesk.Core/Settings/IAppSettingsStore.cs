@@ -35,6 +35,9 @@ public static class SettingKeys
     public const string AnnounceSmartAlerts = "AnnounceSmartAlerts";       // default false: smart alarm → team chat
     public const string AnnouncePlayerOnline = "AnnouncePlayerOnline";     // default false
     public const string AnnouncePlayerOffline = "AnnouncePlayerOffline";   // default false
+    public const string AnnouncePlayerAfk = "AnnouncePlayerAfk";           // default false
+    public const string AnnouncePlayerAfkReturn = "AnnouncePlayerAfkReturn"; // default false
+    public const string AfkAlertMinutes = "AfkAlertMinutes";               // default 5: AFK alert threshold in minutes
     public const string AnnouncePlayerDeathSelf = "AnnouncePlayerDeathSelf"; // default false
     public const string AnnouncePlayerDeathTeam = "AnnouncePlayerDeathTeam"; // default false
     public const string AnnouncePlayerRespawnSelf = "AnnouncePlayerRespawnSelf"; // default false
