@@ -34,7 +34,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Core.Map.ICustomMapDownloader? customMapDownloader = null, RustPlusDesk.Core.Deaths.IDeathMarkerStore? deathMarkerStore = null,
     IServerDeleter? serverDeleter = null, ICloudServerForgetter? cloudForgetter = null, IProfileFlagStore? profileFlags = null,
     RustPlusDesk.Core.Alerts.IDiscordWebhookStore? webhookStore = null, RustPlusDesk.Core.Alerts.IDiscordWebhookSender? webhookSender = null,
-    RustPlusDesk.Core.Alerts.ICloudSignInState? cloudSignIn = null)
+    RustPlusDesk.Core.Alerts.ICloudSignInState? cloudSignIn = null, IProfileWipeTimeStore? wipeTimes = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -670,6 +670,11 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             Log = Activity.Append,
             Downloader = customMapDownloader
         };
+        if (wipeTimes is not null)
+        {
+            loader.ProfileWipeTime = ct => SelectedServer is { } server ? wipeTimes.GetAsync(SourcePath, server.ProfileKey, ct) : Task.FromResult<DateTimeOffset?>(null);
+            loader.SaveProfileWipeTime = (wipe, ct) => SelectedServer is { } server ? wipeTimes.SetAsync(SourcePath, server.ProfileKey, wipe, ct) : Task.CompletedTask;
+        }
         if (customMapUrls is not null)
         {
             loader.CustomMapUrl = ct => SelectedServer is { } server ? customMapUrls.GetAsync(SourcePath, server.ProfileKey, ct) : Task.FromResult<string?>(null);

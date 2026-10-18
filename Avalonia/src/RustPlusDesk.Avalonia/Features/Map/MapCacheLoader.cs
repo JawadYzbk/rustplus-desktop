@@ -23,13 +23,28 @@ public sealed class MapCacheLoader(IMapCache cache, IAppSettingsStore? settings,
     /// <summary>Clears the profile's Custom HD map URL after a wipe.</summary>
     public Func<CancellationToken, Task>? ResetCustomMapUrl { get; set; }
     public ICustomMapDownloader? Downloader { get; set; }
+    /// <summary>The profile's saved wipe time (reference ServerProfile.WipeTime), used when the server reports none.</summary>
+    public Func<CancellationToken, Task<DateTimeOffset?>>? ProfileWipeTime { get; set; }
+    /// <summary>Stores the server's wipe time on the profile (reference RefreshProfileWipeTimeAsync).</summary>
+    public Func<DateTimeOffset, CancellationToken, Task>? SaveProfileWipeTime { get; set; }
 
     public async Task<ServerMap> LoadAsync(IServerMapSession session, CancellationToken ct)
     {
         if (server() is not { } target) return await session.ReadMapAsync(ct);
         var (host, port) = target;
         // Reference RefreshProfileWipeTimeAsync: the server info's wipe time; the SDK's epoch means "not reported".
-        DateTimeOffset? wipe = session.InitialStatus.WipeTime is { } reported && reported > DateTimeOffset.UnixEpoch ? reported : null;
+        DateTimeOffset? wipe = session.InitialStatus.WipeTime is { } reported && reported > DateTimeOffset.UnixEpoch ? reported.ToUniversalTime() : null;
+        if (wipe is { } known && SaveProfileWipeTime is { } save)
+        {
+            try { await save(known, ct); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException or Core.Servers.ProfileChangedException or ArgumentException)
+            { Log?.Invoke("[map-cache] The server's wipe time could not be saved to the profile."); }
+        }
+        else if (wipe is null && ProfileWipeTime is { } saved)
+        {
+            try { wipe = await saved(ct); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException) { wipe = null; }
+        }
         var cached = await Task.Run(() => cache.Load(host, port), ct);
         bool isWipe = false;
         if (cached is not null)

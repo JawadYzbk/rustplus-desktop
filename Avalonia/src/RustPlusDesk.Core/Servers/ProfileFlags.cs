@@ -17,3 +17,14 @@ public static class ProfileFlags
     /// <summary>Automated chat alerts go to clan chat instead of team chat (default team).</summary>
     public const string ChatAlertsUseClanChannel = "ChatAlertsUseClanChannel";
 }
+
+/// <summary>
+/// Reference ServerProfile.WipeTime (UTC): refreshed from the server's info on every map load (RefreshProfileWipeTimeAsync)
+/// and used when the server reports none.
+/// </summary>
+public interface IProfileWipeTimeStore
+{
+    Task<DateTimeOffset?> GetAsync(string profilesPath, string profileKey, CancellationToken ct);
+    /// <summary>Stores the wipe time (UTC); returns false when it was already stored.</summary>
+    Task<bool> SetAsync(string profilesPath, string profileKey, DateTimeOffset wipeTime, CancellationToken ct);
+}
