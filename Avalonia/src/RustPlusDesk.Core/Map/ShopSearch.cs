@@ -20,6 +20,8 @@ public sealed record ShopSearchOptions
 public sealed record ShopItem(int Id, string ShortName, string Name);
 public sealed record ShopResource(int Id, string ShortName, string Name);
 public sealed record ShopMatch(MapMarker Shop, IReadOnlyList<VendingOrder> Offers);
+/// <summary>An autocomplete entry: a category (Id 0) or an item.</summary>
+public sealed record ShopSuggestion(int Id, string Display, string ShortName, bool IsCategory);
 /// <summary>Results plus the sort actually used (a resource filter turns Default into PriceAscending).</summary>
 public sealed record ShopSearchResult(IReadOnlyList<ShopMatch> Matches, ShopSortMode Sort);
 
@@ -62,11 +64,14 @@ public sealed class ShopSearch
 
     private readonly Func<int, ShopItem?> items;
     private readonly IReadOnlyDictionary<string, string> categoryByShortName;
+    private readonly IReadOnlyList<ShopItem> catalog;
 
-    public ShopSearch(Func<int, ShopItem?> items, IReadOnlyDictionary<string, string> categoryByShortName)
+    /// <param name="catalog">Every known item, offered by the autocomplete.</param>
+    public ShopSearch(Func<int, ShopItem?> items, IReadOnlyDictionary<string, string> categoryByShortName, IReadOnlyList<ShopItem>? catalog = null)
     {
         this.items = items;
         this.categoryByShortName = categoryByShortName;
+        this.catalog = catalog ?? [];
         Categories = categoryByShortName.Values.Append("Misc").Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(category => Array.FindIndex(CategoryOrder, key => key.Equals(category, StringComparison.OrdinalIgnoreCase)) is var index and >= 0 ? index : int.MaxValue)
             .ThenBy(category => category, StringComparer.OrdinalIgnoreCase).ToList();
@@ -115,6 +120,27 @@ public sealed class ShopSearch
         string lower = text.ToLowerInvariant();
         if (lower.Contains("item#") || lower.Contains("curr#") || lower.Contains("->") || lower.Contains(';') || lower.Contains("stock")) return null;
         return text.Length > 48 ? text[..48] + "…" : text;
+    }
+
+    /// <summary>
+    /// Reference autocomplete: matching categories (all of them for an empty query) and items whose name or short name
+    /// contains the query, ranked exact, starts-with, contains; categories first, then shorter names; at most 60.
+    /// </summary>
+    public IReadOnlyList<ShopSuggestion> Suggest(string? query)
+    {
+        string text = query?.Trim() ?? "";
+        var categories = Categories.Where(category => text.Length == 0 || category.Contains(text, StringComparison.OrdinalIgnoreCase))
+            .Select(category => new ShopSuggestion(0, category, category.ToLowerInvariant(), true)).ToList();
+        if (text.Length == 0) return categories;
+        var all = categories.Concat(catalog
+            .Where(item => !string.IsNullOrWhiteSpace(item.Name)
+                && (item.Name.Contains(text, StringComparison.OrdinalIgnoreCase) || item.ShortName.Contains(text, StringComparison.OrdinalIgnoreCase)))
+            .Select(item => new ShopSuggestion(item.Id, item.Name, item.ShortName, false)));
+        int Rank(ShopSuggestion suggestion) =>
+            suggestion.Display.Equals(text, StringComparison.OrdinalIgnoreCase) || suggestion.ShortName.Equals(text, StringComparison.OrdinalIgnoreCase) ? 1
+            : suggestion.Display.StartsWith(text, StringComparison.OrdinalIgnoreCase) || suggestion.ShortName.StartsWith(text, StringComparison.OrdinalIgnoreCase) ? 2 : 3;
+        return all.OrderBy(Rank).ThenBy(suggestion => suggestion.IsCategory ? 0 : 1).ThenBy(suggestion => suggestion.Display.Length)
+            .ThenBy(suggestion => suggestion.Display, StringComparer.CurrentCulture).Take(60).ToList();
     }
 
     public ShopSearchResult Search(IEnumerable<MapMarker> markers, IReadOnlyList<MapMonument> monuments, ShopSearchOptions options)

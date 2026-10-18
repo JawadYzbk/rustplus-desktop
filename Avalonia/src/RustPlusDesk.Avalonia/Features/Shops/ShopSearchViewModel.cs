@@ -63,13 +63,70 @@ public sealed partial class ShopSearchViewModel : ObservableObject
     [ObservableProperty] private ShopResourceChoice selectedResource;
     [ObservableProperty] private string selectedCategory;
     [ObservableProperty] private IReadOnlyList<ShopResultRow> results = [];
+    [ObservableProperty] private IReadOnlyList<ShopSuggestion> suggestions = [];
+    [ObservableProperty] private bool isSuggestionsOpen;
+    [ObservableProperty] private ShopSuggestion? selectedSuggestion;
+    private bool accepting;
     [ObservableProperty] private string emptyMessage = "";
 
     public bool HasResults => Results.Count > 0;
     partial void OnResultsChanged(IReadOnlyList<ShopResultRow> value) => OnPropertyChanged(nameof(HasResults));
 
     partial void OnIsOpenChanged(bool value) { if (value) Refresh(); }
-    partial void OnQueryChanged(string value) => Refresh();
+    partial void OnQueryChanged(string value)
+    {
+        if (!accepting)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                // Clearing the box also clears the category, like the reference.
+                SelectedCategory = AllCategories;
+                CloseSuggestions();
+            }
+            else ShowSuggestions();
+        }
+        Refresh();
+    }
+
+    /// <summary>Reference GotFocus/typing: suggestions for the current text (every category when it is empty).</summary>
+    public void ShowSuggestions()
+    {
+        Suggestions = search.Suggest(Query);
+        SelectedSuggestion = null;
+        IsSuggestionsOpen = Suggestions.Count > 0;
+    }
+
+    public void CloseSuggestions() => IsSuggestionsOpen = false;
+
+    /// <summary>Down/Up arrow: moves the highlighted suggestion, wrapping like the reference list.</summary>
+    public void MoveSuggestion(int delta)
+    {
+        if (!IsSuggestionsOpen || Suggestions.Count == 0) return;
+        int index = SelectedSuggestion is null ? -1 : IndexOf(SelectedSuggestion);
+        index = delta > 0 ? (index + 1) % Suggestions.Count : index <= 0 ? Suggestions.Count - 1 : index - 1;
+        SelectedSuggestion = Suggestions[index];
+    }
+
+    private int IndexOf(ShopSuggestion suggestion)
+    {
+        for (int i = 0; i < Suggestions.Count; i++) if (ReferenceEquals(Suggestions[i], suggestion)) return i;
+        return -1;
+    }
+
+    /// <summary>Takes a suggestion: a category fills the box and selects that category; an item fills its name.</summary>
+    public void Accept(ShopSuggestion? suggestion)
+    {
+        suggestion ??= SelectedSuggestion;
+        CloseSuggestions();
+        if (suggestion is null) return;
+        accepting = true;
+        try
+        {
+            if (suggestion.IsCategory) SelectedCategory = Categories.FirstOrDefault(category => category.Equals(suggestion.Display, StringComparison.OrdinalIgnoreCase)) ?? AllCategories;
+            Query = suggestion.Display;
+        }
+        finally { accepting = false; }
+    }
     partial void OnSellsChanged(bool value) => Refresh();
     partial void OnBuysChanged(bool value) => Refresh();
     partial void OnHideOutOfStockChanged(bool value) => Refresh();

@@ -23,7 +23,8 @@ public sealed class ShopSearchTests
     };
 
     private static ShopSearch Engine() => new(id => Items.GetValueOrDefault(id),
-        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["rifle.ak"] = "Weapons", ["bandage"] = "Medical", ["scrap"] = "Resources", ["metal.fragments"] = "Resources" });
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["rifle.ak"] = "Weapons", ["bandage"] = "Medical", ["scrap"] = "Resources", ["metal.fragments"] = "Resources" },
+        [.. Items.Values, new(1, "metal.refined", "High Quality Metal"), new(2, "metalblade", "Metal Blade"), new(3, "metal.facemask", "Metal Facemask"), new(4, "x", "")]);
 
     internal static IReadOnlyList<MapMarker> Shops() =>
     [
@@ -81,6 +82,49 @@ public sealed class ShopSearchTests
             Names(engine.Search(Shops(), [], new() { Sort = ShopSortMode.Currency })).ToArray());
         CollectionAssert.AreEqual(new[] { "Weapons", "Medical", "Misc", "Resources" }, engine.Categories.ToArray(), "Reference category order.");
         Assert.AreEqual(14, ShopSearch.Resources.Count);
+    }
+
+    [TestMethod]
+    public void Suggest_RanksExactThenPrefixThenContains_CategoriesFirst()
+    {
+        var engine = Engine();
+        CollectionAssert.AreEqual(engine.Categories.ToArray(), engine.Suggest("  ").Select(s => s.Display).ToArray(), "An empty box offers every category.");
+        Assert.IsTrue(engine.Suggest("").All(s => s.IsCategory && s.Id == 0));
+        var metal = engine.Suggest("metal");
+        // No exact match; prefix matches by display or short name, shorter names first, then contains.
+        CollectionAssert.AreEqual(new[] { "Metal Blade", "Metal Facemask", "Metal Fragments", "High Quality Metal" }, metal.Select(s => s.Display).ToArray());
+        var resources = engine.Suggest("resources");
+        Assert.IsTrue(resources[0].IsCategory && resources[0].Display == "Resources", "Exact category name ranks first.");
+        Assert.AreEqual("Scrap", engine.Suggest("SCRAP")[0].Display, "Exact short-name match ranks first.");
+        Assert.AreEqual(0, engine.Suggest("zzz").Count);
+    }
+
+    [TestMethod]
+    public void ViewModel_AutocompleteOpensMovesAndAccepts()
+    {
+        var map = new MapViewModel();
+        var model = new ShopSearchViewModel(Engine(), map);
+        model.ShowSuggestions();
+        Assert.IsTrue(model.IsSuggestionsOpen, "Focusing an empty box lists the categories.");
+        model.Query = "metal";
+        Assert.IsTrue(model.IsSuggestionsOpen);
+        Assert.IsNull(model.SelectedSuggestion);
+        model.MoveSuggestion(-1);
+        Assert.AreEqual("High Quality Metal", model.SelectedSuggestion!.Display, "Up from nothing wraps to the last entry.");
+        model.MoveSuggestion(1);
+        Assert.AreEqual("Metal Blade", model.SelectedSuggestion!.Display, "Down wraps to the first entry.");
+        model.Accept(null);
+        Assert.IsFalse(model.IsSuggestionsOpen, "Accepting does not reopen the list.");
+        Assert.AreEqual("Metal Blade", model.Query);
+        model.Query = "medic";
+        model.Accept(model.Suggestions.First(s => s.IsCategory));
+        Assert.AreEqual("Medical", model.SelectedCategory);
+        Assert.AreEqual("Medical", model.Query);
+        model.Query = "";
+        Assert.AreEqual(ShopSearchViewModel.AllCategories, model.SelectedCategory, "Clearing the box clears the category.");
+        Assert.IsFalse(model.IsSuggestionsOpen);
+        model.Query = "zzz";
+        Assert.IsFalse(model.IsSuggestionsOpen, "Nothing to suggest keeps the list closed.");
     }
 
     [TestMethod]
@@ -163,6 +207,20 @@ public sealed class ShopSearchTests
                 Assert.IsNotNull(map.FocusRequest);
                 var search = window.GetVisualDescendants().OfType<TextBox>().Single(box => AutomationProperties.GetName(box) == "Search shops");
                 Assert.AreEqual("scrap", search.Text);
+                search.Focus();
+                search.Text = "ban";
+                Assert.IsTrue(model.IsSuggestionsOpen);
+                using (var frame = window.CaptureRenderedFrame())
+                {
+                    Assert.IsNotNull(frame);
+                    frame.Save(Path.Combine(AppContext.BaseDirectory, "ui-shop-suggestions.png"), PngBitmapEncoderOptions.Default);
+                }
+                window.KeyPress(global::Avalonia.Input.Key.Down, global::Avalonia.Input.RawInputModifiers.None, global::Avalonia.Input.PhysicalKey.ArrowDown, null);
+                Assert.AreEqual("Bandage", model.SelectedSuggestion!.Display);
+                window.KeyPress(global::Avalonia.Input.Key.Enter, global::Avalonia.Input.RawInputModifiers.None, global::Avalonia.Input.PhysicalKey.Enter, null);
+                Assert.AreEqual("Bandage", search.Text);
+                Assert.IsFalse(model.IsSuggestionsOpen);
+                Assert.AreEqual("Gun shop", model.Results.Single().Title);
             }
             finally { window.Close(); }
             await Task.CompletedTask;

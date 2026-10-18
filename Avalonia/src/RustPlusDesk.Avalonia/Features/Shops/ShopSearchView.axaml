@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:RustPlusDesk.Avalonia.Features.Shops"
+             xmlns:core="clr-namespace:RustPlusDesk.Core.Map;assembly=RustPlusDesk.Core"
              xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons" xmlns:shared="using:RustPlusDesk.Avalonia.Shared.Controls"
              x:Class="RustPlusDesk.Avalonia.Features.Shops.ShopSearchView" x:DataType="vm:ShopSearchViewModel">
   <Border Classes="panel" Background="{DynamicResource Surface}" Padding="12" BoxShadow="0 6 24 0 #66000000">
@@ -10,7 +11,28 @@
         <Button Grid.Column="2" Classes="icon" Command="{Binding ToggleCommand}" ToolTip.Tip="Close shop search"
                 AutomationProperties.Name="Close shop search"><icons:Icon Symbol="Dismiss24" /></Button>
       </Grid>
-      <TextBox Grid.Row="1" Text="{Binding Query}" PlaceholderText="Search items or categories…" AutomationProperties.Name="Search shops">
+      <Popup Grid.Row="1" PlacementTarget="{Binding #SearchBox}" Placement="BottomEdgeAlignedLeft" IsOpen="{Binding IsSuggestionsOpen}"
+             IsLightDismissEnabled="False" Width="{Binding #SearchBox.Bounds.Width}">
+        <Border Classes="panel" Background="{DynamicResource Surface}" Padding="4" BoxShadow="0 6 18 0 #66000000">
+          <ListBox x:Name="SuggestionList" ItemsSource="{Binding Suggestions}" SelectedItem="{Binding SelectedSuggestion}" MaxHeight="260"
+                   Background="Transparent" AutomationProperties.Name="Shop search suggestions" Tapped="SuggestionTapped">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="core:ShopSuggestion">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                  <shared:ItemIcon ShortName="{Binding ShortName}" Width="20" Height="20" IsVisible="{Binding !IsCategory}" />
+                  <icons:Icon Symbol="Grid24" FontSize="16" Foreground="{DynamicResource Accent}" IsVisible="{Binding IsCategory}" />
+                  <TextBlock Grid.Column="1" Text="{Binding Display}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                  <Border Grid.Column="2" Classes="pill" Padding="6,0" IsVisible="{Binding IsCategory}">
+                    <TextBlock Text="Category" FontSize="10" Classes="muted" />
+                  </Border>
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Border>
+      </Popup>
+      <TextBox Grid.Row="1" x:Name="SearchBox" Text="{Binding Query}" PlaceholderText="Search items or categories…" AutomationProperties.Name="Search shops"
+               GotFocus="SearchGotFocus" LostFocus="SearchLostFocus">
         <TextBox.InnerLeftContent><icons:Icon Symbol="Search24" FontSize="15" Margin="8,0,0,0" Foreground="{DynamicResource TextSubtle}" /></TextBox.InnerLeftContent>
         <TextBox.InnerRightContent>
           <Button Classes="icon" Width="26" Height="26" Command="{Binding ClearQueryCommand}" AutomationProperties.Name="Clear shop search"

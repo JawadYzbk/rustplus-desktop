@@ -58,8 +58,10 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
                 if (!string.IsNullOrEmpty(item.Category)) categories[item.Resource.ShortName] = item.Category;
         }
         catch (Exception) { Activity.Append("[shops] Item categories are unavailable; the category filter lists only Misc."); }
+        var catalog = RustPlusDesk.Infrastructure.Items.BundledItemCatalog.Icons.Values
+            .Select(item => new RustPlusDesk.Core.Map.ShopItem(item.Id, item.ShortName, item.Name)).ToList();
         return new(id => RustPlusDesk.Infrastructure.Items.BundledItemCatalog.Icons.TryGetValue(id, out var item)
-            ? new RustPlusDesk.Core.Map.ShopItem(id, item.ShortName, item.Name) : null, categories);
+            ? new RustPlusDesk.Core.Map.ShopItem(id, item.ShortName, item.Name) : null, categories, catalog);
     }
 
     /// <summary>Diagnostics stream shown in the bottom Activity tab.</summary>
