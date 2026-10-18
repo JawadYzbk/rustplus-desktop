@@ -33,6 +33,7 @@ public sealed class LegacyServerCatalog : IServerCatalog
                 string.IsNullOrWhiteSpace(profile.Name) ? profile.Host : profile.Name, profile.Host, profile.Port)
             {
                 ProfileKey = LegacyProfileIdentity.Create(profile.Host, profile.Port, profile.SteamId64),
+                MatchKey = $"{profile.Host}:{profile.Port}|{profile.SteamId64}",
                 SourceRevision = revision,
                 Devices = MapDevices(profile.Devices)
             });

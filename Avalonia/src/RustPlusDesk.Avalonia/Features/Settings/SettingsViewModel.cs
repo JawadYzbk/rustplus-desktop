@@ -15,20 +15,25 @@ public sealed record MutedServerRow(string Key, string Name)
 }
 
 /// <summary>
-/// App settings (reference AppSettingsOverlay), starting with the Alerts category for what is ported: Notification
-/// Center toasts, the 1–90 day retention, the muted-server list with Unmute, and the generic smart-alarm popup.
-/// Values live in tracking_settings.json under the reference names.
+/// App settings (reference AppSettingsOverlay), category by category for what is ported. General: auto-connect on
+/// startup and launch at sign-in. Alerts: Notification Center toasts, the 1–90 day retention, the muted-server list
+/// with Unmute, and the generic smart-alarm popup. Values live in tracking_settings.json under the reference names.
 /// </summary>
 public sealed partial class SettingsViewModel : ObservableObject
 {
     public const int MinRetentionDays = 1, MaxRetentionDays = 90;
     private readonly IAppSettingsStore? settings;
     private readonly Func<string, string?> serverName;
+    private readonly ILaunchAtLogin? launchAtLogin;
+    private bool revertingAutoStart;
 
-    public SettingsViewModel(IAppSettingsStore? settings, Func<string, string?>? serverName = null)
+    public SettingsViewModel(IAppSettingsStore? settings, Func<string, string?>? serverName = null, ILaunchAtLogin? launchAtLogin = null)
     {
         this.settings = settings;
         this.serverName = serverName ?? (_ => null);
+        this.launchAtLogin = launchAtLogin;
+        autoConnect = settings?.Get(SettingKeys.AutoConnectEnabled, false) ?? false;
+        autoStart = settings?.Get(SettingKeys.AutoStartEnabled, false) ?? false;
         toastsEnabled = settings?.Get(SettingKeys.NotificationsToastEnabled, true) ?? true;
         retentionDays = Math.Clamp(NotificationInbox.Retention(settings?.Get(SettingKeys.NotificationsRetentionDays, NotificationInbox.DefaultRetentionDays) ?? 30),
             MinRetentionDays, MaxRetentionDays);
@@ -36,6 +41,15 @@ public sealed partial class SettingsViewModel : ObservableObject
         RefreshMuted();
     }
 
+    [ObservableProperty] private bool autoConnect;
+    [ObservableProperty] private bool autoStart;
+    /// <summary>Why the last launch-at-sign-in change did not apply (empty when it did).</summary>
+    [ObservableProperty] private string autoStartError = "";
+    public bool CanAutoStart => launchAtLogin?.IsSupported == true;
+    public string AutoStartLabel => launchAtLogin?.Label ?? "Launch at sign-in";
+    public string AutoStartNote => CanAutoStart
+        ? "Opens Rust+ Desktop when you sign in to this computer."
+        : launchAtLogin?.UnsupportedReason ?? "Launching at sign-in is not available in this build.";
     [ObservableProperty] private bool toastsEnabled;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(RetentionText))]
@@ -47,6 +61,24 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     /// <summary>Raised when the generic alarm popup setting changes (the alarm model applies it live).</summary>
     public event Action<bool>? GenericAlarmPopupChanged;
+
+    partial void OnAutoConnectChanged(bool value) => settings?.Set(SettingKeys.AutoConnectEnabled, value);
+
+    /// <summary>Reference AutoStartEnabled setter: registers or removes the login item, then saves the flag.</summary>
+    partial void OnAutoStartChanged(bool value)
+    {
+        if (revertingAutoStart) return;
+        if (launchAtLogin is not { IsSupported: true } || !launchAtLogin.Apply(value))
+        {
+            AutoStartError = value ? "Could not register the app to start at sign-in." : "Could not remove the sign-in registration.";
+            revertingAutoStart = true;
+            AutoStart = !value;
+            revertingAutoStart = false;
+            return;
+        }
+        AutoStartError = "";
+        settings?.Set(SettingKeys.AutoStartEnabled, value);
+    }
 
     partial void OnToastsEnabledChanged(bool value) => settings?.Set(SettingKeys.NotificationsToastEnabled, value);
     partial void OnRetentionDaysChanged(int value)

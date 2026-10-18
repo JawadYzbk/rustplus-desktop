@@ -27,7 +27,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Core.Settings.IAppSettingsStore? appSettings = null, RustPlusDesk.Core.Map.IShopAlertStore? shopAlertStore = null,
     RustPlusDesk.Core.Map.IAlertSound? alertSound = null, RustPlusDesk.Core.Console.IConsoleCommandStore? consoleStore = null,
     RustPlusDesk.Core.Notifications.INotificationHistoryStore? notificationStore = null,
-    RustPlusDesk.Core.Hotkeys.IHotkeyStore? hotkeyStore = null)
+    RustPlusDesk.Core.Hotkeys.IHotkeyStore? hotkeyStore = null, RustPlusDesk.Core.Settings.ILaunchAtLogin? launchAtLogin = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -210,7 +210,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
 
     private Settings.SettingsViewModel CreateSettings()
     {
-        var model = new Settings.SettingsViewModel(appSettings, key => Servers.FirstOrDefault(server => $"{server.Host}:{server.Port}" == key)?.Name);
+        var model = new Settings.SettingsViewModel(appSettings, key => Servers.FirstOrDefault(server => $"{server.Host}:{server.Port}" == key)?.Name, launchAtLogin);
         model.GenericAlarmPopupChanged += value => Alarms.GenericPopupEnabled = value;
         return model;
     }
@@ -424,6 +424,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         {
             await RefreshCommand.ExecuteAsync(null);
             cancellationToken.ThrowIfCancellationRequested();
+            autoConnect = AutoConnectAsync();
             try { await ShopAlerts.LoadAsync(cancellationToken); }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Activity.Append("[shops] Saved shop alerts could not be read."); }
             _ = ChatAlerts;
@@ -443,6 +444,21 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
                 await StartListenerAsync();
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+    }
+
+    /// <summary>Reference startup delay before auto-connect ("give the pairing listener a head start").</summary>
+    internal TimeSpan AutoConnectDelay { get; init; } = TimeSpan.FromSeconds(1);
+    private Task autoConnect = Task.CompletedTask;
+    internal Task AutoConnectTask => autoConnect;
+
+    /// <summary>Reference startup: with AutoConnectEnabled, connect the restored server unless it is already connected.</summary>
+    private async Task AutoConnectAsync()
+    {
+        if (appSettings?.Get(RustPlusDesk.Core.Settings.SettingKeys.AutoConnectEnabled, false) != true || SelectedServer is null) return;
+        await Task.Delay(AutoConnectDelay);
+        if (shuttingDown || SelectedServer is null || Connection.IsConnected || !Connection.ConnectCommand.CanExecute(null)) return;
+        Activity.Append($"[connection] Auto-connecting to {SelectedServer.Name}.");
+        Connection.ConnectCommand.Execute(null);
     }
 
     private Task StartListenerAsync()
@@ -497,6 +513,10 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             };
         }
         Connection.Select(SourcePath, value);
+        // Reference MainViewModel.Selected: remember the choice so the next start restores it.
+        if (value is { MatchKey.Length: > 0 } && appSettings is not null
+            && appSettings.Get(RustPlusDesk.Core.Settings.SettingKeys.LastSelectedServerKey, "") != value.MatchKey)
+            appSettings.Set(RustPlusDesk.Core.Settings.SettingKeys.LastSelectedServerKey, value.MatchKey);
         Hotkeys.SelectServer(value?.Host, value?.Port);
         ImportDevicesCommand.NotifyCanExecuteChanged();
     }
@@ -708,7 +728,9 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         try
         {
             Servers = await catalog.LoadAsync(path, cancellationToken);
-            SelectedServer = Servers.FirstOrDefault(server => server.ProfileKey == previousKey) ?? Servers.FirstOrDefault();
+            string lastKey = appSettings?.Get(RustPlusDesk.Core.Settings.SettingKeys.LastSelectedServerKey, "") ?? "";
+            SelectedServer = Servers.FirstOrDefault(server => server.ProfileKey == previousKey)
+                ?? (lastKey.Length > 0 ? Servers.FirstOrDefault(server => server.MatchKey == lastKey) : null) ?? Servers.FirstOrDefault();
         }
         catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
         {

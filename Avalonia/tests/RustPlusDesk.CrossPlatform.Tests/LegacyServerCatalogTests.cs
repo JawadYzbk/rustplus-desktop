@@ -57,6 +57,8 @@ public sealed class LegacyServerCatalogTests
             Assert.AreEqual("example.test", servers[1].Name);
             Assert.AreEqual(28082, servers[1].Port);
             Assert.IsFalse(JsonSerializer.Serialize(servers).Contains("private-", StringComparison.Ordinal));
+            Assert.IsFalse(servers[0].ToString().Contains("private-", StringComparison.Ordinal));
+            Assert.AreEqual("localhost:28083|private-id", servers[0].MatchKey, "The reference LastSelectedServerKey form.");
             Assert.AreEqual(json, await File.ReadAllTextAsync(path));
         }
         finally { File.Delete(path); }

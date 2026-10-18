@@ -5,6 +5,35 @@
   <ScrollViewer HorizontalScrollBarVisibility="Disabled">
     <StackPanel Spacing="14" MaxWidth="820" HorizontalAlignment="Stretch">
       <StackPanel Orientation="Horizontal" Spacing="10">
+        <icons:Icon Symbol="Settings24" FontSize="18" Foreground="{DynamicResource Accent}" />
+        <StackPanel>
+          <TextBlock Text="General" Classes="title" />
+          <TextBlock Text="Startup and app behavior" Classes="muted" FontSize="12" />
+        </StackPanel>
+      </StackPanel>
+      <Border Classes="panel" Padding="16">
+        <StackPanel Spacing="12">
+          <TextBlock Text="STARTUP" Classes="section" />
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Auto-connect to last server on startup" FontWeight="SemiBold" />
+              <TextBlock Text="Automatically reconnects to the last server and loads the map." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding AutoConnect}" OnContent="" OffContent="" AutomationProperties.Name="Auto-connect to last server on startup" />
+          </Grid>
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="{Binding AutoStartLabel}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding AutoStartNote}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding AutoStartError}" Foreground="{DynamicResource ConnectionDanger}" FontSize="12" TextWrapping="Wrap"
+                         IsVisible="{Binding AutoStartError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding AutoStart}" IsEnabled="{Binding CanAutoStart}" OnContent="" OffContent=""
+                          AutomationProperties.Name="{Binding AutoStartLabel}" />
+          </Grid>
+        </StackPanel>
+      </Border>
+      <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0">
         <icons:Icon Symbol="Alert24" FontSize="18" Foreground="{DynamicResource Accent}" />
         <StackPanel>
           <TextBlock Text="Alerts" Classes="title" />
