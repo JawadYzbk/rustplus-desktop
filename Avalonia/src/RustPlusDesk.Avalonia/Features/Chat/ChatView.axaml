@@ -3,18 +3,40 @@
              xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
              x:Class="RustPlusDesk.Avalonia.Features.Chat.ChatView" x:DataType="vm:ChatViewModel">
   <Grid RowDefinitions="Auto,*,Auto,Auto" RowSpacing="6">
-    <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasClan}">
-      <RadioButton Classes="chip" Content="Team" IsChecked="{Binding !IsClan}" GroupName="ChatChannel" AutomationProperties.Name="Team chat" />
-      <RadioButton Classes="chip" Content="Clan" IsChecked="{Binding IsClan}" GroupName="ChatChannel" AutomationProperties.Name="Clan chat" />
-    </StackPanel>
+    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" IsVisible="{Binding IsConnected}">
+      <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasClan}" VerticalAlignment="Center">
+        <RadioButton Classes="chip" Content="Team" IsChecked="{Binding !IsClan}" GroupName="ChatChannel" AutomationProperties.Name="Team chat" />
+        <RadioButton Classes="chip" Content="Clan" IsChecked="{Binding IsClan}" GroupName="ChatChannel" AutomationProperties.Name="Clan chat" />
+      </StackPanel>
+      <Grid Grid.Column="1" x:Name="SearchRow" ColumnDefinitions="*,Auto" IsVisible="{Binding IsSearchOpen}">
+        <TextBox x:Name="SearchBox" Text="{Binding SearchText}" PlaceholderText="Search messages or names…" AutomationProperties.Name="Search chat" />
+        <Button Grid.Column="1" Classes="icon" Command="{Binding ClearSearchCommand}" ToolTip.Tip="Clear search" AutomationProperties.Name="Clear chat search"
+                Margin="4,0,0,0"><icons:Icon Symbol="Dismiss24" /></Button>
+      </Grid>
+      <ToggleButton Grid.Column="2" Classes="chip" IsChecked="{Binding IsSearchOpen, Mode=OneWay}" Command="{Binding ToggleSearchCommand}"
+                    ToolTip.Tip="Search chat" AutomationProperties.Name="Toggle chat search" Padding="8,4"><icons:Icon Symbol="Search24" /></ToggleButton>
+    </Grid>
     <Grid Grid.Row="1">
       <TextBlock Text="Connect to a server to read and send team chat." Classes="muted" TextWrapping="Wrap"
                  IsVisible="{Binding !IsConnected}" VerticalAlignment="Center" HorizontalAlignment="Center" />
+      <TextBlock Text="No messages match your search." Classes="muted" IsVisible="{Binding HasNoMatches}"
+                 VerticalAlignment="Center" HorizontalAlignment="Center" />
       <ScrollViewer x:Name="Scroller" HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding IsConnected}">
         <ItemsControl ItemsSource="{Binding Lines}" AutomationProperties.Name="Chat messages">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:ChatLine">
-              <TextBlock TextWrapping="Wrap" Margin="0,2">
+              <TextBlock TextWrapping="Wrap" Margin="0,2" Background="Transparent">
+                <TextBlock.ContextMenu>
+                  <ContextMenu>
+                    <MenuItem Header="Copy text" Click="CopyText"><MenuItem.Icon><icons:Icon Symbol="Copy24" /></MenuItem.Icon></MenuItem>
+                    <MenuItem Header="Copy Steam ID" Click="CopySteamId" IsVisible="{Binding HasSteamId}" />
+                    <MenuItem Header="Mention @User" Click="Mention" />
+                    <MenuItem Header="Center on map" IsVisible="{Binding HasSteamId}" CommandParameter="{Binding}"
+                              Command="{Binding $parent[UserControl].((vm:ChatViewModel)DataContext).CenterOnAuthorCommand}">
+                      <MenuItem.Icon><icons:Icon Symbol="Location24" /></MenuItem.Icon></MenuItem>
+                    <MenuItem Header="Open Steam profile" Click="OpenSteamProfile" IsVisible="{Binding HasSteamId}" />
+                  </ContextMenu>
+                </TextBlock.ContextMenu>
                 <Run Text="{Binding Time}" Foreground="{DynamicResource TextSubtle}" FontSize="11" />
                 <Run Text=" " /><Run Text="{Binding Name}" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" />
                 <Run Text=": " /><Run Text="{Binding Text}" />
@@ -24,10 +46,14 @@
         </ItemsControl>
       </ScrollViewer>
     </Grid>
-    <TextBlock Grid.Row="2" Text="{Binding Error}" Foreground="{DynamicResource ConnectionDanger}" FontSize="12" TextWrapping="Wrap"
-               IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    <StackPanel Grid.Row="2">
+      <TextBlock Text="{Binding Error}" Foreground="{DynamicResource ConnectionDanger}" FontSize="12" TextWrapping="Wrap"
+                 IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      <TextBlock Text="{Binding Notice}" Classes="muted" FontSize="12" TextWrapping="Wrap"
+                 IsVisible="{Binding Notice, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    </StackPanel>
     <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-      <TextBox Text="{Binding Draft}" PlaceholderText="Message your team…" MaxLength="128" IsEnabled="{Binding IsConnected}"
+      <TextBox x:Name="DraftBox" Text="{Binding Draft}" PlaceholderText="Message your team…" MaxLength="128" IsEnabled="{Binding IsConnected}"
                KeyDown="DraftKeyDown" AutomationProperties.Name="Chat message" />
       <TextBlock Grid.Column="1" Text="{Binding CharacterCount}" VerticalAlignment="Center" FontSize="11"
                  Classes="muted" Classes.limit="{Binding IsAtLimit}" />

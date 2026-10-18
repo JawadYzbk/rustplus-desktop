@@ -28,6 +28,7 @@ public sealed class MapSurface : Control
     public static readonly StyledProperty<double> GridOpacityProperty = AvaloniaProperty.Register<MapSurface, double>(nameof(GridOpacity), 0.7);
     public static readonly StyledProperty<bool> MonumentNamesProperty = AvaloniaProperty.Register<MapSurface, bool>(nameof(MonumentNames));
     public static readonly StyledProperty<int> ResetRequestProperty = AvaloniaProperty.Register<MapSurface, int>(nameof(ResetRequest));
+    public static readonly StyledProperty<MapFocus?> FocusRequestProperty = AvaloniaProperty.Register<MapSurface, MapFocus?>(nameof(FocusRequest));
 
     public Bitmap? Image { get => GetValue(ImageProperty); set => SetValue(ImageProperty, value); }
     public MapGeometry? Geometry { get => GetValue(GeometryProperty); set => SetValue(GeometryProperty, value); }
@@ -35,6 +36,8 @@ public sealed class MapSurface : Control
     public bool ShowGrid { get => GetValue(ShowGridProperty); set => SetValue(ShowGridProperty, value); }
     public bool ShowMonuments { get => GetValue(ShowMonumentsProperty); set => SetValue(ShowMonumentsProperty, value); }
     public int ResetRequest { get => GetValue(ResetRequestProperty); set => SetValue(ResetRequestProperty, value); }
+    /// <summary>Centres the view on this image point at the current zoom whenever a new request arrives.</summary>
+    public MapFocus? FocusRequest { get => GetValue(FocusRequestProperty); set => SetValue(FocusRequestProperty, value); }
     public double MonumentScale { get => GetValue(MonumentScaleProperty); set => SetValue(MonumentScaleProperty, value); }
     public double MonumentOpacity { get => GetValue(MonumentOpacityProperty); set => SetValue(MonumentOpacityProperty, value); }
     public double GridOpacity { get => GetValue(GridOpacityProperty); set => SetValue(GridOpacityProperty, value); }
@@ -73,6 +76,7 @@ public sealed class MapSurface : Control
     {
         base.OnPropertyChanged(change);
         if (change.Property == ImageProperty || change.Property == ResetRequestProperty) { needsFit = true; InvalidateVisual(); }
+        else if (change.Property == FocusRequestProperty && change.NewValue is MapFocus focus) CenterOn(focus.X, focus.Y);
     }
 
     protected override void OnSizeChanged(SizeChangedEventArgs e)
@@ -94,6 +98,15 @@ public sealed class MapSurface : Control
         offset = new Vector((Bounds.Width - Image.Size.Width * scale) / 2, (Bounds.Height - Image.Size.Height * scale) / 2);
         needsFit = false;
         return true;
+    }
+
+    /// <summary>Puts the image point in the middle of the control without changing the zoom.</summary>
+    public void CenterOn(double x, double y)
+    {
+        if (Image is null || Bounds.Width <= 0 || Bounds.Height <= 0) return;
+        if (needsFit) Fit();
+        offset = new Vector(Bounds.Width / 2 - x * scale, Bounds.Height / 2 - y * scale);
+        InvalidateVisual();
     }
 
     private double MinZoom => Image is null ? 0.05 : Math.Min(Bounds.Width / Image.Size.Width, Bounds.Height / Image.Size.Height) * 0.5;

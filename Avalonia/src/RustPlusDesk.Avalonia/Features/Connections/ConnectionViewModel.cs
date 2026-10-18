@@ -16,7 +16,8 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
     public DevicesViewModel Devices { get; } = new();
     public TeamViewModel Team { get; } = new();
     public Map.MapViewModel Map { get; } = new();
-    public Chat.ChatViewModel Chat { get; } = new();
+    private Chat.ChatViewModel? chat;
+    public Chat.ChatViewModel Chat => chat ??= new() { CenterOnMap = Map.CenterOnPlayer };
     private string profilesPath = "";
     private ServerSummary? selectedServer;
     private ServerClock clock = new();

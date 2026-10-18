@@ -1,6 +1,9 @@
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.VisualTree;
@@ -90,13 +93,116 @@ public sealed class ChatTests
             {
                 window.Show();
                 await CompanionListenerViewModelTests.Eventually(() => model.Lines.Count == 1);
-                var input = window.GetVisualDescendants().OfType<TextBox>().Single();
+                var input = window.GetVisualDescendants().OfType<TextBox>().Single(box => AutomationProperties.GetName(box) == "Chat message");
                 input.Text = "gg";
                 input.Focus();
                 window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
                 await CompanionListenerViewModelTests.Eventually(() => session.Sent.Count == 1);
                 using var frame = window.CaptureRenderedFrame();
                 Assert.IsNotNull(frame);
+            }
+            finally { cts.Cancel(); await running; window.Close(); }
+            return true;
+        }, default);
+    }
+
+    [TestMethod]
+    public void Chat_SearchFiltersByTextOrAuthor_IgnoringCase_AndClosingClearsIt()
+    {
+        var model = new ChatViewModel();
+        model.Add(new(ChatChannel.Team, 1, "Ann", "Raid at B4", T0));
+        model.Add(new(ChatChannel.Team, 2, "Bob", "omw", T0.AddSeconds(1)));
+        model.Add(new(ChatChannel.Clan, 3, "Cid", "raid clan", T0.AddSeconds(2)));
+        model.ToggleSearchCommand.Execute(null);
+        Assert.IsTrue(model.IsSearchOpen);
+        model.SearchText = "  RAID ";
+        Assert.AreEqual("Ann", model.Lines.Single().Name, "Only the current channel is searched.");
+        model.SearchText = "bob";
+        Assert.AreEqual("omw", model.Lines.Single().Text, "The author name matches too.");
+        model.Add(new(ChatChannel.Team, 2, "Bob", "second", T0.AddSeconds(3)));
+        Assert.AreEqual(2, model.Lines.Count, "New matching messages appear while searching.");
+        model.SearchText = "nothing";
+        Assert.IsTrue(model.HasNoMatches);
+        model.ClearSearchCommand.Execute(null);
+        Assert.AreEqual(3, model.Lines.Count);
+        Assert.IsFalse(model.HasNoMatches);
+        model.SearchText = "omw";
+        model.ToggleSearchCommand.Execute(null);
+        Assert.IsFalse(model.IsSearchOpen);
+        Assert.AreEqual("", model.SearchText);
+        Assert.AreEqual(3, model.Lines.Count);
+        model.ToggleSearchCommand.Execute(null);
+        model.SearchText = "omw";
+        model.Reset();
+        Assert.IsFalse(model.IsSearchOpen, "A new connection starts without a search.");
+        Assert.AreEqual("", model.SearchText);
+    }
+
+    [TestMethod]
+    public void Chat_MessageMenu_MentionsTheAuthor_AndCentresTheMapOnThem()
+    {
+        var centred = new List<ulong>();
+        var model = new ChatViewModel { CenterOnMap = id => { centred.Add(id); return id == 7; } };
+        model.Add(new(ChatChannel.Team, 7, "Ann", "here", T0));
+        model.Add(new(ChatChannel.Team, 8, "Bob", "there", T0.AddSeconds(1)));
+        model.Add(new(ChatChannel.Team, 0, "", "server", T0.AddSeconds(2)));
+        var (ann, bob, system) = (model.Lines[0], model.Lines[1], model.Lines[2]);
+        model.Draft = "hi";
+        model.Mention(ann);
+        Assert.AreEqual("@Ann hi", model.Draft);
+        model.Mention(system);
+        Assert.AreEqual("@Ann hi", model.Draft, "A line without an author name has nothing to mention.");
+        model.Draft = new string('x', 127);
+        model.Mention(bob);
+        Assert.AreEqual(128, model.Draft.Length, "The in-game limit still applies.");
+        Assert.AreEqual("https://steamcommunity.com/profiles/7", ann.SteamProfile!.ToString());
+        Assert.IsFalse(system.HasSteamId);
+        Assert.IsNull(system.SteamProfile);
+        model.CenterOnAuthorCommand.Execute(bob);
+        Assert.AreEqual("Teammate is not currently visible on the active map.", model.Notice);
+        model.CenterOnAuthorCommand.Execute(ann);
+        Assert.AreEqual("", model.Notice);
+        model.CenterOnAuthorCommand.Execute(system);
+        CollectionAssert.AreEqual(new ulong[] { 8, 7 }, centred);
+    }
+
+    [TestMethod]
+    public async Task ChatView_SearchBoxFiltersAndTheMessageMenuMentions()
+    {
+        await UiTestSession.Current.Dispatch(async () =>
+        {
+            var session = new ChatSession();
+            session.History[ChatChannel.Team] = [new(ChatChannel.Team, 1, "Ann", "hello team", T0), new(ChatChannel.Team, 2, "Bob", "raid now", T0.AddSeconds(1))];
+            var model = new ChatViewModel();
+            using var cts = new CancellationTokenSource();
+            var running = model.RunAsync(session, cts.Token);
+            var window = new Window { Width = 700, Height = 260, Content = new ChatView { DataContext = model } };
+            try
+            {
+                window.Show();
+                await CompanionListenerViewModelTests.Eventually(() => model.Lines.Count == 2);
+                var search = window.GetVisualDescendants().OfType<TextBox>().Single(box => AutomationProperties.GetName(box) == "Search chat");
+                Assert.IsFalse(search.IsEffectivelyVisible);
+                var toggle = window.GetVisualDescendants().OfType<ToggleButton>().Single(button => AutomationProperties.GetName(button) == "Toggle chat search");
+                toggle.Command!.Execute(null);
+                window.UpdateLayout();
+                Assert.IsTrue(search.IsEffectivelyVisible);
+                search.Text = "raid";
+                window.UpdateLayout();
+                var line = window.GetVisualDescendants().OfType<TextBlock>().Single(block => block.DataContext is ChatLine && block.ContextMenu is not null);
+                Assert.AreEqual("Bob", ((ChatLine)line.DataContext!).Name);
+                using (var frame = window.CaptureRenderedFrame())
+                {
+                    Assert.IsNotNull(frame);
+                    frame.Save(Path.Combine(AppContext.BaseDirectory, "ui-chat-search.png"), global::Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+                }
+                line.ContextMenu!.Open(line);
+                var items = line.ContextMenu.Items.OfType<MenuItem>().ToList();
+                CollectionAssert.AreEqual(new[] { "Copy text", "Copy Steam ID", "Mention @User", "Center on map", "Open Steam profile" },
+                    items.Select(item => (string)item.Header!).ToArray());
+                items.Single(item => (string)item.Header! == "Mention @User").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+                Assert.AreEqual("@Bob ", model.Draft);
+                line.ContextMenu.Close();
             }
             finally { cts.Cancel(); await running; window.Close(); }
             return true;

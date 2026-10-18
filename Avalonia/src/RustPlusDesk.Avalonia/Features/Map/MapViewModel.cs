@@ -33,6 +33,23 @@ public sealed partial class MapViewModel : ObservableObject
 
     [RelayCommand] private void ResetView() => ViewResetRequest++;
 
+    /// <summary>Latest request to centre the view on an image point at the current zoom.</summary>
+    [ObservableProperty] private MapFocus? focusRequest;
+
+    /// <summary>
+    /// Centres the map on a teammate's live player marker, keeping the zoom (reference CenterOnMember /
+    /// CenterMapOnWorld). Returns false when that player has no marker on the current map.
+    /// </summary>
+    public bool CenterOnPlayer(ulong steamId)
+    {
+        if (steamId == 0 || Geometry is not { } geometry) return false;
+        var player = Markers.FirstOrDefault(marker => marker.Kind == MapMarkerKind.Player && marker.SteamId == steamId);
+        if (player is null) return false;
+        var (x, y) = geometry.WorldToImage(player.X, player.Y);
+        FocusRequest = new MapFocus(x, y, (FocusRequest?.Sequence ?? 0) + 1);
+        return true;
+    }
+
     // Layers (reference PopupLayers), persisted in the shared tracking_settings.json.
     private IAppSettingsStore? settings;
     [ObservableProperty] private int monumentDisplayMode;
@@ -71,6 +88,7 @@ public sealed partial class MapViewModel : ObservableObject
         Geometry = null;
         Monuments = [];
         Markers = [];
+        FocusRequest = null;
         Message = "";
         IsLoading = false;
         old?.Dispose();
@@ -138,3 +156,6 @@ public sealed partial class MapViewModel : ObservableObject
         old?.Dispose();
     }
 }
+
+/// <summary>An image-space point to centre on; <see cref="Sequence"/> makes repeated requests distinct.</summary>
+public sealed record MapFocus(double X, double Y, int Sequence);

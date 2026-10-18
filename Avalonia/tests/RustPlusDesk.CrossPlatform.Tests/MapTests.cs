@@ -233,6 +233,45 @@ public sealed class MapTests
         }, default);
     }
 
+    [TestMethod]
+    public async Task CenterOnPlayer_CentresTheSurfaceOnTheirMarker_KeepingTheZoom()
+    {
+        await UiTestSession.Current.Dispatch(async () =>
+        {
+            var model = new MapViewModel();
+            Assert.IsFalse(model.CenterOnPlayer(76561198000000001), "Nothing to centre on before the map loads.");
+            model.Apply(SyntheticMap());
+            model.Markers = SyntheticMarkers();
+            var surface = new MapSurface { Image = model.Image, Geometry = model.Geometry, Markers = model.Markers };
+            model.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(MapViewModel.FocusRequest)) surface.FocusRequest = model.FocusRequest; };
+            var window = new Window { Width = 900, Height = 700, Content = surface };
+            try
+            {
+                window.Show();
+                using (var frame = window.CaptureRenderedFrame()) Assert.IsNotNull(frame);
+                surface.ZoomAt(new Point(100, 100), 2);
+                double zoom = surface.Scale;
+                Assert.IsFalse(model.CenterOnPlayer(42), "Unknown players are not on the map.");
+                Assert.IsFalse(model.CenterOnPlayer(0));
+                Assert.IsTrue(model.CenterOnPlayer(76561198000000001));
+                var player = model.Markers.First(marker => marker.Kind == MapMarkerKind.Player);
+                var (x, y) = model.Geometry!.WorldToImage(player.X, player.Y);
+                var centre = surface.ImageToScreen(x, y);
+                Assert.AreEqual(surface.Bounds.Width / 2, centre.X, 0.01);
+                Assert.AreEqual(surface.Bounds.Height / 2, centre.Y, 0.01);
+                Assert.AreEqual(zoom, surface.Scale);
+                surface.ZoomAt(new Point(10, 10), 1.25);
+                Assert.IsTrue(model.CenterOnPlayer(76561198000000001), "Repeating the request centres again.");
+                Assert.AreEqual(surface.Bounds.Width / 2, surface.ImageToScreen(x, y).X, 0.01);
+                model.Reset();
+                Assert.IsNull(model.FocusRequest);
+            }
+            finally { window.Close(); }
+            await Task.CompletedTask;
+            return true;
+        }, default);
+    }
+
     private sealed class MapSession(ServerMap map) : IServerMarkerSession
     {
         public IReadOnlyList<MapMarker> Markers { get; init; } = [];
