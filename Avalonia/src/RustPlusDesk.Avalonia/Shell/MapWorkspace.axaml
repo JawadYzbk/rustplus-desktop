@@ -66,6 +66,8 @@
                       <TextBlock Grid.Column="1" Text="{Binding Connection.Map.PlayerIconScale, StringFormat='{}{0:0%}'}" HorizontalAlignment="Right" FontSize="12" /></Grid>
                     <Slider Minimum="0.5" Maximum="1.5" Value="{Binding Connection.Map.PlayerIconScale}" AutomationProperties.Name="Player icon size" />
                     <CheckBox Content="Show shops automatically when connecting" IsChecked="{Binding Connection.Map.AutoLoadShops}" />
+                    <CheckBox Content="Show Steam avatars on player markers" IsChecked="{Binding Connection.Map.ShowSteamAvatars}"
+                              ToolTip.Tip="Team players show their Steam profile picture instead of a dot" />
                     <StackPanel Spacing="8" IsVisible="{Binding DeathPins, Converter={x:Static ObjectConverters.IsNotNull}}">
                       <Separator />
                       <ToggleSwitch Content="Death markers" IsChecked="{Binding DeathPins.Show, FallbackValue=False}" OnContent="" OffContent=""
@@ -127,6 +129,8 @@
                         FocusRequest="{Binding Connection.Map.FocusRequest}" AbbreviateNames="{Binding Connection.Map.AbbreviateNames}"
                         PlayerScale="{Binding Connection.Map.PlayerIconScale}" ShowDeathHeatmap="{Binding Connection.Map.ShowDeathHeatmap}"
                         DeathPositions="{Binding Connection.Map.DeathPositions}"
+                        ShowSteamAvatars="{Binding Connection.Map.ShowSteamAvatars}" AvatarVersion="{Binding Connection.Map.AvatarVersion}"
+                        Avatars="{Binding Connection.Map.Avatars}"
                         ShowDeathPins="{Binding DeathPins.Show, FallbackValue=False}" DeathPins="{Binding DeathPins.Pins, FallbackValue={x:Null}}"
                         IsVisible="{Binding Connection.Map.HasMap}" AutomationProperties.Name="Server map" />
         <ScrollViewer HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding !Connection.Map.HasMap}" Margin="20">

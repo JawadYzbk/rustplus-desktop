@@ -10,6 +10,11 @@ public sealed record TeamMemberRow(ServerTeamMember Member, bool Abbreviate = fa
 {
     /// <summary>Reference TeamMemberVM.IsAfk: shown after 5 idle minutes with the "AFK: m:ss" text.</summary>
     public bool IsAfk => AfkText is not null;
+    /// <summary>The member's Steam avatar when loaded (reference TeamMemberVM.Avatar).</summary>
+    public global::Avalonia.Media.Imaging.Bitmap? Avatar { get; init; }
+    public bool HasAvatar => Avatar is not null;
+    /// <summary>First letter shown while there is no avatar.</summary>
+    public string Initial => Name.Length > 0 ? Name[..1].ToUpperInvariant() : "?";
     /// <summary>The member's name (streamer mode: first character + "..."), else the abbreviated Steam ID.</summary>
     public string Name => string.IsNullOrWhiteSpace(Member.Name) ? SteamId
         : StreamerMode.Name(new string(Member.Name.Where(c => !char.IsControl(c)).Take(256).ToArray()), Abbreviate);
@@ -46,6 +51,15 @@ public sealed partial class TeamViewModel : ObservableObject
     public Func<int> AfkThresholdMinutes { get; set; } = () => AfkTracker.DefaultThresholdMinutes;
     /// <summary>Raised by the one-second AFK tick for every member that went AFK or came back (reference AfkTimer_Tick).</summary>
     public event Action<AfkAlert>? AfkAlertRaised;
+    /// <summary>Steam avatars by Steam ID (reference AvatarLoader cache).</summary>
+    public Func<string, global::Avalonia.Media.Imaging.Bitmap?>? Avatars { get; set; }
+
+    /// <summary>Reference EnsureAvatarAsync completion: rows pick up avatars that arrived.</summary>
+    public void RefreshAvatars()
+    {
+        if (Avatars is not { } avatars || Members.All(row => ReferenceEquals(row.Avatar, avatars(row.Member.SteamId)))) return;
+        Members = Members.Select(row => row with { Avatar = avatars(row.Member.SteamId) }).ToArray();
+    }
 
     /// <summary>Reference AfkTimer_Tick: ages the idle clocks, refreshes the AFK texts and raises the alerts.</summary>
     public void TickAfk()
@@ -89,7 +103,7 @@ public sealed partial class TeamViewModel : ObservableObject
                     SnapshotRead?.Invoke(snapshot);
                     afk.Observe(current, Now());
                     if (!Members.Select(row => row.Member).SequenceEqual(current))
-                        Members = current.Select(member => new TeamMemberRow(member, Abbreviate, afk.AfkText(member.SteamId))).ToArray();
+                        Members = current.Select(member => new TeamMemberRow(member, Abbreviate, afk.AfkText(member.SteamId)) { Avatar = Avatars?.Invoke(member.SteamId) }).ToArray();
                     Message = current.Count == 0 ? "No team members reported by this server." : "Current server team";
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }

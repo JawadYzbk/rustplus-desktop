@@ -72,7 +72,8 @@ public sealed partial class App : Application
                 new LegacyServerDeleter(), new CloudServerForgetter(cloudHttp, CloudAccountService.DefaultCachePath, typeof(App).Assembly.GetName().Version!.ToString(3),
                     CloudServerForgetter.DefaultRemovedPath), new LegacyProfileFlagStore(),
                 new LegacyDiscordWebhookStore(), new RustPlusDesk.Infrastructure.Alerts.HttpDiscordWebhookSender(cloudHttp),
-                new RustPlusDesk.Infrastructure.Cloud.CloudSignInState(CloudAccountService.DefaultCachePath), new LegacyProfileWipeTimeStore());
+                new RustPlusDesk.Infrastructure.Cloud.CloudSignInState(CloudAccountService.DefaultCachePath), new LegacyProfileWipeTimeStore(),
+                new RustPlusDesk.Infrastructure.Steam.SteamCommunityAvatarSource(accountHttp));
             desktop.Exit += (_, _) => { accountHttp.Dispose(); cloudHttp.Dispose(); };
             window.DataContext = servers;
             window.Opened += async (_, _) => await servers.InitializeCommand.ExecuteAsync(null);

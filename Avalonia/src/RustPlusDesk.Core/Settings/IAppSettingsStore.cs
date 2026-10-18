@@ -46,6 +46,7 @@ public static class SettingKeys
     public const string NotificationsRetentionDays = "NotificationsRetentionDays"; // default 30 (<= 0 means 30)
     public const string MutedNotificationServers = "MutedNotificationServers";     // list of "host:port"
     public const string NotificationsToastEnabled = "NotificationsToastEnabled";   // default true
+    public const string MapShowSteamMarkers = "MapShowSteamMarkers";       // default true: Steam avatars on the map's player markers
     public const string MapShowDeathTags = "MapShowDeathTags";             // default false: death marker pins on the map
     public const string MaxSelfDeathMarkers = "MaxSelfDeathMarkers";       // default 3 (1–50): own death pins kept
     public const string MaxTeamDeathMarkers = "MaxTeamDeathMarkers";       // default 3 (1–50): death pins kept per teammate

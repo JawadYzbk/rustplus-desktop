@@ -35,6 +35,9 @@ public sealed class MapSurface : Control
     public static readonly StyledProperty<IReadOnlyList<Point2>?> DeathPositionsProperty = AvaloniaProperty.Register<MapSurface, IReadOnlyList<Point2>?>(nameof(DeathPositions));
     public static readonly StyledProperty<bool> ShowDeathPinsProperty = AvaloniaProperty.Register<MapSurface, bool>(nameof(ShowDeathPins));
     public static readonly StyledProperty<IReadOnlyList<DeathPin>?> DeathPinsProperty = AvaloniaProperty.Register<MapSurface, IReadOnlyList<DeathPin>?>(nameof(DeathPins));
+    public static readonly StyledProperty<bool> ShowSteamAvatarsProperty = AvaloniaProperty.Register<MapSurface, bool>(nameof(ShowSteamAvatars), true);
+    public static readonly StyledProperty<int> AvatarVersionProperty = AvaloniaProperty.Register<MapSurface, int>(nameof(AvatarVersion));
+    public static readonly StyledProperty<Func<ulong, Bitmap?>?> AvatarsProperty = AvaloniaProperty.Register<MapSurface, Func<ulong, Bitmap?>?>(nameof(Avatars));
     public static readonly StyledProperty<int> ResetRequestProperty = AvaloniaProperty.Register<MapSurface, int>(nameof(ResetRequest));
     public static readonly StyledProperty<MapFocus?> FocusRequestProperty = AvaloniaProperty.Register<MapSurface, MapFocus?>(nameof(FocusRequest));
 
@@ -64,6 +67,12 @@ public sealed class MapSurface : Control
     public bool ShowDeathPins { get => GetValue(ShowDeathPinsProperty); set => SetValue(ShowDeathPinsProperty, value); }
     /// <summary>Numbered, labelled death marker pins (reference RedrawDeathPins).</summary>
     public IReadOnlyList<DeathPin>? DeathPins { get => GetValue(DeathPinsProperty); set => SetValue(DeathPinsProperty, value); }
+    /// <summary>Reference MapShowSteamMarkers: player markers show the Steam avatar when one is loaded.</summary>
+    public bool ShowSteamAvatars { get => GetValue(ShowSteamAvatarsProperty); set => SetValue(ShowSteamAvatarsProperty, value); }
+    /// <summary>Changes when avatars arrive, so the map redraws.</summary>
+    public int AvatarVersion { get => GetValue(AvatarVersionProperty); set => SetValue(AvatarVersionProperty, value); }
+    /// <summary>Steam avatars by Steam ID (player markers and death pin heads).</summary>
+    public Func<ulong, Bitmap?>? Avatars { get => GetValue(AvatarsProperty); set => SetValue(AvatarsProperty, value); }
     /// <summary>A death pin was right-clicked (reference pin context menu: rename, delete).</summary>
     public event Action<DeathPin, Point>? DeathPinRequested;
     /// <summary>Player marker size factor (reference MapPlayerIconScale).</summary>
@@ -93,7 +102,8 @@ public sealed class MapSurface : Control
     {
         AffectsRender<MapSurface>(ImageProperty, GeometryProperty, MonumentsProperty, ShowGridProperty, ShowMonumentsProperty,
             MarkersProperty, ShowPlayersProperty, ShowShopsProperty, MonumentScaleProperty, MonumentOpacityProperty, GridOpacityProperty, MonumentNamesProperty,
-            AbbreviateNamesProperty, PlayerScaleProperty, ShowDeathHeatmapProperty, DeathPositionsProperty, ShowDeathPinsProperty, DeathPinsProperty);
+            AbbreviateNamesProperty, PlayerScaleProperty, ShowDeathHeatmapProperty, DeathPositionsProperty, ShowDeathPinsProperty, DeathPinsProperty,
+            ShowSteamAvatarsProperty, AvatarVersionProperty, AvatarsProperty);
         ClipToBoundsProperty.OverrideDefaultValue<MapSurface>(true);
         FocusableProperty.OverrideDefaultValue<MapSurface>(true);
     }
@@ -252,12 +262,28 @@ public sealed class MapSurface : Control
             using (context.PushTransform(Matrix.CreateTranslation(tip.X - PinWidth / 2, tip.Y - PinHeight)))
             {
                 context.DrawGeometry(PinFill, PinOutline, PinShape);
-                context.DrawEllipse(Brushes.Gray, PinOutline, new Point(10, 10), 6.5, 6.5);
-                string initial = pin.Marker.DisplayName.Length > 0 ? pin.Marker.DisplayName[..1].ToUpperInvariant() : "?";
-                var text = new FormattedText(initial, System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight, LabelFace, 9, Brushes.White);
-                context.DrawText(text, new Point(10 - text.Width / 2, 10 - text.Height / 2));
+                if (Avatars?.Invoke(pin.Marker.SteamId) is { } avatar)
+                {
+                    DrawAvatar(context, avatar, new Point(10, 10), 6.5);
+                    context.DrawEllipse(null, PinOutline, new Point(10, 10), 6.5, 6.5);
+                }
+                else
+                {
+                    context.DrawEllipse(Brushes.Gray, PinOutline, new Point(10, 10), 6.5, 6.5);
+                    string initial = pin.Marker.DisplayName.Length > 0 ? pin.Marker.DisplayName[..1].ToUpperInvariant() : "?";
+                    var text = new FormattedText(initial, System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight, LabelFace, 9, Brushes.White);
+                    context.DrawText(text, new Point(10 - text.Width / 2, 10 - text.Height / 2));
+                }
             }
         }
+    }
+
+    /// <summary>Draws an avatar clipped to a circle.</summary>
+    private static void DrawAvatar(DrawingContext context, Bitmap avatar, Point centre, double radius)
+    {
+        var bounds = new Rect(centre.X - radius, centre.Y - radius, radius * 2, radius * 2);
+        using (context.PushGeometryClip(new EllipseGeometry(bounds)))
+            context.DrawImage(avatar, new Rect(avatar.Size), bounds);
     }
 
     internal MapMonument? FindMonument(Point point)
@@ -371,7 +397,14 @@ public sealed class MapSurface : Control
             var (ix, iy) = geometry.WorldToImage(player.X, player.Y);
             var centre = ImageToScreen(ix, iy);
             double radius = 7 * PlayerScale;
-            context.DrawEllipse(Brushes.LimeGreen, new Pen(Brushes.Black, 2), centre, radius, radius);
+            if (ShowSteamAvatars && player.SteamId is { } id && Avatars?.Invoke(id) is { } avatar)
+            {
+                // Reference profile marker: the avatar in a circle with a black ring.
+                radius = 12 * PlayerScale;
+                DrawAvatar(context, avatar, centre, radius);
+                context.DrawEllipse(null, new Pen(Brushes.Black, 2), centre, radius, radius);
+            }
+            else context.DrawEllipse(Brushes.LimeGreen, new Pen(Brushes.Black, 2), centre, radius, radius);
             if (!string.IsNullOrWhiteSpace(player.Name))
             {
                 var text = new FormattedText(StreamerMode.Name(player.Name, AbbreviateNames), System.Globalization.CultureInfo.CurrentCulture,

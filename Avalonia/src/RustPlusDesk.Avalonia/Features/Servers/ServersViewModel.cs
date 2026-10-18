@@ -34,7 +34,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Core.Map.ICustomMapDownloader? customMapDownloader = null, RustPlusDesk.Core.Deaths.IDeathMarkerStore? deathMarkerStore = null,
     IServerDeleter? serverDeleter = null, ICloudServerForgetter? cloudForgetter = null, IProfileFlagStore? profileFlags = null,
     RustPlusDesk.Core.Alerts.IDiscordWebhookStore? webhookStore = null, RustPlusDesk.Core.Alerts.IDiscordWebhookSender? webhookSender = null,
-    RustPlusDesk.Core.Alerts.ICloudSignInState? cloudSignIn = null, IProfileWipeTimeStore? wipeTimes = null)
+    RustPlusDesk.Core.Alerts.ICloudSignInState? cloudSignIn = null, IProfileWipeTimeStore? wipeTimes = null,
+    ISteamAvatarSource? avatarSource = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -635,6 +636,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     {
         if (observingStreamerMode) return;
         observingStreamerMode = true;
+        ObserveAvatars();
         if (deathMarkerStore is not null)
         {
             deathPins = new(deathMarkerStore, appSettings, Connection.Team, Connection.Map,
@@ -655,6 +657,30 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         {
             if (args.PropertyName == nameof(Map.MapViewModel.AbbreviateNames)) ApplyStreamerMode(Connection.Map.AbbreviateNames, starting: false);
             else if (args.PropertyName is nameof(Map.MapViewModel.ShowDeathHeatmap) or nameof(Map.MapViewModel.Geometry)) RefreshDeathHeatmap();
+        };
+    }
+
+    /// <summary>
+    /// Reference AvatarLoader/EnsureAvatarAsync: every team read asks for the members' Steam avatars; arrivals refresh the
+    /// team dock, the map's player markers and the death pins.
+    /// </summary>
+    private void ObserveAvatars()
+    {
+        if (avatarSource is null) return;
+        var cache = new Shared.AvatarCache(avatarSource);
+        Connection.Team.Avatars = id => ulong.TryParse(id, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out ulong steamId)
+            ? cache.Get(steamId) : null;
+        Connection.Map.Avatars = cache.Get;
+        Connection.Team.SnapshotRead += snapshot =>
+        {
+            foreach (var member in snapshot.Members)
+                if (ulong.TryParse(member.SteamId, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out ulong steamId))
+                    _ = cache.RequestAsync(steamId);
+        };
+        cache.Loaded += _ =>
+        {
+            Connection.Team.RefreshAvatars();
+            Connection.Map.AvatarVersion = cache.Version;
         };
     }
 

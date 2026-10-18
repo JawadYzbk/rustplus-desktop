@@ -73,6 +73,12 @@ public sealed partial class MapViewModel : ObservableObject
     public const double MinPlayerIconScale = 0.5, MaxPlayerIconScale = 1.5;
     /// <summary>Reference "Deaths" toolbar toggle (MapShowDeathHeatmap): a heatmap of the server's logged deaths.</summary>
     [ObservableProperty] private bool showDeathHeatmap;
+    /// <summary>Reference "Show profile markers" (MapShowSteamMarkers, default on): Steam avatars on player markers.</summary>
+    [ObservableProperty] private bool showSteamAvatars = true;
+    /// <summary>The player's Steam avatar, when loaded (team players and death pins).</summary>
+    [ObservableProperty] private Func<ulong, global::Avalonia.Media.Imaging.Bitmap?>? avatars;
+    /// <summary>Bumped when a new avatar arrives so the map redraws.</summary>
+    [ObservableProperty] private int avatarVersion;
     /// <summary>World positions of the selected server's logged deaths (reference DeathLogStore.LoadPositions).</summary>
     [ObservableProperty] private IReadOnlyList<Point2> deathPositions = [];
     [ObservableProperty] private bool isLayersOpen;
@@ -92,6 +98,7 @@ public sealed partial class MapViewModel : ObservableObject
         AbbreviateNames = store.Get(SettingKeys.MapAbbreviateNames, false);
         PlayerIconScale = store.Get(SettingKeys.MapPlayerIconScale, 1.0);
         ShowDeathHeatmap = store.Get(SettingKeys.MapShowDeathHeatmap, false);
+        ShowSteamAvatars = store.Get(SettingKeys.MapShowSteamMarkers, true);
         ShowShops = AutoLoadShops;
         settings = store;
     }
@@ -103,6 +110,7 @@ public sealed partial class MapViewModel : ObservableObject
     partial void OnAutoLoadShopsChanged(bool value) => settings?.Set(SettingKeys.AutoLoadShops, value);
     partial void OnAbbreviateNamesChanged(bool value) => settings?.Set(SettingKeys.MapAbbreviateNames, value);
     partial void OnShowDeathHeatmapChanged(bool value) => settings?.Set(SettingKeys.MapShowDeathHeatmap, value);
+    partial void OnShowSteamAvatarsChanged(bool value) => settings?.Set(SettingKeys.MapShowSteamMarkers, value);
     partial void OnPlayerIconScaleChanged(double value)
     {
         double clamped = double.IsFinite(value) ? Math.Clamp(value, MinPlayerIconScale, MaxPlayerIconScale) : 1.0;
