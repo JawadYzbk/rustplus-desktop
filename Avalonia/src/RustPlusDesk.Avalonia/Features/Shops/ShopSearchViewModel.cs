@@ -1,0 +1,123 @@
+using System.ComponentModel;
+using System.Globalization;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using RustPlusDesk.Avalonia.Features.Map;
+using RustPlusDesk.Core.Map;
+
+namespace RustPlusDesk.Avalonia.Features.Shops;
+
+public sealed record ShopSortChoice(ShopSortMode Mode, string Name);
+public sealed record ShopResourceChoice(int Id, string? ShortName, string Name);
+
+/// <summary>One offer row (reference BuildOfferRowSearchUI, compact): "x5 Item", stock, "→ cost currency".</summary>
+public sealed record ShopOfferRow(int ItemId, string ItemText, string StockText, bool IsOutOfStock, int CurrencyId, string CostText);
+
+/// <summary>One shop card: cleaned label, grid badge and the matching offers; clicking centres the map.</summary>
+public sealed record ShopResultRow(MapMarker Shop, string Title, string Grid, IReadOnlyList<ShopOfferRow> Offers);
+
+/// <summary>
+/// The map's shop search dock (reference ShopSearchControl): text, Sells/Buys, hide out of stock, hide monument
+/// shops, sort, resource and category filters over the live vending markers; results refresh with each poll.
+/// </summary>
+public sealed partial class ShopSearchViewModel : ObservableObject
+{
+    public const string AllCategories = "All Categories";
+    private readonly ShopSearch search;
+    private readonly MapViewModel map;
+
+    public ShopSearchViewModel(ShopSearch search, MapViewModel map)
+    {
+        this.search = search;
+        this.map = map;
+        Categories = [AllCategories, .. search.Categories];
+        Resources = [new(0, null, "All Resources"), .. ShopSearch.Resources.Select(resource => new ShopResourceChoice(resource.Id, resource.ShortName, resource.Name))];
+        selectedSort = Sorts[0];
+        selectedResource = Resources[0];
+        selectedCategory = AllCategories;
+        map.PropertyChanged += MapChanged;
+        Refresh();
+    }
+
+    public IReadOnlyList<ShopSortChoice> Sorts { get; } =
+    [
+        new(ShopSortMode.Default, "Default"), new(ShopSortMode.PriceAscending, "Price: low to high"),
+        new(ShopSortMode.PriceDescending, "Price: high to low"), new(ShopSortMode.Stock, "Most stock"), new(ShopSortMode.Currency, "Currency")
+    ];
+    public IReadOnlyList<ShopResourceChoice> Resources { get; }
+    public IReadOnlyList<string> Categories { get; }
+
+    [ObservableProperty] private bool isOpen;
+    [ObservableProperty] private string query = "";
+    [ObservableProperty] private bool sells = true;
+    [ObservableProperty] private bool buys = true;
+    [ObservableProperty] private bool hideOutOfStock;
+    [ObservableProperty] private bool hideMonumentShops;
+    [ObservableProperty] private ShopSortChoice selectedSort;
+    [ObservableProperty] private ShopResourceChoice selectedResource;
+    [ObservableProperty] private string selectedCategory;
+    [ObservableProperty] private IReadOnlyList<ShopResultRow> results = [];
+    [ObservableProperty] private string emptyMessage = "";
+
+    public bool HasResults => Results.Count > 0;
+    partial void OnResultsChanged(IReadOnlyList<ShopResultRow> value) => OnPropertyChanged(nameof(HasResults));
+
+    partial void OnIsOpenChanged(bool value) { if (value) Refresh(); }
+    partial void OnQueryChanged(string value) => Refresh();
+    partial void OnSellsChanged(bool value) => Refresh();
+    partial void OnBuysChanged(bool value) => Refresh();
+    partial void OnHideOutOfStockChanged(bool value) => Refresh();
+    partial void OnHideMonumentShopsChanged(bool value) => Refresh();
+    partial void OnSelectedSortChanged(ShopSortChoice value) => Refresh();
+    partial void OnSelectedResourceChanged(ShopResourceChoice value) => Refresh();
+    partial void OnSelectedCategoryChanged(string value) => Refresh();
+
+    [RelayCommand] private void Toggle() => IsOpen = !IsOpen;
+    [RelayCommand] private void ClearQuery() => Query = "";
+
+    /// <summary>Reference card click: centre the map on the shop.</summary>
+    [RelayCommand]
+    private void ShowOnMap(ShopResultRow? row)
+    {
+        if (row is not null) map.CenterOnWorld(row.Shop.X, row.Shop.Y);
+    }
+
+    private void MapChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (IsOpen && e.PropertyName is nameof(MapViewModel.Markers) or nameof(MapViewModel.Monuments) or nameof(MapViewModel.Geometry)) Refresh();
+    }
+
+    internal void Refresh()
+    {
+        var shops = map.Markers.Where(marker => marker.Kind == MapMarkerKind.VendingMachine).ToList();
+        if (shops.Count == 0)
+        {
+            Results = [];
+            EmptyMessage = string.IsNullOrWhiteSpace(Query) ? "No shops loaded yet..." : "No matching shops found.";
+            return;
+        }
+        var options = new ShopSearchOptions
+        {
+            Query = Query, Sells = Sells, Buys = Buys, HideOutOfStock = HideOutOfStock, HideMonumentShops = HideMonumentShops,
+            Sort = SelectedSort.Mode, ResourceId = SelectedResource.Id,
+            Category = SelectedCategory == AllCategories ? null : SelectedCategory
+        };
+        var result = search.Search(shops, map.Monuments, options);
+        // A resource filter switches Default to cheapest first, like the reference sort box.
+        if (result.Sort != SelectedSort.Mode) SelectedSort = Sorts.First(sort => sort.Mode == result.Sort);
+        double worldSize = map.Geometry?.WorldSize ?? 0;
+        Results = result.Matches.Select(match => new ShopResultRow(match.Shop, ShopSearch.CleanLabel(match.Shop.Name) ?? "Shop",
+            MapGrid.Label(worldSize, match.Shop.X, match.Shop.Y), match.Offers.Select(Offer).ToList())).ToList();
+        EmptyMessage = Results.Count > 0 ? "" : string.IsNullOrWhiteSpace(Query) ? "No matching shops found." : $"No shops match \"{Query}\"";
+    }
+
+    private ShopOfferRow Offer(VendingOrder order)
+    {
+        string name = search.ItemName(order.ItemId);
+        if (order.Quantity > 1) name = $"x{order.Quantity} {name}";
+        if (name.Length > 28) name = name[..28] + "…";
+        bool empty = order.AmountInStock <= 0;
+        return new(order.ItemId, name, empty ? "Out of stock" : $"Stock: {order.AmountInStock}", empty, order.CurrencyId,
+            $"{order.CostPerStack.ToString(CultureInfo.CurrentCulture)} {search.ItemName(order.CurrencyId)}");
+    }
+}

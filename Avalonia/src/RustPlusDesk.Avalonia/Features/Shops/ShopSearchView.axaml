@@ -1,0 +1,113 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RustPlusDesk.Avalonia.Features.Shops"
+             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons" xmlns:shared="using:RustPlusDesk.Avalonia.Shared.Controls"
+             x:Class="RustPlusDesk.Avalonia.Features.Shops.ShopSearchView" x:DataType="vm:ShopSearchViewModel">
+  <Border Classes="panel" Background="{DynamicResource Surface}" Padding="12" BoxShadow="0 6 24 0 #66000000">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="8">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+        <icons:Icon Symbol="BuildingShop24" FontSize="18" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="1" Text="Shop search" Classes="title" />
+        <Button Grid.Column="2" Classes="icon" Command="{Binding ToggleCommand}" ToolTip.Tip="Close shop search"
+                AutomationProperties.Name="Close shop search"><icons:Icon Symbol="Dismiss24" /></Button>
+      </Grid>
+      <TextBox Grid.Row="1" Text="{Binding Query}" PlaceholderText="Search items or categories…" AutomationProperties.Name="Search shops">
+        <TextBox.InnerLeftContent><icons:Icon Symbol="Search24" FontSize="15" Margin="8,0,0,0" Foreground="{DynamicResource TextSubtle}" /></TextBox.InnerLeftContent>
+        <TextBox.InnerRightContent>
+          <Button Classes="icon" Width="26" Height="26" Command="{Binding ClearQueryCommand}" AutomationProperties.Name="Clear shop search"
+                  IsVisible="{Binding Query, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"><icons:Icon Symbol="Dismiss24" FontSize="14" /></Button>
+        </TextBox.InnerRightContent>
+      </TextBox>
+      <WrapPanel Grid.Row="2" ItemSpacing="6" LineSpacing="6">
+        <ToggleButton Classes="chip" Content="Sells" IsChecked="{Binding Sells}" ToolTip.Tip="Shops selling the item" />
+        <ToggleButton Classes="chip" Content="Buys" IsChecked="{Binding Buys}" ToolTip.Tip="Shops paying with the item" />
+        <ToggleButton Classes="chip" Content="Hide empty" IsChecked="{Binding HideOutOfStock}" ToolTip.Tip="Hide offers that are out of stock" />
+        <ToggleButton Classes="chip" Content="Hide monuments" IsChecked="{Binding HideMonumentShops}" ToolTip.Tip="Hide Outpost, Bandit Camp and other NPC shops" />
+      </WrapPanel>
+      <Grid Grid.Row="3" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="6" RowSpacing="6">
+        <ComboBox ItemsSource="{Binding Sorts}" SelectedItem="{Binding SelectedSort}" HorizontalAlignment="Stretch" AutomationProperties.Name="Sort shops">
+          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:ShopSortChoice"><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
+        <ComboBox Grid.Column="1" ItemsSource="{Binding Resources}" SelectedItem="{Binding SelectedResource}" HorizontalAlignment="Stretch"
+                  AutomationProperties.Name="Resource filter">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:ShopResourceChoice">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <shared:ItemIcon ShortName="{Binding ShortName}" Width="16" Height="16" IsVisible="{Binding ShortName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <ComboBox Grid.Row="1" Grid.ColumnSpan="2" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" HorizontalAlignment="Stretch"
+                  AutomationProperties.Name="Category filter" />
+      </Grid>
+      <Grid Grid.Row="4">
+        <TextBlock Text="{Binding EmptyMessage}" Classes="muted" FontSize="12" HorizontalAlignment="Center" Margin="0,24,0,0"
+                   IsVisible="{Binding !HasResults}" TextWrapping="Wrap" />
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding HasResults}">
+          <ItemsControl ItemsSource="{Binding Results}" AutomationProperties.Name="Shop results">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ShopResultRow">
+                <Button Classes="shopCard" Command="{Binding $parent[UserControl].((vm:ShopSearchViewModel)DataContext).ShowOnMapCommand}"
+                        CommandParameter="{Binding}" ToolTip.Tip="Show this shop on the map" AutomationProperties.Name="{Binding Title}">
+                  <StackPanel Spacing="4">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="230" />
+                      <Border Classes="pill" Background="{DynamicResource AccentSoft}" BorderBrush="{DynamicResource Accent}" Padding="6,0">
+                        <TextBlock Text="{Binding Grid}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Accent}" />
+                      </Border>
+                    </StackPanel>
+                    <ItemsControl ItemsSource="{Binding Offers}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ShopOfferRow">
+                          <Border Classes="offer" Classes.empty="{Binding IsOutOfStock}">
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
+                              <shared:ItemIcon ItemId="{Binding ItemId}" Width="18" Height="18" VerticalAlignment="Center" />
+                              <StackPanel Grid.Column="1">
+                                <TextBlock Text="{Binding ItemText}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding StockText}" FontSize="10" Classes="stock" Classes.empty="{Binding IsOutOfStock}" />
+                              </StackPanel>
+                              <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                <icons:Icon Symbol="ArrowRight16" FontSize="12" Foreground="{DynamicResource TextSubtle}" />
+                                <shared:ItemIcon ItemId="{Binding CurrencyId}" Width="14" Height="14" />
+                                <TextBlock Text="{Binding CostText}" FontSize="12" MaxWidth="130" TextTrimming="CharacterEllipsis" />
+                              </StackPanel>
+                            </Grid>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Grid>
+    </Grid>
+  </Border>
+  <UserControl.Styles>
+    <Style Selector="Button.shopCard">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceAlt}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="10,8" />
+      <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+    <Style Selector="Button.shopCard:pointerover /template/ ContentPresenter">
+      <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceAlt}" />
+    </Style>
+    <Style Selector="Border.offer">
+      <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="8,4" />
+    </Style>
+    <Style Selector="Border.offer.empty"><Setter Property="Opacity" Value="0.65" /></Style>
+    <Style Selector="TextBlock.stock"><Setter Property="Foreground" Value="{DynamicResource ConnectionSuccess}" /></Style>
+    <Style Selector="TextBlock.stock.empty"><Setter Property="Foreground" Value="{DynamicResource ConnectionDanger}" /></Style>
+  </UserControl.Styles>
+</UserControl>

@@ -42,10 +42,16 @@ public sealed partial class MapViewModel : ObservableObject
     /// </summary>
     public bool CenterOnPlayer(ulong steamId)
     {
-        if (steamId == 0 || Geometry is not { } geometry) return false;
+        if (steamId == 0 || Geometry is null) return false;
         var player = Markers.FirstOrDefault(marker => marker.Kind == MapMarkerKind.Player && marker.SteamId == steamId);
-        if (player is null) return false;
-        var (x, y) = geometry.WorldToImage(player.X, player.Y);
+        return player is not null && CenterOnWorld(player.X, player.Y);
+    }
+
+    /// <summary>Centres the view on a world position (shops, monuments) at the current zoom.</summary>
+    public bool CenterOnWorld(double worldX, double worldY)
+    {
+        if (Geometry is not { } geometry) return false;
+        var (x, y) = geometry.WorldToImage(worldX, worldY);
         FocusRequest = new MapFocus(x, y, (FocusRequest?.Sequence ?? 0) + 1);
         return true;
     }

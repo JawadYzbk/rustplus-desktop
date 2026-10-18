@@ -35,6 +35,23 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         if (settings is not null) connection.Map.UseSettings(settings);
         return connection;
     }
+    private Shops.ShopSearchViewModel? shops;
+    /// <summary>Map shop search dock; categories come from the bundled recycler catalog when it is available.</summary>
+    public Shops.ShopSearchViewModel Shops => shops ??= new(CreateShopSearch(), Connection.Map);
+
+    private RustPlusDesk.Core.Map.ShopSearch CreateShopSearch()
+    {
+        var categories = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            foreach (var item in recyclerCatalog?.Load().Items ?? [])
+                if (!string.IsNullOrEmpty(item.Category)) categories[item.Resource.ShortName] = item.Category;
+        }
+        catch (Exception) { Activity.Append("[shops] Item categories are unavailable; the category filter lists only Misc."); }
+        return new(id => RustPlusDesk.Infrastructure.Items.BundledItemCatalog.Icons.TryGetValue(id, out var item)
+            ? new RustPlusDesk.Core.Map.ShopItem(id, item.ShortName, item.Name) : null, categories);
+    }
+
     /// <summary>Diagnostics stream shown in the bottom Activity tab.</summary>
     public Activity.ActivityLogViewModel Activity { get; } = new();
     public CompanionAccountViewModel? Account { get; private set; }

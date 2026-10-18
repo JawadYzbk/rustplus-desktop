@@ -3,6 +3,7 @@
              xmlns:teams="using:RustPlusDesk.Avalonia.Features.Teams" xmlns:map="using:RustPlusDesk.Avalonia.Features.Map"
              xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons" xmlns:chat="using:RustPlusDesk.Avalonia.Features.Chat"
              xmlns:activity="using:RustPlusDesk.Avalonia.Features.Activity"
+             xmlns:shops="using:RustPlusDesk.Avalonia.Features.Shops"
              x:Class="RustPlusDesk.Avalonia.Shell.MapWorkspace" x:DataType="vm:ServersViewModel">
   <Grid x:Name="WorkspaceGrid">
     <Grid.RowDefinitions>
@@ -30,6 +31,10 @@
             <ToggleButton Classes="chip" IsChecked="{Binding Connection.Map.ShowShops}" IsEnabled="{Binding Connection.Map.HasMap}"
                           ToolTip.Tip="Show vending machines" AutomationProperties.Name="Shops">
               <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Cart24" FontSize="16" /><TextBlock Text="Shops" /></StackPanel>
+            </ToggleButton>
+            <ToggleButton Classes="chip" IsChecked="{Binding Shops.IsOpen}" IsEnabled="{Binding Connection.Map.HasMap}"
+                          ToolTip.Tip="Search vending machine offers" AutomationProperties.Name="Shop search">
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="BuildingShop24" FontSize="16" /><TextBlock Text="Shop search" /></StackPanel>
             </ToggleButton>
             <Button x:Name="LayersButton" Classes="subtle" ToolTip.Tip="Map layer settings" AutomationProperties.Name="Layers">
               <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Layer24" FontSize="16" /><TextBlock Text="Layers" /></StackPanel>
@@ -94,6 +99,8 @@
           </StackPanel>
         </Border>
         </ScrollViewer>
+        <shops:ShopSearchView Grid.RowSpan="2" DataContext="{Binding Shops}" IsVisible="{Binding IsOpen}" Width="380"
+                              HorizontalAlignment="Right" VerticalAlignment="Stretch" Margin="0,12,12,12" />
         <teams:TeamView Grid.Row="1" DataContext="{Binding Connection.Team}" MaxHeight="{Binding #MapContent.Bounds.Height}"
                         HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="20,0,20,20" />
         </Grid>
