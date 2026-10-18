@@ -6,9 +6,9 @@ every finished slice with its commit.
 
 ## Where things stand (scheduled run, 2026-10-18, Linux cloud container)
 
-- Branch `codex/avalonia-migration`, pushed to `origin`. Latest code commit: `fc0fd923` (docs follow).
+- Branch `codex/avalonia-migration`, pushed to `origin`. Latest code commit: `45386e79` (docs follow).
   Only `Avalonia/` changes.
-- **473 tests pass** (Debug, zero warnings) on Linux with the .NET 10.0.112 SDK from Ubuntu's archive
+- **483 tests pass** (Debug, zero warnings) on Linux with the .NET 10.0.112 SDK from Ubuntu's archive
   (`apt-get install -y dotnet-sdk-10.0`; Microsoft's dotnet-install host is blocked by this container's proxy).
 - Done this run, in order (each in the PARITY-PLAN progress table):
   1. `5cf24091` 4.6 new-shop / suspicious-shop notices + chat-alert master switch (AnnounceSpawnsMaster, badge,
@@ -21,6 +21,10 @@ every finished slice with its commit.
      mute server, connect from the server tag).
   6. `fc0fd923` 3.2 Device hotkeys (shared hotkeys.json + hotkey_options.json, editor/capture windows, Win32
      RegisterHotKey adapter, truthful Linux/macOS unavailability, delete cleanup).
+  7. `4f390f46` 0.7 stacked toasts; new notification rows toast unless NotificationsToastEnabled is off.
+  8. `a3497cad` design-system fix: `icons|Icon` styles now reach the Icon control (it no longer fakes a TextBlock key).
+  9. `ece36ddb` 2.2 chat emoji: inline `:token:` rendering, `:` autocomplete, emoji picker (static thumbnails).
+  10. `45386e79` 5.1 settings page with the Alerts category (toasts, retention, muted servers/unmute, generic alarm popup).
 - The owner's own commit `27f1d234` (3.3 smart-alarm popup) is recorded in the table.
 
 ## Start next run with
@@ -28,7 +32,7 @@ every finished slice with its commit.
 1. Setup as in the scheduled prompt; if `dotnet` is missing and dot.net is blocked, use
    `apt-get install -y dotnet-sdk-10.0` (Ubuntu 24.04 archive, 10.0.1xx satisfies global.json rollForward).
 2. Continue PARITY-PLAN. Suggested order of small, self-contained slices:
-   - **0.7 toasts** (reference ShowInfoSnackbar): notifications already call for them (NotificationsToastEnabled).
+   - **5.1 more categories** on the new Settings page (general, map performance, system), each only with ported features.
    - **Alert menu, rest**: add cargo/heli/chinook/vendor/oil rig/deep sea/player alert kinds to the chat-alert menu
      as their detection is ported (1.2 event timers), then Select all / Deselect all / Edit templates.
    - **2.2 rest**: avatars, emoji picker/autocomplete, quick-command chips (need chat-command profile keys).
