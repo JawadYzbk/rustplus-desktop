@@ -143,6 +143,16 @@ public sealed class ShopSearch
             .ThenBy(suggestion => suggestion.Display, StringComparer.CurrentCulture).Take(60).ToList();
     }
 
+    /// <summary>Reference path-finder autocomplete: up to 12 items whose name or short name contains the query.</summary>
+    public IReadOnlyList<ShopSuggestion> SuggestItems(string? query, int max = 12)
+    {
+        string text = query?.Trim() ?? "";
+        if (text.Length == 0) return [];
+        return catalog.Where(item => !string.IsNullOrWhiteSpace(item.Name)
+                && (item.Name.Contains(text, StringComparison.OrdinalIgnoreCase) || item.ShortName.Contains(text, StringComparison.OrdinalIgnoreCase)))
+            .Take(max).Select(item => new ShopSuggestion(item.Id, item.Name, item.ShortName, false)).ToList();
+    }
+
     public ShopSearchResult Search(IEnumerable<MapMarker> markers, IReadOnlyList<MapMonument> monuments, ShopSearchOptions options)
     {
         string query = options.Query.Trim().ToLowerInvariant();

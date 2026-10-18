@@ -36,12 +36,18 @@ public sealed partial class ShopSearchViewModel : ObservableObject
         selectedResource = Resources[0];
         selectedCategory = AllCategories;
         Profit = new(search.ItemName, map);
+        PathFinder = new(search, map);
+        // Like the reference, the profit and Buy X panels share one place: opening one closes the other.
+        Profit.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(ShopProfitViewModel.IsOpen) && Profit.IsOpen) PathFinder.IsOpen = false; };
+        PathFinder.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(ShopPathFinderViewModel.IsOpen) && PathFinder.IsOpen) Profit.IsOpen = false; };
         map.PropertyChanged += MapChanged;
         Refresh();
     }
 
     /// <summary>Reference "Profit" tool: two-step trade loops over the current shops.</summary>
     public ShopProfitViewModel Profit { get; }
+    /// <summary>Reference "Buy X" tool: multi-hop trade routes from what you can pay with to what you want.</summary>
+    public ShopPathFinderViewModel PathFinder { get; }
 
     public IReadOnlyList<ShopSortChoice> Sorts { get; } =
     [

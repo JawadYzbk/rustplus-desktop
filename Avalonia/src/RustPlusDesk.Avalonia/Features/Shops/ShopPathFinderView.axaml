@@ -1,0 +1,199 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RustPlusDesk.Avalonia.Features.Shops"
+             xmlns:core="clr-namespace:RustPlusDesk.Core.Map;assembly=RustPlusDesk.Core"
+             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons" xmlns:shared="using:RustPlusDesk.Avalonia.Shared.Controls"
+             x:Class="RustPlusDesk.Avalonia.Features.Shops.ShopPathFinderView" x:DataType="vm:ShopPathFinderViewModel">
+  <Border Classes="panel" Background="{DynamicResource Surface}" Padding="12" BoxShadow="0 6 24 0 #66000000">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="8">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+        <icons:Icon Symbol="ArrowRouting24" FontSize="18" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
+        <StackPanel Grid.Column="1">
+          <TextBlock Text="Buy X for Y" Classes="title" />
+          <TextBlock Text="Optimal multi-hop trade pathfinder" Classes="muted" FontSize="11" TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+        <Button Grid.Column="2" Classes="icon" Command="{Binding CloseCommand}" ToolTip.Tip="Close Buy X for Y"
+                AutomationProperties.Name="Close Buy X for Y"><icons:Icon Symbol="Dismiss24" /></Button>
+      </Grid>
+      <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="6">
+        <TextBox x:Name="WantBox" Text="{Binding WantText}" PlaceholderText="Want item (e.g. blue)…" AutomationProperties.Name="Item you want"
+                 KeyDown="BoxKeyDown" />
+        <TextBox Grid.Column="1" x:Name="PayBox" Text="{Binding PayText}" PlaceholderText="Pay item (e.g. cloth)…" AutomationProperties.Name="Item you pay with"
+                 KeyDown="BoxKeyDown" />
+        <Popup PlacementTarget="{Binding #WantBox}" Placement="BottomEdgeAlignedLeft" IsOpen="{Binding IsWantSuggestionsOpen}"
+               IsLightDismissEnabled="True" Width="{Binding #WantBox.Bounds.Width}">
+          <Border Classes="panel" Background="{DynamicResource Surface}" Padding="4" BoxShadow="0 6 18 0 #66000000">
+            <ListBox ItemsSource="{Binding WantSuggestions}" ItemTemplate="{StaticResource Suggestion}" MaxHeight="240" Background="Transparent"
+                     SelectionChanged="WantSelected" AutomationProperties.Name="Want item suggestions" />
+          </Border>
+        </Popup>
+        <Popup PlacementTarget="{Binding #PayBox}" Placement="BottomEdgeAlignedLeft" IsOpen="{Binding IsPaySuggestionsOpen}"
+               IsLightDismissEnabled="True" Width="{Binding #PayBox.Bounds.Width}">
+          <Border Classes="panel" Background="{DynamicResource Surface}" Padding="4" BoxShadow="0 6 18 0 #66000000">
+            <ListBox ItemsSource="{Binding PaySuggestions}" ItemTemplate="{StaticResource Suggestion}" MaxHeight="240" Background="Transparent"
+                     SelectionChanged="PaySelected" AutomationProperties.Name="Pay item suggestions" />
+          </Border>
+        </Popup>
+      </Grid>
+      <Button Grid.Row="2" Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Command="{Binding AnalyzeCommand}"
+              AutomationProperties.Name="Find trade routes">
+        <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ArrowRouting24" FontSize="14" /><TextBlock Text="Analyze" /></StackPanel>
+      </Button>
+      <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="6">
+        <Border Classes="preview">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Text="I WANT TO GET" Classes="previewCaption" />
+            <TextBlock DockPanel.Dock="Top" Text="{Binding WantPreviewMessage}" Classes="muted" FontSize="11" TextWrapping="Wrap"
+                       IsVisible="{Binding WantPreviewMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+              <ItemsControl ItemsSource="{Binding WantPreview}" ItemTemplate="{StaticResource PreviewShop}" AutomationProperties.Name="Shops selling the wanted item" />
+            </ScrollViewer>
+          </DockPanel>
+        </Border>
+        <Border Grid.Column="1" Classes="preview">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Text="I CAN PAY WITH" Classes="previewCaption" />
+            <TextBlock DockPanel.Dock="Top" Text="{Binding PayPreviewMessage}" Classes="muted" FontSize="11" TextWrapping="Wrap"
+                       IsVisible="{Binding PayPreviewMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+              <ItemsControl ItemsSource="{Binding PayPreview}" ItemTemplate="{StaticResource PreviewShop}" AutomationProperties.Name="Shops accepting the payment item" />
+            </ScrollViewer>
+          </DockPanel>
+        </Border>
+      </Grid>
+      <Grid Grid.Row="4">
+        <TextBlock Text="{Binding ResultMessage}" Classes="muted" FontSize="12" HorizontalAlignment="Center" Margin="0,16,0,0" TextWrapping="Wrap"
+                   IsVisible="{Binding ResultMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding HasRoutes}">
+          <ItemsControl ItemsSource="{Binding Routes}" AutomationProperties.Name="Trade routes">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ShopRouteCard">
+                <Button Classes="routeCard" Command="{Binding $parent[UserControl].((vm:ShopPathFinderViewModel)DataContext).ShowRouteCommand}"
+                        CommandParameter="{Binding}" ToolTip.Tip="Show the route on the map" AutomationProperties.Name="{Binding MaxText}">
+                  <StackPanel Spacing="6">
+                    <TextBlock Text="{Binding Title}" FontWeight="Bold" Foreground="{DynamicResource Accent}" />
+                    <Border Classes="summary">
+                      <StackPanel Spacing="3">
+                        <TextBlock Text="MAX AT CURRENT STOCK" Classes="previewCaption" />
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <shared:ItemIcon ItemId="{Binding StartItemId}" Width="24" Height="24" />
+                          <TextBlock Text="{Binding StartQuantity}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                          <icons:Icon Symbol="ArrowRight16" FontSize="14" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
+                          <shared:ItemIcon ItemId="{Binding FinalItemId}" Width="24" Height="24" />
+                          <TextBlock Text="{Binding FinalQuantity}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding MaxText}" FontSize="12" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding DroneText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Highlight}" />
+                        <TextBlock Text="{Binding LeftoverText}" FontSize="11" Classes="muted" TextWrapping="Wrap" IsVisible="{Binding HasLeftovers}" />
+                        <Separator Margin="0,2" />
+                        <ItemsControl ItemsSource="{Binding StepTotals}">
+                          <ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" FontSize="11" TextWrapping="Wrap" /></DataTemplate></ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Separator Margin="0,2" />
+                        <TextBlock Text="{Binding MinText}" FontSize="11" Classes="muted" TextWrapping="Wrap" />
+                      </StackPanel>
+                    </Border>
+                    <ItemsControl ItemsSource="{Binding Steps}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ShopRouteStepRow">
+                          <Border Classes="step">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                              <StackPanel Spacing="2">
+                                <TextBlock Text="{Binding Label}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Accent}" />
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                  <shared:ItemIcon ItemId="{Binding PayItemId}" Width="16" Height="16" />
+                                  <TextBlock Text="{Binding PayText}" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                  <shared:ItemIcon ItemId="{Binding GetItemId}" Width="16" Height="16" />
+                                  <TextBlock Text="{Binding GetText}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                  <Border Classes="pill" Padding="6,0"><TextBlock Text="{Binding StockText}" FontSize="10" Foreground="{DynamicResource ConnectionSuccess}" /></Border>
+                                  <Border Classes="pill" Padding="6,0"><TextBlock Text="{Binding RunsText}" FontSize="10" /></Border>
+                                </StackPanel>
+                                <TextBlock Text="{Binding ShopTitle}" FontSize="11" Classes="muted" TextTrimming="CharacterEllipsis" />
+                              </StackPanel>
+                              <Button Grid.Column="1" Classes="subtle" Padding="6,2" FontSize="11" VerticalAlignment="Center" ToolTip.Tip="Show this shop on the map"
+                                      AutomationProperties.Name="Show route shop on map" CommandParameter="{Binding}"
+                                      Command="{Binding $parent[UserControl].((vm:ShopPathFinderViewModel)DataContext).ShowShopCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="3"><icons:Icon Symbol="Location24" FontSize="12" VerticalAlignment="Center" /><TextBlock Text="Show" VerticalAlignment="Center" /></StackPanel>
+                              </Button>
+                            </Grid>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Grid>
+    </Grid>
+  </Border>
+  <UserControl.Resources>
+    <DataTemplate x:Key="Suggestion" x:DataType="core:ShopSuggestion">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <shared:ItemIcon ShortName="{Binding ShortName}" Width="20" Height="20" />
+        <TextBlock Text="{Binding Display}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate x:Key="PreviewShop" x:DataType="vm:ShopResultRow">
+      <StackPanel Spacing="2" Margin="0,0,0,6">
+        <StackPanel Orientation="Horizontal" Spacing="4">
+          <TextBlock Text="{Binding Title}" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="110" />
+          <TextBlock Text="{Binding Grid}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource Accent}" />
+        </StackPanel>
+        <ItemsControl ItemsSource="{Binding Offers}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ShopOfferRow">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <shared:ItemIcon ItemId="{Binding ItemId}" Width="14" Height="14" />
+                <TextBlock Text="{Binding ItemText}" FontSize="10" TextTrimming="CharacterEllipsis" MaxWidth="70" />
+                <icons:Icon Symbol="ArrowRight16" FontSize="10" Foreground="{DynamicResource TextSubtle}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding CostText}" FontSize="10" TextTrimming="CharacterEllipsis" MaxWidth="60" />
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </DataTemplate>
+  </UserControl.Resources>
+  <UserControl.Styles>
+    <Style Selector="Border.preview">
+      <Setter Property="Background" Value="{DynamicResource SurfaceAlt}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="6" />
+      <Setter Property="Height" Value="128" />
+    </Style>
+    <Style Selector="TextBlock.previewCaption">
+      <Setter Property="FontSize" Value="10" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+      <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+    <Style Selector="Button.routeCard">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceAlt}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="10" />
+      <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+    <Style Selector="Button.routeCard:pointerover /template/ ContentPresenter">
+      <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceAlt}" />
+    </Style>
+    <Style Selector="Border.summary, Border.step">
+      <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="8" />
+    </Style>
+    <Style Selector="Border.step"><Setter Property="Margin" Value="0,0,0,6" /></Style>
+  </UserControl.Styles>
+</UserControl>
