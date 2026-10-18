@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 using RustPlusDesk.Avalonia.Features.Shops;
 using RustPlusDesk.Core.Alerts;
 using RustPlusDesk.Core.Chat;
+using RustPlusDesk.Core.Map;
 using RustPlusDesk.Core.Servers;
 using RustPlusDesk.Core.Settings;
 
@@ -24,6 +25,7 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     private bool newShops;
     private bool suspiciousShops;
     private bool heli, chinook, vendor, deepSea;
+    private bool cargo, cargoDocking, cargoEgress, cargoArrival;
     private bool playerAfk, playerAfkReturn;
     private int afkMinutes;
     private bool playerOnline, playerOffline, deathSelf, deathTeam, respawnSelf, respawnTeam;
@@ -40,6 +42,10 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
         chinook = settings?.Get(SettingKeys.AnnounceChinook, false) ?? false;
         vendor = settings?.Get(SettingKeys.AnnounceVendor, false) ?? false;
         deepSea = settings?.Get(SettingKeys.AnnounceDeepSea, false) ?? false;
+        cargo = settings?.Get(SettingKeys.AnnounceCargo, false) ?? false;
+        cargoDocking = settings?.Get(SettingKeys.AnnounceCargoDocking, false) ?? false;
+        cargoEgress = settings?.Get(SettingKeys.AnnounceCargoEgress, false) ?? false;
+        cargoArrival = settings?.Get(SettingKeys.AnnounceCargoArrival, false) ?? false;
         smartAlerts = settings?.Get(SettingKeys.AnnounceSmartAlerts, false) ?? false;
         playerOnline = settings?.Get(SettingKeys.AnnouncePlayerOnline, false) ?? false;
         playerOffline = settings?.Get(SettingKeys.AnnouncePlayerOffline, false) ?? false;
@@ -147,6 +153,24 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     public bool AnnounceVendor => master && vendor;
     /// <summary>Reference AnnounceDeepSea: the Deep Sea event spawning is posted to chat.</summary>
     public bool AnnounceDeepSea => master && deepSea;
+    public bool AnnounceCargo => master && cargo;
+    public bool AnnounceCargoDocking => master && cargoDocking;
+    public bool AnnounceCargoEgress => master && cargoEgress;
+    public bool AnnounceCargoArrival => master && cargoArrival;
+    /// <summary>Reference "Cargo Ship" parent: checked while any cargo alert is on.</summary>
+    public bool AnyCargo => AnnounceCargo || AnnounceCargoDocking || AnnounceCargoEgress || AnnounceCargoArrival;
+    public CargoAlertFlags CargoFlags => new(AnnounceCargo, AnnounceCargoDocking, AnnounceCargoEgress, AnnounceCargoArrival, master);
+    /// <summary>Whether this server has a learned cargo trigger point (reference HasAnyCargoTrigger); set by the shell.</summary>
+    public Func<bool>? CargoArrivalLearned { get; set; }
+    /// <summary>Reference: the arrival warning only works once a trigger point is learned.</summary>
+    public bool CanToggleCargoArrival => master && CargoArrivalLearned?.Invoke() == true;
+    public string CargoArrivalHeader => CargoArrivalLearned?.Invoke() == true ? "Arrival Warning (5m before Dock)" : "Arrival Warning (Unlearned)";
+    /// <summary>Re-reads whether the arrival warning is learned (server selection, after a docking).</summary>
+    public void RefreshCargoArrival()
+    {
+        OnPropertyChanged(nameof(CanToggleCargoArrival));
+        OnPropertyChanged(nameof(CargoArrivalHeader));
+    }
     /// <summary>Reference AnnounceSmartAlerts: smart alarms are posted to team chat.</summary>
     public bool AnnounceSmartAlerts => master && smartAlerts;
     public bool AnnouncePlayerOnline => master && playerOnline;
@@ -204,6 +228,10 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     [RelayCommand] private void ToggleChinook() => Flip(ref chinook, SettingKeys.AnnounceChinook);
     [RelayCommand] private void ToggleVendor() => Flip(ref vendor, SettingKeys.AnnounceVendor);
     [RelayCommand] private void ToggleDeepSea() => Flip(ref deepSea, SettingKeys.AnnounceDeepSea);
+    [RelayCommand] private void ToggleCargo() => Flip(ref cargo, SettingKeys.AnnounceCargo);
+    [RelayCommand] private void ToggleCargoDocking() => Flip(ref cargoDocking, SettingKeys.AnnounceCargoDocking);
+    [RelayCommand] private void ToggleCargoEgress() => Flip(ref cargoEgress, SettingKeys.AnnounceCargoEgress);
+    [RelayCommand] private void ToggleCargoArrival() => Flip(ref cargoArrival, SettingKeys.AnnounceCargoArrival);
     [RelayCommand] private void ToggleSmartAlerts() => Flip(ref smartAlerts, SettingKeys.AnnounceSmartAlerts);
     [RelayCommand] private void TogglePlayerOnline() => Flip(ref playerOnline, SettingKeys.AnnouncePlayerOnline);
     [RelayCommand] private void TogglePlayerOffline() => Flip(ref playerOffline, SettingKeys.AnnouncePlayerOffline);
@@ -249,10 +277,12 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     private void SetAll(bool value)
     {
         newShops = suspiciousShops = heli = chinook = vendor = deepSea = value;
+        cargo = cargoDocking = cargoEgress = cargoArrival = value;
         playerAfk = playerAfkReturn = value;
         playerOnline = playerOffline = deathSelf = deathTeam = respawnSelf = respawnTeam = smartAlerts = value;
         foreach (string key in new[] { SettingKeys.AnnounceNewShops, SettingKeys.AnnounceSuspiciousShops, SettingKeys.AnnounceHeli,
-                     SettingKeys.AnnounceChinook, SettingKeys.AnnounceVendor, SettingKeys.AnnounceDeepSea, SettingKeys.AnnouncePlayerOnline, SettingKeys.AnnouncePlayerOffline,
+                     SettingKeys.AnnounceChinook, SettingKeys.AnnounceVendor, SettingKeys.AnnounceDeepSea, SettingKeys.AnnounceCargo, SettingKeys.AnnounceCargoDocking,
+                     SettingKeys.AnnounceCargoEgress, SettingKeys.AnnounceCargoArrival, SettingKeys.AnnouncePlayerOnline, SettingKeys.AnnouncePlayerOffline,
                      SettingKeys.AnnouncePlayerAfk, SettingKeys.AnnouncePlayerAfkReturn, SettingKeys.AnnouncePlayerDeathSelf, SettingKeys.AnnouncePlayerDeathTeam, SettingKeys.AnnouncePlayerRespawnSelf,
                      SettingKeys.AnnouncePlayerRespawnTeam, SettingKeys.AnnounceSmartAlerts })
             settings?.Set(key, value);
@@ -289,13 +319,14 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
         Refresh();
     }
 
-    private int Local() => new[] { newShops, suspiciousShops, heli, chinook, vendor, deepSea, playerOnline, playerOffline, playerAfk, playerAfkReturn, deathSelf, deathTeam,
+    private int Local() => new[] { newShops, suspiciousShops, heli, chinook, vendor, deepSea, cargo, cargoDocking, cargoEgress, cargoArrival, playerOnline, playerOffline, playerAfk, playerAfkReturn, deathSelf, deathTeam,
         respawnSelf, respawnTeam, smartAlerts }.Count(flag => flag);
 
     private void Refresh()
     {
         foreach (string name in new[] { nameof(IsMasterOn), nameof(AnnounceNewShops), nameof(AnnounceSuspiciousShops), nameof(AnnounceHeli), nameof(AnnounceChinook),
-                     nameof(AnnounceVendor), nameof(AnnounceDeepSea), nameof(AnnouncePlayerOnline), nameof(AnnouncePlayerOffline), nameof(AnnouncePlayerAfk), nameof(AnnouncePlayerAfkReturn), nameof(AnyPlayerAfk), nameof(AnnouncePlayerDeathSelf),
+                     nameof(AnnounceVendor), nameof(AnnounceDeepSea), nameof(AnnounceCargo), nameof(AnnounceCargoDocking), nameof(AnnounceCargoEgress),
+                     nameof(AnnounceCargoArrival), nameof(AnyCargo), nameof(CanToggleCargoArrival), nameof(CargoArrivalHeader), nameof(AnnouncePlayerOnline), nameof(AnnouncePlayerOffline), nameof(AnnouncePlayerAfk), nameof(AnnouncePlayerAfkReturn), nameof(AnyPlayerAfk), nameof(AnnouncePlayerDeathSelf),
                      nameof(AnnouncePlayerDeathTeam), nameof(AnnouncePlayerRespawnSelf), nameof(AnnouncePlayerRespawnTeam), nameof(AnnounceSmartAlerts), nameof(AnnounceWebhook), nameof(CanToggleWebhook), nameof(EnabledCount),
                      nameof(ShowCountBadge), nameof(ShowEmptyDot), nameof(CountText), nameof(MasterTip) })
             OnPropertyChanged(name);

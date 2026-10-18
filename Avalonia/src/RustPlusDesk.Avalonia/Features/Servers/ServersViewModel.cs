@@ -74,6 +74,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     {
         var alerts = new Alerts.ChatAlertsViewModel(appSettings, ShopAlerts)
         {
+            CargoArrivalLearned = () => appSettings is not null && SelectedServer is { } server
+                && new RustPlusDesk.Core.Map.SettingsCargoMemory(appSettings).HasAnyTrigger(server.Host),
             OpenTemplates = OpenAlertTemplates,
             ProfileFlags = profileFlags,
             Profile = () => SelectedServer is { } server ? (SourcePath, server.ProfileKey) : null,
@@ -96,6 +98,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         };
         EventAnnouncer = new(Connection.Map, alerts)
         {
+            CargoMemory = appSettings is null ? null : new RustPlusDesk.Core.Map.SettingsCargoMemory(appSettings),
+            Host = () => SelectedServer?.Host,
             Templates = AlertTemplates,
             Log = Activity.Append,
             SendTeamChat = text => Connection.Chat.SendAutomatedAsync(text)
@@ -774,6 +778,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         _ = settingsPage?.CustomMap?.LoadAsync();
         _ = deathPins?.ReloadAsync();
         _ = chatAlerts?.LoadChannelAsync();
+        chatAlerts?.RefreshCargoArrival();
         _ = chatAlerts?.Webhook?.LoadAsync();
         ImportDevicesCommand.NotifyCanExecuteChanged();
     }

@@ -50,6 +50,14 @@
               </MenuItem>
               <Separator />
               <MenuItem Header="Events" IsEnabled="False" />
+              <MenuItem Header="Cargo Ship" ToggleType="CheckBox" IsChecked="{Binding AnyCargo, Mode=OneWay}" IsEnabled="{Binding IsMasterOn}">
+                <MenuItem Header="Spawn" ToggleType="CheckBox" IsChecked="{Binding AnnounceCargo, Mode=OneWay}" Command="{Binding ToggleCargoCommand}" />
+                <MenuItem Header="Harbor Docking" ToggleType="CheckBox" IsChecked="{Binding AnnounceCargoDocking, Mode=OneWay}" Command="{Binding ToggleCargoDockingCommand}" />
+                <MenuItem Header="Departure (5m Warning)" ToggleType="CheckBox" IsChecked="{Binding AnnounceCargoEgress, Mode=OneWay}" Command="{Binding ToggleCargoEgressCommand}" />
+                <MenuItem Header="{Binding CargoArrivalHeader}" ToggleType="CheckBox" IsChecked="{Binding AnnounceCargoArrival, Mode=OneWay}"
+                          IsEnabled="{Binding CanToggleCargoArrival}" Command="{Binding ToggleCargoArrivalCommand}"
+                          ToolTip.Tip="Learned from a full docking on this server: warns about 5 minutes before the cargo ship docks" />
+              </MenuItem>
               <MenuItem Header="Patrol Helicopter" ToggleType="CheckBox" IsChecked="{Binding AnnounceHeli, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleHeliCommand}" />
               <MenuItem Header="Chinook (CH47)" ToggleType="CheckBox" IsChecked="{Binding AnnounceChinook, Mode=OneWay}"

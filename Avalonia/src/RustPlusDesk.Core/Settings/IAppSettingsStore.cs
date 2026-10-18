@@ -29,6 +29,10 @@ public static class SettingKeys
     public const string GenericAlarmPopupEnabled = "GenericAlarmPopupEnabled"; // default false
     public const string AnnounceSpawnsMaster = "AnnounceSpawnsMaster";     // default false: chat alerts master
     public const string AnnounceNewShops = "AnnounceNewShops";             // default false
+    public const string AnnounceCargo = "AnnounceCargo";                   // default false: cargo spawn
+    public const string AnnounceCargoDocking = "AnnounceCargoDocking";     // default false: cargo docked at a harbor
+    public const string AnnounceCargoEgress = "AnnounceCargoEgress";       // default false: 5 min departure warning
+    public const string AnnounceCargoArrival = "AnnounceCargoArrival";     // default false: 5 min arrival warning (learned)
     public const string AnnounceHeli = "AnnounceHeli";                     // default false
     public const string AnnounceChinook = "AnnounceChinook";               // default false
     public const string AnnounceVendor = "AnnounceVendor";                 // default false

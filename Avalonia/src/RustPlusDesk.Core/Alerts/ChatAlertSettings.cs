@@ -11,7 +11,7 @@ public static class ChatAlertSettings
     /// <summary>Every global alert flag the reference counts, in reference order (all default false).</summary>
     public static readonly IReadOnlyList<string> AlertKeys =
     [
-        "AnnounceCargo", "AnnounceCargoDocking", "AnnounceCargoEgress", "AnnounceCargoArrival",
+        SettingKeys.AnnounceCargo, SettingKeys.AnnounceCargoDocking, SettingKeys.AnnounceCargoEgress, SettingKeys.AnnounceCargoArrival,
         SettingKeys.AnnounceHeli, SettingKeys.AnnounceChinook, SettingKeys.AnnounceVendor, "AnnounceOilRig", SettingKeys.AnnounceDeepSea,
         SettingKeys.AnnouncePlayerOnline, SettingKeys.AnnouncePlayerOffline, SettingKeys.AnnouncePlayerAfk, SettingKeys.AnnouncePlayerAfkReturn,
         SettingKeys.AnnouncePlayerDeathSelf, SettingKeys.AnnouncePlayerDeathTeam, SettingKeys.AnnouncePlayerRespawnSelf, SettingKeys.AnnouncePlayerRespawnTeam,
