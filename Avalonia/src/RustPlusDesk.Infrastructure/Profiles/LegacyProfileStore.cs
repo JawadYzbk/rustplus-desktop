@@ -11,6 +11,14 @@ internal static class LegacyProfileStore
 {
     private static readonly SemaphoreSlim Writes = new(1, 1);
 
+    /// <summary>The one profile with this identity key, or null when none or several match.</summary>
+    public static JsonObject? FindProfile(JsonArray document, string profileKey)
+    {
+        var matches = document.OfType<JsonObject>().Where(node => node["Host"] is JsonValue host && host.TryGetValue(out string? h) &&
+            LegacyProfileIdentity.Create(h, node["Port"]?.GetValue<int>() ?? 28082, node["SteamId64"]?.GetValue<string>()) == profileKey).ToArray();
+        return matches.Length == 1 ? matches[0] : null;
+    }
+
     public static async Task<IReadOnlyList<ServerSummary>> UpdateAsync(string path, Action<JsonArray> update, string? expectedRevision, CancellationToken ct)
     {
         await Writes.WaitAsync(ct).ConfigureAwait(false);

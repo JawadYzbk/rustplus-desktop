@@ -15,21 +15,14 @@ public sealed class LegacyCustomMapUrlStore : ICustomMapUrlStore
     {
         byte[]? bytes = await AtomicPrivateFile.ReadAsync(profilesPath, ct).ConfigureAwait(false);
         if (bytes is null) return null;
-        var node = Find(JsonNode.Parse(bytes)!.AsArray(), profileKey);
+        var node = LegacyProfileStore.FindProfile(JsonNode.Parse(bytes)!.AsArray(), profileKey);
         return node?["CustomMapUrl"] is JsonValue value && value.TryGetValue(out string? url) && !string.IsNullOrWhiteSpace(url) ? url : null;
     }
 
     public async Task SetAsync(string profilesPath, string profileKey, string? url, CancellationToken ct) =>
         await LegacyProfileStore.UpdateAsync(profilesPath, document =>
         {
-            var node = Find(document, profileKey) ?? throw new ProfileChangedException();
+            var node = LegacyProfileStore.FindProfile(document, profileKey) ?? throw new ProfileChangedException();
             node["CustomMapUrl"] = url;
         }, null, ct).ConfigureAwait(false);
-
-    private static JsonObject? Find(JsonArray document, string profileKey)
-    {
-        var matches = document.OfType<JsonObject>().Where(node => node["Host"] is JsonValue host && host.TryGetValue(out string? h) &&
-            LegacyProfileIdentity.Create(h, node["Port"]?.GetValue<int>() ?? 28082, node["SteamId64"]?.GetValue<string>()) == profileKey).ToArray();
-        return matches.Length == 1 ? matches[0] : null;
-    }
 }

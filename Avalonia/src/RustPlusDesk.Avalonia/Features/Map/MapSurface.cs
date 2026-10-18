@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using RustPlusDesk.Core.Deaths;
 using RustPlusDesk.Core.Map;
 using RustPlusDesk.Core.Settings;
 
@@ -32,6 +33,8 @@ public sealed class MapSurface : Control
     public static readonly StyledProperty<double> PlayerScaleProperty = AvaloniaProperty.Register<MapSurface, double>(nameof(PlayerScale), 1.0);
     public static readonly StyledProperty<bool> ShowDeathHeatmapProperty = AvaloniaProperty.Register<MapSurface, bool>(nameof(ShowDeathHeatmap));
     public static readonly StyledProperty<IReadOnlyList<Point2>?> DeathPositionsProperty = AvaloniaProperty.Register<MapSurface, IReadOnlyList<Point2>?>(nameof(DeathPositions));
+    public static readonly StyledProperty<bool> ShowDeathPinsProperty = AvaloniaProperty.Register<MapSurface, bool>(nameof(ShowDeathPins));
+    public static readonly StyledProperty<IReadOnlyList<DeathPin>?> DeathPinsProperty = AvaloniaProperty.Register<MapSurface, IReadOnlyList<DeathPin>?>(nameof(DeathPins));
     public static readonly StyledProperty<int> ResetRequestProperty = AvaloniaProperty.Register<MapSurface, int>(nameof(ResetRequest));
     public static readonly StyledProperty<MapFocus?> FocusRequestProperty = AvaloniaProperty.Register<MapSurface, MapFocus?>(nameof(FocusRequest));
 
@@ -57,6 +60,12 @@ public sealed class MapSurface : Control
     public bool ShowDeathHeatmap { get => GetValue(ShowDeathHeatmapProperty); set => SetValue(ShowDeathHeatmapProperty, value); }
     /// <summary>World positions drawn as the death heatmap.</summary>
     public IReadOnlyList<Point2>? DeathPositions { get => GetValue(DeathPositionsProperty); set => SetValue(DeathPositionsProperty, value); }
+    /// <summary>Reference MapShowDeathTags: death marker pins are drawn.</summary>
+    public bool ShowDeathPins { get => GetValue(ShowDeathPinsProperty); set => SetValue(ShowDeathPinsProperty, value); }
+    /// <summary>Numbered, labelled death marker pins (reference RedrawDeathPins).</summary>
+    public IReadOnlyList<DeathPin>? DeathPins { get => GetValue(DeathPinsProperty); set => SetValue(DeathPinsProperty, value); }
+    /// <summary>A death pin was right-clicked (reference pin context menu: rename, delete).</summary>
+    public event Action<DeathPin, Point>? DeathPinRequested;
     /// <summary>Player marker size factor (reference MapPlayerIconScale).</summary>
     public double PlayerScale { get => GetValue(PlayerScaleProperty); set => SetValue(PlayerScaleProperty, value); }
 
@@ -70,17 +79,21 @@ public sealed class MapSurface : Control
     private bool needsFit = true;
     private MapMonument? hovered;
     private MapMarker? hoveredMarker;
+    private DeathPin? hoveredPin;
+    /// <summary>Death pin size on screen (reference pin path 40×56, drawn at half size).</summary>
+    internal const double PinWidth = 20, PinHeight = 28;
 
     public double Scale => scale;
     public Vector Offset => offset;
     internal MapMonument? Hovered => hovered;
     internal MapMarker? HoveredMarker => hoveredMarker;
+    internal DeathPin? HoveredPin => hoveredPin;
 
     static MapSurface()
     {
         AffectsRender<MapSurface>(ImageProperty, GeometryProperty, MonumentsProperty, ShowGridProperty, ShowMonumentsProperty,
             MarkersProperty, ShowPlayersProperty, ShowShopsProperty, MonumentScaleProperty, MonumentOpacityProperty, GridOpacityProperty, MonumentNamesProperty,
-            AbbreviateNamesProperty, PlayerScaleProperty, ShowDeathHeatmapProperty, DeathPositionsProperty);
+            AbbreviateNamesProperty, PlayerScaleProperty, ShowDeathHeatmapProperty, DeathPositionsProperty, ShowDeathPinsProperty, DeathPinsProperty);
         ClipToBoundsProperty.OverrideDefaultValue<MapSurface>(true);
         FocusableProperty.OverrideDefaultValue<MapSurface>(true);
     }
@@ -149,6 +162,12 @@ public sealed class MapSurface : Control
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
+        if (e.GetCurrentPoint(this).Properties.IsRightButtonPressed && FindPin(e.GetPosition(this)) is { } pin)
+        {
+            DeathPinRequested?.Invoke(pin, e.GetPosition(this));
+            e.Handled = true;
+            return;
+        }
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
         Focus();
         if (e.ClickCount == 2) { FitToView(); e.Handled = true; return; }
@@ -168,9 +187,11 @@ public sealed class MapSurface : Control
             InvalidateVisual();
             return;
         }
-        var marker = FindMarker(point);
-        var near = marker is null ? FindMonument(point) : null;
-        if (!ReferenceEquals(near, hovered) || !ReferenceEquals(marker, hoveredMarker)) { hovered = near; hoveredMarker = marker; InvalidateVisual(); }
+        var pin = FindPin(point);
+        var marker = pin is null ? FindMarker(point) : null;
+        var near = pin is null && marker is null ? FindMonument(point) : null;
+        if (!ReferenceEquals(near, hovered) || !ReferenceEquals(marker, hoveredMarker) || !ReferenceEquals(pin, hoveredPin))
+        { hovered = near; hoveredMarker = marker; hoveredPin = pin; InvalidateVisual(); }
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
@@ -183,7 +204,7 @@ public sealed class MapSurface : Control
     protected override void OnPointerExited(PointerEventArgs e)
     {
         base.OnPointerExited(e);
-        if (hovered is not null || hoveredMarker is not null) { hovered = null; hoveredMarker = null; InvalidateVisual(); }
+        if (hovered is not null || hoveredMarker is not null || hoveredPin is not null) { hovered = null; hoveredMarker = null; hoveredPin = null; InvalidateVisual(); }
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -202,6 +223,41 @@ public sealed class MapSurface : Control
             default: return;
         }
         e.Handled = true;
+    }
+
+    /// <summary>The topmost death pin under the point (pins stand on their tip).</summary>
+    internal DeathPin? FindPin(Point point)
+    {
+        if (!ShowDeathPins || Geometry is not { } geometry || DeathPins is not { Count: > 0 } pins) return null;
+        for (int i = pins.Count - 1; i >= 0; i--)
+        {
+            var (x, y) = geometry.WorldToImage(pins[i].Marker.X, pins[i].Marker.Y);
+            var tip = ImageToScreen(x, y);
+            if (new Rect(tip.X - PinWidth / 2, tip.Y - PinHeight, PinWidth, PinHeight).Contains(point)) return pins[i];
+        }
+        return null;
+    }
+
+    private static readonly Geometry PinShape = StreamGeometry.Parse("M10,0 C15.5,0 20,4.5 20,10 C20,16.5 10,28 10,28 C10,28 0,16.5 0,10 C0,4.5 4.5,0 10,0 Z");
+    private static readonly IBrush PinFill = new SolidColorBrush(Color.FromRgb(0xCD, 0x5C, 0x5C));
+    private static readonly IPen PinOutline = new Pen(Brushes.Black, 1.2);
+
+    /// <summary>Reference BuildDeathPin: a red pin standing on the death position with the player's initial in its head.</summary>
+    private void DrawDeathPins(DrawingContext context, MapGeometry geometry, IReadOnlyList<DeathPin> pins)
+    {
+        foreach (var pin in pins)
+        {
+            var (x, y) = geometry.WorldToImage(pin.Marker.X, pin.Marker.Y);
+            var tip = ImageToScreen(x, y);
+            using (context.PushTransform(Matrix.CreateTranslation(tip.X - PinWidth / 2, tip.Y - PinHeight)))
+            {
+                context.DrawGeometry(PinFill, PinOutline, PinShape);
+                context.DrawEllipse(Brushes.Gray, PinOutline, new Point(10, 10), 6.5, 6.5);
+                string initial = pin.Marker.DisplayName.Length > 0 ? pin.Marker.DisplayName[..1].ToUpperInvariant() : "?";
+                var text = new FormattedText(initial, System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight, LabelFace, 9, Brushes.White);
+                context.DrawText(text, new Point(10 - text.Width / 2, 10 - text.Height / 2));
+            }
+        }
     }
 
     internal MapMonument? FindMonument(Point point)
@@ -233,6 +289,8 @@ public sealed class MapSurface : Control
         if (ShowMonuments && Geometry is { } world && Monuments is { Count: > 0 } monuments)
             using (context.PushOpacity(MonumentOpacity)) DrawMonuments(context, world, monuments);
         if (Geometry is { } live && Markers is { Count: > 0 } markers) DrawMarkers(context, live, markers);
+        // Reference: pins sit above the live markers (Z 9980).
+        if (ShowDeathPins && Geometry is { } pinned && DeathPins is { Count: > 0 } pins) DrawDeathPins(context, pinned, pins);
         if (Geometry is { } labelled) DrawHoverLabel(context, labelled);
     }
 
@@ -359,7 +417,8 @@ public sealed class MapSurface : Control
     {
         string? label = null;
         double x = 0, y = 0;
-        if (hoveredMarker is { } marker) { label = Describe(marker, geometry.WorldSize, AbbreviateNames); (x, y) = geometry.WorldToImage(marker.X, marker.Y); }
+        if (hoveredPin is { } pin) { label = pin.Label; (x, y) = geometry.WorldToImage(pin.Marker.X, pin.Marker.Y); }
+        else if (hoveredMarker is { } marker) { label = Describe(marker, geometry.WorldSize, AbbreviateNames); (x, y) = geometry.WorldToImage(marker.X, marker.Y); }
         else if (hovered is { } focus) { label = $"{focus.DisplayName} · {MapGrid.Label(geometry.WorldSize, focus.X, focus.Y)}"; (x, y) = geometry.WorldToImage(focus.X, focus.Y); }
         if (label is null) return;
         var at = ImageToScreen(x, y);

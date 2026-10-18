@@ -66,6 +66,41 @@
                       <TextBlock Grid.Column="1" Text="{Binding Connection.Map.PlayerIconScale, StringFormat='{}{0:0%}'}" HorizontalAlignment="Right" FontSize="12" /></Grid>
                     <Slider Minimum="0.5" Maximum="1.5" Value="{Binding Connection.Map.PlayerIconScale}" AutomationProperties.Name="Player icon size" />
                     <CheckBox Content="Show shops automatically when connecting" IsChecked="{Binding Connection.Map.AutoLoadShops}" />
+                    <StackPanel Spacing="8" IsVisible="{Binding DeathPins, Converter={x:Static ObjectConverters.IsNotNull}}">
+                      <Separator />
+                      <ToggleSwitch Content="Death markers" IsChecked="{Binding DeathPins.Show, FallbackValue=False}" OnContent="" OffContent=""
+                                    AutomationProperties.Name="Death markers" ToolTip.Tip="Pin every team death on the map" />
+                      <StackPanel Spacing="8" IsVisible="{Binding DeathPins.Show, FallbackValue=False}">
+                        <TextBlock Text="Markers kept per player" Classes="muted" FontSize="12" />
+                        <Grid ColumnDefinitions="Auto,*,Auto,*" ColumnSpacing="8">
+                          <TextBlock Text="You" FontSize="12" VerticalAlignment="Center" />
+                          <NumericUpDown Grid.Column="1" Minimum="1" Maximum="50" Increment="1" FormatString="0" Value="{Binding DeathPins.MaxSelf, FallbackValue=3}"
+                                         AutomationProperties.Name="Death markers kept for you" />
+                          <TextBlock Grid.Column="2" Text="Teammates" FontSize="12" VerticalAlignment="Center" />
+                          <NumericUpDown Grid.Column="3" Minimum="1" Maximum="50" Increment="1" FormatString="0" Value="{Binding DeathPins.MaxTeam, FallbackValue=3}"
+                                         AutomationProperties.Name="Death markers kept per teammate" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto">
+                          <TextBlock Text="{Binding DeathPins.CountText, FallbackValue=''}" Classes="muted" FontSize="12" VerticalAlignment="Center" />
+                          <Button Grid.Column="1" Classes="subtle" Content="Apply limits now" Command="{Binding DeathPins.ApplyCapsCommand, FallbackValue={x:Null}}"
+                                  ToolTip.Tip="Remove the oldest markers beyond these limits" AutomationProperties.Name="Apply death marker limits" />
+                        </Grid>
+                        <Button Classes="subtle" Foreground="{DynamicResource ConnectionDanger}" Command="{Binding DeathPins.ConfirmWipeCommand, FallbackValue={x:Null}}"
+                                IsVisible="{Binding !DeathPins.IsWipeConfirming, FallbackValue=True}" AutomationProperties.Name="Wipe death markers">
+                          <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Delete24" FontSize="14" /><TextBlock Text="Wipe death markers" /></StackPanel>
+                        </Button>
+                        <Border Classes="panel" Padding="10" IsVisible="{Binding DeathPins.IsWipeConfirming, FallbackValue=False}">
+                          <StackPanel Spacing="8">
+                            <TextBlock Text="Remove every death marker from this server's map?" TextWrapping="Wrap" FontSize="12" />
+                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                              <Button Classes="subtle" Content="Cancel" Command="{Binding DeathPins.CancelWipeCommand, FallbackValue={x:Null}}" />
+                              <Button Classes="primary" Content="Wipe" Command="{Binding DeathPins.ConfirmWipeCommand, FallbackValue={x:Null}}"
+                                      AutomationProperties.Name="Confirm wipe death markers" />
+                            </StackPanel>
+                          </StackPanel>
+                        </Border>
+                      </StackPanel>
+                    </StackPanel>
                   </StackPanel>
                 </Flyout>
               </Button.Flyout>
@@ -92,6 +127,7 @@
                         FocusRequest="{Binding Connection.Map.FocusRequest}" AbbreviateNames="{Binding Connection.Map.AbbreviateNames}"
                         PlayerScale="{Binding Connection.Map.PlayerIconScale}" ShowDeathHeatmap="{Binding Connection.Map.ShowDeathHeatmap}"
                         DeathPositions="{Binding Connection.Map.DeathPositions}"
+                        ShowDeathPins="{Binding DeathPins.Show, FallbackValue=False}" DeathPins="{Binding DeathPins.Pins, FallbackValue={x:Null}}"
                         IsVisible="{Binding Connection.Map.HasMap}" AutomationProperties.Name="Server map" />
         <ScrollViewer HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding !Connection.Map.HasMap}" Margin="20">
         <Border Classes="card" MaxWidth="360" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -112,6 +148,11 @@
           </StackPanel>
         </Border>
         </ScrollViewer>
+        <Button Classes="subtle" Background="{DynamicResource SurfaceAlt}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12"
+                Command="{Binding DeathPins.WipeCommand, FallbackValue={x:Null}}" IsVisible="{Binding DeathPins.ShowWipeOverlay, FallbackValue=False}"
+                ToolTip.Tip="Wipe Death Markers" AutomationProperties.Name="Wipe death markers on the map">
+          <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Delete24" FontSize="16" /><TextBlock Text="Wipe death markers" /></StackPanel>
+        </Button>
         <shops:ShopSearchView Grid.RowSpan="2" DataContext="{Binding Shops}" IsVisible="{Binding IsOpen}" Width="380"
                               HorizontalAlignment="Right" VerticalAlignment="Stretch" Margin="0,12,12,12" />
         <shops:ShopProfitView Grid.RowSpan="2" DataContext="{Binding Shops.Profit}" IsVisible="{Binding IsOpen}" Width="380"

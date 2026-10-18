@@ -31,7 +31,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Core.Hotkeys.IHotkeyStore? hotkeyStore = null, RustPlusDesk.Core.Settings.ILaunchAtLogin? launchAtLogin = null,
     RustPlusDesk.Core.Deaths.IDeathLog? deathLog = null, RustPlusDesk.Core.Alerts.IAlertTemplateStore? alertTemplateStore = null,
     RustPlusDesk.Core.Map.IMapCache? mapCache = null, RustPlusDesk.Core.Map.ICustomMapUrlStore? customMapUrls = null,
-    RustPlusDesk.Core.Map.ICustomMapDownloader? customMapDownloader = null)
+    RustPlusDesk.Core.Map.ICustomMapDownloader? customMapDownloader = null, RustPlusDesk.Core.Deaths.IDeathMarkerStore? deathMarkerStore = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -580,6 +580,9 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     }
 
     private bool observingStreamerMode;
+    private Map.DeathPinsViewModel? deathPins;
+    /// <summary>Reference death markers of the selected profile (map pins, caps, wipe).</summary>
+    public Map.DeathPinsViewModel? DeathPins => deathPins;
     private Teams.DeathRecorder? deathRecorder;
 
     /// <summary>Reference death tracking: team snapshots of the selected server feed the local death log.</summary>
@@ -593,6 +596,12 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     {
         if (observingStreamerMode) return;
         observingStreamerMode = true;
+        if (deathMarkerStore is not null)
+        {
+            deathPins = new(deathMarkerStore, appSettings, Connection.Team, Connection.Map,
+                () => SelectedServer is { } server ? (SourcePath, server.ProfileKey) : null, () => Account?.Account.SteamId) { Log = Activity.Append };
+            OnPropertyChanged(nameof(DeathPins));
+        }
         if (deathLog is not null)
         {
             deathRecorder = new(deathLog, () => SelectedServer is { } server ? Teams.DeathRecorder.KeyFor(server.Host, server.Port) : null,
@@ -693,6 +702,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             appSettings.Set(RustPlusDesk.Core.Settings.SettingKeys.LastSelectedServerKey, value.MatchKey);
         Hotkeys.SelectServer(value?.Host, value?.Port);
         _ = settingsPage?.CustomMap?.LoadAsync();
+        _ = deathPins?.ReloadAsync();
         ImportDevicesCommand.NotifyCanExecuteChanged();
     }
     [ObservableProperty]
