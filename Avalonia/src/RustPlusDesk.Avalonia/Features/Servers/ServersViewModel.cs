@@ -91,7 +91,11 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     }
 
     /// <summary>Diagnostics stream shown in the bottom Activity tab.</summary>
-    public Activity.ActivityLogViewModel Activity { get; } = new();
+    public Activity.ActivityLogViewModel Activity { get; } = new()
+    {
+        IsHidden = appSettings?.Get(RustPlusDesk.Core.Settings.SettingKeys.HideConsole, false) ?? false,
+        HiddenChanged = value => appSettings?.Set(RustPlusDesk.Core.Settings.SettingKeys.HideConsole, value)
+    };
     public CompanionAccountViewModel? Account { get; private set; }
     public CompanionListenerViewModel? Listener { get; private set; }
     public bool HasListener => Listener is not null;
@@ -217,7 +221,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     {
         var model = new Settings.SettingsViewModel(appSettings, key => Servers.FirstOrDefault(server => $"{server.Host}:{server.Port}" == key)?.Name, launchAtLogin)
         {
-            Map = Connection.Map
+            Map = Connection.Map,
+            Activity = Activity
         };
         ObserveStreamerMode();
         model.GenericAlarmPopupChanged += value => Alarms.GenericPopupEnabled = value;
@@ -531,7 +536,12 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         Connection.HideServerName = on;
         Connection.Team.Abbreviate = on;
         if (notifications is not null) notifications.IsStreamerMode = on;
-        if (on && !starting) IsSidebarOpen = false;
+        // Reference: turning streamer mode on also hides the server area and the console (HideConsole stays on after).
+        if (on && !starting)
+        {
+            IsSidebarOpen = false;
+            Activity.IsHidden = true;
+        }
     }
 
     partial void OnSelectedServerChanged(ServerSummary? value)

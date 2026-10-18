@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Media.Imaging;
+using Avalonia.VisualTree;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RustPlusDesk.Avalonia.Features.Map;
 using RustPlusDesk.Avalonia.Features.Notifications;
@@ -109,6 +110,42 @@ public sealed class StreamerModeTests
         Assert.IsTrue(restored.IsSidebarOpen, "Starting in streamer mode does not fold the sidebar by itself.");
         Assert.IsTrue(restored.Notifications.IsStreamerMode);
     }
+
+    [TestMethod]
+    public async Task HideConsole_PersistsHidesTheActivityTab_AndStreamerModeTurnsItOn() => await UiTestSession.Current.Dispatch(async () =>
+    {
+        var settings = new ShopNoticeTests.MemorySettings();
+        var shell = new ServersViewModel(new OneServer(), new NoPicker(), "profiles.json", new UnusedSessionFactory(), appSettings: settings);
+        Assert.IsFalse(shell.Activity.IsHidden, "The console is shown by default.");
+        Assert.AreSame(shell.Activity, shell.SettingsPage.Activity);
+        var window = new RustPlusDesk.Avalonia.Shell.MainWindow { DataContext = shell, Width = 1000, Height = 700 };
+        try
+        {
+            window.Show();
+            await shell.RefreshCommand.ExecuteAsync(null);
+            var tabs = window.GetVisualDescendants().OfType<TabControl>().Single(tab => global::Avalonia.Automation.AutomationProperties.GetName(tab) == "Chat and activity");
+            var activityTab = tabs.Items.OfType<TabItem>().Single(tab => global::Avalonia.Automation.AutomationProperties.GetName(tab) == "Activity");
+            tabs.SelectedIndex = 1;
+            shell.SettingsPage.Activity!.IsHidden = true;
+            window.UpdateLayout();
+            Assert.AreEqual(true, settings.Values[SettingKeys.HideConsole]);
+            Assert.IsFalse(activityTab.IsVisible);
+            Assert.AreEqual(0, tabs.SelectedIndex, "Hiding the console moves to team chat.");
+            shell.Activity.IsHidden = false;
+            window.UpdateLayout();
+            Assert.IsTrue(activityTab.IsVisible);
+            Assert.AreEqual(false, settings.Values[SettingKeys.HideConsole]);
+
+            shell.Connection.Map.AbbreviateNames = true;
+            Assert.IsTrue(shell.Activity.IsHidden, "Streamer mode hides the console (reference).");
+            shell.Connection.Map.AbbreviateNames = false;
+            Assert.IsTrue(shell.Activity.IsHidden, "Turning streamer mode off leaves the console hidden, as the reference does.");
+        }
+        finally { window.Close(); }
+        var restored = new ServersViewModel(new OneServer(), new NoPicker(), "profiles.json", new UnusedSessionFactory(), appSettings: settings);
+        Assert.IsTrue(restored.Activity.IsHidden, "HideConsole is restored on start.");
+        return true;
+    }, default);
 
     [TestMethod]
     public async Task MapSurface_AbbreviatesPlayerLabelsAndScalesMarkers() => await UiTestSession.Current.Dispatch(async () =>

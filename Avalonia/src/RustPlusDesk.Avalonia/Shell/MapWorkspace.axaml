@@ -121,12 +121,12 @@
     <GridSplitter Grid.Row="1" Height="4" ResizeDirection="Rows" Background="{DynamicResource CardBorder}"
                   AutomationProperties.Name="Resize activity panel" />
     <Border Grid.Row="2" Background="{DynamicResource Surface}" Padding="14,4,14,10" x:Name="ActivityPanel">
-      <TabControl Padding="0" AutomationProperties.Name="Chat and activity">
+      <TabControl x:Name="BottomTabs" Padding="0" AutomationProperties.Name="Chat and activity">
         <TabItem FontSize="14" AutomationProperties.Name="Team chat">
           <TabItem.Header><StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Chat24" FontSize="16" /><TextBlock Text="Team chat" /></StackPanel></TabItem.Header>
           <chat:ChatView DataContext="{Binding Connection.Chat}" Margin="0,6,0,0" />
         </TabItem>
-        <TabItem FontSize="14" AutomationProperties.Name="Activity">
+        <TabItem FontSize="14" AutomationProperties.Name="Activity" IsVisible="{Binding !Activity.IsHidden}">
           <TabItem.Header><StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Pulse24" FontSize="16" /><TextBlock Text="Activity" /></StackPanel></TabItem.Header>
           <activity:ActivityLogView DataContext="{Binding Activity}" Margin="0,6,0,0" />
         </TabItem>

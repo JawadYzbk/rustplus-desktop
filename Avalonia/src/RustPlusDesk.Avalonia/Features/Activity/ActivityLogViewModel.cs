@@ -20,6 +20,11 @@ public sealed partial class ActivityLogViewModel(TimeProvider? clock = null) : O
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ExpandCaption))]
     private bool isExpanded;
+    /// <summary>Reference HideConsole: the log is hidden to save map space (chat stays).</summary>
+    [ObservableProperty] private bool isHidden;
+    /// <summary>Saves <see cref="IsHidden"/> (HideConsole in tracking_settings.json).</summary>
+    public Action<bool>? HiddenChanged { get; init; }
+    partial void OnIsHiddenChanged(bool value) => HiddenChanged?.Invoke(value);
 
     public string Text => string.Join(Environment.NewLine, log.Filter(Filter));
     public bool IsEmpty => log.Lines.Count == 0;

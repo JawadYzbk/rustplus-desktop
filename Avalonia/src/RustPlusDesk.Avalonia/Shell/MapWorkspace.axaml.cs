@@ -23,11 +23,19 @@ public sealed partial class MapWorkspace : UserControl
         if (activity is not null) activity.PropertyChanged -= ActivityChanged;
         activity = next;
         if (activity is not null) activity.PropertyChanged += ActivityChanged;
+        ShowChatIfLogHidden();
+    }
+
+    /// <summary>Hide console: a hidden Activity tab never stays selected; the chat tab takes over.</summary>
+    private void ShowChatIfLogHidden()
+    {
+        if (activity?.IsHidden == true && BottomTabs.SelectedIndex != 0) BottomTabs.SelectedIndex = 0;
     }
 
     /// <summary>Expand grows the bottom panel to the reference 420 px; Collapse restores the height the user had.</summary>
     private void ActivityChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(ActivityLogViewModel.IsHidden)) ShowChatIfLogHidden();
         if (e.PropertyName != nameof(ActivityLogViewModel.IsExpanded) || activity is null) return;
         if (activity.IsExpanded)
         {

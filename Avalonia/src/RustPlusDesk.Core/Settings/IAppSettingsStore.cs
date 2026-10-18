@@ -36,6 +36,7 @@ public static class SettingKeys
     public const string NotificationsRetentionDays = "NotificationsRetentionDays"; // default 30 (<= 0 means 30)
     public const string MutedNotificationServers = "MutedNotificationServers";     // list of "host:port"
     public const string NotificationsToastEnabled = "NotificationsToastEnabled";   // default true
+    public const string HideConsole = "HideConsole";                       // default false: hide the bottom log/console
     public const string AutoConnectEnabled = "AutoConnectEnabled";         // default false: connect the selected server on startup
     public const string AutoStartEnabled = "AutoStartEnabled";             // default false: launch at sign-in (--background)
     public const string LastSelectedServerKey = "LastSelectedServerKey";   // "host:port|steamId64" of the last selected server

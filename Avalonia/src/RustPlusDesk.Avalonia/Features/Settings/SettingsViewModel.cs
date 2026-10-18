@@ -53,6 +53,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>The live map settings; streamer mode is its MapAbbreviateNames switch (also on the map toolbar).</summary>
     public global::RustPlusDesk.Avalonia.Features.Map.MapViewModel? Map { get; init; }
     public bool HasMap => Map is not null;
+    /// <summary>The bottom log; Behavior's "Hide console" is its HideConsole switch.</summary>
+    public global::RustPlusDesk.Avalonia.Features.Activity.ActivityLogViewModel? Activity { get; init; }
+    public bool HasActivity => Activity is not null;
     [ObservableProperty] private bool toastsEnabled;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(RetentionText))]

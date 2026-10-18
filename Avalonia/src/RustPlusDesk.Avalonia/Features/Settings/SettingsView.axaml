@@ -36,10 +36,18 @@
       <Border Classes="panel" Padding="16" IsVisible="{Binding HasMap}">
         <StackPanel Spacing="12">
           <TextBlock Text="BEHAVIOR" Classes="section" />
+          <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasActivity}">
+            <StackPanel>
+              <TextBlock Text="Hide system console" FontWeight="SemiBold" />
+              <TextBlock Text="Hides the bottom Activity log to declutter; team chat stays." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding Activity.IsHidden, FallbackValue=False}" OnContent="" OffContent=""
+                          AutomationProperties.Name="Hide system console" />
+          </Grid>
           <Grid ColumnDefinitions="*,Auto">
             <StackPanel>
               <TextBlock Text="Streamer mode" FontWeight="SemiBold" />
-              <TextBlock Text="Abbreviates Steam names and IDs to protect privacy during streams, hides server names and closes the server list."
+              <TextBlock Text="Abbreviates Steam names and IDs to protect privacy during streams, hides server names, and hides the console and server list."
                          Classes="muted" FontSize="12" TextWrapping="Wrap" />
             </StackPanel>
             <ToggleSwitch Grid.Column="1" IsChecked="{Binding Map.AbbreviateNames, FallbackValue=False}" OnContent="" OffContent=""
