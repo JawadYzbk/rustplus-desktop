@@ -8,6 +8,7 @@
         xmlns:notifications="using:RustPlusDesk.Avalonia.Features.Notifications"
         xmlns:toasts="using:RustPlusDesk.Avalonia.Features.Toasts"
         xmlns:settings="using:RustPlusDesk.Avalonia.Features.Settings"
+        xmlns:deaths="using:RustPlusDesk.Avalonia.Features.Deaths"
         xmlns:shell="using:RustPlusDesk.Avalonia.Shell"
         xmlns:cloud="using:RustPlusDesk.Avalonia.Features.Cloud"
         xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
@@ -104,6 +105,17 @@
               </Grid>
             </Border>
             <settings:SettingsView Grid.Row="1" Margin="16,12,16,16" DataContext="{Binding SettingsPage}" />
+          </Grid>
+          <Grid RowDefinitions="Auto,*" Background="{DynamicResource Surface}" IsVisible="{Binding IsDeathStatsSelected}">
+            <Border Classes="toolbar">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                <icons:Icon Symbol="HeartBroken24" FontSize="20" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="Death Stats" Classes="title" />
+                <Button Grid.Column="2" Classes="icon" Command="{Binding CloseToolCommand}" ToolTip.Tip="Close (Esc)"
+                        AutomationProperties.Name="Close death stats"><icons:Icon Symbol="Dismiss24" /></Button>
+              </Grid>
+            </Border>
+            <deaths:DeathStatsView Grid.Row="1" Margin="16,12,16,16" DataContext="{Binding DeathStats}" />
           </Grid>
         </Grid>
       </SplitView>

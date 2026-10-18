@@ -37,6 +37,11 @@
         </Button>
         <TextBlock Classes="navSection" Text="TOOLS" IsVisible="{Binding IsRailExpanded}" />
         <Border Height="1" Margin="6,6" Background="{DynamicResource CardBorder}" IsVisible="{Binding !IsRailExpanded}" />
+        <Button Classes="nav" Classes.selected="{Binding IsDeathStatsSelected}" Command="{Binding OpenDeathStatsCommand}" IsVisible="{Binding HasDeathStats}"
+                ToolTip.Tip="View death statistics for the current server" AutomationProperties.Name="Death Stats">
+          <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="HeartBroken24" />
+            <TextBlock Grid.Column="1" Classes="navLabel" Text="Death Stats" IsVisible="{Binding IsRailExpanded}" /></Grid>
+        </Button>
         <Button Classes="nav" Classes.selected="{Binding IsRaidSelected}" Command="{Binding OpenRaidCommand}" IsVisible="{Binding HasRaidTool}"
                 ToolTip.Tip="Calculate raid costs and required materials" AutomationProperties.Name="Raid calculator">
           <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Rocket24" />

@@ -1,0 +1,186 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RustPlusDesk.Avalonia.Features.Deaths"
+             xmlns:core="clr-namespace:RustPlusDesk.Core.Deaths;assembly=RustPlusDesk.Core"
+             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+             x:Class="RustPlusDesk.Avalonia.Features.Deaths.DeathStatsView" x:DataType="vm:DeathStatsViewModel">
+  <UserControl.Styles>
+    <Style Selector="TextBlock.colHeader"><Setter Property="FontSize" Value="11" /><Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSubtle}" /></Style>
+    <Style Selector="TextBlock.cell"><Setter Property="FontSize" Value="13" /><Setter Property="TextTrimming" Value="CharacterEllipsis" /></Style>
+    <Style Selector="TextBlock.statLabel"><Setter Property="FontSize" Value="11" /><Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSubtle}" /></Style>
+    <Style Selector="TextBlock.statValue"><Setter Property="FontSize" Value="18" /><Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" /></Style>
+    <Style Selector="Border.stat"><Setter Property="Background" Value="{DynamicResource SurfaceAlt}" /><Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="12,10" /><Setter Property="Margin" Value="0,0,8,8" /></Style>
+  </UserControl.Styles>
+  <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
+    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+      <TextBox Text="{Binding SearchText}" PlaceholderText="Search by victim, location, or grid..."
+               ToolTip.Tip="Filter deaths by player name, monument name, or map grid" AutomationProperties.Name="Search deaths">
+        <TextBox.InnerLeftContent><icons:Icon Symbol="Search24" FontSize="15" Margin="8,0,0,0" Foreground="{DynamicResource TextSubtle}" /></TextBox.InnerLeftContent>
+      </TextBox>
+      <Button Grid.Column="1" Classes="subtle" Command="{Binding ReloadCommand}" ToolTip.Tip="Re-read the death log" AutomationProperties.Name="Refresh death stats">
+        <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ArrowClockwise24" FontSize="14" /><TextBlock Text="Refresh" /></StackPanel>
+      </Button>
+      <Button Grid.Column="2" Classes="subtle" Command="{Binding RequestClearCommand}" IsEnabled="{Binding HasServer}"
+              ToolTip.Tip="Clear the local death log for this server" AutomationProperties.Name="Clear death log">
+        <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Delete24" FontSize="14" /><TextBlock Text="Clear log" /></StackPanel>
+      </Button>
+    </Grid>
+    <StackPanel Grid.Row="1" Spacing="6">
+      <WrapPanel ItemSpacing="6" LineSpacing="6">
+        <ComboBox ItemsSource="{Binding Players}" SelectedItem="{Binding Player}" MinWidth="150" AutomationProperties.Name="Player filter">
+          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:DeathFilterOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
+        <ComboBox ItemsSource="{Binding PlaceChoices}" SelectedItem="{Binding Place}" MinWidth="130" AutomationProperties.Name="Place filter">
+          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:DeathFilterOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
+        <ComboBox ItemsSource="{Binding RangeChoices}" SelectedItem="{Binding Range}" MinWidth="130" AutomationProperties.Name="Time range filter">
+          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:DeathFilterOption"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
+      </WrapPanel>
+      <Border Classes="confirm" IsVisible="{Binding IsConfirmingClear}">
+        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+          <TextBlock Text="Clear the local death log for this server? This cannot be undone." VerticalAlignment="Center" TextWrapping="Wrap" />
+          <Button Grid.Column="1" Classes="subtle" Content="Cancel" Command="{Binding CancelClearCommand}" AutomationProperties.Name="Keep death log" />
+          <Button Grid.Column="2" Classes="danger" Content="Clear log" Command="{Binding ConfirmClearCommand}" AutomationProperties.Name="Confirm clear death log" />
+        </Grid>
+      </Border>
+      <Border Classes="confirm" IsVisible="{Binding IsConfirmingClearKillers}">
+        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+          <TextBlock Text="Forget every name recorded for this server? The deaths themselves stay." VerticalAlignment="Center" TextWrapping="Wrap" />
+          <Button Grid.Column="1" Classes="subtle" Content="Cancel" Command="{Binding CancelClearKillersCommand}" AutomationProperties.Name="Keep killer names" />
+          <Button Grid.Column="2" Classes="danger" Content="Clear" Command="{Binding ConfirmClearKillersCommand}" AutomationProperties.Name="Confirm clear killer names" />
+        </Grid>
+      </Border>
+      <TextBlock Text="{Binding Summary.Headline}" Classes="muted" TextWrapping="Wrap" />
+    </StackPanel>
+    <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding Summary.HasData}">
+      <StackPanel Spacing="12" Margin="0,0,8,0">
+        <UniformGrid Columns="3" Margin="0,0,-8,-8">
+          <Border Classes="stat"><StackPanel Spacing="2"><StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="DismissCircle24" FontSize="13" Foreground="{DynamicResource TextSubtle}" /><TextBlock Classes="statLabel" Text="TOTAL DEATHS" /></StackPanel>
+            <TextBlock Classes="statValue" Text="{Binding Summary.Total}" /></StackPanel></Border>
+          <Border Classes="stat"><StackPanel Spacing="2"><StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Timer24" FontSize="13" Foreground="{DynamicResource TextSubtle}" /><TextBlock Classes="statLabel" Text="AVG SURVIVAL" /></StackPanel>
+            <TextBlock Classes="statValue" Text="{Binding Summary.AvgSurvival}" /></StackPanel></Border>
+          <Border Classes="stat"><StackPanel Spacing="2"><StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Trophy24" FontSize="13" Foreground="{DynamicResource TextSubtle}" /><TextBlock Classes="statLabel" Text="LONGEST SURVIVAL" /></StackPanel>
+            <TextBlock Classes="statValue" Text="{Binding Summary.LongestSurvival}" /></StackPanel></Border>
+          <Border Classes="stat"><StackPanel Spacing="2"><StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Location24" FontSize="13" Foreground="{DynamicResource TextSubtle}" /><TextBlock Classes="statLabel" Text="DEADLIEST PLACE" /></StackPanel>
+            <TextBlock Classes="statValue" Text="{Binding Summary.DeadliestPlace}" ToolTip.Tip="{Binding Summary.DeadliestPlace}" /></StackPanel></Border>
+          <Border Classes="stat"><StackPanel Spacing="2"><StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Grid24" FontSize="13" Foreground="{DynamicResource TextSubtle}" /><TextBlock Classes="statLabel" Text="DEADLIEST GRID" /></StackPanel>
+            <TextBlock Classes="statValue" Text="{Binding Summary.DeadliestGrid}" /></StackPanel></Border>
+          <Border Classes="stat"><StackPanel Spacing="2"><StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Clock24" FontSize="13" Foreground="{DynamicResource TextSubtle}" /><TextBlock Classes="statLabel" Text="PEAK HOUR" /></StackPanel>
+            <TextBlock Classes="statValue" Text="{Binding Summary.PeakHour}" /></StackPanel></Border>
+        </UniformGrid>
+        <Border Classes="panel" Padding="14">
+          <StackPanel Spacing="8">
+            <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Map24" FontSize="14" /><TextBlock Text="Where you die" FontWeight="SemiBold" /></StackPanel>
+            <ItemsControl ItemsSource="{Binding Summary.ByArea}" AutomationProperties.Name="Deaths by area">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="core:AreaStat">
+                  <Grid ColumnDefinitions="90,*,Auto" ColumnSpacing="10" Margin="0,2">
+                    <TextBlock Text="{Binding Name}" Classes="cell" />
+                    <ProgressBar Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding Percent}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Classes="cell muted" FontSize="12">
+                      <Run Text="{Binding Deaths, Mode=OneWay}" /><Run Text=" deaths · " /><Run Text="{Binding Percent, Mode=OneWay}" /><Run Text="%" />
+                    </TextBlock>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+        <Border Classes="panel" Padding="14">
+          <StackPanel Spacing="8">
+            <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="DataHistogram24" FontSize="14" /><TextBlock Text="Deaths per day (last 14 days)" FontWeight="SemiBold" /></StackPanel>
+            <ItemsControl ItemsSource="{Binding Sparkline}" Height="42" AutomationProperties.Name="Deaths per day">
+              <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:DayBar">
+                  <Border Width="10" Height="{Binding Height}" Margin="2,0" CornerRadius="2" VerticalAlignment="Bottom" ToolTip.Tip="{Binding Tip}"
+                          Background="{DynamicResource ChartBar}" Classes.empty="{Binding IsEmpty}">
+                    <Border.Styles><Style Selector="Border.empty"><Setter Property="Background" Value="{DynamicResource ChartBarEmpty}" /></Style></Border.Styles>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="Oldest → Today" Classes="muted" FontSize="11" />
+          </StackPanel>
+        </Border>
+        <Border Classes="panel" Padding="14">
+          <StackPanel Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Location24" FontSize="14" /><TextBlock Text="By location" FontWeight="SemiBold" /></StackPanel>
+            <Grid ColumnDefinitions="*,70"><TextBlock Classes="colHeader" Text="Location" /><TextBlock Grid.Column="1" Classes="colHeader" Text="Deaths" HorizontalAlignment="Right" /></Grid>
+            <ItemsControl ItemsSource="{Binding Summary.ByLocation}" AutomationProperties.Name="Deaths by location">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="core:LocationStat">
+                  <Grid ColumnDefinitions="*,70" Margin="0,2"><TextBlock Classes="cell" Text="{Binding Location}" />
+                    <TextBlock Grid.Column="1" Classes="cell" Text="{Binding Deaths}" HorizontalAlignment="Right" /></Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+        <Border Classes="panel" Padding="14">
+          <StackPanel Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="People24" FontSize="14" /><TextBlock Text="By player" FontWeight="SemiBold" /></StackPanel>
+            <Grid ColumnDefinitions="*,70,110"><TextBlock Classes="colHeader" Text="Victim" /><TextBlock Grid.Column="1" Classes="colHeader" Text="Deaths" HorizontalAlignment="Right" />
+              <TextBlock Grid.Column="2" Classes="colHeader" Text="Avg survival" HorizontalAlignment="Right" /></Grid>
+            <ItemsControl ItemsSource="{Binding Summary.ByVictim}" AutomationProperties.Name="Deaths by player">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="core:VictimStat">
+                  <Grid ColumnDefinitions="*,70,110" Margin="0,2"><TextBlock Classes="cell" Text="{Binding Victim}" />
+                    <TextBlock Grid.Column="1" Classes="cell" Text="{Binding Deaths}" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Column="2" Classes="cell" Text="{Binding AvgSurvival}" HorizontalAlignment="Right" /></Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+        <Border Classes="panel" Padding="14" IsVisible="{Binding Summary.HasKillers}">
+          <StackPanel Spacing="6">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Target24" FontSize="14" /><TextBlock Text="Killers" FontWeight="SemiBold" /></StackPanel>
+              <Button Grid.Column="1" Classes="subtle" Content="Clear" Command="{Binding RequestClearKillersCommand}" AutomationProperties.Name="Clear killer names" />
+            </Grid>
+            <Grid ColumnDefinitions="*,*,60,110,32"><TextBlock Classes="colHeader" Text="Killer" /><TextBlock Grid.Column="1" Classes="colHeader" Text="Weapon" />
+              <TextBlock Grid.Column="2" Classes="colHeader" Text="Kills" HorizontalAlignment="Right" /><TextBlock Grid.Column="3" Classes="colHeader" Text="Last time" HorizontalAlignment="Right" /></Grid>
+            <ItemsControl ItemsSource="{Binding Summary.ByKiller}" AutomationProperties.Name="Killers">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="core:KillerStat">
+                  <Grid ColumnDefinitions="*,*,60,110,32" Margin="0,1"><TextBlock Classes="cell" Text="{Binding Name}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Classes="cell" Text="{Binding LastWeapon}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Classes="cell" Text="{Binding Kills}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="3" Classes="cell" Text="{Binding LastAtText}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    <Button Grid.Column="4" Classes="icon" CommandParameter="{Binding Name}" ToolTip.Tip="Forget this name" AutomationProperties.Name="Forget this name"
+                            Command="{Binding $parent[UserControl].((vm:DeathStatsViewModel)DataContext).ForgetKillerCommand}"><icons:Icon Symbol="Delete24" FontSize="14" /></Button>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+        <Border Classes="panel" Padding="14">
+          <StackPanel Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="History24" FontSize="14" /><TextBlock Text="Recent deaths" FontWeight="SemiBold" /></StackPanel>
+            <Grid ColumnDefinitions="*,*,60,130"><TextBlock Classes="colHeader" Text="Victim" /><TextBlock Grid.Column="1" Classes="colHeader" Text="Location" />
+              <TextBlock Grid.Column="2" Classes="colHeader" Text="Grid" /><TextBlock Grid.Column="3" Classes="colHeader" Text="Died" HorizontalAlignment="Right" /></Grid>
+            <ItemsControl ItemsSource="{Binding Summary.Recent}" AutomationProperties.Name="Recent deaths">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="core:RecentDeath">
+                  <Grid ColumnDefinitions="*,*,60,130" Margin="0,2"><TextBlock Classes="cell" Text="{Binding Victim}" />
+                    <TextBlock Grid.Column="1" Classes="cell" Text="{Binding Location}" /><TextBlock Grid.Column="2" Classes="cell" Text="{Binding Grid}" />
+                    <TextBlock Grid.Column="3" Classes="cell" Text="{Binding Died}" HorizontalAlignment="Right" /></Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+    <StackPanel Grid.Row="2" IsVisible="{Binding !Summary.HasData}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6">
+      <icons:Icon Symbol="HeartBroken24" FontSize="36" Foreground="{DynamicResource TextSubtle}" HorizontalAlignment="Center" />
+      <TextBlock Text="{Binding Summary.Headline}" Classes="muted" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="360" />
+    </StackPanel>
+  </Grid>
+</UserControl>

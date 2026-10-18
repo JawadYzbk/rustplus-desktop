@@ -15,6 +15,7 @@ using RustPlusDesk.Core.Cloud;
 using RustPlusDesk.Avalonia.Features.Cloud;
 using RustPlusDesk.Avalonia.Features.Raid;
 using RustPlusDesk.Core.Raid;
+using DeathsPage = RustPlusDesk.Avalonia.Features.Deaths;
 
 namespace RustPlusDesk.Avalonia.Features.Servers;
 
@@ -254,6 +255,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [NotifyPropertyChangedFor(nameof(IsConsoleSelected))]
     [NotifyPropertyChangedFor(nameof(IsNotificationsSelected))]
     [NotifyPropertyChangedFor(nameof(IsSettingsSelected))]
+    [NotifyPropertyChangedFor(nameof(IsDeathStatsSelected))]
     [NotifyPropertyChangedFor(nameof(IsToolSelected))]
     [NotifyCanExecuteChangedFor(nameof(CloseToolCommand))]
     private int workspaceIndex;
@@ -262,6 +264,20 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     public bool IsConsoleSelected => WorkspaceIndex == 3;
     public bool IsNotificationsSelected => WorkspaceIndex == 4;
     public bool IsSettingsSelected => WorkspaceIndex == 5;
+    public bool IsDeathStatsSelected => WorkspaceIndex == 6;
+    public bool HasDeathStats => deathLog is not null;
+    private DeathsPage.DeathStatsViewModel? deathStats;
+    /// <summary>Reference Death Stats workspace over the selected server's local death log.</summary>
+    public DeathsPage.DeathStatsViewModel? DeathStats => deathStats ??= deathLog is null ? null : new(deathLog);
+
+    /// <summary>Reference OpenDeathStatsWorkspace: (re)reads the log for the selected server each time it opens.</summary>
+    [RelayCommand]
+    private void OpenDeathStats()
+    {
+        if (DeathStats is not { } page) return;
+        page.Open(SelectedServer is { } server ? Teams.DeathRecorder.KeyFor(server.Host, server.Port) : null);
+        WorkspaceIndex = 6;
+    }
     /// <summary>A tool workspace replaces the map; the server sidebar stays available.</summary>
     public bool IsToolSelected => WorkspaceIndex != 0;
     [ObservableProperty] private string toolMessage = "";

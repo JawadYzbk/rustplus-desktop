@@ -51,6 +51,42 @@ public sealed class DeathLogFile(string folder, string? legacyFolder = null) : I
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
     }
 
+    public IReadOnlyList<string> ReadLines(string serverKey) => Read(PathFor(serverKey));
+
+    public void Clear(string serverKey) => Delete(PathFor(serverKey));
+
+    /// <summary>Reference KillerLogStore path: the death log's name with ".killers.jsonl".</summary>
+    public string KillerPathFor(string serverKey) => PathFor(serverKey).Replace(".jsonl", ".killers.jsonl", StringComparison.Ordinal);
+
+    public IReadOnlyList<string> ReadKillerLines(string serverKey) => Read(KillerPathFor(serverKey));
+
+    public void WriteKillerLines(string serverKey, IEnumerable<string> lines)
+    {
+        try
+        {
+            string path = KillerPathFor(serverKey);
+            if (File.Exists(path)) lock (gate) File.WriteAllLines(path, lines);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+    }
+
+    public void ClearKillers(string serverKey) => Delete(KillerPathFor(serverKey));
+
+    private IReadOnlyList<string> Read(string path)
+    {
+        try
+        {
+            lock (gate) return File.Exists(path) ? File.ReadAllLines(path, Encoding.UTF8) : [];
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return []; }
+    }
+
+    private void Delete(string path)
+    {
+        try { lock (gate) File.Delete(path); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+    }
+
     /// <summary>Reference MigrateLegacyDeaths: move each legacy file, or merge new lines into an existing one.</summary>
     private void EnsureMigrated()
     {

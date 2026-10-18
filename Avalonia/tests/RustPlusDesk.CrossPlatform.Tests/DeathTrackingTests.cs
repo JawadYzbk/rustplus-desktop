@@ -172,6 +172,11 @@ public sealed class DeathTrackingTests
     {
         public List<(string Key, DeathRecord Death)> Entries { get; } = [];
         public void Append(string serverKey, DeathRecord death) => Entries.Add((serverKey, death));
+        public IReadOnlyList<string> ReadLines(string serverKey) => [];
+        public void Clear(string serverKey) { }
+        public IReadOnlyList<string> ReadKillerLines(string serverKey) => [];
+        public void WriteKillerLines(string serverKey, IEnumerable<string> lines) { }
+        public void ClearKillers(string serverKey) { }
     }
 
     /// <summary>A team session without map notes: the interface's default snapshot wraps ReadTeamAsync.</summary>

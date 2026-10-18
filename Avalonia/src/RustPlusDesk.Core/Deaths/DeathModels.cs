@@ -10,9 +10,22 @@ public sealed record DeathRecord(ulong SteamId, string? Name, long DeathTime, lo
 /// <summary>A circular zone on the map used to classify a death location.</summary>
 public readonly record struct DeathZone(double X, double Y, double Radius, string Name);
 
-/// <summary>The local per-server death log (reference DeathReporter local JSON-lines file).</summary>
+/// <summary>
+/// The local per-server death log (reference DeathReporter/DeathLogStore) and the killer names written beside it
+/// (reference KillerLogStore). Implementations swallow I/O errors: a failed write must never break the team refresh,
+/// and an unreadable file reads as empty.
+/// </summary>
 public interface IDeathLog
 {
-    /// <summary>Appends one death; a failed write must never break the team refresh, so implementations swallow I/O errors.</summary>
     void Append(string serverKey, DeathRecord death);
+    /// <summary>The log's lines (JSON, one death each).</summary>
+    IReadOnlyList<string> ReadLines(string serverKey);
+    /// <summary>Deletes the server's death log.</summary>
+    void Clear(string serverKey);
+    /// <summary>The killer file's lines (died_at, killer, weapon, recorded_at).</summary>
+    IReadOnlyList<string> ReadKillerLines(string serverKey);
+    /// <summary>Rewrites the killer file with only the given lines.</summary>
+    void WriteKillerLines(string serverKey, IEnumerable<string> lines);
+    /// <summary>Deletes the server's killer file; the deaths stay.</summary>
+    void ClearKillers(string serverKey);
 }
