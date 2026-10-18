@@ -241,7 +241,8 @@ public sealed partial class ChatViewModel : ObservableObject
     {
         if (session is not { } target || string.IsNullOrWhiteSpace(text)) return false;
         string message = text.Length > ChatLimits.MaxLength ? text[..ChatLimits.MaxLength] : text;
-        await target.SendChatAsync(ChatChannel.Team, message, sessionToken);
+        // Reference SendTeamChatSafeAsync: the profile's alert channel, team or clan, never both.
+        await target.SendChatAsync(Alerts?.AlertChannel ?? ChatChannel.Team, message, sessionToken);
         return true;
     }
 

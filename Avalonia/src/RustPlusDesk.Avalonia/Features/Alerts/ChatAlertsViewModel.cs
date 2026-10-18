@@ -5,6 +5,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using RustPlusDesk.Avalonia.Features.Shops;
 using RustPlusDesk.Core.Alerts;
+using RustPlusDesk.Core.Chat;
+using RustPlusDesk.Core.Servers;
 using RustPlusDesk.Core.Settings;
 
 namespace RustPlusDesk.Avalonia.Features.Alerts;
@@ -53,6 +55,56 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     }
 
     public ShopAlertsViewModel ShopAlerts { get; }
+
+    private bool useClanChannel;
+    private int channelVersion;
+    /// <summary>The selected profile (profiles.json path and key) whose ChatAlertsUseClanChannel is shown and changed.</summary>
+    public Func<(string Path, string ProfileKey)?>? Profile { get; set; }
+    public IProfileFlagStore? ProfileFlags { get; set; }
+    public Action<string>? Log { get; set; }
+    /// <summary>Reference ChatAlertsUseClanChannel: alerts go to one in-game channel, never both (default team).</summary>
+    public bool UseClanChannel => useClanChannel;
+    public bool UseTeamChannel => !useClanChannel;
+    public ChatChannel AlertChannel => useClanChannel ? ChatChannel.Clan : ChatChannel.Team;
+    public bool HasChannelChoice => ProfileFlags is not null;
+
+    /// <summary>Reads the selected profile's alert channel (server selection).</summary>
+    public async Task LoadChannelAsync()
+    {
+        int version = ++channelVersion;
+        bool clan = false;
+        if (ProfileFlags is { } flags && Profile?.Invoke() is { } target)
+        {
+            try { clan = await flags.GetAsync(target.Path, target.ProfileKey, RustPlusDesk.Core.Servers.ProfileFlags.ChatAlertsUseClanChannel, false, CancellationToken.None); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException) { clan = false; }
+        }
+        if (version == channelVersion) SetChannel(clan);
+    }
+
+    [RelayCommand] private Task UseTeamAsync() => ChooseChannelAsync(false);
+    [RelayCommand] private Task UseClanAsync() => ChooseChannelAsync(true);
+
+    private async Task ChooseChannelAsync(bool clan)
+    {
+        if (ProfileFlags is not { } flags || Profile?.Invoke() is not { } target) return;
+        bool previous = useClanChannel;
+        ++channelVersion;
+        SetChannel(clan);
+        try { await flags.SetAsync(target.Path, target.ProfileKey, RustPlusDesk.Core.Servers.ProfileFlags.ChatAlertsUseClanChannel, clan, CancellationToken.None); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException or ProfileChangedException or ArgumentException)
+        {
+            SetChannel(previous);
+            Log?.Invoke("[chat] The alert channel could not be saved to the server profile.");
+        }
+    }
+
+    private void SetChannel(bool clan)
+    {
+        useClanChannel = clan;
+        OnPropertyChanged(nameof(UseClanChannel));
+        OnPropertyChanged(nameof(UseTeamChannel));
+        OnPropertyChanged(nameof(AlertChannel));
+    }
 
     /// <summary>Reference AnnounceSpawnsMaster: automated chat alerts are only sent while this is on.</summary>
     public bool IsMasterOn => master;

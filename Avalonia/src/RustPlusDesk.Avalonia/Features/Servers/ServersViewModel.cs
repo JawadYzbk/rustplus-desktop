@@ -32,7 +32,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Core.Deaths.IDeathLog? deathLog = null, RustPlusDesk.Core.Alerts.IAlertTemplateStore? alertTemplateStore = null,
     RustPlusDesk.Core.Map.IMapCache? mapCache = null, RustPlusDesk.Core.Map.ICustomMapUrlStore? customMapUrls = null,
     RustPlusDesk.Core.Map.ICustomMapDownloader? customMapDownloader = null, RustPlusDesk.Core.Deaths.IDeathMarkerStore? deathMarkerStore = null,
-    IServerDeleter? serverDeleter = null, ICloudServerForgetter? cloudForgetter = null)
+    IServerDeleter? serverDeleter = null, ICloudServerForgetter? cloudForgetter = null, IProfileFlagStore? profileFlags = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -69,7 +69,14 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
 
     private Alerts.ChatAlertsViewModel CreateChatAlerts()
     {
-        var alerts = new Alerts.ChatAlertsViewModel(appSettings, ShopAlerts) { OpenTemplates = OpenAlertTemplates };
+        var alerts = new Alerts.ChatAlertsViewModel(appSettings, ShopAlerts)
+        {
+            OpenTemplates = OpenAlertTemplates,
+            ProfileFlags = profileFlags,
+            Profile = () => SelectedServer is { } server ? (SourcePath, server.ProfileKey) : null,
+            Log = Activity.Append
+        };
+        _ = alerts.LoadChannelAsync();
         Connection.Chat.Alerts = alerts;
         ShopNotices = new(new RustPlusDesk.Core.Map.ShopNoticeTracker(RustPlusDesk.Infrastructure.Items.BundledItemCatalog.GetName) { Templates = AlertTemplates },
             Connection.Map, alerts)
@@ -717,6 +724,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         Hotkeys.SelectServer(value?.Host, value?.Port);
         _ = settingsPage?.CustomMap?.LoadAsync();
         _ = deathPins?.ReloadAsync();
+        _ = chatAlerts?.LoadChannelAsync();
         ImportDevicesCommand.NotifyCanExecuteChanged();
     }
     [ObservableProperty]

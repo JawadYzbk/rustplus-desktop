@@ -42,6 +42,11 @@
               <MenuItem Header="Edit templates" Command="{Binding EditTemplatesCommand}" ToolTip.Tip="Customize the chat alert texts">
                 <MenuItem.Icon><icons:Icon Symbol="Edit24" /></MenuItem.Icon>
               </MenuItem>
+              <MenuItem Header="Send alerts to" IsVisible="{Binding HasChannelChoice}" ToolTip.Tip="Which in-game chat receives the alerts.">
+                <MenuItem.Icon><icons:Icon Symbol="Chat24" /></MenuItem.Icon>
+                <MenuItem Header="Team" ToggleType="Radio" GroupName="AlertChannel" IsChecked="{Binding UseTeamChannel, Mode=OneWay}" Command="{Binding UseTeamCommand}" />
+                <MenuItem Header="Clan" ToggleType="Radio" GroupName="AlertChannel" IsChecked="{Binding UseClanChannel, Mode=OneWay}" Command="{Binding UseClanCommand}" />
+              </MenuItem>
               <Separator />
               <MenuItem Header="Events" IsEnabled="False" />
               <MenuItem Header="Patrol Helicopter" ToggleType="CheckBox" IsChecked="{Binding AnnounceHeli, Mode=OneWay}"
