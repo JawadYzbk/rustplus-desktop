@@ -6,9 +6,9 @@ every finished slice with its commit.
 
 ## Where things stand (scheduled run, 2026-10-18, Linux cloud container)
 
-- Branch `codex/avalonia-migration`, pushed to `origin`. Latest code commit: `45386e79` (docs follow).
+- Branch `codex/avalonia-migration`, pushed to `origin`. Latest code commit: `6597e62d` (docs follow).
   Only `Avalonia/` changes.
-- **483 tests pass** (Debug, zero warnings) on Linux with the .NET 10.0.112 SDK from Ubuntu's archive
+- **485 tests pass** (Debug, zero warnings) on Linux with the .NET 10.0.112 SDK from Ubuntu's archive
   (`apt-get install -y dotnet-sdk-10.0`; Microsoft's dotnet-install host is blocked by this container's proxy).
 - Done this run, in order (each in the PARITY-PLAN progress table):
   1. `5cf24091` 4.6 new-shop / suspicious-shop notices + chat-alert master switch (AnnounceSpawnsMaster, badge,
@@ -25,6 +25,9 @@ every finished slice with its commit.
   8. `a3497cad` design-system fix: `icons|Icon` styles now reach the Icon control (it no longer fakes a TextBlock key).
   9. `ece36ddb` 2.2 chat emoji: inline `:token:` rendering, `:` autocomplete, emoji picker (static thumbnails).
   10. `45386e79` 5.1 settings page with the Alerts category (toasts, retention, muted servers/unmute, generic alarm popup).
+  11. `6597e62d` 1.2 event spawn announcements (heli/CH47/vendor switches, explosions on master) + Events menu section.
+- **Owner decision pending:** the reference also announced GenericRadius markers as "Building Blocked" and mapped
+  crate markers to the vendor kind; both look unintended and were not ported (see the PARITY-PLAN row).
 - The owner's own commit `27f1d234` (3.3 smart-alarm popup) is recorded in the table.
 
 ## Start next run with
@@ -33,8 +36,8 @@ every finished slice with its commit.
    `apt-get install -y dotnet-sdk-10.0` (Ubuntu 24.04 archive, 10.0.1xx satisfies global.json rollForward).
 2. Continue PARITY-PLAN. Suggested order of small, self-contained slices:
    - **5.1 more categories** on the new Settings page (general, map performance, system), each only with ported features.
-   - **Alert menu, rest**: add cargo/heli/chinook/vendor/oil rig/deep sea/player alert kinds to the chat-alert menu
-     as their detection is ported (1.2 event timers), then Select all / Deselect all / Edit templates.
+   - **Alert menu, rest**: heli shot-down/crash detection, cargo spawn/dock/egress (event dock + harbour data), oil rig,
+     Deep Sea and player alerts as their detection is ported; then Select all / Deselect all / Edit templates.
    - **2.2 rest**: avatars, emoji picker/autocomplete, quick-command chips (need chat-command profile keys).
    - **1.4** needs the map parse/3D data (no-build zones, keycards) — do 1.6 parsing first; death markers need
      team positions (team info X/Y is not yet in `ServerTeamMember`) and a revision-adopting profiles writer.
