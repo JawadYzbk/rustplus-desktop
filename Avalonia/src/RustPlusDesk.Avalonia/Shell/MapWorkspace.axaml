@@ -68,6 +68,8 @@
                     <CheckBox Content="Show shops automatically when connecting" IsChecked="{Binding Connection.Map.AutoLoadShops}" />
                     <CheckBox Content="Show Steam avatars on player markers" IsChecked="{Binding Connection.Map.ShowSteamAvatars}"
                               ToolTip.Tip="Team players show their Steam profile picture instead of a dot" />
+                    <CheckBox Content="Show player direction arrows" IsChecked="{Binding Connection.Map.ShowPlayerArrows}"
+                              ToolTip.Tip="A small arrow on each player marker points the way they last moved" />
                     <StackPanel Spacing="8" IsVisible="{Binding DeathPins, Converter={x:Static ObjectConverters.IsNotNull}}">
                       <Separator />
                       <ToggleSwitch Content="Death markers" IsChecked="{Binding DeathPins.Show, FallbackValue=False}" OnContent="" OffContent=""
@@ -130,7 +132,8 @@
                         PlayerScale="{Binding Connection.Map.PlayerIconScale}" ShowDeathHeatmap="{Binding Connection.Map.ShowDeathHeatmap}"
                         DeathPositions="{Binding Connection.Map.DeathPositions}"
                         ShowSteamAvatars="{Binding Connection.Map.ShowSteamAvatars}" AvatarVersion="{Binding Connection.Map.AvatarVersion}"
-                        Avatars="{Binding Connection.Map.Avatars}"
+                        Avatars="{Binding Connection.Map.Avatars}" ShowPlayerArrows="{Binding Connection.Map.ShowPlayerArrows}"
+                        PlayerHeadings="{Binding Connection.Map.PlayerHeadings}"
                         ShowDeathPins="{Binding DeathPins.Show, FallbackValue=False}" DeathPins="{Binding DeathPins.Pins, FallbackValue={x:Null}}"
                         IsVisible="{Binding Connection.Map.HasMap}" AutomationProperties.Name="Server map" />
         <ScrollViewer HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding !Connection.Map.HasMap}" Margin="20">

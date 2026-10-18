@@ -28,6 +28,12 @@ public sealed partial class MapViewModel : ObservableObject
     [ObservableProperty] private bool showShops = true;
     /// <summary>Latest live markers (players, shops, events); replaced as a whole on every poll.</summary>
     [ObservableProperty] private IReadOnlyList<MapMarker> markers = [];
+    private readonly PlayerHeadings headings = new();
+    /// <summary>Each player marker's heading in degrees clockwise from north (reference direction arrows).</summary>
+    [ObservableProperty] private IReadOnlyDictionary<ulong, double> playerHeadings = new Dictionary<ulong, double>();
+    partial void OnMarkersChanged(IReadOnlyList<MapMarker> value) => PlayerHeadings = headings.Observe(value);
+    /// <summary>Reference "Direction arrow" (MapShowPlayerArrows, default on).</summary>
+    [ObservableProperty] private bool showPlayerArrows = true;
     /// <summary>Reference poll interval for dynamic markers.</summary>
     internal TimeSpan MarkerInterval { get; init; } = TimeSpan.FromSeconds(2);
     /// <summary>Incremented when the view should fit the whole map again.</summary>
@@ -99,6 +105,7 @@ public sealed partial class MapViewModel : ObservableObject
         PlayerIconScale = store.Get(SettingKeys.MapPlayerIconScale, 1.0);
         ShowDeathHeatmap = store.Get(SettingKeys.MapShowDeathHeatmap, false);
         ShowSteamAvatars = store.Get(SettingKeys.MapShowSteamMarkers, true);
+        ShowPlayerArrows = store.Get(SettingKeys.MapShowPlayerArrows, true);
         ShowShops = AutoLoadShops;
         settings = store;
     }
@@ -111,6 +118,7 @@ public sealed partial class MapViewModel : ObservableObject
     partial void OnAbbreviateNamesChanged(bool value) => settings?.Set(SettingKeys.MapAbbreviateNames, value);
     partial void OnShowDeathHeatmapChanged(bool value) => settings?.Set(SettingKeys.MapShowDeathHeatmap, value);
     partial void OnShowSteamAvatarsChanged(bool value) => settings?.Set(SettingKeys.MapShowSteamMarkers, value);
+    partial void OnShowPlayerArrowsChanged(bool value) => settings?.Set(SettingKeys.MapShowPlayerArrows, value);
     partial void OnPlayerIconScaleChanged(double value)
     {
         double clamped = double.IsFinite(value) ? Math.Clamp(value, MinPlayerIconScale, MaxPlayerIconScale) : 1.0;

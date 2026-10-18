@@ -38,6 +38,9 @@ public sealed class MapSurface : Control
     public static readonly StyledProperty<bool> ShowSteamAvatarsProperty = AvaloniaProperty.Register<MapSurface, bool>(nameof(ShowSteamAvatars), true);
     public static readonly StyledProperty<int> AvatarVersionProperty = AvaloniaProperty.Register<MapSurface, int>(nameof(AvatarVersion));
     public static readonly StyledProperty<Func<ulong, Bitmap?>?> AvatarsProperty = AvaloniaProperty.Register<MapSurface, Func<ulong, Bitmap?>?>(nameof(Avatars));
+    public static readonly StyledProperty<bool> ShowPlayerArrowsProperty = AvaloniaProperty.Register<MapSurface, bool>(nameof(ShowPlayerArrows), true);
+    public static readonly StyledProperty<IReadOnlyDictionary<ulong, double>?> PlayerHeadingsProperty =
+        AvaloniaProperty.Register<MapSurface, IReadOnlyDictionary<ulong, double>?>(nameof(PlayerHeadings));
     public static readonly StyledProperty<int> ResetRequestProperty = AvaloniaProperty.Register<MapSurface, int>(nameof(ResetRequest));
     public static readonly StyledProperty<MapFocus?> FocusRequestProperty = AvaloniaProperty.Register<MapSurface, MapFocus?>(nameof(FocusRequest));
 
@@ -69,6 +72,10 @@ public sealed class MapSurface : Control
     public IReadOnlyList<DeathPin>? DeathPins { get => GetValue(DeathPinsProperty); set => SetValue(DeathPinsProperty, value); }
     /// <summary>Reference MapShowSteamMarkers: player markers show the Steam avatar when one is loaded.</summary>
     public bool ShowSteamAvatars { get => GetValue(ShowSteamAvatarsProperty); set => SetValue(ShowSteamAvatarsProperty, value); }
+    /// <summary>Reference MapShowPlayerArrows: a small arrow on each player marker points where they last moved.</summary>
+    public bool ShowPlayerArrows { get => GetValue(ShowPlayerArrowsProperty); set => SetValue(ShowPlayerArrowsProperty, value); }
+    /// <summary>Player marker headings in degrees clockwise from north, by marker ID.</summary>
+    public IReadOnlyDictionary<ulong, double>? PlayerHeadings { get => GetValue(PlayerHeadingsProperty); set => SetValue(PlayerHeadingsProperty, value); }
     /// <summary>Changes when avatars arrive, so the map redraws.</summary>
     public int AvatarVersion { get => GetValue(AvatarVersionProperty); set => SetValue(AvatarVersionProperty, value); }
     /// <summary>Steam avatars by Steam ID (player markers and death pin heads).</summary>
@@ -103,7 +110,7 @@ public sealed class MapSurface : Control
         AffectsRender<MapSurface>(ImageProperty, GeometryProperty, MonumentsProperty, ShowGridProperty, ShowMonumentsProperty,
             MarkersProperty, ShowPlayersProperty, ShowShopsProperty, MonumentScaleProperty, MonumentOpacityProperty, GridOpacityProperty, MonumentNamesProperty,
             AbbreviateNamesProperty, PlayerScaleProperty, ShowDeathHeatmapProperty, DeathPositionsProperty, ShowDeathPinsProperty, DeathPinsProperty,
-            ShowSteamAvatarsProperty, AvatarVersionProperty, AvatarsProperty);
+            ShowSteamAvatarsProperty, AvatarVersionProperty, AvatarsProperty, ShowPlayerArrowsProperty, PlayerHeadingsProperty);
         ClipToBoundsProperty.OverrideDefaultValue<MapSurface>(true);
         FocusableProperty.OverrideDefaultValue<MapSurface>(true);
     }
@@ -278,6 +285,24 @@ public sealed class MapSurface : Control
         }
     }
 
+    private static readonly IPen ArrowOutline = new Pen(Brushes.Black, 1);
+
+    /// <summary>Reference player arrow: a small triangle just outside the marker, rotated to the heading.</summary>
+    private void DrawHeadingArrow(DrawingContext context, Point centre, double radius, double heading)
+    {
+        double size = 5 * PlayerScale, tip = radius + 2 + size;
+        var arrow = new StreamGeometry();
+        using (var g = arrow.Open())
+        {
+            g.BeginFigure(new Point(0, -tip), true);
+            g.LineTo(new Point(size * 0.6, -tip + size));
+            g.LineTo(new Point(-size * 0.6, -tip + size));
+            g.EndFigure(true);
+        }
+        using (context.PushTransform(Matrix.CreateRotation(heading * Math.PI / 180) * Matrix.CreateTranslation(centre.X, centre.Y)))
+            context.DrawGeometry(Brushes.LimeGreen, ArrowOutline, arrow);
+    }
+
     /// <summary>Draws an avatar clipped to a circle.</summary>
     private static void DrawAvatar(DrawingContext context, Bitmap avatar, Point centre, double radius)
     {
@@ -405,6 +430,7 @@ public sealed class MapSurface : Control
                 context.DrawEllipse(null, new Pen(Brushes.Black, 2), centre, radius, radius);
             }
             else context.DrawEllipse(Brushes.LimeGreen, new Pen(Brushes.Black, 2), centre, radius, radius);
+            if (ShowPlayerArrows) DrawHeadingArrow(context, centre, radius, PlayerHeadings?.GetValueOrDefault(player.Id) ?? 0);
             if (!string.IsNullOrWhiteSpace(player.Name))
             {
                 var text = new FormattedText(StreamerMode.Name(player.Name, AbbreviateNames), System.Globalization.CultureInfo.CurrentCulture,
