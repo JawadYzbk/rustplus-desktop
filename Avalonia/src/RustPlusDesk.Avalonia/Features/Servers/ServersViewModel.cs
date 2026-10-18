@@ -192,6 +192,22 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         return true;
     }
     [RelayCommand] private void OpenNotifications() => WorkspaceIndex = 4;
+    private Settings.SettingsViewModel? settingsPage;
+    /// <summary>App settings (reference AppSettingsOverlay), ported category by category.</summary>
+    public Settings.SettingsViewModel SettingsPage => settingsPage ??= CreateSettings();
+    [RelayCommand]
+    private void OpenSettings()
+    {
+        SettingsPage.RefreshMuted();
+        WorkspaceIndex = 5;
+    }
+
+    private Settings.SettingsViewModel CreateSettings()
+    {
+        var model = new Settings.SettingsViewModel(appSettings, key => Servers.FirstOrDefault(server => $"{server.Host}:{server.Port}" == key)?.Name);
+        model.GenericAlarmPopupChanged += value => Alarms.GenericPopupEnabled = value;
+        return model;
+    }
     private Hotkeys.HotkeysViewModel? hotkeys;
     /// <summary>Reference device hotkeys for the selected server.</summary>
     public Hotkeys.HotkeysViewModel Hotkeys => hotkeys ??= new(hotkeyStore)
@@ -216,6 +232,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [NotifyPropertyChangedFor(nameof(IsRaidSelected))]
     [NotifyPropertyChangedFor(nameof(IsConsoleSelected))]
     [NotifyPropertyChangedFor(nameof(IsNotificationsSelected))]
+    [NotifyPropertyChangedFor(nameof(IsSettingsSelected))]
     [NotifyPropertyChangedFor(nameof(IsToolSelected))]
     [NotifyCanExecuteChangedFor(nameof(CloseToolCommand))]
     private int workspaceIndex;
@@ -223,6 +240,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     public bool IsRaidSelected => WorkspaceIndex == 2;
     public bool IsConsoleSelected => WorkspaceIndex == 3;
     public bool IsNotificationsSelected => WorkspaceIndex == 4;
+    public bool IsSettingsSelected => WorkspaceIndex == 5;
     /// <summary>A tool workspace replaces the map; the server sidebar stays available.</summary>
     public bool IsToolSelected => WorkspaceIndex != 0;
     [ObservableProperty] private string toolMessage = "";

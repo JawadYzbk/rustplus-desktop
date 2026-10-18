@@ -64,6 +64,11 @@
           <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Person24" />
             <TextBlock Grid.Column="1" Classes="navLabel" Text="Account" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
+        <Button Classes="nav" Classes.selected="{Binding IsSettingsSelected}" Command="{Binding OpenSettingsCommand}"
+                ToolTip.Tip="App settings" AutomationProperties.Name="Settings">
+          <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Settings24" />
+            <TextBlock Grid.Column="1" Classes="navLabel" Text="Settings" IsVisible="{Binding IsRailExpanded}" /></Grid>
+        </Button>
         <Button Classes="nav" Command="{Binding ToggleRailLabelsCommand}" ToolTip.Tip="Show or hide navigation labels"
                 AutomationProperties.Name="Toggle navigation labels">
           <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="PanelLeftExpand20" />

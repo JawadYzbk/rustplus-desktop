@@ -1,0 +1,69 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RustPlusDesk.Avalonia.Features.Settings"
+             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+             x:Class="RustPlusDesk.Avalonia.Features.Settings.SettingsView" x:DataType="vm:SettingsViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Spacing="14" MaxWidth="820" HorizontalAlignment="Stretch">
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <icons:Icon Symbol="Alert24" FontSize="18" Foreground="{DynamicResource Accent}" />
+        <StackPanel>
+          <TextBlock Text="Alerts" Classes="title" />
+          <TextBlock Text="Notifications, sounds, and offline death" Classes="muted" FontSize="12" />
+        </StackPanel>
+      </StackPanel>
+      <Border Classes="panel" Padding="16">
+        <StackPanel Spacing="12">
+          <TextBlock Text="NOTIFICATION CENTER" Classes="section" />
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Show toast notifications" FontWeight="SemiBold" />
+              <TextBlock Text="A short card in the corner for every new alarm, death or pairing." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding ToastsEnabled}" OnContent="" OffContent="" AutomationProperties.Name="Show toast notifications" />
+          </Grid>
+          <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="4">
+            <StackPanel>
+              <TextBlock Text="Retention period" FontWeight="SemiBold" />
+              <TextBlock Text="Older notifications are removed from the history." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <TextBlock Grid.Column="1" Text="{Binding RetentionText}" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <Slider Grid.Row="1" Grid.ColumnSpan="2" Minimum="1" Maximum="90" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding RetentionDays}"
+                    AutomationProperties.Name="Notification retention in days" />
+          </Grid>
+          <StackPanel Spacing="6">
+            <TextBlock Text="Muted servers" FontWeight="SemiBold" />
+            <TextBlock Text="No servers muted" Classes="muted" FontSize="12" FontStyle="Italic" IsVisible="{Binding !HasMutedServers}" />
+            <ItemsControl ItemsSource="{Binding MutedServers}" AutomationProperties.Name="Muted servers">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:MutedServerRow">
+                  <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                    <StackPanel VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Text="{Binding Key}" Classes="muted" FontSize="11" IsVisible="{Binding HasName}" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Classes="subtle" CommandParameter="{Binding}" AutomationProperties.Name="Unmute server"
+                            Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).UnmuteCommand}">
+                      <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="AlertOn24" FontSize="14" /><TextBlock Text="Unmute" /></StackPanel>
+                    </Button>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <Border Classes="panel" Padding="16">
+        <StackPanel Spacing="12">
+          <TextBlock Text="GENERIC SMART ALARMS" Classes="section" />
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Popup window" FontWeight="SemiBold" />
+              <TextBlock Text="Alarms that do not name a paired device open the Incoming Alarms window." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding GenericAlarmPopup}" OnContent="" OffContent="" AutomationProperties.Name="Popup window for generic alarms" />
+          </Grid>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
