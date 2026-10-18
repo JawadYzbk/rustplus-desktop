@@ -6,6 +6,7 @@ using Avalonia.VisualTree;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RustPlusDesk.Avalonia.Features.Deaths;
 using RustPlusDesk.Avalonia.Features.Servers;
+using RustPlusDesk.Core.Connections;
 using RustPlusDesk.Core.Deaths;
 using RustPlusDesk.Core.Servers;
 using RustPlusDesk.Infrastructure.Deaths;
@@ -211,6 +212,49 @@ public sealed class DeathStatsTests
         finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
         return true;
     }, default);
+
+    [TestMethod]
+    public async Task MapWipe_ClearsTheSelectedServersDeathLog() => await UiTestSession.Current.Dispatch(async () =>
+    {
+        string root = Path.Combine(Path.GetTempPath(), "rpd-wipe-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(root);
+            var log = new DeathLogFile(root);
+            File.WriteAllLines(log.PathFor("1.2.3.4-28082"), SampleLog());
+            File.WriteAllLines(log.PathFor("5.6.7.8-28082"), SampleLog());
+            var cache = new RustPlusDesk.Infrastructure.Map.MapCacheStore(Path.Combine(root, "map_cache"));
+            var map = MapTests.SyntheticMap();
+            var old = new DateTimeOffset(2026, 9, 1, 0, 0, 0, TimeSpan.Zero);
+            cache.Save("1.2.3.4", 28082, new RustPlusDesk.Core.Map.CachedMap(map.JpgImage, 1024, 1024, 4500, old, map.Monuments));
+            var shell = new ServersViewModel(new OneServer(), new NoPicker(), "profiles.json", new UnusedSessionFactory(),
+                appSettings: new ShopNoticeTests.MemorySettings(), deathLog: log, mapCache: cache);
+            await shell.RefreshCommand.ExecuteAsync(null);
+            shell.Connection.Map.ShowDeathHeatmap = true;
+            Assert.AreEqual(4, shell.Connection.Map.DeathPositions.Count);
+
+            await shell.Connection.Map.Loader!(new WipeSession(map, old.AddSeconds(20)), default);
+            Assert.AreEqual(SampleLog().Length, log.ReadLines("1.2.3.4-28082").Count, "The same wipe keeps the log.");
+            await shell.Connection.Map.Loader!(new WipeSession(map, old.AddDays(14)), default);
+            Assert.AreEqual(0, log.ReadLines("1.2.3.4-28082").Count, "A new wipe clears the selected server's log.");
+            Assert.AreEqual(SampleLog().Length, log.ReadLines("5.6.7.8-28082").Count, "Other servers keep theirs.");
+            Assert.AreEqual(0, shell.Connection.Map.DeathPositions.Count, "The heatmap follows.");
+            Assert.IsTrue(shell.Activity.Lines.Any(line => line.Contains("[deaths] Wipe detected; cleared the death log.", StringComparison.Ordinal)));
+            Assert.AreEqual(old.AddDays(14), cache.Load("1.2.3.4", 28082)!.WipeTime, "The fresh map is cached for the new wipe.");
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+        return true;
+    }, default);
+
+    private sealed class WipeSession(RustPlusDesk.Core.Map.ServerMap map, DateTimeOffset wipe) : RustPlusDesk.Core.Map.IServerMapSession
+    {
+        public RustPlusDesk.Core.Devices.IDeviceClient Devices { get; } = new TestDeviceClient();
+        public ServerStatus InitialStatus { get; } = new("Synthetic", 0, 0, 0, WipeTime: wipe);
+        public Task Disconnected { get; } = new TaskCompletionSource().Task;
+        public Task<ServerStatus> ReadStatusAsync(CancellationToken cancellationToken) => Task.FromResult(InitialStatus);
+        public Task<RustPlusDesk.Core.Map.ServerMap> ReadMapAsync(CancellationToken ct) => Task.FromResult(map);
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
 
     private sealed class OneServer : IServerCatalog
     {

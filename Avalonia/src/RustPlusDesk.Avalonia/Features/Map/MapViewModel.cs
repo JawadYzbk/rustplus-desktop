@@ -123,6 +123,9 @@ public sealed partial class MapViewModel : ObservableObject
         old?.Dispose();
     }
 
+    /// <summary>Loads the map for a session (the map cache when set); defaults to reading it from the server.</summary>
+    public Func<IServerMapSession, CancellationToken, Task<ServerMap>>? Loader { get; set; }
+
     public async Task RunAsync(IServerMapSession session, CancellationToken ct)
     {
         IsLoading = true;
@@ -133,7 +136,7 @@ public sealed partial class MapViewModel : ObservableObject
             {
                 try
                 {
-                    var map = await session.ReadMapAsync(ct).WaitAsync(ct);
+                    var map = await (Loader is { } load ? load(session, ct) : session.ReadMapAsync(ct)).WaitAsync(ct);
                     ct.ThrowIfCancellationRequested();
                     Apply(map);
                     break;

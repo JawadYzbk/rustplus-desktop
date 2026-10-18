@@ -29,7 +29,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Core.Map.IAlertSound? alertSound = null, RustPlusDesk.Core.Console.IConsoleCommandStore? consoleStore = null,
     RustPlusDesk.Core.Notifications.INotificationHistoryStore? notificationStore = null,
     RustPlusDesk.Core.Hotkeys.IHotkeyStore? hotkeyStore = null, RustPlusDesk.Core.Settings.ILaunchAtLogin? launchAtLogin = null,
-    RustPlusDesk.Core.Deaths.IDeathLog? deathLog = null, RustPlusDesk.Core.Alerts.IAlertTemplateStore? alertTemplateStore = null)
+    RustPlusDesk.Core.Deaths.IDeathLog? deathLog = null, RustPlusDesk.Core.Alerts.IAlertTemplateStore? alertTemplateStore = null,
+    RustPlusDesk.Core.Map.IMapCache? mapCache = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -596,12 +597,32 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             // Reference ProcessDeathsAsync: a new death shows up on the heatmap live.
             deathRecorder.Recorded += _ => RefreshDeathHeatmap();
         }
+        ObserveMapCache();
         ApplyStreamerMode(Connection.Map.AbbreviateNames, starting: true);
         Connection.Map.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(Map.MapViewModel.AbbreviateNames)) ApplyStreamerMode(Connection.Map.AbbreviateNames, starting: false);
             else if (args.PropertyName is nameof(Map.MapViewModel.ShowDeathHeatmap) or nameof(Map.MapViewModel.Geometry)) RefreshDeathHeatmap();
         };
+    }
+
+    /// <summary>
+    /// Reference LoadMapAsync map cache: maps load from the shared map_cache unless a wipe is detected; a wipe clears the
+    /// server's local death log and restarts death detection (the cloud death rows are not ported yet).
+    /// </summary>
+    private void ObserveMapCache()
+    {
+        if (mapCache is null) return;
+        var loader = new Map.MapCacheLoader(mapCache, appSettings, () => SelectedServer is { } server ? (server.Host, server.Port) : null) { Log = Activity.Append };
+        loader.WipeDetected += () =>
+        {
+            if (deathLog is null || SelectedServer is not { } server) return;
+            deathLog.Clear(Teams.DeathRecorder.KeyFor(server.Host, server.Port));
+            deathRecorder?.Reset();
+            Activity.Append("[deaths] Wipe detected; cleared the death log.");
+            RefreshDeathHeatmap();
+        };
+        Connection.Map.Loader = loader.LoadAsync;
     }
 
     /// <summary>Reference RedrawDeathHeatmap: reloads the selected server's death positions while the heatmap is on.</summary>

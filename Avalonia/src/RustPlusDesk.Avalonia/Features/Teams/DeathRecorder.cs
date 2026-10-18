@@ -21,6 +21,13 @@ public sealed class DeathRecorder(IDeathLog log, Func<string?> serverKey, Func<I
     /// <summary>Raised after a death was written to the log.</summary>
     public event Action<DeathRecord>? Recorded;
 
+    /// <summary>Reference wipe handling (_deathTracker.Reset()): the next snapshot is a fresh baseline.</summary>
+    public void Reset()
+    {
+        tracker.Reset();
+        trackedKey = null;
+    }
+
     public IReadOnlyList<DeathRecord> Observe(ServerTeamSnapshot team)
     {
         if (serverKey() is not { Length: > 0 } key) return [];
