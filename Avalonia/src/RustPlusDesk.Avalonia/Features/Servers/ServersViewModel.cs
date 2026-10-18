@@ -124,6 +124,11 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [ObservableProperty] private bool isSidebarOpen = true;
     [RelayCommand] private void ToggleSidebar() => IsSidebarOpen = !IsSidebarOpen;
     /// <summary>Reference rail "labels" toggle: icon-only rail or icon + label navigation.</summary>
+    /// <summary>Reference smart-alarm popup, fed by alarm pushes from the pairing listener.</summary>
+    public RustPlusDesk.Avalonia.Features.Alarms.AlarmsViewModel Alarms { get; } = new()
+    {
+        GenericPopupEnabled = appSettings?.Get(RustPlusDesk.Core.Settings.SettingKeys.GenericAlarmPopupEnabled, false) ?? false
+    };
     [ObservableProperty] private bool isRailExpanded = appSettings?.Get(RustPlusDesk.Core.Settings.SettingKeys.RailShowLabels, false) ?? false;
     partial void OnIsRailExpandedChanged(bool value) => appSettings?.Set(RustPlusDesk.Core.Settings.SettingKeys.RailShowLabels, value);
     public RustPlusDesk.Core.Settings.IAppSettingsStore? AppSettings => appSettings;
@@ -253,7 +258,11 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             };
             Listener.Notifications.CollectionChanged += (_, args) =>
             {
-                foreach (var update in args.NewItems?.OfType<CompanionUpdate>() ?? []) Activity.Append($"[pairing] {update.Title} · {update.Message}");
+                foreach (var update in args.NewItems?.OfType<CompanionUpdate>() ?? [])
+                {
+                    Activity.Append($"[pairing] {update.Title} · {update.Message}");
+                    Alarms.Handle(update);
+                }
             };
             OnPropertyChanged(nameof(Listener));
             OnPropertyChanged(nameof(HasListener));

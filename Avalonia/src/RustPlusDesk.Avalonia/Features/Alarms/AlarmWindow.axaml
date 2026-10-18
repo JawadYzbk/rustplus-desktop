@@ -1,0 +1,42 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RustPlusDesk.Avalonia.Features.Alarms"
+        xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+        x:Class="RustPlusDesk.Avalonia.Features.Alarms.AlarmWindow" x:DataType="vm:AlarmsViewModel"
+        Title="Smart alarms" Width="380" Height="320" MinWidth="300" MinHeight="200" CanResize="True"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+  <Border Background="{DynamicResource Surface}" Padding="14">
+    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="10">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+        <Border Width="34" Height="34" CornerRadius="17" Background="#33EF5350">
+          <icons:Icon Symbol="Alert24" FontSize="18" Foreground="{DynamicResource ConnectionDanger}" />
+        </Border>
+        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+          <TextBlock Text="Smart alarm triggered" Classes="title" />
+          <TextBlock Text="Newest first" Classes="muted" FontSize="11" />
+        </StackPanel>
+      </Grid>
+      <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+        <ItemsControl ItemsSource="{Binding Items}" AutomationProperties.Name="Triggered alarms">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:AlarmRow">
+              <Border Classes="panel" Margin="0,0,0,6" Padding="10,8">
+                <StackPanel Spacing="2">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="1" Text="{Binding Time}" Classes="muted" FontSize="11" />
+                  </Grid>
+                  <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontSize="12" />
+                  <TextBlock Text="{Binding Server}" Classes="muted" FontSize="11" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+      <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+        <Button Classes="subtle" Content="Clear" Command="{Binding ClearCommand}" AutomationProperties.Name="Clear alarms" />
+        <Button Classes="primary" Content="Close" Command="{Binding CloseCommand}" AutomationProperties.Name="Close alarms" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</Window>

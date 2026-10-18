@@ -26,4 +26,5 @@ public static class SettingKeys
     public const string MapAbbreviateNames = "MapAbbreviateNames";         // default false
     public const string RailShowLabels = "RailShowLabels";                 // default false
     public const string SidebarWidth = "SidebarWidth";                     // default 420
+    public const string GenericAlarmPopupEnabled = "GenericAlarmPopupEnabled"; // default false
 }

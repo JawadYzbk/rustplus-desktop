@@ -11,6 +11,21 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
         SizeChanged += (_, _) => ResizePane();
+        DataContextChanged += (_, _) =>
+        {
+            if (DataContext is Features.Servers.ServersViewModel model) model.Alarms.OpenRequested += ShowAlarms;
+        };
+    }
+
+    private Features.Alarms.AlarmWindow? alarmWindow;
+
+    /// <summary>Reference behaviour: one owned alarm window; new alarms join the open one.</summary>
+    private void ShowAlarms(object? sender, EventArgs e)
+    {
+        if (alarmWindow is not null) { alarmWindow.Activate(); return; }
+        alarmWindow = new Features.Alarms.AlarmWindow { DataContext = sender };
+        alarmWindow.Closed += (_, _) => alarmWindow = null;
+        alarmWindow.Show(this);
     }
 
     private void ResizePane() => WorkspaceSplit.OpenPaneLength = Math.Clamp(ClientSize.Width * sidebarFraction, 300, 480);
