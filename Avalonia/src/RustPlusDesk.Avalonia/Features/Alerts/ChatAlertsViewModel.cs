@@ -23,6 +23,7 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     private bool suspiciousShops;
     private bool heli, chinook, vendor;
     private bool playerOnline, playerOffline, deathSelf, deathTeam, respawnSelf, respawnTeam;
+    private bool smartAlerts;
 
     public ChatAlertsViewModel(IAppSettingsStore? settings, ShopAlertsViewModel shopAlerts)
     {
@@ -34,6 +35,7 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
         heli = settings?.Get(SettingKeys.AnnounceHeli, false) ?? false;
         chinook = settings?.Get(SettingKeys.AnnounceChinook, false) ?? false;
         vendor = settings?.Get(SettingKeys.AnnounceVendor, false) ?? false;
+        smartAlerts = settings?.Get(SettingKeys.AnnounceSmartAlerts, false) ?? false;
         playerOnline = settings?.Get(SettingKeys.AnnouncePlayerOnline, false) ?? false;
         playerOffline = settings?.Get(SettingKeys.AnnouncePlayerOffline, false) ?? false;
         deathSelf = settings?.Get(SettingKeys.AnnouncePlayerDeathSelf, false) ?? false;
@@ -53,6 +55,8 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     public bool AnnounceHeli => master && heli;
     public bool AnnounceChinook => master && chinook;
     public bool AnnounceVendor => master && vendor;
+    /// <summary>Reference AnnounceSmartAlerts: smart alarms are posted to team chat.</summary>
+    public bool AnnounceSmartAlerts => master && smartAlerts;
     public bool AnnouncePlayerOnline => master && playerOnline;
     public bool AnnouncePlayerOffline => master && playerOffline;
     public bool AnnouncePlayerDeathSelf => master && deathSelf;
@@ -99,6 +103,7 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     [RelayCommand] private void ToggleHeli() => Flip(ref heli, SettingKeys.AnnounceHeli);
     [RelayCommand] private void ToggleChinook() => Flip(ref chinook, SettingKeys.AnnounceChinook);
     [RelayCommand] private void ToggleVendor() => Flip(ref vendor, SettingKeys.AnnounceVendor);
+    [RelayCommand] private void ToggleSmartAlerts() => Flip(ref smartAlerts, SettingKeys.AnnounceSmartAlerts);
     [RelayCommand] private void TogglePlayerOnline() => Flip(ref playerOnline, SettingKeys.AnnouncePlayerOnline);
     [RelayCommand] private void TogglePlayerOffline() => Flip(ref playerOffline, SettingKeys.AnnouncePlayerOffline);
     [RelayCommand] private void ToggleDeathSelf() => Flip(ref deathSelf, SettingKeys.AnnouncePlayerDeathSelf);
@@ -128,11 +133,11 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     private void SetAll(bool value)
     {
         newShops = suspiciousShops = heli = chinook = vendor = value;
-        playerOnline = playerOffline = deathSelf = deathTeam = respawnSelf = respawnTeam = value;
+        playerOnline = playerOffline = deathSelf = deathTeam = respawnSelf = respawnTeam = smartAlerts = value;
         foreach (string key in new[] { SettingKeys.AnnounceNewShops, SettingKeys.AnnounceSuspiciousShops, SettingKeys.AnnounceHeli,
                      SettingKeys.AnnounceChinook, SettingKeys.AnnounceVendor, SettingKeys.AnnouncePlayerOnline, SettingKeys.AnnouncePlayerOffline,
                      SettingKeys.AnnouncePlayerDeathSelf, SettingKeys.AnnouncePlayerDeathTeam, SettingKeys.AnnouncePlayerRespawnSelf,
-                     SettingKeys.AnnouncePlayerRespawnTeam })
+                     SettingKeys.AnnouncePlayerRespawnTeam, SettingKeys.AnnounceSmartAlerts })
             settings?.Set(key, value);
     }
 
@@ -168,13 +173,13 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     }
 
     private int Local() => new[] { newShops, suspiciousShops, heli, chinook, vendor, playerOnline, playerOffline, deathSelf, deathTeam,
-        respawnSelf, respawnTeam }.Count(flag => flag);
+        respawnSelf, respawnTeam, smartAlerts }.Count(flag => flag);
 
     private void Refresh()
     {
         foreach (string name in new[] { nameof(IsMasterOn), nameof(AnnounceNewShops), nameof(AnnounceSuspiciousShops), nameof(AnnounceHeli), nameof(AnnounceChinook),
                      nameof(AnnounceVendor), nameof(AnnouncePlayerOnline), nameof(AnnouncePlayerOffline), nameof(AnnouncePlayerDeathSelf),
-                     nameof(AnnouncePlayerDeathTeam), nameof(AnnouncePlayerRespawnSelf), nameof(AnnouncePlayerRespawnTeam), nameof(EnabledCount),
+                     nameof(AnnouncePlayerDeathTeam), nameof(AnnouncePlayerRespawnSelf), nameof(AnnouncePlayerRespawnTeam), nameof(AnnounceSmartAlerts), nameof(EnabledCount),
                      nameof(ShowCountBadge), nameof(ShowEmptyDot), nameof(CountText), nameof(MasterTip) })
             OnPropertyChanged(name);
     }

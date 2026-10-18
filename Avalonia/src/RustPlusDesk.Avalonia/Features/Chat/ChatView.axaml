@@ -50,6 +50,8 @@
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleChinookCommand}" />
               <MenuItem Header="Travelling Vendor" ToggleType="CheckBox" IsChecked="{Binding AnnounceVendor, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleVendorCommand}" />
+              <MenuItem Header="Smart Alerts" ToggleType="CheckBox" IsChecked="{Binding AnnounceSmartAlerts, Mode=OneWay}"
+                        IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleSmartAlertsCommand}" />
               <Separator />
               <MenuItem Header="Players" IsEnabled="False" />
               <MenuItem Header="Online Status" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerOnline, Mode=OneWay}"

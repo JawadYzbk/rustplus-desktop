@@ -27,6 +27,8 @@ public sealed partial class AlarmsViewModel : ObservableObject
     [ObservableProperty] private bool isOpen;
     /// <summary>Raised when the popup should be shown (the shell owns the window).</summary>
     public event EventHandler? OpenRequested;
+    /// <summary>Raised for every alarm that passed de-duplication, with or without a popup (chat alerts, audio).</summary>
+    public event Action<CompanionUpdate>? Accepted;
 
     public void Handle(CompanionUpdate update)
     {
@@ -37,6 +39,10 @@ public sealed partial class AlarmsViewModel : ObservableObject
                 Items.Insert(0, new AlarmRow(update));
                 IsOpen = true;
                 OpenRequested?.Invoke(this, EventArgs.Empty);
+                Accepted?.Invoke(update);
+                break;
+            case AlarmDecision.Accepted:
+                Accepted?.Invoke(update);
                 break;
             case AlarmDecision.Update:
                 UpdateOrAdd(update);

@@ -80,6 +80,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             Log = Activity.Append,
             SendTeamChat = text => Connection.Chat.SendAutomatedAsync(text)
         };
+        Alarms.Accepted += AnnounceAlarm;
         PresenceAnnouncer = new(Connection.Team, Connection.Map, alerts, () => Account?.Account.SteamId)
         {
             Templates = AlertTemplates,
@@ -87,6 +88,28 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             SendTeamChat = text => Connection.Chat.SendAutomatedAsync(text)
         };
         return alerts;
+    }
+
+    /// <summary>
+    /// Reference smart-alert chat: while connected, with the master and AnnounceSmartAlerts on, every accepted alarm posts
+    /// AlertAlarmTriggered with the paired device's name, else the alarm's own title, else "Smart Alarm".
+    /// </summary>
+    private void AnnounceAlarm(CompanionUpdate update)
+    {
+        if (!Connection.IsConnected || chatAlerts?.AnnounceSmartAlerts != true) return;
+        string? device = update.EntityId is { } id
+            ? Connection.Devices.Devices.SelectMany(row => row.DescendantsAndSelf()).FirstOrDefault(row => row.Definition.EntityId == id)?.Name
+            : null;
+        string name = !string.IsNullOrWhiteSpace(device) ? device : !string.IsNullOrWhiteSpace(update.Title) ? update.Title : "Smart Alarm";
+        string message = AlertTemplates.Format("AlertAlarmTriggered", name);
+        Activity.Append("[alarm] " + message);
+        _ = SendAlarmAsync(message);
+    }
+
+    private async Task SendAlarmAsync(string message)
+    {
+        try { await Connection.Chat.SendAutomatedAsync(message); }
+        catch (Exception) { Activity.Append("[alarm] The smart alert could not be sent to team chat."); }
     }
 
     private RustPlusDesk.Core.Map.ShopSearch CreateShopSearch()

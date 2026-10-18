@@ -25,7 +25,7 @@ public sealed class AlarmTests
         Assert.AreEqual(AlarmDecision.Show, gate.Decide(7, AlarmGate.GenericMessage, T0.AddSeconds(5), false), "The window has passed.");
         // Generic (no entity) alarms: dropped near another alarm, otherwise only shown when enabled.
         Assert.AreEqual(AlarmDecision.Drop, gate.Decide(null, AlarmGate.GenericMessage, T0.AddSeconds(6), true));
-        Assert.AreEqual(AlarmDecision.Drop, gate.Decide(null, AlarmGate.GenericMessage, T0.AddSeconds(20), false));
+        Assert.AreEqual(AlarmDecision.Accepted, gate.Decide(null, AlarmGate.GenericMessage, T0.AddSeconds(20), false), "No popup, but the alarm still counts.");
         Assert.AreEqual(AlarmDecision.Show, gate.Decide(null, AlarmGate.GenericMessage, T0.AddSeconds(40), true));
         Assert.AreEqual(AlarmDecision.Show, gate.Decide(8, AlarmGate.GenericMessage, T0.AddSeconds(41), false), "Another entity is separate.");
     }

@@ -16,7 +16,7 @@ public static class ChatAlertSettings
         SettingKeys.AnnouncePlayerOnline, SettingKeys.AnnouncePlayerOffline, "AnnouncePlayerAfk", "AnnouncePlayerAfkReturn",
         SettingKeys.AnnouncePlayerDeathSelf, SettingKeys.AnnouncePlayerDeathTeam, SettingKeys.AnnouncePlayerRespawnSelf, SettingKeys.AnnouncePlayerRespawnTeam,
         "AnnounceTracking", SettingKeys.AnnounceNewShops, SettingKeys.AnnounceSuspiciousShops,
-        "AnnounceSmartAlerts", "AnnounceTradeAlerts"
+        SettingKeys.AnnounceSmartAlerts, "AnnounceTradeAlerts"
     ];
 
     /// <summary>How many alert flags are on (the reference badge count, without per-server flags).</summary>

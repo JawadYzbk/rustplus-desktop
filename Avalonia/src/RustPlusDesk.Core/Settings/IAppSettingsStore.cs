@@ -32,6 +32,7 @@ public static class SettingKeys
     public const string AnnounceHeli = "AnnounceHeli";                     // default false
     public const string AnnounceChinook = "AnnounceChinook";               // default false
     public const string AnnounceVendor = "AnnounceVendor";                 // default false
+    public const string AnnounceSmartAlerts = "AnnounceSmartAlerts";       // default false: smart alarm → team chat
     public const string AnnouncePlayerOnline = "AnnouncePlayerOnline";     // default false
     public const string AnnouncePlayerOffline = "AnnouncePlayerOffline";   // default false
     public const string AnnouncePlayerDeathSelf = "AnnouncePlayerDeathSelf"; // default false
