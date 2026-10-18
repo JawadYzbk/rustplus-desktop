@@ -8,5 +8,7 @@
     <EmbeddedResource Include="Assets/recycler-items.json" LogicalName="RustPlusDesk.Infrastructure.RecyclerItems.json" />
     <EmbeddedResource Include="Assets/Recycling-Data.json" LogicalName="RustPlusDesk.Infrastructure.RecyclingData.json" />
     <EmbeddedResource Include="Assets/raid-data.json" LogicalName="RustPlusDesk.Infrastructure.RaidData.json" />
+    <!-- Reference shop alert sound; played from disk by the platform player. -->
+    <None Include="Assets/cash.wav" Link="Assets/cash.wav" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

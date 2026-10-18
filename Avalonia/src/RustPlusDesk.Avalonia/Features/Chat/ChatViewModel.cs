@@ -161,6 +161,18 @@ public sealed partial class ChatViewModel : ObservableObject
         Notice = CenterOnMap?.Invoke(line.Message.SteamId) == true ? "" : "Teammate is not currently visible on the active map.";
     }
 
+    /// <summary>
+    /// Posts an automated alert (shop alerts) to team chat, cut to the in-game limit. Returns false while disconnected.
+    /// Pending: the reference's clan-channel choice, automated-chat master switch and Discord forwarding.
+    /// </summary>
+    public async Task<bool> SendAutomatedAsync(string text)
+    {
+        if (session is not { } target || string.IsNullOrWhiteSpace(text)) return false;
+        string message = text.Length > ChatLimits.MaxLength ? text[..ChatLimits.MaxLength] : text;
+        await target.SendChatAsync(ChatChannel.Team, message, sessionToken);
+        return true;
+    }
+
     private bool CanSend => IsConnected && !IsSending && !string.IsNullOrWhiteSpace(Draft);
 
     [RelayCommand(CanExecute = nameof(CanSend))]

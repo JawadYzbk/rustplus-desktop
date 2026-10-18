@@ -3,7 +3,7 @@
              xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons" xmlns:shared="using:RustPlusDesk.Avalonia.Shared.Controls"
              x:Class="RustPlusDesk.Avalonia.Features.Shops.ShopSearchView" x:DataType="vm:ShopSearchViewModel">
   <Border Classes="panel" Background="{DynamicResource Surface}" Padding="12" BoxShadow="0 6 24 0 #66000000">
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="8">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*" RowSpacing="8">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
         <icons:Icon Symbol="BuildingShop24" FontSize="18" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
         <TextBlock Grid.Column="1" Text="Shop search" Classes="title" />
@@ -41,7 +41,53 @@
         <ComboBox Grid.Row="1" Grid.ColumnSpan="2" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" HorizontalAlignment="Stretch"
                   AutomationProperties.Name="Category filter" />
       </Grid>
-      <Grid Grid.Row="4">
+      <Border Grid.Row="4" IsVisible="{Binding HasAlerts}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,1" Padding="0,6">
+        <StackPanel Spacing="6">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+            <Button Classes="subtle" Command="{Binding Alerts.ToggleExpandedCommand}" HorizontalAlignment="Left" Padding="6,4"
+                    AutomationProperties.Name="Show or hide shop alerts">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <icons:Icon Symbol="Alert24" FontSize="15" />
+                <TextBlock Text="Alerts" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Alerts.Rules.Count}" Classes="muted" />
+                <icons:Icon Symbol="ChevronDown16" FontSize="12" IsVisible="{Binding !Alerts.IsExpanded}" />
+                <icons:Icon Symbol="ChevronUp16" FontSize="12" IsVisible="{Binding Alerts.IsExpanded}" />
+              </StackPanel>
+            </Button>
+            <Button Grid.Column="1" Classes="primary" Command="{Binding AddAlertCommand}" Padding="10,4"
+                    ToolTip.Tip="Alert when a shop starts offering the searched item" AutomationProperties.Name="Add shop alert">
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="AlertOn24" FontSize="14" /><TextBlock Text="Add alert" /></StackPanel>
+            </Button>
+          </Grid>
+          <StackPanel IsVisible="{Binding Alerts.IsExpanded}" Spacing="4">
+            <TextBlock Text="No alerts yet. Search for an item, then add an alert." Classes="muted" FontSize="12" TextWrapping="Wrap"
+                       IsVisible="{Binding !Alerts.HasRules}" />
+            <TextBlock Text="{Binding Alerts.Message}" Foreground="{DynamicResource ConnectionDanger}" FontSize="12" TextWrapping="Wrap"
+                       IsVisible="{Binding Alerts.Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <ScrollViewer MaxHeight="132" HorizontalScrollBarVisibility="Disabled">
+              <ItemsControl ItemsSource="{Binding Alerts.Rules}" AutomationProperties.Name="Shop alerts">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ShopAlertRowViewModel">
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="2" Margin="0,1">
+                      <TextBlock Text="{Binding Caption}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="12" />
+                      <ToggleButton Grid.Column="1" Classes="chip" Padding="6,2" IsChecked="{Binding NotifyChat}" ToolTip.Tip="Send to team chat"
+                                    AutomationProperties.Name="Send alert to team chat"><icons:Icon Symbol="Chat24" FontSize="13" /></ToggleButton>
+                      <ToggleButton Grid.Column="2" Classes="chip" Padding="6,2" IsChecked="{Binding NotifySound}" IsEnabled="{Binding CanPlaySound}"
+                                    ToolTip.Tip="{Binding SoundTip}" ToolTip.ShowOnDisabled="True" AutomationProperties.Name="Play alert sound">
+                        <icons:Icon Symbol="Speaker224" FontSize="13" /></ToggleButton>
+                      <Button Grid.Column="3" Classes="icon" Width="28" Height="28" Classes.saved="{Binding IsSaved}" Command="{Binding ToggleSaveCommand}"
+                              ToolTip.Tip="{Binding SaveTip}" AutomationProperties.Name="Save shop alert"><icons:Icon Symbol="Save24" FontSize="14" /></Button>
+                      <Button Grid.Column="4" Classes="icon" Width="28" Height="28" Command="{Binding RemoveCommand}" ToolTip.Tip="Remove alert"
+                              AutomationProperties.Name="Remove shop alert"><icons:Icon Symbol="Delete24" FontSize="14" /></Button>
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <Grid Grid.Row="5">
         <TextBlock Text="{Binding EmptyMessage}" Classes="muted" FontSize="12" HorizontalAlignment="Center" Margin="0,24,0,0"
                    IsVisible="{Binding !HasResults}" TextWrapping="Wrap" />
         <ScrollViewer HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding HasResults}">
@@ -106,6 +152,7 @@
       <Setter Property="CornerRadius" Value="6" />
       <Setter Property="Padding" Value="8,4" />
     </Style>
+    <Style Selector="Button.saved icons|Icon"><Setter Property="Foreground" Value="{DynamicResource ConnectionSuccess}" /></Style>
     <Style Selector="Border.offer.empty"><Setter Property="Opacity" Value="0.65" /></Style>
     <Style Selector="TextBlock.stock"><Setter Property="Foreground" Value="{DynamicResource ConnectionSuccess}" /></Style>
     <Style Selector="TextBlock.stock.empty"><Setter Property="Foreground" Value="{DynamicResource ConnectionDanger}" /></Style>

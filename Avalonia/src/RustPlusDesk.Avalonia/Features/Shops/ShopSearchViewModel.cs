@@ -48,9 +48,15 @@ public sealed partial class ShopSearchViewModel : ObservableObject
     public IReadOnlyList<string> Categories { get; }
 
     [ObservableProperty] private bool isOpen;
-    [ObservableProperty] private string query = "";
-    [ObservableProperty] private bool sells = true;
-    [ObservableProperty] private bool buys = true;
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(AddAlertCommand))]
+    private string query = "";
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(AddAlertCommand))]
+    private bool sells = true;
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(AddAlertCommand))]
+    private bool buys = true;
     [ObservableProperty] private bool hideOutOfStock;
     [ObservableProperty] private bool hideMonumentShops;
     [ObservableProperty] private ShopSortChoice selectedSort;
@@ -71,6 +77,15 @@ public sealed partial class ShopSearchViewModel : ObservableObject
     partial void OnSelectedSortChanged(ShopSortChoice value) => Refresh();
     partial void OnSelectedResourceChanged(ShopResourceChoice value) => Refresh();
     partial void OnSelectedCategoryChanged(string value) => Refresh();
+
+    /// <summary>Trade alerts listed under the search; null when the host has no alert support.</summary>
+    public ShopAlertsViewModel? Alerts { get; init; }
+    public bool HasAlerts => Alerts is not null;
+
+    /// <summary>Reference "Add alert": watches the current query on the selected Sells/Buys sides.</summary>
+    [RelayCommand(CanExecute = nameof(CanAddAlert))]
+    private void AddAlert() => Alerts?.AddFromSearch(Query, Sells, Buys);
+    private bool CanAddAlert() => Alerts is not null && !string.IsNullOrWhiteSpace(Query) && (Sells || Buys);
 
     [RelayCommand] private void Toggle() => IsOpen = !IsOpen;
     [RelayCommand] private void ClearQuery() => Query = "";

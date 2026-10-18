@@ -24,7 +24,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     IRecyclerCatalog? recyclerCatalog = null, ICloudAccountService? cloudAccountService = null, IReadOnlyList<DeviceIcon>? deviceIcons = null,
     ICloudDeviceRestore? cloudDeviceRestore = null, IDeviceSyncPreferences? deviceSyncPreferences = null, ICloudDeviceSynchronizer? deviceSynchronizer = null,
     IDeviceImporter? deviceImporter = null, IRaidCatalog? raidCatalog = null, IRaidPlanStore? raidPlanStore = null,
-    RustPlusDesk.Core.Settings.IAppSettingsStore? appSettings = null)
+    RustPlusDesk.Core.Settings.IAppSettingsStore? appSettings = null, RustPlusDesk.Core.Map.IShopAlertStore? shopAlertStore = null,
+    RustPlusDesk.Core.Map.IAlertSound? alertSound = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -37,7 +38,16 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     }
     private Shops.ShopSearchViewModel? shops;
     /// <summary>Map shop search dock; categories come from the bundled recycler catalog when it is available.</summary>
-    public Shops.ShopSearchViewModel Shops => shops ??= new(CreateShopSearch(), Connection.Map);
+    public Shops.ShopSearchViewModel Shops => shops ??= new(CreateShopSearch(), Connection.Map) { Alerts = ShopAlerts };
+
+    private Shops.ShopAlertsViewModel? shopAlerts;
+    /// <summary>Shop trade alerts; checked on every marker poll whether or not the search dock is open.</summary>
+    public Shops.ShopAlertsViewModel ShopAlerts => shopAlerts ??= new(new RustPlusDesk.Core.Map.ShopAlertMonitor(RustPlusDesk.Infrastructure.Items.BundledItemCatalog.GetName),
+        Connection.Map, shopAlertStore, alertSound)
+    {
+        Log = Activity.Append,
+        SendTeamChat = text => Connection.Chat.SendAutomatedAsync(text)
+    };
 
     private RustPlusDesk.Core.Map.ShopSearch CreateShopSearch()
     {
@@ -287,6 +297,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         {
             await RefreshCommand.ExecuteAsync(null);
             cancellationToken.ThrowIfCancellationRequested();
+            try { await ShopAlerts.LoadAsync(cancellationToken); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Activity.Append("[shops] Saved shop alerts could not be read."); }
             EnsureAccountServices();
             if (Cloud is not null) Cloud.CheckCommand.Execute(null);
             if (Account is null || Listener is null) return;
@@ -599,6 +611,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         ImportDevicesCommand.Cancel();
         await raidPlanLoad;
         if (Raid is not null) await Raid.FlushAsync();
+        if (shopAlerts is not null) await shopAlerts.FlushAsync();
         if (appSettings is not null)
         {
             try { await appSettings.FlushAsync(); }

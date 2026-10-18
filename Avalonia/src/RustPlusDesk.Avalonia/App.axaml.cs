@@ -12,6 +12,7 @@ using RustPlusDesk.Infrastructure.Profiles;
 using RustPlusDesk.Infrastructure.Connections;
 using RustPlusDesk.Infrastructure.Accounts;
 using RustPlusDesk.Infrastructure.Items;
+using RustPlusDesk.Infrastructure.Shops;
 using RustPlusDesk.Infrastructure.Raid;
 using RustPlusDesk.Infrastructure.Settings;
 using RustPlusDesk.Infrastructure.Cloud;
@@ -58,7 +59,8 @@ public sealed partial class App : Application
                 new CloudDeviceSynchronizer(cloudHttp, CloudAccountService.DefaultCachePath, typeof(App).Assembly.GetName().Version!.ToString(3), syncPreferences),
                 new DeviceImporter(cloudHttp, CloudAccountService.DefaultCachePath, typeof(App).Assembly.GetName().Version!.ToString(3), syncPreferences, DeviceImporter.DefaultOverlayRoot),
                 new BundledRaidCatalog(), new RaidPlanStore(RaidPlanStore.DefaultPath),
-                new TrackingSettingsStore(TrackingSettingsStore.DefaultPath));
+                new TrackingSettingsStore(TrackingSettingsStore.DefaultPath),
+                new ShopAlertStore(ShopAlertStore.DefaultPath), new SystemAlertSound(SystemAlertSound.DefaultPath));
             desktop.Exit += (_, _) => { accountHttp.Dispose(); cloudHttp.Dispose(); };
             window.DataContext = servers;
             window.Opened += async (_, _) => await servers.InitializeCommand.ExecuteAsync(null);
