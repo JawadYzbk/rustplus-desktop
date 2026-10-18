@@ -234,14 +234,18 @@ public sealed class ShopNoticeTests
                 flyout.ShowAt(menuButton);
                 window.UpdateLayout();
                 var items = flyout.Items.OfType<MenuItem>().ToList();
-                CollectionAssert.AreEqual(new[] { "Shops", "New shops", "Suspicious shops", "Trade alerts" }, items.Select(item => (string)item.Header!).ToArray());
-                Assert.IsTrue(items[1].IsChecked);
-                Assert.IsFalse(items[2].IsChecked);
-                Assert.IsTrue(items[3].IsEnabled);
-                items[2].Command!.Execute(null);
+                CollectionAssert.AreEqual(new[] { "Events", "Patrol Helicopter", "Chinook (CH47)", "Travelling Vendor", "Shops", "New shops", "Suspicious shops", "Trade alerts" },
+                    items.Select(item => (string)item.Header!).ToArray());
+                Assert.IsTrue(items[5].IsChecked);
+                Assert.IsFalse(items[6].IsChecked);
+                Assert.IsTrue(items[7].IsEnabled);
+                items[6].Command!.Execute(null);
                 Assert.IsTrue(alerts.AnnounceSuspiciousShops);
+                items[1].Command!.Execute(null);
+                Assert.IsTrue(alerts.AnnounceHeli);
                 window.UpdateLayout();
-                Assert.IsTrue(items[2].IsChecked);
+                Assert.IsTrue(items[6].IsChecked);
+                Assert.IsTrue(items[1].IsChecked);
                 flyout.Hide();
             }
             finally { window.Close(); }

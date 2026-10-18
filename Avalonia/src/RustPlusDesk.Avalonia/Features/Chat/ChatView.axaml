@@ -33,6 +33,14 @@
           <icons:Icon Symbol="ChevronDown24" FontSize="14" />
           <Button.Flyout>
             <MenuFlyout Placement="BottomEdgeAlignedRight">
+              <MenuItem Header="Events" IsEnabled="False" />
+              <MenuItem Header="Patrol Helicopter" ToggleType="CheckBox" IsChecked="{Binding AnnounceHeli, Mode=OneWay}"
+                        IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleHeliCommand}" />
+              <MenuItem Header="Chinook (CH47)" ToggleType="CheckBox" IsChecked="{Binding AnnounceChinook, Mode=OneWay}"
+                        IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleChinookCommand}" />
+              <MenuItem Header="Travelling Vendor" ToggleType="CheckBox" IsChecked="{Binding AnnounceVendor, Mode=OneWay}"
+                        IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleVendorCommand}" />
+              <Separator />
               <MenuItem Header="Shops" IsEnabled="False" />
               <MenuItem Header="New shops" ToggleType="CheckBox" IsChecked="{Binding AnnounceNewShops, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleNewShopsCommand}" />

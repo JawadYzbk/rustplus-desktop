@@ -21,6 +21,7 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     private bool master;
     private bool newShops;
     private bool suspiciousShops;
+    private bool heli, chinook, vendor;
 
     public ChatAlertsViewModel(IAppSettingsStore? settings, ShopAlertsViewModel shopAlerts)
     {
@@ -29,6 +30,9 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
         master = settings?.Get(SettingKeys.AnnounceSpawnsMaster, false) ?? false;
         newShops = settings?.Get(SettingKeys.AnnounceNewShops, false) ?? false;
         suspiciousShops = settings?.Get(SettingKeys.AnnounceSuspiciousShops, false) ?? false;
+        heli = settings?.Get(SettingKeys.AnnounceHeli, false) ?? false;
+        chinook = settings?.Get(SettingKeys.AnnounceChinook, false) ?? false;
+        vendor = settings?.Get(SettingKeys.AnnounceVendor, false) ?? false;
         shopAlerts.Rules.CollectionChanged += RulesChanged;
         RulesChanged(null, new(NotifyCollectionChangedAction.Reset));
     }
@@ -39,6 +43,9 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     public bool IsMasterOn => master;
     public bool AnnounceNewShops => master && newShops;
     public bool AnnounceSuspiciousShops => master && suspiciousShops;
+    public bool AnnounceHeli => master && heli;
+    public bool AnnounceChinook => master && chinook;
+    public bool AnnounceVendor => master && vendor;
 
     public int EnabledCount => settings is null ? Local() : ChatAlertSettings.EnabledCount(settings);
     public bool ShowCountBadge => master && EnabledCount > 0;
@@ -69,6 +76,17 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
         AfterFlagChanged();
     }
 
+    [RelayCommand] private void ToggleHeli() => Flip(ref heli, SettingKeys.AnnounceHeli);
+    [RelayCommand] private void ToggleChinook() => Flip(ref chinook, SettingKeys.AnnounceChinook);
+    [RelayCommand] private void ToggleVendor() => Flip(ref vendor, SettingKeys.AnnounceVendor);
+
+    private void Flip(ref bool flag, string key)
+    {
+        flag = !flag;
+        settings?.Set(key, flag);
+        AfterFlagChanged();
+    }
+
     /// <summary>Reference TradeAlertSubItem_Click: always available; enabling chat turns the master on.</summary>
     internal void ToggleTradeAlertChat(ShopAlertRowViewModel row)
     {
@@ -93,11 +111,12 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
         Refresh();
     }
 
-    private int Local() => (newShops ? 1 : 0) + (suspiciousShops ? 1 : 0);
+    private int Local() => new[] { newShops, suspiciousShops, heli, chinook, vendor }.Count(flag => flag);
 
     private void Refresh()
     {
-        foreach (string name in new[] { nameof(IsMasterOn), nameof(AnnounceNewShops), nameof(AnnounceSuspiciousShops), nameof(EnabledCount),
+        foreach (string name in new[] { nameof(IsMasterOn), nameof(AnnounceNewShops), nameof(AnnounceSuspiciousShops), nameof(AnnounceHeli), nameof(AnnounceChinook),
+                     nameof(AnnounceVendor), nameof(EnabledCount),
                      nameof(ShowCountBadge), nameof(ShowEmptyDot), nameof(CountText), nameof(MasterTip) })
             OnPropertyChanged(name);
     }

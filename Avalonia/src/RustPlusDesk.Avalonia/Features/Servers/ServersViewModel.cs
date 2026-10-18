@@ -56,12 +56,18 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     /// <summary>Chat-alert master switch and flags; creating it also starts the new/suspicious shop notices.</summary>
     public Alerts.ChatAlertsViewModel ChatAlerts => chatAlerts ??= CreateChatAlerts();
     public Shops.ShopNoticesViewModel? ShopNotices { get; private set; }
+    public Alerts.EventAnnouncer? EventAnnouncer { get; private set; }
 
     private Alerts.ChatAlertsViewModel CreateChatAlerts()
     {
         var alerts = new Alerts.ChatAlertsViewModel(appSettings, ShopAlerts);
         Connection.Chat.Alerts = alerts;
         ShopNotices = new(new RustPlusDesk.Core.Map.ShopNoticeTracker(RustPlusDesk.Infrastructure.Items.BundledItemCatalog.GetName), Connection.Map, alerts)
+        {
+            Log = Activity.Append,
+            SendTeamChat = text => Connection.Chat.SendAutomatedAsync(text)
+        };
+        EventAnnouncer = new(Connection.Map, alerts)
         {
             Log = Activity.Append,
             SendTeamChat = text => Connection.Chat.SendAutomatedAsync(text)

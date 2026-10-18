@@ -29,6 +29,9 @@ public static class SettingKeys
     public const string GenericAlarmPopupEnabled = "GenericAlarmPopupEnabled"; // default false
     public const string AnnounceSpawnsMaster = "AnnounceSpawnsMaster";     // default false: chat alerts master
     public const string AnnounceNewShops = "AnnounceNewShops";             // default false
+    public const string AnnounceHeli = "AnnounceHeli";                     // default false
+    public const string AnnounceChinook = "AnnounceChinook";               // default false
+    public const string AnnounceVendor = "AnnounceVendor";                 // default false
     public const string AnnounceSuspiciousShops = "AnnounceSuspiciousShops"; // default false
     public const string NotificationsRetentionDays = "NotificationsRetentionDays"; // default 30 (<= 0 means 30)
     public const string MutedNotificationServers = "MutedNotificationServers";     // list of "host:port"
