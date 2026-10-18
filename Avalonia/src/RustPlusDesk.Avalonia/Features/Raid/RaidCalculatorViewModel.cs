@@ -67,6 +67,9 @@ public sealed partial class RaidCalculatorViewModel : ObservableObject
     /// <summary>Restores the saved plan; entries for targets that no longer exist are skipped.</summary>
     public async Task LoadPlanAsync(CancellationToken ct)
     {
+        // A change made before the plan is restored (e.g. a smart-mix toggle) must not overwrite the saved file.
+        saveCancellation?.Cancel();
+        await pendingSave;
         var saved = await store.LoadAsync(ct);
         loading = true;
         try

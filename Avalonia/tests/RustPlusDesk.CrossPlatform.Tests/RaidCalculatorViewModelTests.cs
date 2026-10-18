@@ -121,6 +121,20 @@ public sealed class RaidCalculatorViewModelTests
     }
 
     [TestMethod]
+    public async Task ChangeBeforeLoad_DoesNotOverwriteTheSavedPlan()
+    {
+        using var plan = new PlanFile();
+        var door = Data.Targets.First(target => target.DisplayName == "Armored Door");
+        await plan.Store.SaveAsync([new(door.TargetId, 2, 0)], CancellationToken.None);
+        var model = new RaidCalculatorViewModel(Data, new RaidPlanStore(plan.Path));
+        model.GlobalMethods[0].IsSelected = !model.GlobalMethods[0].IsSelected;
+        await model.LoadPlanAsync(CancellationToken.None);
+        await Task.Delay(400);
+        Assert.AreEqual(2, (await plan.Store.LoadAsync(CancellationToken.None)).Single().Quantity);
+        Assert.AreEqual(2, model.PlanItems.Single().Quantity);
+    }
+
+    [TestMethod]
     public void SearchCategoriesAndSummary_FollowTheReference()
     {
         using var plan = new PlanFile();
