@@ -1,4 +1,4 @@
-# Avalonia migration handoff — 2026-10-18 (second scheduled run)
+# Avalonia migration handoff — 2026-10-18 (third scheduled run)
 
 **Plan of record: [PARITY-PLAN.md](PARITY-PLAN.md).** Bar set by Jawad on 2026-10-18: *same functionality as the WPF
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
@@ -6,46 +6,47 @@ every finished slice with its commit.
 
 ## Where things stand (scheduled run, 2026-10-18, Linux cloud container)
 
-- Branch `codex/avalonia-migration`, pushed to `origin`. Latest code commit: `6597e62d` (docs follow).
+- Branch `codex/avalonia-migration`, pushed to `origin`. Latest code commit: `4aeabc52` (docs follow).
   Only `Avalonia/` changes.
-- **485 tests pass** (Debug, zero warnings) on Linux with the .NET 10.0.112 SDK from Ubuntu's archive
-  (`apt-get install -y dotnet-sdk-10.0`; Microsoft's dotnet-install host is blocked by this container's proxy).
+- **515 tests pass** (Debug, zero warnings) on Linux with the .NET 10.0.112 SDK from Ubuntu's archive
+  (`apt-get update && apt-get install -y dotnet-sdk-10.0`; the first install without `apt-get update` fails).
 - Done this run, in order (each in the PARITY-PLAN progress table):
-  1. `5cf24091` 4.6 new-shop / suspicious-shop notices + chat-alert master switch (AnnounceSpawnsMaster, badge,
-     menu: New shops, Suspicious shops, Trade alerts; reference CheckIfAllOff over the 22 global flags).
-  2. `d2b6b11d` 4.6 Profit trades panel (two-step loops, filters, map centring).
-  3. `de2a81b4` 4.6 Buy X for Y path finder (BFS routes ≤4 trades, strict min/max chains, previews, autocomplete).
-  4. `356f05c2` 4.6 Console Helper tool page + always-on-top popout (bundled console-commands.json, shared
-     console-helper.json, key capture in Rust bind notation).
-  5. `ed6f87ff` 4.1 Notifications inbox (shared cache/notifications_history.json, unread rail badge, filters,
-     mute server, connect from the server tag).
-  6. `fc0fd923` 3.2 Device hotkeys (shared hotkeys.json + hotkey_options.json, editor/capture windows, Win32
-     RegisterHotKey adapter, truthful Linux/macOS unavailability, delete cleanup).
-  7. `4f390f46` 0.7 stacked toasts; new notification rows toast unless NotificationsToastEnabled is off.
-  8. `a3497cad` design-system fix: `icons|Icon` styles now reach the Icon control (it no longer fakes a TextBlock key).
-  9. `ece36ddb` 2.2 chat emoji: inline `:token:` rendering, `:` autocomplete, emoji picker (static thumbnails).
-  10. `45386e79` 5.1 settings page with the Alerts category (toasts, retention, muted servers/unmute, generic alarm popup).
-  11. `6597e62d` 1.2 event spawn announcements (heli/CH47/vendor switches, explosions on master) + Events menu section.
-- **Owner decision pending:** the reference also announced GenericRadius markers as "Building Blocked" and mapped
-  crate markers to the vendor kind; both look unintended and were not ported (see the PARITY-PLAN row).
-- The owner's own commit `27f1d234` (3.3 smart-alarm popup) is recorded in the table.
+  1. `5fdf1524` 5.1 Settings > General: auto-connect on startup (AutoConnectEnabled, 1 s head start), last selected
+     server restored/remembered (LastSelectedServerKey = reference MatchKey; `ServerSummary.MatchKey` is JsonIgnore'd
+     and kept out of ToString because it carries the Steam ID), launch at sign-in via Core `ILaunchAtLogin` with
+     Windows Run key / XDG autostart / macOS LaunchAgent adapters (`Infrastructure/Platform/LaunchAtLogin.cs`).
+  2. `78433025` chat-alert menu Select all / Deselect all (only ported flags are written; see the row).
+  3. `e8398645` streamer mode (MapAbbreviateNames: map toolbar "Streamer" + Settings > Behavior) across map labels,
+     team dock, header/empty state ("SERVER HIDDEN"), inbox tags/search/mute text, sidebar close; player icon size.
+  4. `577d4892` Hide system console (HideConsole hides the Activity tab; streamer mode turns it on).
+  5. `b011d5c0` death tracking: team reads carry X/Y, spawn/death unix times and map notes (`ServerTeamSnapshot`,
+     default interface method keeps old fakes working); `DeathTracker`/`DeathLocationClassifier` in Core/Deaths;
+     shared `%APPDATA%/RustPlusDesk/deaths/{host-port}.jsonl` (byte-identical reference lines, legacy folder merge).
+  6. `b0b3f726` Death Stats page (rail entry before Raid, filters, cards, sparkline, tables, killers forget/clear,
+     refresh, clear log).
+  7. `4aeabc52` map "Deaths" toggle = death heatmap from the local log (MapShowDeathHeatmap).
+- Deliberately not ported (reference settings that are inert or need missing features): notification sounds (the
+  reference only plays them for "Chat" notifications, which it never creates), Reduce UI effects (no Mica/animations
+  in the Avalonia shell yet), start minimized / close to tray (8.1 tray).
+- **Owner decision still pending:** GenericRadius "Building Blocked" and crate→vendor announcements (see the 1.2 row).
 
 ## Start next run with
 
-1. Setup as in the scheduled prompt; if `dotnet` is missing and dot.net is blocked, use
-   `apt-get install -y dotnet-sdk-10.0` (Ubuntu 24.04 archive, 10.0.1xx satisfies global.json rollForward).
-2. Continue PARITY-PLAN. Suggested order of small, self-contained slices:
-   - **5.1 more categories** on the new Settings page (general, map performance, system), each only with ported features.
-   - **Alert menu, rest**: heli shot-down/crash detection, cargo spawn/dock/egress (event dock + harbour data), oil rig,
-     Deep Sea and player alerts as their detection is ported; then Select all / Deselect all / Edit templates.
-   - **2.2 rest**: avatars, emoji picker/autocomplete, quick-command chips (need chat-command profile keys).
-   - **1.4** needs the map parse/3D data (no-build zones, keycards) — do 1.6 parsing first; death markers need
-     team positions (team info X/Y is not yet in `ServerTeamMember`) and a revision-adopting profiles writer.
-   - **5.1** settings overlay: retention days, toasts/sounds, muted-server list (unmute), streamer mode.
-3. Alerts/chat routing still lacks profile settings: `ChatAlertsUseClanChannel`, team feature master (automated
-   chat blocked by another member), Discord webhooks (see `ChatViewModel.SendAutomatedAsync`). Port with 5.1/2.4.
-4. Design system: `icons|Icon` selectors now work (Icon keeps its own style key since this run); style icons with
-   `icons|Icon.someClass`, not `TextBlock.someClass`.
+1. Setup as in the scheduled prompt; if `dotnet` is missing: `apt-get update && apt-get install -y dotnet-sdk-10.0`.
+2. Suggested next slices (small, self-contained):
+   - **Death pins (1.4)**: per-profile `DeathMarkers` (Id, SteamId, OriginalName, CustomName, X, Y, TimeOfDeath) in
+     profiles.json need a revision-adopting writer in `Infrastructure/Profiles` (follow LegacyDeviceProfileEditor's
+     revision/backup rules), the own Steam ID (companion account) for the self/team caps (MaxSelfDeathMarkers,
+     MaxTeamDeathMarkers, 1–50), rename/delete context menu, wipe-all, settings dialog. Feed from the team snapshot
+     (dead + position) like reference MainWindow.Team.Core ~line 805.
+   - **Player death/respawn/online/offline chat alerts** (AnnouncePlayer* flags) now that team snapshots carry state;
+     they need AlertTemplateService texts (AlertPlayerDied/AlertPlayerRespawned …) ported first.
+   - **Map cache + wipe detection** (reference LoadMapAsync: LocalAppData/RustPlusDesk/map_cache/{host}_{port}.png/.json,
+     harbor-based wipe check, server WipeTime) → then custom HD map URL (per-profile CustomMapUrl) and death-log wipe clear.
+   - **5.1 Map Performance / Connected services** categories as their features land.
+3. Alerts/chat routing still lacks profile settings: `ChatAlertsUseClanChannel`, team feature master, Discord webhooks.
+4. Shell wiring note: ServersViewModel is a primary-constructor class, so cross-feature subscriptions live in
+   `ObserveStreamerMode()` (called from the first server selection and from the Notifications/Settings factories).
 5. Record each slice in the PARITY-PLAN table with its commit, commit + push after every slice.
 
 ## How to work (proven patterns)
