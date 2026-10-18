@@ -111,6 +111,29 @@ public sealed class ShopNoticeTests
     }
 
     [TestMethod]
+    public void ChatAlerts_SelectAllTurnsEverythingOn_DeselectAllTurnsTheMasterOffOnlyWhenNothingIsLeft()
+    {
+        var settings = new MemorySettings();
+        var model = new ChatAlertsViewModel(settings, new ShopAlertsViewModel(new ShopAlertMonitor(Name), new MapViewModel(), null, null));
+        model.SelectAllCommand.Execute(null);
+        Assert.IsTrue(model.IsMasterOn, "Select all turns the master on.");
+        Assert.IsTrue(model.AnnounceHeli && model.AnnounceChinook && model.AnnounceVendor && model.AnnounceNewShops && model.AnnounceSuspiciousShops);
+        Assert.AreEqual(5, model.EnabledCount);
+        Assert.IsFalse(settings.Values.ContainsKey("AnnounceCargo"), "Flags of unported alerts are only read.");
+
+        model.DeselectAllCommand.Execute(null);
+        Assert.IsFalse(model.IsMasterOn, "Nothing left on: the master goes off (reference CheckIfAllOff).");
+        Assert.AreEqual(false, settings.Values[SettingKeys.AnnounceHeli]);
+        Assert.AreEqual(false, settings.Values[SettingKeys.AnnounceSpawnsMaster]);
+
+        settings.Set("AnnounceCargo", true);
+        model.SelectAllCommand.Execute(null);
+        model.DeselectAllCommand.Execute(null);
+        Assert.IsTrue(model.IsMasterOn, "A flag the other app set keeps the master on.");
+        Assert.AreEqual(1, model.EnabledCount);
+    }
+
+    [TestMethod]
     public void ChatAlerts_MasterGatesFlags_LastFlagOffTurnsMasterOff_TradeAlertsTurnItOn()
     {
         var settings = new MemorySettings();
@@ -234,8 +257,10 @@ public sealed class ShopNoticeTests
                 flyout.ShowAt(menuButton);
                 window.UpdateLayout();
                 var items = flyout.Items.OfType<MenuItem>().ToList();
-                CollectionAssert.AreEqual(new[] { "Events", "Patrol Helicopter", "Chinook (CH47)", "Travelling Vendor", "Shops", "New shops", "Suspicious shops", "Trade alerts" },
+                CollectionAssert.AreEqual(new[] { "Select all", "Deselect all", "Events", "Patrol Helicopter", "Chinook (CH47)", "Travelling Vendor", "Shops", "New shops", "Suspicious shops", "Trade alerts" },
                     items.Select(item => (string)item.Header!).ToArray());
+                Assert.IsTrue(items[0].IsEnabled && items[1].IsEnabled, "Select all / Deselect all work whatever the master state.");
+                items = items.Skip(2).ToList();
                 Assert.IsTrue(items[5].IsChecked);
                 Assert.IsFalse(items[6].IsChecked);
                 Assert.IsTrue(items[7].IsEnabled);

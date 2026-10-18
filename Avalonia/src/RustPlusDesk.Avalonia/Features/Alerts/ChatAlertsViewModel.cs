@@ -80,6 +80,33 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     [RelayCommand] private void ToggleChinook() => Flip(ref chinook, SettingKeys.AnnounceChinook);
     [RelayCommand] private void ToggleVendor() => Flip(ref vendor, SettingKeys.AnnounceVendor);
 
+    /// <summary>
+    /// Reference SelectAllAlerts_Click: every flag on, then the master on. Only the flags of ported alerts are written;
+    /// the others stay as they are (see <see cref="ChatAlertSettings"/>).
+    /// </summary>
+    [RelayCommand]
+    private void SelectAll()
+    {
+        SetAll(true);
+        SetMaster(true);
+    }
+
+    /// <summary>Reference DeselectAllAlerts_Click: every flag off; the master goes off once nothing is left on.</summary>
+    [RelayCommand]
+    private void DeselectAll()
+    {
+        SetAll(false);
+        AfterFlagChanged();
+    }
+
+    private void SetAll(bool value)
+    {
+        newShops = suspiciousShops = heli = chinook = vendor = value;
+        foreach (string key in new[] { SettingKeys.AnnounceNewShops, SettingKeys.AnnounceSuspiciousShops, SettingKeys.AnnounceHeli,
+                     SettingKeys.AnnounceChinook, SettingKeys.AnnounceVendor })
+            settings?.Set(key, value);
+    }
+
     private void Flip(ref bool flag, string key)
     {
         flag = !flag;
