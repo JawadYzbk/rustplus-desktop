@@ -1,13 +1,14 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:RustPlusDesk.Avalonia.Features.Servers" xmlns:account="clr-namespace:RustPlusDesk.Core.Accounts;assembly=RustPlusDesk.Core"
+             xmlns:vm="using:RustPlusDesk.Avalonia.Features.Servers"
              xmlns:teams="using:RustPlusDesk.Avalonia.Features.Teams" xmlns:map="using:RustPlusDesk.Avalonia.Features.Map"
              xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons" xmlns:chat="using:RustPlusDesk.Avalonia.Features.Chat"
+             xmlns:activity="using:RustPlusDesk.Avalonia.Features.Activity"
              x:Class="RustPlusDesk.Avalonia.Shell.MapWorkspace" x:DataType="vm:ServersViewModel">
-  <Grid>
+  <Grid x:Name="WorkspaceGrid">
     <Grid.RowDefinitions>
       <RowDefinition Height="*" MinHeight="190" />
       <RowDefinition Height="4" />
-      <RowDefinition Height="180" MinHeight="90" MaxHeight="400" />
+      <RowDefinition Height="200" MinHeight="90" MaxHeight="420" />
     </Grid.RowDefinitions>
     <Grid RowDefinitions="Auto,*">
       <Border Classes="toolbar">
@@ -108,22 +109,7 @@
         </TabItem>
         <TabItem FontSize="14" AutomationProperties.Name="Activity">
           <TabItem.Header><StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Pulse24" FontSize="16" /><TextBlock Text="Activity" /></StackPanel></TabItem.Header>
-        <ScrollViewer HorizontalScrollBarVisibility="Disabled" Margin="0,6,0,0">
-          <StackPanel Spacing="6">
-            <TextBlock Text="{Binding Listener.Status}" Classes="muted" TextWrapping="Wrap" />
-            <TextBlock Text="{Binding Listener.HealthMessage}" Classes="muted" TextWrapping="Wrap" IsVisible="{Binding HasListener}" />
-            <ItemsControl ItemsSource="{Binding Listener.Notifications}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="account:CompanionUpdate">
-                  <TextBlock TextWrapping="Wrap" Margin="0,2">
-                    <Run Text="{Binding OccurredAt.LocalDateTime, StringFormat='[{0:T}] '}" />
-                    <Run Text="{Binding Title}" /><Run Text=" · " /><Run Text="{Binding Message}" />
-                  </TextBlock>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </StackPanel>
-        </ScrollViewer>
+          <activity:ActivityLogView DataContext="{Binding Activity}" Margin="0,6,0,0" />
         </TabItem>
       </TabControl>
     </Border>

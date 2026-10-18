@@ -400,6 +400,61 @@ public sealed class ShellTests
         }, CancellationToken.None);
     }
 
+    [TestMethod]
+    public async Task ActivityLog_RecordsConnectionAndToolEvents_FiltersAndExpandsAtMinimumSize()
+    {
+        await UiTestSession.Current.Dispatch(async () =>
+        {
+            var connectionFactory = new PreviewSessionFactory();
+            var model = new ServersViewModel(new PreviewCatalog(), new UnusedPicker(), "profiles.json", connectionFactory);
+            var window = new MainWindow { DataContext = model, Width = 1000, Height = 700, RequestedThemeVariant = ThemeVariant.Dark };
+            Task? connected = null;
+            try
+            {
+                window.Show();
+                await model.RefreshCommand.ExecuteAsync(null);
+                connected = model.Connection.ConnectCommand.ExecuteAsync(null);
+                await CompanionListenerViewModelTests.Eventually(() => model.Connection.IsConnected);
+                Assert.IsTrue(model.Activity.Lines.Any(line => line.EndsWith("[connection] EU Vanilla: Connected", StringComparison.Ordinal)));
+                model.ToolMessage = "Sync failed: token=12345 rejected";
+                StringAssert.EndsWith(model.Activity.Lines[^1], "[tools] Sync failed: token=*** rejected");
+                var tab = window.GetVisualDescendants().OfType<TabItem>().Single(item => global::Avalonia.Automation.AutomationProperties.GetName(item) == "Activity");
+                tab.IsSelected = true;
+                window.UpdateLayout();
+                var log = window.GetVisualDescendants().OfType<TextBox>().Single(box => global::Avalonia.Automation.AutomationProperties.GetName(box) == "Activity log");
+                Assert.IsTrue(log.IsEffectivelyVisible);
+                StringAssert.Contains(log.Text, "[connection] EU Vanilla: Connected");
+                model.Activity.Filter = "tools";
+                Assert.AreEqual(1, log.Text!.Split(Environment.NewLine).Length);
+
+                var map = window.GetVisualDescendants().OfType<MapWorkspace>().Single();
+                var panel = map.FindControl<Border>("ActivityPanel")!;
+                model.Activity.ToggleExpandCommand.Execute(null);
+                using (var frame = window.CaptureRenderedFrame())
+                {
+                    Assert.IsNotNull(frame);
+                    frame.Save(Path.Combine(AppContext.BaseDirectory, "ui-activity-expanded.png"), PngBitmapEncoderOptions.Default);
+                }
+                Assert.AreEqual(420, panel.Bounds.Height, 0.5);
+                Assert.AreEqual("Collapse", model.Activity.ExpandCaption);
+                var surface = map.FindControl<Border>("ActivityPanel")!.TranslatePoint(default, window)!.Value;
+                Assert.IsTrue(surface.Y + panel.Bounds.Height <= window.ClientSize.Height, "The expanded panel stays inside the minimum window.");
+                foreach (var button in window.GetVisualDescendants().OfType<Button>().Where(b => b.Command is not null && b.IsEffectivelyVisible))
+                {
+                    var origin = button.TranslatePoint(default, window)!.Value;
+                    Assert.IsTrue(origin.Y >= 0 && origin.Y + button.Bounds.Height <= window.ClientSize.Height);
+                }
+                model.Activity.ToggleExpandCommand.Execute(null);
+                using (var frame = window.CaptureRenderedFrame()) Assert.IsNotNull(frame);
+                Assert.AreEqual(200, panel.Bounds.Height, 0.5);
+                model.SelectedServer = model.Servers[1];
+                await connected;
+            }
+            finally { await model.ShutdownAsync(); window.Close(); }
+            return true;
+        }, CancellationToken.None);
+    }
+
     private sealed class PreviewCatalog : IServerCatalog
     {
         public Task<IReadOnlyList<ServerSummary>> LoadAsync(string path, CancellationToken cancellationToken = default)

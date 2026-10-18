@@ -1,0 +1,32 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RustPlusDesk.Avalonia.Features.Activity"
+             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+             x:Class="RustPlusDesk.Avalonia.Features.Activity.ActivityLogView" x:DataType="vm:ActivityLogViewModel">
+  <Grid RowDefinitions="Auto,*" RowSpacing="6">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+      <TextBox Text="{Binding Filter}" PlaceholderText="Filter logs…" AutomationProperties.Name="Filter logs">
+        <TextBox.InnerRightContent>
+          <Button Classes="icon" Width="26" Height="26" Command="{Binding ClearFilterCommand}" ToolTip.Tip="Clear filter" AutomationProperties.Name="Clear log filter"
+                  IsVisible="{Binding Filter, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"><icons:Icon Symbol="Dismiss24" FontSize="14" /></Button>
+        </TextBox.InnerRightContent>
+      </TextBox>
+      <Button Grid.Column="1" Classes="subtle" Command="{Binding ToggleExpandCommand}" AutomationProperties.Name="Expand or collapse the log panel">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <icons:Icon Symbol="ArrowMaximizeVertical24" IsVisible="{Binding !IsExpanded}" />
+          <icons:Icon Symbol="ArrowMinimizeVertical24" IsVisible="{Binding IsExpanded}" />
+          <TextBlock Text="{Binding ExpandCaption}" VerticalAlignment="Center" />
+        </StackPanel>
+      </Button>
+    </Grid>
+    <Grid Grid.Row="1">
+      <TextBlock Text="Connection, pairing and tool events appear here." Classes="muted" IsVisible="{Binding IsEmpty}"
+                 HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" />
+      <TextBlock Text="No log lines match the filter." Classes="muted" IsVisible="{Binding HasNoMatches}"
+                 HorizontalAlignment="Center" VerticalAlignment="Center" />
+      <TextBox x:Name="LogText" Text="{Binding Text, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True"
+               Background="Transparent" BorderThickness="0" FontSize="12"
+               ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Activity log"
+               IsVisible="{Binding !IsEmpty}" />
+    </Grid>
+  </Grid>
+</UserControl>

@@ -35,6 +35,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         if (settings is not null) connection.Map.UseSettings(settings);
         return connection;
     }
+    /// <summary>Diagnostics stream shown in the bottom Activity tab.</summary>
+    public Activity.ActivityLogViewModel Activity { get; } = new();
     public CompanionAccountViewModel? Account { get; private set; }
     public CompanionListenerViewModel? Listener { get; private set; }
     public bool HasListener => Listener is not null;
@@ -117,6 +119,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     /// <summary>A tool workspace replaces the map; the server sidebar stays available.</summary>
     public bool IsToolSelected => WorkspaceIndex != 0;
     [ObservableProperty] private string toolMessage = "";
+    partial void OnToolMessageChanged(string value) => Activity.Append("[tools] " + value);
 
     partial void OnWorkspaceIndexChanged(int value)
     {
@@ -214,7 +217,15 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             Listener = new(companionListener, SourcePath, PairingSavedAsync, pushHealth,
                 (source, ct) => accountService.RenewPushAsync(CompanionAccountViewModel.ConfigPathFor(source), ct));
             Listener.PropertyChanged += (_, args) =>
-            { if (args.PropertyName == nameof(CompanionListenerViewModel.RequiresSignIn)) OnPropertyChanged(nameof(RequiresSignIn)); };
+            {
+                if (args.PropertyName == nameof(CompanionListenerViewModel.RequiresSignIn)) OnPropertyChanged(nameof(RequiresSignIn));
+                else if (args.PropertyName == nameof(CompanionListenerViewModel.Status)) Activity.Append("[listener] " + Listener.Status);
+                else if (args.PropertyName == nameof(CompanionListenerViewModel.HealthMessage)) Activity.Append("[push] " + Listener.HealthMessage);
+            };
+            Listener.Notifications.CollectionChanged += (_, args) =>
+            {
+                foreach (var update in args.NewItems?.OfType<CompanionUpdate>() ?? []) Activity.Append($"[pairing] {update.Title} · {update.Message}");
+            };
             OnPropertyChanged(nameof(Listener));
             OnPropertyChanged(nameof(HasListener));
             OnPropertyChanged(nameof(RequiresSignIn));
@@ -317,7 +328,12 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         if (!observingConnection)
         {
             observingConnection = true;
-            Connection.PropertyChanged += (_, _) => ImportDevicesCommand.NotifyCanExecuteChanged();
+            Connection.PropertyChanged += (_, args) =>
+            {
+                ImportDevicesCommand.NotifyCanExecuteChanged();
+                if (args.PropertyName == nameof(ConnectionViewModel.StatusMessage))
+                    Activity.Append($"[connection] {Connection.ServerName}: {Connection.StatusMessage}");
+            };
         }
         Connection.Select(SourcePath, value);
         ImportDevicesCommand.NotifyCanExecuteChanged();
