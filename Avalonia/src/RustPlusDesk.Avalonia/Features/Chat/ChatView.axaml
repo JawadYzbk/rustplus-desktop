@@ -42,7 +42,8 @@
               <MenuItem Header="Edit templates" Command="{Binding EditTemplatesCommand}" ToolTip.Tip="Customize the chat alert texts">
                 <MenuItem.Icon><icons:Icon Symbol="Edit24" /></MenuItem.Icon>
               </MenuItem>
-              <MenuItem Header="Send alerts to" IsVisible="{Binding HasChannelChoice}" ToolTip.Tip="Which in-game chat receives the alerts.">
+              <MenuItem Header="Send alerts to" IsVisible="{Binding HasChannelChoice}" IsEnabled="{Binding ChannelChoiceEnabled}"
+                        ToolTip.Tip="Which in-game chat receives the alerts. Unavailable while &quot;Discord only&quot; is on.">
                 <MenuItem.Icon><icons:Icon Symbol="Chat24" /></MenuItem.Icon>
                 <MenuItem Header="Team" ToggleType="Radio" GroupName="AlertChannel" IsChecked="{Binding UseTeamChannel, Mode=OneWay}" Command="{Binding UseTeamCommand}" />
                 <MenuItem Header="Clan" ToggleType="Radio" GroupName="AlertChannel" IsChecked="{Binding UseClanChannel, Mode=OneWay}" Command="{Binding UseClanCommand}" />
@@ -103,6 +104,13 @@
                     <Setter Property="Command" Value="{Binding ToggleCommand}" />
                   </ControlTheme>
                 </MenuItem.ItemContainerTheme>
+              </MenuItem>
+              <Separator IsVisible="{Binding HasWebhook}" />
+              <MenuItem Header="Discord webhook" ToggleType="CheckBox" IsChecked="{Binding AnnounceWebhook, Mode=OneWay}" IsVisible="{Binding HasWebhook}"
+                        IsEnabled="{Binding CanToggleWebhook}" Command="{Binding Webhook.ToggleEnabledCommand, FallbackValue={x:Null}}"
+                        ToolTip.Tip="Also post chat alerts to this server's Discord webhook (needs a cloud sign-in)" />
+              <MenuItem Header="Discord webhook settings…" IsVisible="{Binding HasWebhook}" Command="{Binding ConfigureWebhookCommand}">
+                <MenuItem.Icon><icons:Icon Symbol="Settings24" /></MenuItem.Icon>
               </MenuItem>
             </MenuFlyout>
           </Button.Flyout>

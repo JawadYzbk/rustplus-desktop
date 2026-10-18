@@ -261,7 +261,7 @@ public sealed class ShopNoticeTests
                 window.UpdateLayout();
                 var items = flyout.Items.OfType<MenuItem>().ToList();
                 CollectionAssert.AreEqual(new[] { "Select all", "Deselect all", "Edit templates", "Send alerts to", "Events", "Patrol Helicopter", "Chinook (CH47)", "Travelling Vendor", "Smart Alerts", "Players", "Online Status", "Offline Status", "Player AFK",
-                    "Self Death", "Team Death", "Self Respawn", "Team Respawn", "Shops", "New shops", "Suspicious shops", "Trade alerts" },
+                    "Self Death", "Team Death", "Self Respawn", "Team Respawn", "Shops", "New shops", "Suspicious shops", "Trade alerts", "Discord webhook", "Discord webhook settings…" },
                     items.Select(item => (string)item.Header!).ToArray());
                 Assert.IsTrue(items[0].IsEnabled && items[1].IsEnabled, "Select all / Deselect all work whatever the master state.");
                 Assert.IsFalse(items[11].IsChecked == true, "Player flags start off.");

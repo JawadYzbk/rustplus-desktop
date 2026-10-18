@@ -35,12 +35,15 @@ public sealed class PresenceAnnouncer
     {
         if (!(alert.Returned ? alerts.AnnouncePlayerAfkReturn : alerts.AnnouncePlayerAfk)) return;
         string name = StreamerMode.Name(alert.Member.Name, map.AbbreviateNames);
-        _ = DeliverAsync(AfkTracker.Message(alert, name, alerts.AfkAlertMinutes, Templates));
+        string message = AfkTracker.Message(alert, name, alerts.AfkAlertMinutes, Templates);
+        _ = DeliverAsync(message, (alert.Returned ? "🏃 " : "💤 ") + message);
     }
 
     public AlertTemplates Templates { get; set; } = AlertTemplates.Defaults;
     public Action<string>? Log { get; set; }
     public Func<string, Task>? SendTeamChat { get; set; }
+    /// <summary>Sends with a separate Discord text (reference AFK alerts: "💤 …" / "🏃 …"); falls back to <see cref="SendTeamChat"/>.</summary>
+    public Func<string, string, Task>? SendTeamChatWithDiscordText { get; set; }
 
     public void Observe(IReadOnlyList<ServerTeamMember> members)
     {
@@ -67,11 +70,14 @@ public sealed class PresenceAnnouncer
         return x is { } wx && y is { } wy ? MapGrid.Label(map.Geometry?.WorldSize ?? 0, wx, wy) : "unknown";
     }
 
-    private async Task DeliverAsync(string message)
+    private async Task DeliverAsync(string message, string? discordText = null)
     {
         Log?.Invoke("[team] " + message);
-        if (SendTeamChat is not { } send) return;
-        try { await send(message); }
+        try
+        {
+            if (discordText is not null && SendTeamChatWithDiscordText is { } withDiscord) await withDiscord(message, discordText);
+            else if (SendTeamChat is { } send) await send(message);
+        }
         catch (Exception) { Log?.Invoke("[team] The announcement could not be sent to team chat."); }
     }
 }

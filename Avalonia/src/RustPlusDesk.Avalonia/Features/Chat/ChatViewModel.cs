@@ -237,9 +237,16 @@ public sealed partial class ChatViewModel : ObservableObject
     /// Posts an automated alert (shop alerts) to team chat, cut to the in-game limit. Returns false while disconnected.
     /// Pending: the reference's clan-channel choice, automated-chat master switch and Discord forwarding.
     /// </summary>
-    public async Task<bool> SendAutomatedAsync(string text)
+    public async Task<bool> SendAutomatedAsync(string text, string? discordText = null)
     {
-        if (session is not { } target || string.IsNullOrWhiteSpace(text)) return false;
+        if (string.IsNullOrWhiteSpace(text)) return false;
+        // Reference SendTeamChatSafeAsync: the Discord webhook first, then in-game chat unless "Discord only".
+        if (Alerts?.Webhook is { } webhook)
+        {
+            _ = webhook.SendAsync(discordText ?? text);
+            if (webhook.Exclusive) return true;
+        }
+        if (session is not { } target) return false;
         string message = text.Length > ChatLimits.MaxLength ? text[..ChatLimits.MaxLength] : text;
         // Reference SendTeamChatSafeAsync: the profile's alert channel, team or clan, never both.
         await target.SendChatAsync(Alerts?.AlertChannel ?? ChatChannel.Team, message, sessionToken);

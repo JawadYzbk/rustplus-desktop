@@ -13,17 +13,22 @@ public sealed partial class SettingsView : UserControl
         InitializeComponent();
         DataContextChanged += (_, _) =>
         {
-            if (model is not null) model.TemplatesFocusRequested -= ShowTemplates;
+            if (model is not null) { model.TemplatesFocusRequested -= ShowTemplates; model.WebhookFocusRequested -= ShowWebhook; }
             model = DataContext as SettingsViewModel;
-            if (model is not null) model.TemplatesFocusRequested += ShowTemplates;
+            if (model is not null) { model.TemplatesFocusRequested += ShowTemplates; model.WebhookFocusRequested += ShowWebhook; }
         };
     }
 
     /// <summary>Scrolls the templates panel to the top of the page.</summary>
-    private void ShowTemplates()
+    private void ShowTemplates() => ScrollTo(TemplatesPanel);
+
+    /// <summary>Scrolls the Discord webhook card to the top of the page.</summary>
+    private void ShowWebhook() => ScrollTo(WebhookPanel);
+
+    private void ScrollTo(Control panel)
     {
         UpdateLayout();
-        if (TemplatesPanel.TranslatePoint(default, PageScroll.Content as Control ?? PageScroll) is { } top)
+        if (panel.TranslatePoint(default, PageScroll.Content as Control ?? PageScroll) is { } top)
             PageScroll.Offset = new(PageScroll.Offset.X, top.Y);
     }
 }

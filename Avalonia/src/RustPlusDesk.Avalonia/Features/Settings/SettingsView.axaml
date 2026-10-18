@@ -140,6 +140,31 @@
           </StackPanel>
         </StackPanel>
       </Border>
+      <Border Classes="panel" Padding="16" x:Name="WebhookPanel" IsVisible="{Binding HasWebhook}">
+        <StackPanel Spacing="10">
+          <TextBlock Text="DISCORD WEBHOOK (CHAT ALERTS)" Classes="section" />
+          <TextBlock Text="Post this server's chat alerts to a Discord channel too. Paste the channel's webhook URL from Discord (Server Settings > Integrations > Webhooks)."
+                     Classes="muted" FontSize="12" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding Webhook.SignInNote, FallbackValue=''}" Foreground="{DynamicResource ConnectionPending}" FontSize="12" TextWrapping="Wrap"
+                     IsVisible="{Binding !Webhook.IsSignedIn, FallbackValue=False}" />
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+            <TextBox Text="{Binding Webhook.UrlDraft, FallbackValue=''}" PlaceholderText="https://discord.com/api/webhooks/…" AutomationProperties.Name="Discord webhook URL" />
+            <Button Grid.Column="1" Classes="primary" Content="Save" Command="{Binding Webhook.SaveUrlCommand, FallbackValue={x:Null}}" AutomationProperties.Name="Save Discord webhook" />
+            <Button Grid.Column="2" Classes="subtle" Command="{Binding Webhook.ClearUrlCommand, FallbackValue={x:Null}}" ToolTip.Tip="Remove the webhook"
+                    AutomationProperties.Name="Clear Discord webhook"><icons:Icon Symbol="Delete24" FontSize="15" /></Button>
+          </Grid>
+          <TextBlock Text="{Binding Webhook.Status, FallbackValue=''}" Classes="muted" FontSize="12" TextWrapping="Wrap"
+                     IsVisible="{Binding Webhook.Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}, FallbackValue=False}" />
+          <TextBlock Text="Optional pings" FontWeight="SemiBold" />
+          <WrapPanel ItemSpacing="16" LineSpacing="6">
+            <CheckBox Content="@everyone" IsChecked="{Binding Webhook.MentionEveryone, FallbackValue=False}" IsEnabled="{Binding Webhook.HasProfile, FallbackValue=False}" />
+            <CheckBox Content="@here" IsChecked="{Binding Webhook.MentionHere, FallbackValue=False}" IsEnabled="{Binding Webhook.HasProfile, FallbackValue=False}" />
+            <CheckBox Content="Text-to-speech (TTS)" IsChecked="{Binding Webhook.Tts, FallbackValue=False}" IsEnabled="{Binding Webhook.HasProfile, FallbackValue=False}" />
+            <CheckBox Content="Discord only (not in-game)" IsChecked="{Binding Webhook.Exclusive, FallbackValue=False}" IsEnabled="{Binding Webhook.HasProfile, FallbackValue=False}"
+                      ToolTip.Tip="Alerts go only to Discord and are not posted to the in-game team or clan chat." />
+          </WrapPanel>
+        </StackPanel>
+      </Border>
       <Border Classes="panel" Padding="16" x:Name="TemplatesPanel" IsVisible="{Binding HasTemplates}">
         <StackPanel Spacing="10">
           <TextBlock Text="CUSTOMIZE CHAT ALERT TEMPLATES" Classes="section" />

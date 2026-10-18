@@ -73,6 +73,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
     public IReadOnlyList<AlertTemplateRow> TemplateRows { get; private init; } = [];
     public bool HasTemplates => TemplateRows.Count > 0;
+    /// <summary>The selected profile's Discord webhook for chat alerts.</summary>
+    public RustPlusDesk.Avalonia.Features.Alerts.DiscordWebhookViewModel? Webhook { get; init; }
+    public bool HasWebhook => Webhook is not null;
+    /// <summary>Raised to scroll the page to the Discord webhook card.</summary>
+    public event Action? WebhookFocusRequested;
+    public void FocusWebhook() => WebhookFocusRequested?.Invoke();
     /// <summary>Raised to scroll the page to the templates (reference OpenSettingsCategory("alert-templates")).</summary>
     public event Action? TemplatesFocusRequested;
     public void FocusTemplates() => TemplatesFocusRequested?.Invoke();

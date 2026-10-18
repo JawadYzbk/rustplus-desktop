@@ -67,6 +67,37 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     public bool UseTeamChannel => !useClanChannel;
     public ChatChannel AlertChannel => useClanChannel ? ChatChannel.Clan : ChatChannel.Team;
     public bool HasChannelChoice => ProfileFlags is not null;
+    /// <summary>Reference: the Team/Clan picker is unavailable while the webhook is "Discord only".</summary>
+    public bool ChannelChoiceEnabled => Webhook?.Exclusive != true;
+
+    private DiscordWebhookViewModel? webhook;
+    /// <summary>The selected profile's Discord webhook (reference "DiscordWebhook" alert, counted like a flag).</summary>
+    public DiscordWebhookViewModel? Webhook
+    {
+        get => webhook;
+        set
+        {
+            if (webhook is not null) { webhook.EnabledChanged -= AfterFlagChanged; webhook.PropertyChanged -= WebhookChanged; }
+            webhook = value;
+            if (webhook is not null) { webhook.EnabledChanged += AfterFlagChanged; webhook.PropertyChanged += WebhookChanged; }
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasWebhook));
+            Refresh();
+        }
+    }
+    public bool HasWebhook => webhook is not null;
+    public bool AnnounceWebhook => master && webhook?.Enabled == true;
+    /// <summary>Reference: the webhook item needs the master and a cloud sign-in.</summary>
+    public bool CanToggleWebhook => master && webhook?.IsSignedIn == true;
+    /// <summary>Opens Settings at the Discord webhook card.</summary>
+    public Action? OpenWebhookSettings { get; set; }
+    [RelayCommand] private void ConfigureWebhook() => OpenWebhookSettings?.Invoke();
+
+    private void WebhookChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(DiscordWebhookViewModel.Exclusive)) OnPropertyChanged(nameof(ChannelChoiceEnabled));
+        if (e.PropertyName is nameof(DiscordWebhookViewModel.IsSignedIn)) OnPropertyChanged(nameof(CanToggleWebhook));
+    }
 
     /// <summary>Reads the selected profile's alert channel (server selection).</summary>
     public async Task LoadChannelAsync()
@@ -133,7 +164,7 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     public PresenceAlertFlags PresenceFlags => new(AnnouncePlayerOnline, AnnouncePlayerOffline, AnnouncePlayerDeathSelf, AnnouncePlayerDeathTeam,
         AnnouncePlayerRespawnSelf, AnnouncePlayerRespawnTeam);
 
-    public int EnabledCount => settings is null ? Local() : ChatAlertSettings.EnabledCount(settings);
+    public int EnabledCount => (settings is null ? Local() : ChatAlertSettings.EnabledCount(settings)) + (webhook?.Enabled == true ? 1 : 0);
     public bool ShowCountBadge => master && EnabledCount > 0;
     public bool ShowEmptyDot => master && EnabledCount == 0;
     public string CountText => EnabledCount > 99 ? "99+" : EnabledCount.ToString(CultureInfo.InvariantCulture);
@@ -198,6 +229,7 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     private void SelectAll()
     {
         SetAll(true);
+        _ = webhook?.SetEnabledAsync(true);
         SetMaster(true);
     }
 
@@ -206,6 +238,7 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     private void DeselectAll()
     {
         SetAll(false);
+        _ = webhook?.SetEnabledAsync(false);
         AfterFlagChanged();
     }
 
@@ -238,7 +271,7 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
 
     private void AfterFlagChanged()
     {
-        if (master && (settings is null ? Local() == 0 : ChatAlertSettings.AllOff(settings))) SetMaster(false);
+        if (master && EnabledCount == 0) SetMaster(false);
         else Refresh();
     }
 
@@ -259,7 +292,7 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     {
         foreach (string name in new[] { nameof(IsMasterOn), nameof(AnnounceNewShops), nameof(AnnounceSuspiciousShops), nameof(AnnounceHeli), nameof(AnnounceChinook),
                      nameof(AnnounceVendor), nameof(AnnouncePlayerOnline), nameof(AnnouncePlayerOffline), nameof(AnnouncePlayerAfk), nameof(AnnouncePlayerAfkReturn), nameof(AnyPlayerAfk), nameof(AnnouncePlayerDeathSelf),
-                     nameof(AnnouncePlayerDeathTeam), nameof(AnnouncePlayerRespawnSelf), nameof(AnnouncePlayerRespawnTeam), nameof(AnnounceSmartAlerts), nameof(EnabledCount),
+                     nameof(AnnouncePlayerDeathTeam), nameof(AnnouncePlayerRespawnSelf), nameof(AnnouncePlayerRespawnTeam), nameof(AnnounceSmartAlerts), nameof(AnnounceWebhook), nameof(CanToggleWebhook), nameof(EnabledCount),
                      nameof(ShowCountBadge), nameof(ShowEmptyDot), nameof(CountText), nameof(MasterTip) })
             OnPropertyChanged(name);
     }

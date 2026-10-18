@@ -32,7 +32,9 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Core.Deaths.IDeathLog? deathLog = null, RustPlusDesk.Core.Alerts.IAlertTemplateStore? alertTemplateStore = null,
     RustPlusDesk.Core.Map.IMapCache? mapCache = null, RustPlusDesk.Core.Map.ICustomMapUrlStore? customMapUrls = null,
     RustPlusDesk.Core.Map.ICustomMapDownloader? customMapDownloader = null, RustPlusDesk.Core.Deaths.IDeathMarkerStore? deathMarkerStore = null,
-    IServerDeleter? serverDeleter = null, ICloudServerForgetter? cloudForgetter = null, IProfileFlagStore? profileFlags = null)
+    IServerDeleter? serverDeleter = null, ICloudServerForgetter? cloudForgetter = null, IProfileFlagStore? profileFlags = null,
+    RustPlusDesk.Core.Alerts.IDiscordWebhookStore? webhookStore = null, RustPlusDesk.Core.Alerts.IDiscordWebhookSender? webhookSender = null,
+    RustPlusDesk.Core.Alerts.ICloudSignInState? cloudSignIn = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -74,9 +76,16 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             OpenTemplates = OpenAlertTemplates,
             ProfileFlags = profileFlags,
             Profile = () => SelectedServer is { } server ? (SourcePath, server.ProfileKey) : null,
-            Log = Activity.Append
+            Log = Activity.Append,
+            OpenWebhookSettings = OpenWebhookSettings
         };
         _ = alerts.LoadChannelAsync();
+        if (webhookStore is not null && webhookSender is not null)
+        {
+            alerts.Webhook = new(webhookStore, webhookSender, cloudSignIn,
+                () => SelectedServer is { } server ? (SourcePath, server.ProfileKey, server.Name) : null) { Log = Activity.Append };
+            _ = alerts.Webhook.LoadAsync();
+        }
         Connection.Chat.Alerts = alerts;
         ShopNotices = new(new RustPlusDesk.Core.Map.ShopNoticeTracker(RustPlusDesk.Infrastructure.Items.BundledItemCatalog.GetName) { Templates = AlertTemplates },
             Connection.Map, alerts)
@@ -95,7 +104,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         {
             Templates = AlertTemplates,
             Log = Activity.Append,
-            SendTeamChat = text => Connection.Chat.SendAutomatedAsync(text)
+            SendTeamChat = text => Connection.Chat.SendAutomatedAsync(text),
+            SendTeamChatWithDiscordText = (text, discord) => Connection.Chat.SendAutomatedAsync(text, discord)
         };
         return alerts;
     }
@@ -277,6 +287,13 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         WorkspaceIndex = 5;
     }
 
+    /// <summary>Opens Settings at the Discord webhook card.</summary>
+    private void OpenWebhookSettings()
+    {
+        OpenSettings();
+        SettingsPage.FocusWebhook();
+    }
+
     /// <summary>Reference OpenSettingsCategory("alert-templates").</summary>
     private void OpenAlertTemplates()
     {
@@ -291,6 +308,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             Map = Connection.Map,
             Activity = Activity,
             Templates = AlertTemplates,
+            Webhook = ChatAlerts.Webhook,
             CustomMap = customMapUrls is null ? null : new(customMapUrls, mapCache,
                 () => SelectedServer is { } server ? (SourcePath, server) : null, ReloadAfterCustomMapChangeAsync)
         };
@@ -725,6 +743,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         _ = settingsPage?.CustomMap?.LoadAsync();
         _ = deathPins?.ReloadAsync();
         _ = chatAlerts?.LoadChannelAsync();
+        _ = chatAlerts?.Webhook?.LoadAsync();
         ImportDevicesCommand.NotifyCanExecuteChanged();
     }
     [ObservableProperty]
