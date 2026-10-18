@@ -30,6 +30,8 @@ public sealed partial class TeamViewModel : ObservableObject
     partial void OnAbbreviateChanged(bool value) => Members = Members.Select(row => row with { Abbreviate = value }).ToArray();
     public string Caption => Members.Count == 0 ? "Team" : $"Team ({Members.Count})";
     [RelayCommand] private void Toggle() => IsExpanded = !IsExpanded;
+    /// <summary>Raised for every successful team read (reference LoadTeamAsync feeds the death tracker).</summary>
+    public event Action<ServerTeamSnapshot>? SnapshotRead;
     public void Reset() { Members = []; Message = "Connect to a server to see its team."; }
 
     public async Task RunAsync(IServerTeamSession session, CancellationToken ct)
@@ -42,8 +44,10 @@ public sealed partial class TeamViewModel : ObservableObject
             {
                 try
                 {
-                    var current = await session.ReadTeamAsync(ct).WaitAsync(ct);
+                    var snapshot = await session.ReadTeamSnapshotAsync(ct).WaitAsync(ct);
                     ct.ThrowIfCancellationRequested();
+                    var current = snapshot.Members;
+                    SnapshotRead?.Invoke(snapshot);
                     if (!Members.Select(row => row.Member).SequenceEqual(current)) Members = current.Select(member => new TeamMemberRow(member, Abbreviate)).ToArray();
                     Message = current.Count == 0 ? "No team members reported by this server." : "Current server team";
                 }

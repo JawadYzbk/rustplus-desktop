@@ -27,7 +27,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Core.Settings.IAppSettingsStore? appSettings = null, RustPlusDesk.Core.Map.IShopAlertStore? shopAlertStore = null,
     RustPlusDesk.Core.Map.IAlertSound? alertSound = null, RustPlusDesk.Core.Console.IConsoleCommandStore? consoleStore = null,
     RustPlusDesk.Core.Notifications.INotificationHistoryStore? notificationStore = null,
-    RustPlusDesk.Core.Hotkeys.IHotkeyStore? hotkeyStore = null, RustPlusDesk.Core.Settings.ILaunchAtLogin? launchAtLogin = null)
+    RustPlusDesk.Core.Hotkeys.IHotkeyStore? hotkeyStore = null, RustPlusDesk.Core.Settings.ILaunchAtLogin? launchAtLogin = null,
+    RustPlusDesk.Core.Deaths.IDeathLog? deathLog = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -515,6 +516,10 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     }
 
     private bool observingStreamerMode;
+    private Teams.DeathRecorder? deathRecorder;
+
+    /// <summary>Reference death tracking: team snapshots of the selected server feed the local death log.</summary>
+    public Teams.DeathRecorder? Deaths => deathRecorder;
 
     /// <summary>
     /// Reference BtnAbbreviateNames_Toggled / RefreshStreamerModeUI: one switch (map toolbar or Settings) abbreviates team
@@ -524,6 +529,12 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     {
         if (observingStreamerMode) return;
         observingStreamerMode = true;
+        if (deathLog is not null)
+        {
+            deathRecorder = new(deathLog, () => SelectedServer is { } server ? Teams.DeathRecorder.KeyFor(server.Host, server.Port) : null,
+                () => Connection.Map.Monuments, () => Connection.Map.Geometry?.WorldSize ?? 0);
+            Connection.Team.SnapshotRead += snapshot => deathRecorder.Observe(snapshot);
+        }
         ApplyStreamerMode(Connection.Map.AbbreviateNames, starting: true);
         Connection.Map.PropertyChanged += (_, args) =>
         {

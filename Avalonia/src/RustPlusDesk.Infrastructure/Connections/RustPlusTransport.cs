@@ -150,7 +150,10 @@ internal sealed class RustPlusTransport : IRustTransport, IServerTeamSession, IS
         finally { api.Dispose(); }
     }
 
-    public async Task<IReadOnlyList<ServerTeamMember>> ReadTeamAsync(CancellationToken ct)
+    public async Task<IReadOnlyList<ServerTeamMember>> ReadTeamAsync(CancellationToken ct) => (await ReadTeamSnapshotAsync(ct).ConfigureAwait(false)).Members;
+
+    /// <summary>Reference GetTeamInfoAsync: members with position and spawn/death times, plus member and leader map notes.</summary>
+    public async Task<ServerTeamSnapshot> ReadTeamSnapshotAsync(CancellationToken ct)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(TimeSpan.FromSeconds(6));
@@ -160,11 +163,29 @@ internal sealed class RustPlusTransport : IRustTransport, IServerTeamSession, IS
             var response = await api.GetTeamInfoAsync(timeout.Token).WaitAsync(timeout.Token).ConfigureAwait(false);
             if (!response.IsSuccess || response.Data is null)
                 throw new ServerConnectionException(ConnectionFailureClassifier.Response(response.Error?.Message));
-            return (response.Data.Members ?? []).Select(member => new ServerTeamMember(
-                member.SteamId.ToString(System.Globalization.CultureInfo.InvariantCulture), member.Name ?? "", member.IsOnline, member.IsAlive)).ToArray();
+            var members = (response.Data.Members ?? []).Select(member => new ServerTeamMember(
+                member.SteamId.ToString(System.Globalization.CultureInfo.InvariantCulture), member.Name ?? "", member.IsOnline, member.IsAlive)
+            {
+                X = member.X,
+                Y = member.Y,
+                SpawnTime = UnixSeconds(member.LastSpawnTime),
+                DeathTime = UnixSeconds(member.LastDeathTime)
+            }).ToArray();
+            return new ServerTeamSnapshot(members, Notes(response.Data.Notes), Notes(response.Data.LeaderNotes));
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception ex) { throw new ServerConnectionException(ConnectionFailureClassifier.Exception(ex, companionSocket)); }
+    }
+
+    private static TeamMapNote[] Notes(IEnumerable<RustPlusApi.Data.Notes.PlayerNote>? notes) =>
+        (notes ?? []).Select(note => new TeamMapNote((int)note.Icon, note.X, note.Y, note.Text ?? "")).ToArray();
+
+    /// <summary>Rust+ sends unix seconds where 0 means "not set"; the SDK turns them into DateTime values.</summary>
+    internal static long? UnixSeconds(DateTime value)
+    {
+        var utc = value.Kind == DateTimeKind.Local ? value.ToUniversalTime() : DateTime.SpecifyKind(value, DateTimeKind.Utc);
+        long seconds = new DateTimeOffset(utc).ToUnixTimeSeconds();
+        return seconds > 0 ? seconds : null;
     }
 
     /// <summary>Map image and monuments, with the world size from server info (the reference's GetMapWithMonumentsAsync).</summary>
