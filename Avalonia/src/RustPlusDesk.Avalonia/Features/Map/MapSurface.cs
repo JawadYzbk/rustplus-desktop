@@ -5,6 +5,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using RustPlusDesk.Core.Map;
+using RustPlusDesk.Core.Settings;
 
 namespace RustPlusDesk.Avalonia.Features.Map;
 
@@ -27,6 +28,8 @@ public sealed class MapSurface : Control
     public static readonly StyledProperty<double> MonumentOpacityProperty = AvaloniaProperty.Register<MapSurface, double>(nameof(MonumentOpacity), 1.0);
     public static readonly StyledProperty<double> GridOpacityProperty = AvaloniaProperty.Register<MapSurface, double>(nameof(GridOpacity), 0.7);
     public static readonly StyledProperty<bool> MonumentNamesProperty = AvaloniaProperty.Register<MapSurface, bool>(nameof(MonumentNames));
+    public static readonly StyledProperty<bool> AbbreviateNamesProperty = AvaloniaProperty.Register<MapSurface, bool>(nameof(AbbreviateNames));
+    public static readonly StyledProperty<double> PlayerScaleProperty = AvaloniaProperty.Register<MapSurface, double>(nameof(PlayerScale), 1.0);
     public static readonly StyledProperty<int> ResetRequestProperty = AvaloniaProperty.Register<MapSurface, int>(nameof(ResetRequest));
     public static readonly StyledProperty<MapFocus?> FocusRequestProperty = AvaloniaProperty.Register<MapSurface, MapFocus?>(nameof(FocusRequest));
 
@@ -47,6 +50,10 @@ public sealed class MapSurface : Control
     public IReadOnlyList<MapMarker>? Markers { get => GetValue(MarkersProperty); set => SetValue(MarkersProperty, value); }
     public bool ShowPlayers { get => GetValue(ShowPlayersProperty); set => SetValue(ShowPlayersProperty, value); }
     public bool ShowShops { get => GetValue(ShowShopsProperty); set => SetValue(ShowShopsProperty, value); }
+    /// <summary>Streamer mode: player labels and hover names keep only their first character.</summary>
+    public bool AbbreviateNames { get => GetValue(AbbreviateNamesProperty); set => SetValue(AbbreviateNamesProperty, value); }
+    /// <summary>Player marker size factor (reference MapPlayerIconScale).</summary>
+    public double PlayerScale { get => GetValue(PlayerScaleProperty); set => SetValue(PlayerScaleProperty, value); }
 
     private const double ZoomStep = 1.25, MaxZoom = 16, MonumentIconSize = 28;
     private static readonly Dictionary<string, Bitmap?> IconCache = new(StringComparer.Ordinal);
@@ -67,7 +74,8 @@ public sealed class MapSurface : Control
     static MapSurface()
     {
         AffectsRender<MapSurface>(ImageProperty, GeometryProperty, MonumentsProperty, ShowGridProperty, ShowMonumentsProperty,
-            MarkersProperty, ShowPlayersProperty, ShowShopsProperty, MonumentScaleProperty, MonumentOpacityProperty, GridOpacityProperty, MonumentNamesProperty);
+            MarkersProperty, ShowPlayersProperty, ShowShopsProperty, MonumentScaleProperty, MonumentOpacityProperty, GridOpacityProperty, MonumentNamesProperty,
+            AbbreviateNamesProperty, PlayerScaleProperty);
         ClipToBoundsProperty.OverrideDefaultValue<MapSurface>(true);
         FocusableProperty.OverrideDefaultValue<MapSurface>(true);
     }
@@ -273,11 +281,13 @@ public sealed class MapSurface : Control
         {
             var (ix, iy) = geometry.WorldToImage(player.X, player.Y);
             var centre = ImageToScreen(ix, iy);
-            context.DrawEllipse(Brushes.LimeGreen, new Pen(Brushes.Black, 2), centre, 7, 7);
+            double radius = 7 * PlayerScale;
+            context.DrawEllipse(Brushes.LimeGreen, new Pen(Brushes.Black, 2), centre, radius, radius);
             if (!string.IsNullOrWhiteSpace(player.Name))
             {
-                var text = new FormattedText(player.Name, System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight, LabelFace, 12, Brushes.LimeGreen);
-                context.DrawText(text, new Point(centre.X + 11, centre.Y - text.Height / 2));
+                var text = new FormattedText(StreamerMode.Name(player.Name, AbbreviateNames), System.Globalization.CultureInfo.CurrentCulture,
+                    FlowDirection.LeftToRight, LabelFace, 12 * PlayerScale, Brushes.LimeGreen);
+                context.DrawText(text, new Point(centre.X + radius + 4, centre.Y - text.Height / 2));
             }
         }
     }
@@ -296,11 +306,11 @@ public sealed class MapSurface : Control
         return best;
     }
 
-    internal static string Describe(MapMarker marker, double worldSize)
+    internal static string Describe(MapMarker marker, double worldSize, bool abbreviateNames = false)
     {
         string kind = marker.Kind switch
         {
-            MapMarkerKind.Player => string.IsNullOrWhiteSpace(marker.Name) ? "Player" : marker.Name!,
+            MapMarkerKind.Player => string.IsNullOrWhiteSpace(marker.Name) ? "Player" : StreamerMode.Name(marker.Name!, abbreviateNames),
             MapMarkerKind.VendingMachine => (string.IsNullOrWhiteSpace(marker.Name) ? "Vending machine" : marker.Name!)
                 + (marker.IsOutOfStock ? " · out of stock" : $" · {marker.Orders.Count} offer{(marker.Orders.Count == 1 ? "" : "s")}"),
             MapMarkerKind.CargoShip => "Cargo ship",
@@ -318,7 +328,7 @@ public sealed class MapSurface : Control
     {
         string? label = null;
         double x = 0, y = 0;
-        if (hoveredMarker is { } marker) { label = Describe(marker, geometry.WorldSize); (x, y) = geometry.WorldToImage(marker.X, marker.Y); }
+        if (hoveredMarker is { } marker) { label = Describe(marker, geometry.WorldSize, AbbreviateNames); (x, y) = geometry.WorldToImage(marker.X, marker.Y); }
         else if (hovered is { } focus) { label = $"{focus.DisplayName} · {MapGrid.Label(geometry.WorldSize, focus.X, focus.Y)}"; (x, y) = geometry.WorldToImage(focus.X, focus.Y); }
         if (label is null) return;
         var at = ImageToScreen(x, y);

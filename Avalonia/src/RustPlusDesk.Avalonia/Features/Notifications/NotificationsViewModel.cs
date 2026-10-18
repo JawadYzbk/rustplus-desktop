@@ -9,13 +9,14 @@ using RustPlusDesk.Core.Settings;
 namespace RustPlusDesk.Avalonia.Features.Notifications;
 
 /// <summary>One inbox row as shown: type icon, unread dot, title, message, server tag and time.</summary>
-public sealed record NotificationRow(InboxNotification Item)
+public sealed record NotificationRow(InboxNotification Item, bool HideServer = false)
 {
     public string Title => Item.Title;
     public string Message => Item.Message;
     public bool IsUnread => !Item.IsRead;
     public bool HasServer => Item.ServerKey is not null;
-    public string ServerTag => Item.ServerName is { Length: > 0 } name ? name : Item.ServerKey ?? "";
+    /// <summary>Server name, else "host:port"; streamer mode shows the reference "SERVER HIDDEN" instead.</summary>
+    public string ServerTag => HideServer ? StreamerMode.HiddenServer : Item.ServerName is { Length: > 0 } name ? name : Item.ServerKey ?? "";
     public string Time => Item.Timestamp.ToString("g", CultureInfo.CurrentCulture);
     /// <summary>Symbol per notification type.</summary>
     public FluentSymbol Symbol => Item.Type switch
@@ -58,12 +59,15 @@ public sealed partial class NotificationsViewModel : ObservableObject
     [ObservableProperty] private bool isConfirmingClear;
     [ObservableProperty] private NotificationRow? muteCandidate;
     [ObservableProperty] private string notice = "";
+    /// <summary>Reference IsStreamerMode: server tags read "SERVER HIDDEN" and search ignores server names.</summary>
+    [ObservableProperty] private bool isStreamerMode;
+    partial void OnIsStreamerModeChanged(bool value) => Refresh();
 
     public bool HasRows => Rows.Count > 0;
     public bool HasUnread => UnreadCount > 0;
     public string UnreadText => UnreadCount > 99 ? "99+" : UnreadCount.ToString(CultureInfo.InvariantCulture);
     public bool IsMuteConfirmOpen => MuteCandidate is not null;
-    public string MuteQuestion => MuteCandidate is { } row ? $"Mute all future Notification Center alerts from {row.ServerTag}? You can unmute it in Settings > Alerts." : "";
+    public string MuteQuestion => MuteCandidate is { } row ? $"Mute all future Notification Center alerts from {(row.HideServer ? "this server" : row.ServerTag)}? You can unmute it in Settings > Alerts." : "";
     public bool ShowAll => Filter == NotificationFilter.All;
     public bool ShowAlarms => Filter == NotificationFilter.Alarms;
     public bool ShowDeaths => Filter == NotificationFilter.Deaths;
@@ -171,7 +175,7 @@ public sealed partial class NotificationsViewModel : ObservableObject
                 settings.Set(SettingKeys.MutedNotificationServers, muted);
             }
         }
-        Notice = $"Notifications from {row.ServerTag} are now muted.";
+        Notice = $"Notifications from {(row.HideServer ? "this server" : row.ServerTag)} are now muted.";
     }
 
     /// <summary>Reference server tag: select that paired server and connect.</summary>
@@ -190,7 +194,7 @@ public sealed partial class NotificationsViewModel : ObservableObject
 
     private void Refresh()
     {
-        Rows = inbox.Filter(SearchText, Filter).Select(item => new NotificationRow(item)).ToList();
+        Rows = inbox.Filter(SearchText, Filter, !IsStreamerMode).Select(item => new NotificationRow(item, IsStreamerMode)).ToList();
         UnreadCount = inbox.UnreadCount;
     }
 

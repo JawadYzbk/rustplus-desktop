@@ -63,6 +63,11 @@ public sealed partial class MapViewModel : ObservableObject
     [ObservableProperty] private double monumentOpacity = 1.0;
     [ObservableProperty] private double gridOpacity = 0.7;
     [ObservableProperty] private bool autoLoadShops = true;
+    /// <summary>Reference streamer mode (MapAbbreviateNames): player names and Steam IDs are abbreviated, servers hidden.</summary>
+    [ObservableProperty] private bool abbreviateNames;
+    /// <summary>Reference player icon size (MapPlayerIconScale), 50–150 %.</summary>
+    [ObservableProperty] private double playerIconScale = 1.0;
+    public const double MinPlayerIconScale = 0.5, MaxPlayerIconScale = 1.5;
     [ObservableProperty] private bool isLayersOpen;
     public IReadOnlyList<string> MonumentStyles { get; } = ["Icons", "Names"];
     public bool ShowMonumentNames => MonumentDisplayMode == 1;
@@ -77,6 +82,8 @@ public sealed partial class MapViewModel : ObservableObject
         MonumentOpacity = Math.Clamp(store.Get(SettingKeys.MapMonumentOpacity, 1.0), 0.1, 1);
         GridOpacity = Math.Clamp(store.Get(SettingKeys.MapGridOpacity, 0.7), 0.1, 1);
         AutoLoadShops = store.Get(SettingKeys.AutoLoadShops, true);
+        AbbreviateNames = store.Get(SettingKeys.MapAbbreviateNames, false);
+        PlayerIconScale = store.Get(SettingKeys.MapPlayerIconScale, 1.0);
         ShowShops = AutoLoadShops;
         settings = store;
     }
@@ -86,6 +93,13 @@ public sealed partial class MapViewModel : ObservableObject
     partial void OnMonumentOpacityChanged(double value) => settings?.Set(SettingKeys.MapMonumentOpacity, value);
     partial void OnGridOpacityChanged(double value) => settings?.Set(SettingKeys.MapGridOpacity, value);
     partial void OnAutoLoadShopsChanged(bool value) => settings?.Set(SettingKeys.AutoLoadShops, value);
+    partial void OnAbbreviateNamesChanged(bool value) => settings?.Set(SettingKeys.MapAbbreviateNames, value);
+    partial void OnPlayerIconScaleChanged(double value)
+    {
+        double clamped = double.IsFinite(value) ? Math.Clamp(value, MinPlayerIconScale, MaxPlayerIconScale) : 1.0;
+        if (clamped != value) { PlayerIconScale = clamped; return; }
+        settings?.Set(SettingKeys.MapPlayerIconScale, value);
+    }
 
     public void Reset()
     {

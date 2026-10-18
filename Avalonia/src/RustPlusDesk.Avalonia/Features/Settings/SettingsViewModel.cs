@@ -50,6 +50,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     public string AutoStartNote => CanAutoStart
         ? "Opens Rust+ Desktop when you sign in to this computer."
         : launchAtLogin?.UnsupportedReason ?? "Launching at sign-in is not available in this build.";
+    /// <summary>The live map settings; streamer mode is its MapAbbreviateNames switch (also on the map toolbar).</summary>
+    public global::RustPlusDesk.Avalonia.Features.Map.MapViewModel? Map { get; init; }
+    public bool HasMap => Map is not null;
     [ObservableProperty] private bool toastsEnabled;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(RetentionText))]

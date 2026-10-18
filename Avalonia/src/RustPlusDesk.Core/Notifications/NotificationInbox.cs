@@ -101,13 +101,14 @@ public sealed class NotificationInbox
     public void Clear() => items.Clear();
 
     /// <summary>Reference view: text in title, message or server name, then the Alarms / Deaths category, newest first by time.</summary>
-    public IEnumerable<InboxNotification> Filter(string? search, NotificationFilter filter)
+    /// <param name="matchServer">False in streamer mode: the reference search then ignores server names.</param>
+    public IEnumerable<InboxNotification> Filter(string? search, NotificationFilter filter, bool matchServer = true)
     {
         string text = (search ?? "").Trim();
         return items.Where(item => text.Length == 0
                 || item.Title.Contains(text, StringComparison.OrdinalIgnoreCase)
                 || item.Message.Contains(text, StringComparison.OrdinalIgnoreCase)
-                || item.ServerName?.Contains(text, StringComparison.OrdinalIgnoreCase) == true)
+                || (matchServer && item.ServerName?.Contains(text, StringComparison.OrdinalIgnoreCase) == true))
             .Where(item => filter switch
             {
                 NotificationFilter.Alarms => item.Type.Equals("Alarm", StringComparison.OrdinalIgnoreCase),

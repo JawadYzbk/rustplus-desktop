@@ -155,7 +155,7 @@ public sealed class GeneralSettingsTests
     public async Task GeneralSettings_RenderAboveAlerts() => await UiTestSession.Current.Dispatch(async () =>
     {
         var settings = new ShopNoticeTests.MemorySettings();
-        var model = new SettingsViewModel(settings, launchAtLogin: new FakeLogin());
+        var model = new SettingsViewModel(settings, launchAtLogin: new FakeLogin()) { Map = new RustPlusDesk.Avalonia.Features.Map.MapViewModel() };
         var window = new Window { Width = 1000, Height = 700, Content = new Border { Padding = new global::Avalonia.Thickness(16), Child = new SettingsView { DataContext = model } } };
         try
         {
@@ -167,6 +167,8 @@ public sealed class GeneralSettingsTests
             Assert.IsTrue(autoStart.IsEnabled);
             autoConnect.IsChecked = true;
             Assert.AreEqual(true, settings.Values[SettingKeys.AutoConnectEnabled]);
+            toggles.Single(t => AutomationProperties.GetName(t) == "Streamer mode").IsChecked = true;
+            Assert.IsTrue(model.Map!.AbbreviateNames, "The Behavior streamer switch drives the map setting.");
             var titles = window.GetVisualDescendants().OfType<TextBlock>().Where(t => t.Classes.Contains("title")).Select(t => t.Text).ToList();
             CollectionAssert.AreEqual(new[] { "General", "Alerts" }, titles);
             using (var frame = window.CaptureRenderedFrame())

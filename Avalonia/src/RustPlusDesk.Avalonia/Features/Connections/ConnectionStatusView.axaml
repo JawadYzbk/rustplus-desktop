@@ -8,7 +8,7 @@
           <Ellipse Width="10" Height="10" Classes="connection-dot" Classes.connected="{Binding IsConnected}"
                    Classes.pending="{Binding IsPending}" Classes.repair="{Binding RequiresRePair}" VerticalAlignment="Center" />
           <StackPanel Grid.Column="1" Spacing="4">
-            <TextBlock Text="{Binding ServerName}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding DisplayServerName}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
             <TextBlock Text="{Binding StatusMessage}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
           </StackPanel>
         </Grid>

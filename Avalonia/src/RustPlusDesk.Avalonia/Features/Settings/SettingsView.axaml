@@ -33,6 +33,29 @@
           </Grid>
         </StackPanel>
       </Border>
+      <Border Classes="panel" Padding="16" IsVisible="{Binding HasMap}">
+        <StackPanel Spacing="12">
+          <TextBlock Text="BEHAVIOR" Classes="section" />
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Streamer mode" FontWeight="SemiBold" />
+              <TextBlock Text="Abbreviates Steam names and IDs to protect privacy during streams, hides server names and closes the server list."
+                         Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding Map.AbbreviateNames, FallbackValue=False}" OnContent="" OffContent=""
+                          AutomationProperties.Name="Streamer mode" />
+          </Grid>
+          <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="4">
+            <StackPanel>
+              <TextBlock Text="Player icon size" FontWeight="SemiBold" />
+              <TextBlock Text="Size of team player markers on the map." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <TextBlock Grid.Column="1" Text="{Binding Map.PlayerIconScale, StringFormat='{}{0:0%}', FallbackValue=''}" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <Slider Grid.Row="1" Grid.ColumnSpan="2" Minimum="0.5" Maximum="1.5" Value="{Binding Map.PlayerIconScale, FallbackValue=1}"
+                    AutomationProperties.Name="Player icon size" />
+          </Grid>
+        </StackPanel>
+      </Border>
       <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0">
         <icons:Icon Symbol="Alert24" FontSize="18" Foreground="{DynamicResource Accent}" />
         <StackPanel>

@@ -172,7 +172,12 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
 
     private Notifications.NotificationsViewModel CreateNotifications()
     {
-        var model = new Notifications.NotificationsViewModel(notificationStore, appSettings) { ConnectToServer = ConnectToNotificationServer };
+        var model = new Notifications.NotificationsViewModel(notificationStore, appSettings)
+        {
+            ConnectToServer = ConnectToNotificationServer,
+            IsStreamerMode = Connection.Map.AbbreviateNames
+        };
+        ObserveStreamerMode();
         // Reference OnNotificationAdded: a toast per new row while NotificationsToastEnabled (default on).
         model.Added += item =>
         {
@@ -210,7 +215,11 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
 
     private Settings.SettingsViewModel CreateSettings()
     {
-        var model = new Settings.SettingsViewModel(appSettings, key => Servers.FirstOrDefault(server => $"{server.Host}:{server.Port}" == key)?.Name, launchAtLogin);
+        var model = new Settings.SettingsViewModel(appSettings, key => Servers.FirstOrDefault(server => $"{server.Host}:{server.Port}" == key)?.Name, launchAtLogin)
+        {
+            Map = Connection.Map
+        };
+        ObserveStreamerMode();
         model.GenericAlarmPopupChanged += value => Alarms.GenericPopupEnabled = value;
         return model;
     }
@@ -500,8 +509,34 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         if (reconnect && !shuttingDown && SelectedServer is not null) Connection.ConnectCommand.Execute(null);
     }
 
+    private bool observingStreamerMode;
+
+    /// <summary>
+    /// Reference BtnAbbreviateNames_Toggled / RefreshStreamerModeUI: one switch (map toolbar or Settings) abbreviates team
+    /// names and Steam IDs, hides server names in the header and the inbox, and closes the server area when turned on.
+    /// </summary>
+    private void ObserveStreamerMode()
+    {
+        if (observingStreamerMode) return;
+        observingStreamerMode = true;
+        ApplyStreamerMode(Connection.Map.AbbreviateNames, starting: true);
+        Connection.Map.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(Map.MapViewModel.AbbreviateNames)) ApplyStreamerMode(Connection.Map.AbbreviateNames, starting: false);
+        };
+    }
+
+    private void ApplyStreamerMode(bool on, bool starting)
+    {
+        Connection.HideServerName = on;
+        Connection.Team.Abbreviate = on;
+        if (notifications is not null) notifications.IsStreamerMode = on;
+        if (on && !starting) IsSidebarOpen = false;
+    }
+
     partial void OnSelectedServerChanged(ServerSummary? value)
     {
+        ObserveStreamerMode();
         if (!observingConnection)
         {
             observingConnection = true;

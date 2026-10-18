@@ -32,6 +32,10 @@
                           ToolTip.Tip="Show vending machines" AutomationProperties.Name="Shops">
               <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Cart24" FontSize="16" /><TextBlock Text="Shops" /></StackPanel>
             </ToggleButton>
+            <ToggleButton Classes="chip" IsChecked="{Binding Connection.Map.AbbreviateNames}"
+                          ToolTip.Tip="Streamer mode: abbreviate player names and Steam IDs and hide server names" AutomationProperties.Name="Streamer mode">
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Incognito24" FontSize="16" /><TextBlock Text="Streamer" /></StackPanel>
+            </ToggleButton>
             <ToggleButton Classes="chip" IsChecked="{Binding Shops.IsOpen}" IsEnabled="{Binding Connection.Map.HasMap}"
                           ToolTip.Tip="Search vending machine offers" AutomationProperties.Name="Shop search">
               <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="BuildingShop24" FontSize="16" /><TextBlock Text="Shop search" /></StackPanel>
@@ -54,6 +58,9 @@
                     <Grid ColumnDefinitions="*,48"><TextBlock Text="Grid opacity" Classes="muted" FontSize="12" />
                       <TextBlock Grid.Column="1" Text="{Binding Connection.Map.GridOpacity, StringFormat='{}{0:0%}'}" HorizontalAlignment="Right" FontSize="12" /></Grid>
                     <Slider Minimum="0.1" Maximum="1" Value="{Binding Connection.Map.GridOpacity}" AutomationProperties.Name="Grid opacity" />
+                    <Grid ColumnDefinitions="*,48"><TextBlock Text="Player icon size" Classes="muted" FontSize="12" />
+                      <TextBlock Grid.Column="1" Text="{Binding Connection.Map.PlayerIconScale, StringFormat='{}{0:0%}'}" HorizontalAlignment="Right" FontSize="12" /></Grid>
+                    <Slider Minimum="0.5" Maximum="1.5" Value="{Binding Connection.Map.PlayerIconScale}" AutomationProperties.Name="Player icon size" />
                     <CheckBox Content="Show shops automatically when connecting" IsChecked="{Binding Connection.Map.AutoLoadShops}" />
                   </StackPanel>
                 </Flyout>
@@ -78,7 +85,8 @@
                         GridOpacity="{Binding Connection.Map.GridOpacity}" MonumentNames="{Binding Connection.Map.ShowMonumentNames}"
                         Markers="{Binding Connection.Map.Markers}" ShowPlayers="{Binding Connection.Map.ShowPlayers}" ShowShops="{Binding Connection.Map.ShowShops}"
                         ShowMonuments="{Binding Connection.Map.ShowMonuments}" ResetRequest="{Binding Connection.Map.ViewResetRequest}"
-                        FocusRequest="{Binding Connection.Map.FocusRequest}"
+                        FocusRequest="{Binding Connection.Map.FocusRequest}" AbbreviateNames="{Binding Connection.Map.AbbreviateNames}"
+                        PlayerScale="{Binding Connection.Map.PlayerIconScale}"
                         IsVisible="{Binding Connection.Map.HasMap}" AutomationProperties.Name="Server map" />
         <ScrollViewer HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding !Connection.Map.HasMap}" Margin="20">
         <Border Classes="card" MaxWidth="360" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -87,7 +95,7 @@
               <icons:Icon Symbol="Map24" FontSize="26" Foreground="{DynamicResource Accent}" />
             </Border>
             <TextBlock Text="Ready to explore the map?" FontSize="20" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" />
-            <TextBlock Text="{Binding Connection.ServerName}" TextAlignment="Center" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding Connection.DisplayServerName}" TextAlignment="Center" TextWrapping="Wrap" />
             <Button Content="_Connect" Classes="primary" Command="{Binding Connection.ConnectCommand}"
                     IsVisible="{Binding !Connection.IsActive}" HorizontalAlignment="Center" />
             <Button Content="_Disconnect" Classes="subtle" Command="{Binding Connection.DisconnectCommand}"

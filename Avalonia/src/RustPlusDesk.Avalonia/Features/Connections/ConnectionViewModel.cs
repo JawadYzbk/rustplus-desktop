@@ -62,7 +62,14 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
     [NotifyCanExecuteChangedFor(nameof(DisconnectCommand))]
     private ConnectionPhase phase;
 
-    [ObservableProperty] private string serverName = "Select a server";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayServerName))]
+    private string serverName = "Select a server";
+    /// <summary>Reference streamer mode: the selected server's name is shown as "SERVER HIDDEN".</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayServerName))]
+    private bool hideServerName;
+    public string DisplayServerName => HideServerName && selectedServer is not null ? RustPlusDesk.Core.Settings.StreamerMode.HiddenServer : ServerName;
     [ObservableProperty] private string statusMessage = "Disconnected";
     [ObservableProperty] private string population = "—";
     [ObservableProperty] private string queue = "—";
