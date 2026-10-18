@@ -31,7 +31,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Core.Hotkeys.IHotkeyStore? hotkeyStore = null, RustPlusDesk.Core.Settings.ILaunchAtLogin? launchAtLogin = null,
     RustPlusDesk.Core.Deaths.IDeathLog? deathLog = null, RustPlusDesk.Core.Alerts.IAlertTemplateStore? alertTemplateStore = null,
     RustPlusDesk.Core.Map.IMapCache? mapCache = null, RustPlusDesk.Core.Map.ICustomMapUrlStore? customMapUrls = null,
-    RustPlusDesk.Core.Map.ICustomMapDownloader? customMapDownloader = null, RustPlusDesk.Core.Deaths.IDeathMarkerStore? deathMarkerStore = null)
+    RustPlusDesk.Core.Map.ICustomMapDownloader? customMapDownloader = null, RustPlusDesk.Core.Deaths.IDeathMarkerStore? deathMarkerStore = null,
+    IServerDeleter? serverDeleter = null, ICloudServerForgetter? cloudForgetter = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -168,6 +169,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
     [NotifyCanExecuteChangedFor(nameof(OpenFileCommand))]
     [NotifyCanExecuteChangedFor(nameof(EditCommand))]
+    [NotifyCanExecuteChangedFor(nameof(DeleteServerCommand))]
     [NotifyCanExecuteChangedFor(nameof(OrganizeDevicesCommand))]
     [NotifyCanExecuteChangedFor(nameof(ImportDevicesCommand))]
     private bool isAccountOpen;
@@ -176,7 +178,19 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [NotifyCanExecuteChangedFor(nameof(EditCommand))]
     [NotifyCanExecuteChangedFor(nameof(OrganizeDevicesCommand))]
     [NotifyCanExecuteChangedFor(nameof(RecoverCloudDevicesCommand))]
+    [NotifyCanExecuteChangedFor(nameof(DeleteServerCommand))]
     private ServerSummary? selectedServer;
+    /// <summary>Reference DeleteConfirmationOverlay: the server waiting for "Delete" or "Cancel".</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasDeleteConfirmation))]
+    [NotifyPropertyChangedFor(nameof(DeleteConfirmationText))]
+    [NotifyPropertyChangedFor(nameof(HasOverlay))]
+    private ServerSummary? serverToDelete;
+    public bool HasDeleteConfirmation => ServerToDelete is not null;
+    /// <summary>Reference DeleteServerConfirmFormatted.</summary>
+    public string DeleteConfirmationText => ServerToDelete is { } server
+        ? $"Are you sure you want to delete Server \"{server.Name}\"? This action cannot be undone." : "";
+    public bool HasServerDelete => serverDeleter is not null;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasEditor))]
     [NotifyPropertyChangedFor(nameof(HasOverlay))]
@@ -188,7 +202,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     public bool HasOrganizer => Organizer is not null;
     public bool HasDeviceEditor => deviceEditor is not null;
     public bool HasEditor => Editor is not null;
-    public bool HasOverlay => HasEditor || HasOrganizer || HasCloudRecovery || HasDeviceImport || IsAccountOpen;
+    public bool HasOverlay => HasEditor || HasOrganizer || HasCloudRecovery || HasDeviceImport || IsAccountOpen || HasDeleteConfirmation;
     public bool HasRecyclerTool => recyclerCatalog is not null;
     [ObservableProperty] private bool isSidebarOpen = true;
     [RelayCommand] private void ToggleSidebar() => IsSidebarOpen = !IsSidebarOpen;
@@ -715,6 +729,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
     [NotifyCanExecuteChangedFor(nameof(OpenFileCommand))]
     [NotifyCanExecuteChangedFor(nameof(EditCommand))]
+    [NotifyCanExecuteChangedFor(nameof(DeleteServerCommand))]
     [NotifyCanExecuteChangedFor(nameof(OrganizeDevicesCommand))]
     [NotifyCanExecuteChangedFor(nameof(RecoverCloudDevicesCommand))]
     [NotifyCanExecuteChangedFor(nameof(ImportDevicesCommand))]
@@ -824,6 +839,48 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             IsBusy = false;
             await RefreshPairingsAsync();
         }
+    }
+
+    private bool CanDeleteServer => CanLoad && SelectedServer is not null && serverDeleter is not null;
+
+    /// <summary>Reference Server_Delete_Click: asks first.</summary>
+    [RelayCommand(CanExecute = nameof(CanDeleteServer))]
+    private void DeleteServer() => ServerToDelete = SelectedServer;
+
+    [RelayCommand] private void CancelDeleteServer() => ServerToDelete = null;
+
+    /// <summary>
+    /// Reference BtnConfirmDelete_Click: the profile leaves profiles.json, the cloud forgets the pairing (now or on the next
+    /// sync), the server's local data is removed unless another profile still uses it, and the list reloads.
+    /// </summary>
+    [RelayCommand]
+    private async Task ConfirmDeleteServerAsync()
+    {
+        if (ServerToDelete is not { } target || serverDeleter is null) return;
+        ServerToDelete = null;
+        IsBusy = true;
+        try
+        {
+            await Connection.StopAsync();
+            var deleted = await serverDeleter.DeleteAsync(SourcePath, target, CancellationToken.None);
+            Activity.Append($"Server deleted: {deleted.Name}");
+            if (cloudForgetter is not null)
+            {
+                try
+                {
+                    Activity.Append(await cloudForgetter.ForgetAsync(deleted.Host, deleted.Port, CancellationToken.None)
+                        ? $"[Cloud] Removed server {deleted.Name} ({deleted.Host}:{deleted.Port}) from the cloud."
+                        : $"[Cloud] Server {deleted.Name} will be removed from the cloud on the next sync.");
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException) { Activity.Append($"[Cloud] Cloud cleanup error for deleted server {deleted.Name}."); }
+            }
+            Activity.Append($"Removed {deleted.RemovedLocalItems} local file(s) and folder(s) stored for {deleted.Name}.");
+            await LoadAsync(SourcePath, CancellationToken.None);
+        }
+        catch (ProfileChangedException) { Activity.Append("[servers] The profiles file changed. Refresh before deleting the server again."); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        { Activity.Append("[servers] The server could not be deleted. Check file permissions and available disk space."); }
+        finally { IsBusy = false; }
     }
 
     [RelayCommand(CanExecute = nameof(CanEdit))]

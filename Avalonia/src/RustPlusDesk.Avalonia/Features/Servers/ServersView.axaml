@@ -17,6 +17,9 @@
           <icons:Icon Symbol="FolderOpen24" /></Button>
         <Button Classes="icon" Command="{Binding EditCommand}" ToolTip.Tip="Edit the selected server" AutomationProperties.Name="Edit server">
           <icons:Icon Symbol="Edit24" /></Button>
+        <Button Classes="icon" Command="{Binding DeleteServerCommand}" IsVisible="{Binding HasServerDelete}" ToolTip.Tip="Delete server…"
+                AutomationProperties.Name="Delete server">
+          <icons:Icon Symbol="Delete24" /></Button>
       </StackPanel>
     </Grid>
     <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" AutomationProperties.Name="Loading saved servers" />

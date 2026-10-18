@@ -10,6 +10,17 @@ namespace RustPlusDesk.Infrastructure.Cloud;
 /// <summary>Private bearer HTTP boundary shared by account and snapshot workflows.</summary>
 internal sealed class CloudApiClient(HttpClient http, string clientVersion)
 {
+    /// <summary>A bearer DELETE; any success status (the platform answers 204) completes, anything else throws.</summary>
+    public async Task DeleteAsync(string route, string token, CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Delete, "https://rustplusdesktop.cloud/api/v1/" + route);
+        request.Headers.Add("X-Client-Version", clientVersion);
+        request.Headers.UserAgent.Add(new ProductInfoHeaderValue("RustPlusDesktop-Avalonia", clientVersion));
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode) throw new CloudAccountException(CloudFailure.Unavailable);
+    }
+
     public async Task<JsonObject> SendAsync(string route, string? token, object? payload, CancellationToken ct)
     {
         using var request = new HttpRequestMessage(payload is null ? HttpMethod.Get : HttpMethod.Post, "https://rustplusdesktop.cloud/api/v1/" + route);
