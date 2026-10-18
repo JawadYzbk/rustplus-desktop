@@ -8,6 +8,7 @@ namespace RustPlusDesk.Avalonia.Features.Alerts;
 public sealed class EventAnnouncer
 {
     private readonly EventSpawnTracker tracker = new();
+    private readonly DeepSeaTracker deepSea = new();
     private readonly MapViewModel map;
     private readonly ChatAlertsViewModel alerts;
 
@@ -26,10 +27,14 @@ public sealed class EventAnnouncer
     private void MapChanged(object? sender, PropertyChangedEventArgs e)
     {
         // A new connection clears the map: the next poll is a first poll again (reference _firstPollDyn).
-        if (e.PropertyName == nameof(MapViewModel.Geometry) && map.Geometry is null) tracker.Reset();
+        if (e.PropertyName == nameof(MapViewModel.Geometry) && map.Geometry is null) { tracker.Reset(); deepSea.Reset(); }
         if (e.PropertyName != nameof(MapViewModel.Markers) || map.Geometry is not { } geometry) return;
         var flags = new EventAnnouncementFlags(alerts.AnnounceHeli, alerts.AnnounceChinook, alerts.AnnounceVendor, alerts.IsMasterOn);
         foreach (string message in tracker.Observe(map.Markers, geometry.WorldSize, flags)) _ = DeliverAsync(message);
+        // Reference CheckDeepSeaEvent: the template text as is, only for a spawn seen after the first poll.
+        var (change, shop) = deepSea.Observe(map.Markers);
+        if (DeepSeaTracker.LogLine(change, shop, geometry.WorldSize) is { } line) Log?.Invoke(line);
+        if (change == DeepSeaChange.Spawned && alerts.AnnounceDeepSea) _ = DeliverAsync(Templates.Get("AlertDeepSeaUp"));
     }
 
     private async Task DeliverAsync(string message)

@@ -23,7 +23,7 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     private bool master;
     private bool newShops;
     private bool suspiciousShops;
-    private bool heli, chinook, vendor;
+    private bool heli, chinook, vendor, deepSea;
     private bool playerAfk, playerAfkReturn;
     private int afkMinutes;
     private bool playerOnline, playerOffline, deathSelf, deathTeam, respawnSelf, respawnTeam;
@@ -39,6 +39,7 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
         heli = settings?.Get(SettingKeys.AnnounceHeli, false) ?? false;
         chinook = settings?.Get(SettingKeys.AnnounceChinook, false) ?? false;
         vendor = settings?.Get(SettingKeys.AnnounceVendor, false) ?? false;
+        deepSea = settings?.Get(SettingKeys.AnnounceDeepSea, false) ?? false;
         smartAlerts = settings?.Get(SettingKeys.AnnounceSmartAlerts, false) ?? false;
         playerOnline = settings?.Get(SettingKeys.AnnouncePlayerOnline, false) ?? false;
         playerOffline = settings?.Get(SettingKeys.AnnouncePlayerOffline, false) ?? false;
@@ -144,6 +145,8 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     public bool AnnounceHeli => master && heli;
     public bool AnnounceChinook => master && chinook;
     public bool AnnounceVendor => master && vendor;
+    /// <summary>Reference AnnounceDeepSea: the Deep Sea event spawning is posted to chat.</summary>
+    public bool AnnounceDeepSea => master && deepSea;
     /// <summary>Reference AnnounceSmartAlerts: smart alarms are posted to team chat.</summary>
     public bool AnnounceSmartAlerts => master && smartAlerts;
     public bool AnnouncePlayerOnline => master && playerOnline;
@@ -200,6 +203,7 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     [RelayCommand] private void ToggleHeli() => Flip(ref heli, SettingKeys.AnnounceHeli);
     [RelayCommand] private void ToggleChinook() => Flip(ref chinook, SettingKeys.AnnounceChinook);
     [RelayCommand] private void ToggleVendor() => Flip(ref vendor, SettingKeys.AnnounceVendor);
+    [RelayCommand] private void ToggleDeepSea() => Flip(ref deepSea, SettingKeys.AnnounceDeepSea);
     [RelayCommand] private void ToggleSmartAlerts() => Flip(ref smartAlerts, SettingKeys.AnnounceSmartAlerts);
     [RelayCommand] private void TogglePlayerOnline() => Flip(ref playerOnline, SettingKeys.AnnouncePlayerOnline);
     [RelayCommand] private void TogglePlayerOffline() => Flip(ref playerOffline, SettingKeys.AnnouncePlayerOffline);
@@ -244,11 +248,11 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
 
     private void SetAll(bool value)
     {
-        newShops = suspiciousShops = heli = chinook = vendor = value;
+        newShops = suspiciousShops = heli = chinook = vendor = deepSea = value;
         playerAfk = playerAfkReturn = value;
         playerOnline = playerOffline = deathSelf = deathTeam = respawnSelf = respawnTeam = smartAlerts = value;
         foreach (string key in new[] { SettingKeys.AnnounceNewShops, SettingKeys.AnnounceSuspiciousShops, SettingKeys.AnnounceHeli,
-                     SettingKeys.AnnounceChinook, SettingKeys.AnnounceVendor, SettingKeys.AnnouncePlayerOnline, SettingKeys.AnnouncePlayerOffline,
+                     SettingKeys.AnnounceChinook, SettingKeys.AnnounceVendor, SettingKeys.AnnounceDeepSea, SettingKeys.AnnouncePlayerOnline, SettingKeys.AnnouncePlayerOffline,
                      SettingKeys.AnnouncePlayerAfk, SettingKeys.AnnouncePlayerAfkReturn, SettingKeys.AnnouncePlayerDeathSelf, SettingKeys.AnnouncePlayerDeathTeam, SettingKeys.AnnouncePlayerRespawnSelf,
                      SettingKeys.AnnouncePlayerRespawnTeam, SettingKeys.AnnounceSmartAlerts })
             settings?.Set(key, value);
@@ -285,13 +289,13 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
         Refresh();
     }
 
-    private int Local() => new[] { newShops, suspiciousShops, heli, chinook, vendor, playerOnline, playerOffline, playerAfk, playerAfkReturn, deathSelf, deathTeam,
+    private int Local() => new[] { newShops, suspiciousShops, heli, chinook, vendor, deepSea, playerOnline, playerOffline, playerAfk, playerAfkReturn, deathSelf, deathTeam,
         respawnSelf, respawnTeam, smartAlerts }.Count(flag => flag);
 
     private void Refresh()
     {
         foreach (string name in new[] { nameof(IsMasterOn), nameof(AnnounceNewShops), nameof(AnnounceSuspiciousShops), nameof(AnnounceHeli), nameof(AnnounceChinook),
-                     nameof(AnnounceVendor), nameof(AnnouncePlayerOnline), nameof(AnnouncePlayerOffline), nameof(AnnouncePlayerAfk), nameof(AnnouncePlayerAfkReturn), nameof(AnyPlayerAfk), nameof(AnnouncePlayerDeathSelf),
+                     nameof(AnnounceVendor), nameof(AnnounceDeepSea), nameof(AnnouncePlayerOnline), nameof(AnnouncePlayerOffline), nameof(AnnouncePlayerAfk), nameof(AnnouncePlayerAfkReturn), nameof(AnyPlayerAfk), nameof(AnnouncePlayerDeathSelf),
                      nameof(AnnouncePlayerDeathTeam), nameof(AnnouncePlayerRespawnSelf), nameof(AnnouncePlayerRespawnTeam), nameof(AnnounceSmartAlerts), nameof(AnnounceWebhook), nameof(CanToggleWebhook), nameof(EnabledCount),
                      nameof(ShowCountBadge), nameof(ShowEmptyDot), nameof(CountText), nameof(MasterTip) })
             OnPropertyChanged(name);

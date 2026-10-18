@@ -12,7 +12,7 @@ public static class ChatAlertSettings
     public static readonly IReadOnlyList<string> AlertKeys =
     [
         "AnnounceCargo", "AnnounceCargoDocking", "AnnounceCargoEgress", "AnnounceCargoArrival",
-        SettingKeys.AnnounceHeli, SettingKeys.AnnounceChinook, SettingKeys.AnnounceVendor, "AnnounceOilRig", "AnnounceDeepSea",
+        SettingKeys.AnnounceHeli, SettingKeys.AnnounceChinook, SettingKeys.AnnounceVendor, "AnnounceOilRig", SettingKeys.AnnounceDeepSea,
         SettingKeys.AnnouncePlayerOnline, SettingKeys.AnnouncePlayerOffline, SettingKeys.AnnouncePlayerAfk, SettingKeys.AnnouncePlayerAfkReturn,
         SettingKeys.AnnouncePlayerDeathSelf, SettingKeys.AnnouncePlayerDeathTeam, SettingKeys.AnnouncePlayerRespawnSelf, SettingKeys.AnnouncePlayerRespawnTeam,
         "AnnounceTracking", SettingKeys.AnnounceNewShops, SettingKeys.AnnounceSuspiciousShops,

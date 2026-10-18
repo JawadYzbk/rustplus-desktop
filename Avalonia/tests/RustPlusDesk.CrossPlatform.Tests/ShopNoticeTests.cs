@@ -120,7 +120,8 @@ public sealed class ShopNoticeTests
         Assert.IsTrue(model.AnnounceHeli && model.AnnounceChinook && model.AnnounceVendor && model.AnnounceNewShops && model.AnnounceSuspiciousShops);
         Assert.AreEqual(new PresenceAlertFlags(true, true, true, true, true, true), model.PresenceFlags);
         Assert.IsTrue(model.AnnounceSmartAlerts);
-        Assert.AreEqual(14, model.EnabledCount);
+        Assert.AreEqual(15, model.EnabledCount);
+        Assert.IsTrue(model.AnnounceDeepSea);
         Assert.IsTrue(model.AnnouncePlayerAfk && model.AnnouncePlayerAfkReturn && model.AnyPlayerAfk);
         Assert.IsFalse(settings.Values.ContainsKey("AnnounceCargo"), "Flags of unported alerts are only read.");
 
@@ -260,14 +261,14 @@ public sealed class ShopNoticeTests
                 flyout.ShowAt(menuButton);
                 window.UpdateLayout();
                 var items = flyout.Items.OfType<MenuItem>().ToList();
-                CollectionAssert.AreEqual(new[] { "Select all", "Deselect all", "Edit templates", "Send alerts to", "Events", "Patrol Helicopter", "Chinook (CH47)", "Travelling Vendor", "Smart Alerts", "Players", "Online Status", "Offline Status", "Player AFK",
+                CollectionAssert.AreEqual(new[] { "Select all", "Deselect all", "Edit templates", "Send alerts to", "Events", "Patrol Helicopter", "Chinook (CH47)", "Travelling Vendor", "Deep Sea Event", "Smart Alerts", "Players", "Online Status", "Offline Status", "Player AFK",
                     "Self Death", "Team Death", "Self Respawn", "Team Respawn", "Shops", "New shops", "Suspicious shops", "Trade alerts", "Discord webhook", "Discord webhook settings…" },
                     items.Select(item => (string)item.Header!).ToArray());
                 Assert.IsTrue(items[0].IsEnabled && items[1].IsEnabled, "Select all / Deselect all work whatever the master state.");
                 Assert.IsFalse(items[11].IsChecked == true, "Player flags start off.");
                 Assert.IsFalse(items[3].IsVisible, "No profile store: no channel choice.");
                 Assert.IsTrue(items[2].IsEnabled, "Edit templates is always available.");
-                items = items.Skip(4).Take(4).Concat(items.Skip(17)).ToList();
+                items = items.Skip(4).Take(4).Concat(items.Skip(18)).ToList();
                 Assert.IsTrue(items[5].IsChecked);
                 Assert.IsFalse(items[6].IsChecked);
                 Assert.IsTrue(items[7].IsEnabled);
