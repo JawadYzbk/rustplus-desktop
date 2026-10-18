@@ -35,9 +35,13 @@ public sealed partial class ShopSearchViewModel : ObservableObject
         selectedSort = Sorts[0];
         selectedResource = Resources[0];
         selectedCategory = AllCategories;
+        Profit = new(search.ItemName, map);
         map.PropertyChanged += MapChanged;
         Refresh();
     }
+
+    /// <summary>Reference "Profit" tool: two-step trade loops over the current shops.</summary>
+    public ShopProfitViewModel Profit { get; }
 
     public IReadOnlyList<ShopSortChoice> Sorts { get; } =
     [
@@ -179,17 +183,18 @@ public sealed partial class ShopSearchViewModel : ObservableObject
         if (result.Sort != SelectedSort.Mode) SelectedSort = Sorts.First(sort => sort.Mode == result.Sort);
         double worldSize = map.Geometry?.WorldSize ?? 0;
         Results = result.Matches.Select(match => new ShopResultRow(match.Shop, ShopSearch.CleanLabel(match.Shop.Name) ?? "Shop",
-            MapGrid.Label(worldSize, match.Shop.X, match.Shop.Y), match.Offers.Select(Offer).ToList())).ToList();
+            MapGrid.Label(worldSize, match.Shop.X, match.Shop.Y), match.Offers.Select(order => OfferRow(order, search.ItemName)).ToList())).ToList();
         EmptyMessage = Results.Count > 0 ? "" : string.IsNullOrWhiteSpace(Query) ? "No matching shops found." : $"No shops match \"{Query}\"";
     }
 
-    private ShopOfferRow Offer(VendingOrder order)
+    /// <summary>Reference BuildOfferRowUI text: "xN item" (28 characters), stock or "Out of stock", and the price.</summary>
+    internal static ShopOfferRow OfferRow(VendingOrder order, Func<int, string> itemName)
     {
-        string name = search.ItemName(order.ItemId);
+        string name = itemName(order.ItemId);
         if (order.Quantity > 1) name = $"x{order.Quantity} {name}";
         if (name.Length > 28) name = name[..28] + "…";
         bool empty = order.AmountInStock <= 0;
         return new(order.ItemId, name, empty ? "Out of stock" : $"Stock: {order.AmountInStock}", empty, order.CurrencyId,
-            $"{order.CostPerStack.ToString(CultureInfo.CurrentCulture)} {search.ItemName(order.CurrencyId)}");
+            $"{order.CostPerStack.ToString(CultureInfo.CurrentCulture)} {itemName(order.CurrencyId)}");
     }
 }

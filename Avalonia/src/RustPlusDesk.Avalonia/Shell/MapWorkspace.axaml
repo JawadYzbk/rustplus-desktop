@@ -101,6 +101,8 @@
         </ScrollViewer>
         <shops:ShopSearchView Grid.RowSpan="2" DataContext="{Binding Shops}" IsVisible="{Binding IsOpen}" Width="380"
                               HorizontalAlignment="Right" VerticalAlignment="Stretch" Margin="0,12,12,12" />
+        <shops:ShopProfitView Grid.RowSpan="2" DataContext="{Binding Shops.Profit}" IsVisible="{Binding IsOpen}" Width="380"
+                              HorizontalAlignment="Right" VerticalAlignment="Stretch" Margin="0,12,12,12" />
         <teams:TeamView Grid.Row="1" DataContext="{Binding Connection.Team}" MaxHeight="{Binding #MapContent.Bounds.Height}"
                         HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="20,0,20,20" />
         </Grid>

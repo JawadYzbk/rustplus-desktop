@@ -1,0 +1,138 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RustPlusDesk.Avalonia.Features.Shops"
+             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons" xmlns:shared="using:RustPlusDesk.Avalonia.Shared.Controls"
+             x:Class="RustPlusDesk.Avalonia.Features.Shops.ShopProfitView" x:DataType="vm:ShopProfitViewModel">
+  <Border Classes="panel" Background="{DynamicResource Surface}" Padding="12" BoxShadow="0 6 24 0 #66000000">
+    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="8">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+        <icons:Icon Symbol="Money24" FontSize="18" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
+        <StackPanel Grid.Column="1">
+          <TextBlock Text="Profit trades" Classes="title" />
+          <TextBlock Text="Two-step loops that return more than they cost." Classes="muted" FontSize="11" TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+        <Button Grid.Column="2" Classes="icon" Command="{Binding RefreshCommand}" ToolTip.Tip="Refresh"
+                AutomationProperties.Name="Refresh profit trades"><icons:Icon Symbol="ArrowClockwise24" /></Button>
+        <Button Grid.Column="3" Classes="icon" Command="{Binding CloseCommand}" ToolTip.Tip="Close profit trades"
+                AutomationProperties.Name="Close profit trades"><icons:Icon Symbol="Dismiss24" /></Button>
+      </Grid>
+      <Grid Grid.Row="1" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="6" RowSpacing="6">
+        <TextBox Grid.ColumnSpan="2" Text="{Binding SearchText}" PlaceholderText="Search items (e.g. sulfur)…" AutomationProperties.Name="Search profit trades">
+          <TextBox.InnerLeftContent><icons:Icon Symbol="Search24" FontSize="15" Margin="8,0,0,0" Foreground="{DynamicResource TextSubtle}" /></TextBox.InnerLeftContent>
+        </TextBox>
+        <TextBlock Grid.Row="1" Text="Min profit" Classes="muted" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Right" />
+        <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding MinProfitChoices}" SelectedItem="{Binding SelectedMinProfit}" MinWidth="110"
+                  AutomationProperties.Name="Minimum profit">
+          <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:MinProfitChoice"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
+      </Grid>
+      <Grid Grid.Row="2">
+        <TextBlock Text="{Binding EmptyMessage}" Classes="muted" FontSize="12" HorizontalAlignment="Center" Margin="0,24,0,0"
+                   IsVisible="{Binding !HasCards}" TextWrapping="Wrap" />
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding HasCards}">
+          <ItemsControl ItemsSource="{Binding Cards}" AutomationProperties.Name="Profit trades">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ShopFlipCard">
+                <Button Classes="flipCard" Command="{Binding $parent[UserControl].((vm:ShopProfitViewModel)DataContext).ShowLoopCommand}"
+                        CommandParameter="{Binding}" ToolTip.Tip="Show both shops on the map" AutomationProperties.Name="{Binding ProfitText}">
+                  <StackPanel Spacing="8">
+                    <Border Classes="flipHeader">
+                      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                        <shared:ItemIcon ItemId="{Binding CurrencyId}" Width="32" Height="32" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                          <TextBlock Text="{Binding ProfitText}" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource Highlight}" TextTrimming="CharacterEllipsis" />
+                          <TextBlock Text="{Binding FlowText}" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+                    <UniformGrid Columns="3">
+                      <Border Classes="flow"><StackPanel><TextBlock Text="PRODUCED" Classes="flowLabel" /><TextBlock Text="{Binding ProducedText}" Classes="flowValue" Foreground="{DynamicResource Accent}" /></StackPanel></Border>
+                      <Border Classes="flow"><StackPanel><TextBlock Text="CONSUMED" Classes="flowLabel" /><TextBlock Text="{Binding ConsumedText}" Classes="flowValue" Foreground="{DynamicResource ConnectionDanger}" /></StackPanel></Border>
+                      <Border Classes="flow"><StackPanel><TextBlock Text="LEFTOVER" Classes="flowLabel" /><TextBlock Text="{Binding LeftoverText}" Classes="flowValue" Foreground="{DynamicResource ConnectionSuccess}" /></StackPanel></Border>
+                    </UniformGrid>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                      <ContentControl Content="{Binding First}" />
+                      <ContentControl Grid.Column="1" Content="{Binding Second}" />
+                    </Grid>
+                  </StackPanel>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Grid>
+    </Grid>
+  </Border>
+  <UserControl.DataTemplates>
+    <DataTemplate x:DataType="vm:ShopFlipStep">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{Binding Label}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource Accent}" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="4">
+          <TextBlock Text="{Binding ShopTitle}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                     ToolTip.Tip="{Binding ShopTip}" />
+          <Button Grid.Column="1" Classes="subtle" Padding="6,1" FontSize="11" ToolTip.Tip="Show this shop on the map"
+                  AutomationProperties.Name="Show shop on map" CommandParameter="{Binding}"
+                  Command="{Binding $parent[UserControl].((vm:ShopProfitViewModel)DataContext).ShowShopCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="3"><icons:Icon Symbol="Location24" FontSize="12" VerticalAlignment="Center" /><TextBlock Text="Show" VerticalAlignment="Center" /></StackPanel>
+          </Button>
+        </Grid>
+        <Border Classes="offer">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
+            <shared:ItemIcon ItemId="{Binding Offer.ItemId}" Width="18" Height="18" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1">
+              <TextBlock Text="{Binding Offer.ItemText}" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <shared:ItemIcon ItemId="{Binding Offer.CurrencyId}" Width="12" Height="12" />
+                <TextBlock Text="{Binding Offer.CostText}" FontSize="10" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+              <TextBlock Text="{Binding Offer.StockText}" FontSize="10" Foreground="{DynamicResource ConnectionSuccess}" />
+            </StackPanel>
+          </Grid>
+        </Border>
+      </StackPanel>
+    </DataTemplate>
+  </UserControl.DataTemplates>
+  <UserControl.Styles>
+    <Style Selector="Button.flipCard">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceAlt}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="10" />
+      <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+    <Style Selector="Button.flipCard:pointerover /template/ ContentPresenter">
+      <Setter Property="BorderBrush" Value="{DynamicResource Highlight}" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceAlt}" />
+    </Style>
+    <Style Selector="Border.flipHeader">
+      <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="8" />
+    </Style>
+    <Style Selector="Border.flow">
+      <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="4" />
+      <Setter Property="Margin" Value="2,0" />
+    </Style>
+    <Style Selector="TextBlock.flowLabel">
+      <Setter Property="FontSize" Value="9" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSubtle}" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.flowValue">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+    <Style Selector="Border.offer">
+      <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="6,4" />
+    </Style>
+  </UserControl.Styles>
+</UserControl>

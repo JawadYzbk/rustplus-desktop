@@ -5,10 +5,14 @@
              x:Class="RustPlusDesk.Avalonia.Features.Shops.ShopSearchView" x:DataType="vm:ShopSearchViewModel">
   <Border Classes="panel" Background="{DynamicResource Surface}" Padding="12" BoxShadow="0 6 24 0 #66000000">
     <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*" RowSpacing="8">
-      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
         <icons:Icon Symbol="BuildingShop24" FontSize="18" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
         <TextBlock Grid.Column="1" Text="Shop search" Classes="title" />
-        <Button Grid.Column="2" Classes="icon" Command="{Binding ToggleCommand}" ToolTip.Tip="Close shop search"
+        <ToggleButton Grid.Column="2" Classes="chip" Padding="8,4" IsChecked="{Binding Profit.IsOpen, Mode=OneWay}" Command="{Binding Profit.ToggleCommand}"
+                      ToolTip.Tip="Find profitable shop trades" AutomationProperties.Name="Find profitable shop trades">
+          <StackPanel Orientation="Horizontal" Spacing="5"><icons:Icon Symbol="Money24" FontSize="14" /><TextBlock Text="Profit" /></StackPanel>
+        </ToggleButton>
+        <Button Grid.Column="3" Classes="icon" Command="{Binding ToggleCommand}" ToolTip.Tip="Close shop search"
                 AutomationProperties.Name="Close shop search"><icons:Icon Symbol="Dismiss24" /></Button>
       </Grid>
       <Popup Grid.Row="1" PlacementTarget="{Binding #SearchBox}" Placement="BottomEdgeAlignedLeft" IsOpen="{Binding IsSuggestionsOpen}"

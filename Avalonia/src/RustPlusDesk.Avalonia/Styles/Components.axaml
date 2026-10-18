@@ -27,6 +27,7 @@
           <SolidColorBrush x:Key="RaidBestSoft">#2266BB6A</SolidColorBrush>
           <SolidColorBrush x:Key="RaidAccentSoft">#1860CDFF</SolidColorBrush>
           <SolidColorBrush x:Key="RaidWarning">#FFC857</SolidColorBrush>
+          <SolidColorBrush x:Key="Highlight">#FFCA28</SolidColorBrush>
         </ResourceDictionary>
         <ResourceDictionary x:Key="Light">
           <SolidColorBrush x:Key="AppBg">#F3F3F3</SolidColorBrush>
@@ -52,6 +53,7 @@
           <SolidColorBrush x:Key="RaidBestSoft">#22237A27</SolidColorBrush>
           <SolidColorBrush x:Key="RaidAccentSoft">#18006E99</SolidColorBrush>
           <SolidColorBrush x:Key="RaidWarning">#8A5F00</SolidColorBrush>
+          <SolidColorBrush x:Key="Highlight">#8A5F00</SolidColorBrush>
         </ResourceDictionary>
       </ResourceDictionary.ThemeDictionaries>
     </ResourceDictionary>
