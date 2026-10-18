@@ -1,35 +1,45 @@
-# Avalonia migration handoff — 2026-10-18
+# Avalonia migration handoff — 2026-10-18 (scheduled run)
 
 **Plan of record: [PARITY-PLAN.md](PARITY-PLAN.md).** Bar set by Jawad on 2026-10-18: *same functionality as the WPF
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
 every finished slice with its commit.
 
-## Where things stand (end of 2026-10-18)
+## Where things stand (scheduled run, 2026-10-18, Linux cloud container)
 
-- Branch `codex/avalonia-migration`, worked **in the main checkout** `D:/Development/rustplus-desktop`
-  (the old Codex worktree was only detached). Pushed to `origin`. Latest commit: `6e176f08`.
-  Only `Avalonia/` changes; leave untracked `.serena/` and root `rustplus.proto` alone.
-- **404 tests pass** (Debug). Release build was last verified at the raid slice; publishes were not rerun.
-- Done this session, in order: device delete + empty-group cleanup, raid calculator, parity plan, Fluent
-  System Icons font + `Icon` control + dark default + labelled rail, live map (image, reference geometry,
-  grid, 51 monument icons/names, pan/zoom), live markers (2 s poll, reference icons/rotation), shared
-  settings store over `tracking_settings.json` + map Layers flyout, team/clan chat, device search/type filter,
-  design pass 1 (tokens + button/chip/panel styles, icon toolbars, compact device rows, status pills,
-  Cloud/Account in the rail), team dock restyle + wrapping map toolbar.
+- Branch `codex/avalonia-migration`, pushed to `origin`. Latest code commit: `dc1fda9e` (docs follow).
+  Only `Avalonia/` changes.
+- **432 tests pass** (Debug, zero warnings) on Linux with the .NET 10.0.112 SDK from Ubuntu's archive
+  (`apt-get install dotnet-sdk-10.0`; Microsoft's dotnet-install host is blocked by this container's proxy).
+- Done this run, in order (each in the PARITY-PLAN progress table):
+  1. `30585e22` fix: a raid change made before the saved plan loads no longer overwrites raid-plan.json
+     (the baseline suite failed on Linux because of this race; regression test added).
+  2. `60927b70` design pass 2: shared `Border.toolbar` page header for map + tool pages (icon, title, Esc close
+     icon), recycler panels/tiles, raid header actions with icons, `Button.danger`, `RadioButton.chip`,
+     primary Send, chat/activity tab icons, dialogs use `primary` (no more `accent`).
+  3. `6e46fcbe` 2.2 chat search + message menu (copy text, copy Steam ID, mention, centre on map, Steam profile).
+     `MapViewModel.CenterOnPlayer/CenterOnWorld` + `MapSurface.FocusRequest` centre at the current zoom.
+  4. `ba348cef` 0.5 Activity log: timestamped 2,000-line log, filter, Expand/Collapse 200/420 px, `LogRedactor`;
+     fed by connection, listener, push health, pairing and tool messages (`ServersViewModel.Activity`).
+  5. `7d92fb6d` 4.6 shop search dock (`Core/Map/ShopSearch.cs` = reference rules; toolbar "Shop search" chip).
+  6. `94545cb7` 4.6 shop trade alerts (`Core/Map/ShopAlerts.cs`, `Infrastructure/Shops`: shop_alerts.json store,
+     `SystemAlertSound` with the reference cash.wav) — team chat + log + sound.
+  7. `dc1fda9e` 4.6 shop search autocomplete.
 
-## Start tomorrow with
+## Start next run with
 
-1. `get_usage` first; stop new work at 97% (see the user's usage-limits rule).
-2. Finish **design pass 2** (small): the bottom chat/activity panel polish, the recycler and raid page headers
-   (use `Border.panel`, `TextBlock.title/section`, `Button.primary/subtle/icon`, `ToggleButton.chip`), and the
-   modal dialogs (account, cloud, organizer, import, server editor). Keep every command; tests locate buttons
-   by `Command` or `AutomationProperties.Name`, so keep those names.
-3. Then continue PARITY-PLAN in order. Highest-value next slices:
-   - **1.4** death markers + heatmap, no-build zones, keycards, recycler markers (then enable Deaths/No Build chips).
-   - **2.2 rest**: chat search, context menu (copy, Steam ID, mention, centre map), avatars, emoji.
-   - **0.5** log panel (filter, expand, safe timestamped log stream) replacing the "Activity" tab content.
-   - **4.1** notifications inbox, **4.6** shop search/trade, **3.2** hotkeys window.
-4. Record each finished slice in the PARITY-PLAN progress table with its commit, then commit + push.
+1. Setup as in the scheduled prompt; if `dotnet` is missing and dot.net is blocked, use
+   `apt-get install -y dotnet-sdk-10.0` (Ubuntu 24.04 archive, 10.0.1xx satisfies global.json rollForward).
+2. Continue PARITY-PLAN. Suggested order of small, self-contained slices:
+   - **4.6 rest**: new-shop / suspicious-shop notices (reference `DetectNewShopsAsync`, `UpdateShopLifetimes` in
+     `Views/MainWindow/Map/MainWindow.Map.Shops.cs`), then profit analysis / buy-X path finder windows.
+   - **4.1** notifications inbox (durable, unread, paging) — the activity log is the natural feed.
+   - **3.2** hotkeys window (reference hotkeys.json) with truthful per-OS availability.
+   - **2.2 rest**: avatars, emoji picker/autocomplete, quick-command chips (need chat-command profile keys).
+   - **1.4** needs the map parse/3D data (no-build zones, keycards) — do 1.6 parsing first; death markers need
+     team positions (team info X/Y is not yet in `ServerTeamMember`).
+3. Alerts/chat routing still lacks profile settings: `ChatAlertsUseClanChannel`, automated-chat master switch and
+   Discord webhooks (see `ChatViewModel.SendAutomatedAsync`). Port them with 5.1 settings.
+4. Record each slice in the PARITY-PLAN table with its commit, commit + push after every slice.
 
 ## How to work (proven patterns)
 
