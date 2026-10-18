@@ -180,7 +180,8 @@ public sealed partial class MapViewModel : ObservableObject
         using var stream = new MemoryStream(map.JpgImage, writable: false);
         var bitmap = new Bitmap(stream);
         var old = Image;
-        Geometry = new MapGeometry(bitmap.Size.Width, bitmap.Size.Height, map.WorldSize);
+        Geometry = new MapGeometry(bitmap.Size.Width, bitmap.Size.Height, map.WorldSize,
+            map.CustomImage ? MapGeometry.CustomMapPadding : MapGeometry.ServerMapPadding);
         Monuments = map.Monuments;
         Image = bitmap;
         Message = "";

@@ -120,16 +120,20 @@ public sealed class MapCacheTests
         return true;
     }, default);
 
-    private sealed class MemoryCache : IMapCache
+    internal sealed class MemoryCache : IMapCache
     {
         public Dictionary<string, CachedMap> Entries { get; } = [];
         public int Deletes { get; private set; }
         public CachedMap? Load(string host, int port) => Entries.GetValueOrDefault($"{host}:{port}");
         public void Save(string host, int port, CachedMap map) => Entries[$"{host}:{port}"] = map;
-        public void Delete(string host, int port) { Deletes++; Entries.Remove($"{host}:{port}"); }
+        public void Delete(string host, int port) { Deletes++; Entries.Remove($"{host}:{port}"); Custom.Remove($"{host}:{port}"); }
+        public Dictionary<string, byte[]> Custom { get; } = [];
+        public byte[]? LoadCustom(string host, int port) => Custom.GetValueOrDefault($"{host}:{port}");
+        public void SaveCustom(string host, int port, byte[] png) => Custom[$"{host}:{port}"] = png;
+        public void DeleteCustom(string host, int port) => Custom.Remove($"{host}:{port}");
     }
 
-    private sealed class Session(ServerMap map, DateTimeOffset? wipe) : IServerMapSession
+    internal sealed class Session(ServerMap map, DateTimeOffset? wipe) : IServerMapSession
     {
         public int Calls { get; private set; }
         public IDeviceClient Devices { get; } = new TestDeviceClient();

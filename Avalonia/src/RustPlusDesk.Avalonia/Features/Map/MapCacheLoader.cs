@@ -11,12 +11,18 @@ namespace RustPlusDesk.Avalonia.Features.Map;
 /// the ones remembered for the host). A wipe deletes the cached map and custom image and raises <see cref="WipeDetected"/>.
 /// Without a usable cache the map is read from the server and saved as PNG. The loaded map's harbors are remembered per
 /// host (ServerHarbors), and a harbor change clears that host's ServerCargoTriggers (reference BuildMonumentOverlays).
+/// With a Custom HD map URL the image is replaced by the cached or downloaded custom image; a wipe resets the URL.
 /// </summary>
 public sealed class MapCacheLoader(IMapCache cache, IAppSettingsStore? settings, Func<(string Host, int Port)?> server)
 {
     public Action<string>? Log { get; set; }
     /// <summary>Raised once per detected wipe, before the fresh map is read (reference: death log cleared, tracker reset).</summary>
     public event Action? WipeDetected;
+    /// <summary>The selected profile's Custom HD map URL (reference ServerProfile.CustomMapUrl).</summary>
+    public Func<CancellationToken, Task<string?>>? CustomMapUrl { get; set; }
+    /// <summary>Clears the profile's Custom HD map URL after a wipe.</summary>
+    public Func<CancellationToken, Task>? ResetCustomMapUrl { get; set; }
+    public ICustomMapDownloader? Downloader { get; set; }
 
     public async Task<ServerMap> LoadAsync(IServerMapSession session, CancellationToken ct)
     {
@@ -45,6 +51,14 @@ public sealed class MapCacheLoader(IMapCache cache, IAppSettingsStore? settings,
             cached = null;
             WipeDetected?.Invoke();
         }
+        string? customUrl = CustomMapUrl is { } readUrl ? (await readUrl(ct))?.Trim() : null;
+        if (isWipe && !string.IsNullOrEmpty(customUrl))
+        {
+            Log?.Invoke("[map-cache] Wipe detected; resetting Custom HD Map URL for current server profile.");
+            try { if (ResetCustomMapUrl is { } reset) await reset(ct); }
+            catch (Exception ex) when (ex is not OperationCanceledException) { Log?.Invoke("[map-cache] The Custom HD Map URL could not be reset."); }
+            customUrl = null;
+        }
 
         ServerMap map;
         if (cached is not null)
@@ -61,7 +75,42 @@ public sealed class MapCacheLoader(IMapCache cache, IAppSettingsStore? settings,
             if (saved) Log?.Invoke($"[map-cache] Saving map to disk cache ({host}:{port}).");
         }
         RememberHarbors(host, map.Monuments);
+        if (!string.IsNullOrEmpty(customUrl)) map = await ApplyCustomAsync(host, port, map, customUrl, ct);
         return map;
+    }
+
+    /// <summary>Reference "Custom HD Map Image override": cached custom image, else a download that is cached on success.</summary>
+    private async Task<ServerMap> ApplyCustomAsync(string host, int port, ServerMap map, string url, CancellationToken ct)
+    {
+        var image = await Task.Run(() => cache.LoadCustom(host, port) is { } cached ? Decode(cached) : null, ct);
+        if (image is null)
+        {
+            Log?.Invoke($"[custom-map] Downloading custom HD map image from URL: {url}");
+            byte[]? bytes = Downloader is null ? null : await Downloader.DownloadAsync(url, ct);
+            image = bytes is null ? null : await Task.Run(() => Decode(bytes), ct);
+            if (image is { } downloaded)
+            {
+                Log?.Invoke($"[custom-map] Download successful. Caching custom map image ({host}:{port}).");
+                await Task.Run(() => cache.SaveCustom(host, port, downloaded.Png), ct);
+            }
+            else Log?.Invoke("[custom-map] Failed to download image from URL. Falling back to server map.");
+        }
+        else Log?.Invoke($"[custom-map] Loaded custom HD map image from disk cache ({host}:{port}).");
+        return image is { } custom ? map with { JpgImage = custom.Png, Width = custom.Width, Height = custom.Height, CustomImage = true } : map;
+    }
+
+    /// <summary>Decodes an image and re-encodes it as PNG (reference PngBitmapEncoder); null when it is not an image.</summary>
+    private static (byte[] Png, int Width, int Height)? Decode(byte[] bytes)
+    {
+        try
+        {
+            using var input = new MemoryStream(bytes, writable: false);
+            using var bitmap = new Bitmap(input);
+            using var png = new MemoryStream();
+            bitmap.Save(png, PngBitmapEncoderOptions.Default);
+            return (png.ToArray(), bitmap.PixelSize.Width, bitmap.PixelSize.Height);
+        }
+        catch (Exception) { return null; }
     }
 
     /// <summary>Reference SaveMapCache: the image is stored as PNG with its pixel size.</summary>

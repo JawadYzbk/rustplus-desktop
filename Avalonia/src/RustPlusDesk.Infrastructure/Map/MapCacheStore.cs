@@ -63,6 +63,32 @@ public sealed class MapCacheStore(string folder) : IMapCache
         }
     }
 
+    public byte[]? LoadCustom(string host, int port)
+    {
+        try
+        {
+            string path = Path.Combine(folder, Key(host, port) + "_custom.png");
+            return File.Exists(path) ? File.ReadAllBytes(path) : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return null; }
+    }
+
+    public void SaveCustom(string host, int port, byte[] png)
+    {
+        try
+        {
+            Directory.CreateDirectory(folder);
+            File.WriteAllBytes(Path.Combine(folder, Key(host, port) + "_custom.png"), png);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* non-critical, as in the reference */ }
+    }
+
+    public void DeleteCustom(string host, int port)
+    {
+        try { File.Delete(Path.Combine(folder, Key(host, port) + "_custom.png")); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+    }
+
     /// <summary>Reference NormalizeWipeTime: a time without a UTC marker is read as local time.</summary>
     private static DateTimeOffset? Wipe(DateTime? value) => value is not { } time ? null
         : new DateTimeOffset(time.Kind == DateTimeKind.Utc ? time : time.ToUniversalTime(), TimeSpan.Zero);

@@ -67,7 +67,8 @@ public sealed partial class App : Application
                 RustPlusDesk.Infrastructure.Platform.LaunchAtLogin.ForCurrentPlatform(),
                 new RustPlusDesk.Infrastructure.Deaths.DeathLogFile(RustPlusDesk.Infrastructure.Deaths.DeathLogFile.DefaultFolder, RustPlusDesk.Infrastructure.Deaths.DeathLogFile.DefaultLegacyFolder),
                 new RustPlusDesk.Infrastructure.Alerts.AlertTemplateFile(RustPlusDesk.Infrastructure.Alerts.AlertTemplateFile.DefaultPath),
-                new RustPlusDesk.Infrastructure.Map.MapCacheStore(RustPlusDesk.Infrastructure.Map.MapCacheStore.DefaultFolder));
+                new RustPlusDesk.Infrastructure.Map.MapCacheStore(RustPlusDesk.Infrastructure.Map.MapCacheStore.DefaultFolder),
+                new LegacyCustomMapUrlStore(), new RustPlusDesk.Infrastructure.Map.HttpCustomMapDownloader());
             desktop.Exit += (_, _) => { accountHttp.Dispose(); cloudHttp.Dispose(); };
             window.DataContext = servers;
             window.Opened += async (_, _) => await servers.InitializeCommand.ExecuteAsync(null);

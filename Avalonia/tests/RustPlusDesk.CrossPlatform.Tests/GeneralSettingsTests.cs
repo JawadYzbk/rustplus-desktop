@@ -169,7 +169,7 @@ public sealed class GeneralSettingsTests
             Assert.AreEqual(true, settings.Values[SettingKeys.AutoConnectEnabled]);
             toggles.Single(t => AutomationProperties.GetName(t) == "Streamer mode").IsChecked = true;
             Assert.IsTrue(model.Map!.AbbreviateNames, "The Behavior streamer switch drives the map setting.");
-            var titles = window.GetVisualDescendants().OfType<TextBlock>().Where(t => t.Classes.Contains("title")).Select(t => t.Text).ToList();
+            var titles = window.GetVisualDescendants().OfType<TextBlock>().Where(t => t.Classes.Contains("title") && t.IsEffectivelyVisible).Select(t => t.Text).ToList();
             CollectionAssert.AreEqual(new[] { "General", "Alerts" }, titles);
             using (var frame = window.CaptureRenderedFrame())
             {

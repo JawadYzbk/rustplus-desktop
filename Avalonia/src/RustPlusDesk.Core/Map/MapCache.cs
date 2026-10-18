@@ -18,6 +18,12 @@ public interface IMapCache
     void Save(string host, int port, CachedMap map);
     /// <summary>Reference DeleteMapCache + DeleteCustomMapCache: the image, the metadata and the custom HD image.</summary>
     void Delete(string host, int port);
+    /// <summary>Reference TryLoadCustomMapCache: the cached custom HD image (PNG), or null.</summary>
+    byte[]? LoadCustom(string host, int port);
+    /// <summary>Reference SaveCustomMapCache.</summary>
+    void SaveCustom(string host, int port, byte[] png);
+    /// <summary>Reference DeleteCustomMapCache: a new URL downloads its image again.</summary>
+    void DeleteCustom(string host, int port);
 }
 
 /// <summary>A harbor monument as the reference remembers it per server (TrackingSettings.ServerHarbors, keyed by host).</summary>

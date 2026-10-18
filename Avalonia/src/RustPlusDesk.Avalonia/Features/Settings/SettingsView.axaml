@@ -2,6 +2,9 @@
              xmlns:vm="using:RustPlusDesk.Avalonia.Features.Settings"
              xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
              x:Class="RustPlusDesk.Avalonia.Features.Settings.SettingsView" x:DataType="vm:SettingsViewModel">
+  <UserControl.Styles>
+    <Style Selector="TextBlock.muted.error"><Setter Property="Foreground" Value="{DynamicResource ConnectionDanger}" /></Style>
+  </UserControl.Styles>
   <ScrollViewer x:Name="PageScroll" HorizontalScrollBarVisibility="Disabled">
     <StackPanel Spacing="14" MaxWidth="820" HorizontalAlignment="Stretch">
       <StackPanel Orientation="Horizontal" Spacing="10">
@@ -62,6 +65,31 @@
             <Slider Grid.Row="1" Grid.ColumnSpan="2" Minimum="0.5" Maximum="1.5" Value="{Binding Map.PlayerIconScale, FallbackValue=1}"
                     AutomationProperties.Name="Player icon size" />
           </Grid>
+        </StackPanel>
+      </Border>
+      <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0" IsVisible="{Binding HasCustomMap}">
+        <icons:Icon Symbol="Map24" FontSize="18" Foreground="{DynamicResource Accent}" />
+        <StackPanel>
+          <TextBlock Text="Map" Classes="title" />
+          <TextBlock Text="Map image of the selected server" Classes="muted" FontSize="12" />
+        </StackPanel>
+      </StackPanel>
+      <Border Classes="panel" Padding="16" IsVisible="{Binding HasCustomMap}">
+        <StackPanel Spacing="8">
+          <TextBlock Text="CUSTOM HD MAP IMAGE" Classes="section" />
+          <TextBlock Text="Use a custom high-definition map image from a URL source instead of the map coming from the server. Cached locally and automatically wiped when a server wipe is detected."
+                     Classes="muted" FontSize="12" TextWrapping="Wrap" />
+          <TextBlock Text="Custom Map Image URL" FontWeight="SemiBold" Margin="0,4,0,0" />
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+            <TextBox Text="{Binding CustomMap.Url, FallbackValue=''}" PlaceholderText="https://example.com/rust_map_hd.png"
+                     AutomationProperties.Name="Custom map image URL" VerticalContentAlignment="Center" />
+            <Button Grid.Column="1" Classes="primary" Content="Apply" Command="{Binding CustomMap.ApplyCommand, FallbackValue={x:Null}}"
+                    AutomationProperties.Name="Apply custom map URL" />
+            <Button Grid.Column="2" Classes="subtle" Content="Clear" Command="{Binding CustomMap.ClearCommand, FallbackValue={x:Null}}"
+                    AutomationProperties.Name="Clear custom map URL" />
+          </Grid>
+          <TextBlock Text="{Binding CustomMap.Status, FallbackValue=''}" FontSize="12" TextWrapping="Wrap"
+                     Classes="muted" Classes.error="{Binding CustomMap.IsError, FallbackValue=False}" />
         </StackPanel>
       </Border>
       <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0">

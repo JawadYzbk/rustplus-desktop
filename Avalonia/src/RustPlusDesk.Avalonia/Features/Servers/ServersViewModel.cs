@@ -30,7 +30,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Core.Notifications.INotificationHistoryStore? notificationStore = null,
     RustPlusDesk.Core.Hotkeys.IHotkeyStore? hotkeyStore = null, RustPlusDesk.Core.Settings.ILaunchAtLogin? launchAtLogin = null,
     RustPlusDesk.Core.Deaths.IDeathLog? deathLog = null, RustPlusDesk.Core.Alerts.IAlertTemplateStore? alertTemplateStore = null,
-    RustPlusDesk.Core.Map.IMapCache? mapCache = null)
+    RustPlusDesk.Core.Map.IMapCache? mapCache = null, RustPlusDesk.Core.Map.ICustomMapUrlStore? customMapUrls = null,
+    RustPlusDesk.Core.Map.ICustomMapDownloader? customMapDownloader = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -268,8 +269,11 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         {
             Map = Connection.Map,
             Activity = Activity,
-            Templates = AlertTemplates
+            Templates = AlertTemplates,
+            CustomMap = customMapUrls is null ? null : new(customMapUrls, mapCache,
+                () => SelectedServer is { } server ? (SourcePath, server) : null, ReloadAfterCustomMapChangeAsync)
         };
+        _ = model.CustomMap?.LoadAsync();
         ObserveStreamerMode();
         model.GenericAlarmPopupChanged += value => Alarms.GenericPopupEnabled = value;
         return model;
@@ -613,7 +617,16 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     private void ObserveMapCache()
     {
         if (mapCache is null) return;
-        var loader = new Map.MapCacheLoader(mapCache, appSettings, () => SelectedServer is { } server ? (server.Host, server.Port) : null) { Log = Activity.Append };
+        var loader = new Map.MapCacheLoader(mapCache, appSettings, () => SelectedServer is { } server ? (server.Host, server.Port) : null)
+        {
+            Log = Activity.Append,
+            Downloader = customMapDownloader
+        };
+        if (customMapUrls is not null)
+        {
+            loader.CustomMapUrl = ct => SelectedServer is { } server ? customMapUrls.GetAsync(SourcePath, server.ProfileKey, ct) : Task.FromResult<string?>(null);
+            loader.ResetCustomMapUrl = ct => SelectedServer is { } server ? customMapUrls.SetAsync(SourcePath, server.ProfileKey, null, ct) : Task.CompletedTask;
+        }
         loader.WipeDetected += () =>
         {
             if (deathLog is null || SelectedServer is not { } server) return;
@@ -623,6 +636,18 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             RefreshDeathHeatmap();
         };
         Connection.Map.Loader = loader.LoadAsync;
+    }
+
+    /// <summary>
+    /// Reference ReloadMapAsync after a Custom HD map change: the profiles are re-read and a live connection reconnects,
+    /// which loads the map again (the same reload the device organizer uses).
+    /// </summary>
+    private async Task ReloadAfterCustomMapChangeAsync()
+    {
+        if (shuttingDown) return;
+        bool reconnect = Connection.IsConnected;
+        await LoadAsync(SourcePath, CancellationToken.None);
+        if (reconnect && !shuttingDown && SelectedServer is not null) Connection.ConnectCommand.Execute(null);
     }
 
     /// <summary>Reference RedrawDeathHeatmap: reloads the selected server's death positions while the heatmap is on.</summary>
@@ -667,6 +692,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             && appSettings.Get(RustPlusDesk.Core.Settings.SettingKeys.LastSelectedServerKey, "") != value.MatchKey)
             appSettings.Set(RustPlusDesk.Core.Settings.SettingKeys.LastSelectedServerKey, value.MatchKey);
         Hotkeys.SelectServer(value?.Host, value?.Port);
+        _ = settingsPage?.CustomMap?.LoadAsync();
         ImportDevicesCommand.NotifyCanExecuteChanged();
     }
     [ObservableProperty]
