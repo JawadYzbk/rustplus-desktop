@@ -37,9 +37,8 @@ every finished slice with its commit.
    - **5.1** settings overlay: retention days, toasts/sounds, muted-server list (unmute), streamer mode.
 3. Alerts/chat routing still lacks profile settings: `ChatAlertsUseClanChannel`, team feature master (automated
    chat blocked by another member), Discord webhooks (see `ChatViewModel.SendAutomatedAsync`). Port with 5.1/2.4.
-4. Design-system finding (not yet fixed): `Shared/Icons/Icon` overrides `StyleKey` to `TextBlock`, so selectors
-   written as `icons|Icon` (in Components.axaml for Button.icon/subtle, chip, nav) never match; icons only inherit
-   the parent's Foreground. Use `TextBlock.someClass` on icons (as NotificationsView does) or fix the control.
+4. Design system: `icons|Icon` selectors now work (Icon keeps its own style key since this run); style icons with
+   `icons|Icon.someClass`, not `TextBlock.someClass`.
 5. Record each slice in the PARITY-PLAN table with its commit, commit + push after every slice.
 
 ## How to work (proven patterns)

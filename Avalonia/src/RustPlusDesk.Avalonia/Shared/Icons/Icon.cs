@@ -6,7 +6,8 @@ namespace RustPlusDesk.Avalonia.Shared.Icons;
 
 /// <summary>
 /// Fluent System Icons glyph by reference symbol name, e.g. <c>Symbol="People24"</c>; the same names the
-/// WPF app used through WPF-UI, so ported screens keep their icon vocabulary. Colour follows Foreground.
+/// WPF app used through WPF-UI, so ported screens keep their icon vocabulary. Colour follows Foreground; styles
+/// select it as <c>icons|Icon</c> (it keeps its own style key, so TextBlock styles do not reach it).
 /// </summary>
 public sealed class Icon : TextBlock
 {
@@ -26,6 +27,4 @@ public sealed class Icon : TextBlock
         HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Center;
         Text = char.ConvertFromUtf32((int)Symbol);
     }
-
-    protected override Type StyleKeyOverride => typeof(TextBlock);
 }

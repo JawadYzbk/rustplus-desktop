@@ -114,8 +114,8 @@
       <Setter Property="Foreground" Value="{DynamicResource Accent}" />
       <Setter Property="BorderThickness" Value="0" />
     </Style>
-    <Style Selector="TextBlock.alarm"><Setter Property="Foreground" Value="{DynamicResource ConnectionDanger}" /></Style>
-    <Style Selector="TextBlock.death"><Setter Property="Foreground" Value="{DynamicResource Highlight}" /></Style>
+    <Style Selector="icons|Icon.alarm"><Setter Property="Foreground" Value="{DynamicResource ConnectionDanger}" /></Style>
+    <Style Selector="icons|Icon.death"><Setter Property="Foreground" Value="{DynamicResource Highlight}" /></Style>
     <Style Selector="Border.confirm">
       <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
       <Setter Property="CornerRadius" Value="8" />
