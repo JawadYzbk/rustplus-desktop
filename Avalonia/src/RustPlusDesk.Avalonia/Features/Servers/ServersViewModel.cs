@@ -550,12 +550,24 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             deathRecorder = new(deathLog, () => SelectedServer is { } server ? Teams.DeathRecorder.KeyFor(server.Host, server.Port) : null,
                 () => Connection.Map.Monuments, () => Connection.Map.Geometry?.WorldSize ?? 0);
             Connection.Team.SnapshotRead += snapshot => deathRecorder.Observe(snapshot);
+            // Reference ProcessDeathsAsync: a new death shows up on the heatmap live.
+            deathRecorder.Recorded += _ => RefreshDeathHeatmap();
         }
         ApplyStreamerMode(Connection.Map.AbbreviateNames, starting: true);
         Connection.Map.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(Map.MapViewModel.AbbreviateNames)) ApplyStreamerMode(Connection.Map.AbbreviateNames, starting: false);
+            else if (args.PropertyName is nameof(Map.MapViewModel.ShowDeathHeatmap) or nameof(Map.MapViewModel.Geometry)) RefreshDeathHeatmap();
         };
+    }
+
+    /// <summary>Reference RedrawDeathHeatmap: reloads the selected server's death positions while the heatmap is on.</summary>
+    public void RefreshDeathHeatmap()
+    {
+        Connection.Map.DeathPositions = Connection.Map.ShowDeathHeatmap && deathLog is not null && SelectedServer is { } server
+            ? RustPlusDesk.Core.Deaths.DeathStats.ParsePositions(deathLog.ReadLines(Teams.DeathRecorder.KeyFor(server.Host, server.Port)))
+                .Select(p => new Map.Point2(p.X, p.Y)).ToArray()
+            : [];
     }
 
     private void ApplyStreamerMode(bool on, bool starting)
@@ -585,6 +597,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             };
         }
         Connection.Select(SourcePath, value);
+        RefreshDeathHeatmap();
         // Reference MainViewModel.Selected: remember the choice so the next start restores it.
         if (value is { MatchKey.Length: > 0 } && appSettings is not null
             && appSettings.Get(RustPlusDesk.Core.Settings.SettingKeys.LastSelectedServerKey, "") != value.MatchKey)

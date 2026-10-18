@@ -32,6 +32,10 @@
                           ToolTip.Tip="Show vending machines" AutomationProperties.Name="Shops">
               <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Cart24" FontSize="16" /><TextBlock Text="Shops" /></StackPanel>
             </ToggleButton>
+            <ToggleButton Classes="chip" IsChecked="{Binding Connection.Map.ShowDeathHeatmap}" IsEnabled="{Binding Connection.Map.HasMap}" IsVisible="{Binding HasDeathStats}"
+                          ToolTip.Tip="Show a heatmap of the deaths logged on this server" AutomationProperties.Name="Deaths">
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="HeartBroken24" FontSize="16" /><TextBlock Text="Deaths" /></StackPanel>
+            </ToggleButton>
             <ToggleButton Classes="chip" IsChecked="{Binding Connection.Map.AbbreviateNames}"
                           ToolTip.Tip="Streamer mode: abbreviate player names and Steam IDs and hide server names" AutomationProperties.Name="Streamer mode">
               <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Incognito24" FontSize="16" /><TextBlock Text="Streamer" /></StackPanel>
@@ -86,7 +90,8 @@
                         Markers="{Binding Connection.Map.Markers}" ShowPlayers="{Binding Connection.Map.ShowPlayers}" ShowShops="{Binding Connection.Map.ShowShops}"
                         ShowMonuments="{Binding Connection.Map.ShowMonuments}" ResetRequest="{Binding Connection.Map.ViewResetRequest}"
                         FocusRequest="{Binding Connection.Map.FocusRequest}" AbbreviateNames="{Binding Connection.Map.AbbreviateNames}"
-                        PlayerScale="{Binding Connection.Map.PlayerIconScale}"
+                        PlayerScale="{Binding Connection.Map.PlayerIconScale}" ShowDeathHeatmap="{Binding Connection.Map.ShowDeathHeatmap}"
+                        DeathPositions="{Binding Connection.Map.DeathPositions}"
                         IsVisible="{Binding Connection.Map.HasMap}" AutomationProperties.Name="Server map" />
         <ScrollViewer HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding !Connection.Map.HasMap}" Margin="20">
         <Border Classes="card" MaxWidth="360" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center">

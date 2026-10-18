@@ -171,6 +171,47 @@ public sealed class DeathStatsTests
         return true;
     }, default);
 
+    [TestMethod]
+    public async Task DeathHeatmap_LoadsTheSelectedServersPositionsWhileOn_AndPersists() => await UiTestSession.Current.Dispatch(async () =>
+    {
+        string root = Path.Combine(Path.GetTempPath(), "rpd-heat-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(root);
+            var log = new DeathLogFile(root);
+            File.WriteAllLines(log.PathFor("1.2.3.4-28082"), SampleLog());
+            var settings = new ShopNoticeTests.MemorySettings();
+            var shell = new ServersViewModel(new OneServer(), new NoPicker(), "profiles.json", new UnusedSessionFactory(), appSettings: settings, deathLog: log);
+            await shell.RefreshCommand.ExecuteAsync(null);
+            Assert.AreEqual(0, shell.Connection.Map.DeathPositions.Count, "Off by default: nothing is read.");
+            shell.Connection.Map.ShowDeathHeatmap = true;
+            Assert.AreEqual(true, settings.Values[RustPlusDesk.Core.Settings.SettingKeys.MapShowDeathHeatmap]);
+            Assert.AreEqual(4, shell.Connection.Map.DeathPositions.Count);
+            shell.Deaths!.Observe(new([new("7", "Eve", true, true)], [], []));
+            shell.Deaths.Observe(new([new("7", "Eve", true, false) { DeathTime = 99, X = 5, Y = 6 }], [], []));
+            Assert.AreEqual(5, shell.Connection.Map.DeathPositions.Count, "A new death shows up live.");
+            Assert.AreEqual(new RustPlusDesk.Avalonia.Features.Map.Point2(5, 6), shell.Connection.Map.DeathPositions[^1]);
+            shell.Connection.Map.ShowDeathHeatmap = false;
+            Assert.AreEqual(0, shell.Connection.Map.DeathPositions.Count);
+
+            var map = new RustPlusDesk.Avalonia.Features.Map.MapViewModel();
+            map.Apply(MapTests.SyntheticMap());
+            var surface = new RustPlusDesk.Avalonia.Features.Map.MapSurface { Image = map.Image, Geometry = map.Geometry, ShowDeathHeatmap = true,
+                DeathPositions = [new(2200, 2300), new(2230, 2300), new(2260, 2330), new(1200, 3200)] };
+            var window = new Window { Width = 900, Height = 700, Content = surface };
+            try
+            {
+                window.Show();
+                using var frame = window.CaptureRenderedFrame();
+                Assert.IsNotNull(frame);
+                frame.Save(Path.Combine(AppContext.BaseDirectory, "ui-map-death-heatmap.png"), PngBitmapEncoderOptions.Default);
+            }
+            finally { window.Close(); }
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+        return true;
+    }, default);
+
     private sealed class OneServer : IServerCatalog
     {
         public Task<IReadOnlyList<ServerSummary>> LoadAsync(string path, CancellationToken cancellationToken = default) =>

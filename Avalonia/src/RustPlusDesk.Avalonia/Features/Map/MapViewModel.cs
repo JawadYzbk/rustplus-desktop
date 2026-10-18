@@ -6,6 +6,9 @@ using RustPlusDesk.Core.Settings;
 
 namespace RustPlusDesk.Avalonia.Features.Map;
 
+/// <summary>A point in world coordinates.</summary>
+public readonly record struct Point2(double X, double Y);
+
 /// <summary>
 /// The connected server's map: image, world geometry and monuments. Loaded once per connection, like the
 /// reference; a failed load is retried so a slow server does not leave the workspace blank.
@@ -68,6 +71,10 @@ public sealed partial class MapViewModel : ObservableObject
     /// <summary>Reference player icon size (MapPlayerIconScale), 50–150 %.</summary>
     [ObservableProperty] private double playerIconScale = 1.0;
     public const double MinPlayerIconScale = 0.5, MaxPlayerIconScale = 1.5;
+    /// <summary>Reference "Deaths" toolbar toggle (MapShowDeathHeatmap): a heatmap of the server's logged deaths.</summary>
+    [ObservableProperty] private bool showDeathHeatmap;
+    /// <summary>World positions of the selected server's logged deaths (reference DeathLogStore.LoadPositions).</summary>
+    [ObservableProperty] private IReadOnlyList<Point2> deathPositions = [];
     [ObservableProperty] private bool isLayersOpen;
     public IReadOnlyList<string> MonumentStyles { get; } = ["Icons", "Names"];
     public bool ShowMonumentNames => MonumentDisplayMode == 1;
@@ -84,6 +91,7 @@ public sealed partial class MapViewModel : ObservableObject
         AutoLoadShops = store.Get(SettingKeys.AutoLoadShops, true);
         AbbreviateNames = store.Get(SettingKeys.MapAbbreviateNames, false);
         PlayerIconScale = store.Get(SettingKeys.MapPlayerIconScale, 1.0);
+        ShowDeathHeatmap = store.Get(SettingKeys.MapShowDeathHeatmap, false);
         ShowShops = AutoLoadShops;
         settings = store;
     }
@@ -94,6 +102,7 @@ public sealed partial class MapViewModel : ObservableObject
     partial void OnGridOpacityChanged(double value) => settings?.Set(SettingKeys.MapGridOpacity, value);
     partial void OnAutoLoadShopsChanged(bool value) => settings?.Set(SettingKeys.AutoLoadShops, value);
     partial void OnAbbreviateNamesChanged(bool value) => settings?.Set(SettingKeys.MapAbbreviateNames, value);
+    partial void OnShowDeathHeatmapChanged(bool value) => settings?.Set(SettingKeys.MapShowDeathHeatmap, value);
     partial void OnPlayerIconScaleChanged(double value)
     {
         double clamped = double.IsFinite(value) ? Math.Clamp(value, MinPlayerIconScale, MaxPlayerIconScale) : 1.0;

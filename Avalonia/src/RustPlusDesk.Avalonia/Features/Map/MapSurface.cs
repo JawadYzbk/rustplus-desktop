@@ -30,6 +30,8 @@ public sealed class MapSurface : Control
     public static readonly StyledProperty<bool> MonumentNamesProperty = AvaloniaProperty.Register<MapSurface, bool>(nameof(MonumentNames));
     public static readonly StyledProperty<bool> AbbreviateNamesProperty = AvaloniaProperty.Register<MapSurface, bool>(nameof(AbbreviateNames));
     public static readonly StyledProperty<double> PlayerScaleProperty = AvaloniaProperty.Register<MapSurface, double>(nameof(PlayerScale), 1.0);
+    public static readonly StyledProperty<bool> ShowDeathHeatmapProperty = AvaloniaProperty.Register<MapSurface, bool>(nameof(ShowDeathHeatmap));
+    public static readonly StyledProperty<IReadOnlyList<Point2>?> DeathPositionsProperty = AvaloniaProperty.Register<MapSurface, IReadOnlyList<Point2>?>(nameof(DeathPositions));
     public static readonly StyledProperty<int> ResetRequestProperty = AvaloniaProperty.Register<MapSurface, int>(nameof(ResetRequest));
     public static readonly StyledProperty<MapFocus?> FocusRequestProperty = AvaloniaProperty.Register<MapSurface, MapFocus?>(nameof(FocusRequest));
 
@@ -52,6 +54,9 @@ public sealed class MapSurface : Control
     public bool ShowShops { get => GetValue(ShowShopsProperty); set => SetValue(ShowShopsProperty, value); }
     /// <summary>Streamer mode: player labels and hover names keep only their first character.</summary>
     public bool AbbreviateNames { get => GetValue(AbbreviateNamesProperty); set => SetValue(AbbreviateNamesProperty, value); }
+    public bool ShowDeathHeatmap { get => GetValue(ShowDeathHeatmapProperty); set => SetValue(ShowDeathHeatmapProperty, value); }
+    /// <summary>World positions drawn as the death heatmap.</summary>
+    public IReadOnlyList<Point2>? DeathPositions { get => GetValue(DeathPositionsProperty); set => SetValue(DeathPositionsProperty, value); }
     /// <summary>Player marker size factor (reference MapPlayerIconScale).</summary>
     public double PlayerScale { get => GetValue(PlayerScaleProperty); set => SetValue(PlayerScaleProperty, value); }
 
@@ -75,7 +80,7 @@ public sealed class MapSurface : Control
     {
         AffectsRender<MapSurface>(ImageProperty, GeometryProperty, MonumentsProperty, ShowGridProperty, ShowMonumentsProperty,
             MarkersProperty, ShowPlayersProperty, ShowShopsProperty, MonumentScaleProperty, MonumentOpacityProperty, GridOpacityProperty, MonumentNamesProperty,
-            AbbreviateNamesProperty, PlayerScaleProperty);
+            AbbreviateNamesProperty, PlayerScaleProperty, ShowDeathHeatmapProperty, DeathPositionsProperty);
         ClipToBoundsProperty.OverrideDefaultValue<MapSurface>(true);
         FocusableProperty.OverrideDefaultValue<MapSurface>(true);
     }
@@ -222,11 +227,37 @@ public sealed class MapSurface : Control
             context.DrawImage(image, new Rect(image.Size));
             if (ShowGrid && Geometry is { WorldSize: > 0 } geometry)
                 using (context.PushOpacity(GridOpacity)) DrawGrid(context, geometry);
+            // Reference: above the map and grid, below monuments and markers.
+            if (ShowDeathHeatmap && Geometry is { WorldSize: > 0 } heat && DeathPositions is { Count: > 0 } deaths) DrawDeathHeatmap(context, heat, deaths);
         }
         if (ShowMonuments && Geometry is { } world && Monuments is { Count: > 0 } monuments)
             using (context.PushOpacity(MonumentOpacity)) DrawMonuments(context, world, monuments);
         if (Geometry is { } live && Markers is { Count: > 0 } markers) DrawMarkers(context, live, markers);
         if (Geometry is { } labelled) DrawHoverLabel(context, labelled);
+    }
+
+    /// <summary>Influence radius of one death in world units; overlapping blobs blend so dense areas glow hotter.</summary>
+    public const double DeathHeatWorldRadius = 90.0;
+    private static readonly RadialGradientBrush DeathHeatBrush = new()
+    {
+        GradientStops =
+        {
+            new GradientStop(Color.FromArgb(150, 255, 60, 0), 0.0),
+            new GradientStop(Color.FromArgb(70, 255, 130, 0), 0.55),
+            new GradientStop(Color.FromArgb(0, 255, 170, 0), 1.0),
+        }
+    };
+
+    /// <summary>Reference RedrawDeathHeatmap: one radial blob per logged death, drawn in image space so it pans and zooms.</summary>
+    private static void DrawDeathHeatmap(DrawingContext context, MapGeometry geometry, IReadOnlyList<Point2> deaths)
+    {
+        double radius = Math.Abs(geometry.WorldToImage(DeathHeatWorldRadius, 0).X - geometry.WorldToImage(0, 0).X);
+        if (radius <= 0) radius = 30;
+        foreach (var death in deaths)
+        {
+            var (x, y) = geometry.WorldToImage(death.X, death.Y);
+            context.DrawEllipse(DeathHeatBrush, null, new Point(x, y), radius, radius);
+        }
     }
 
     private bool IsShown(MapMarker marker) => marker.Kind switch
