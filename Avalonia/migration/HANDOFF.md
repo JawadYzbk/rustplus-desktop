@@ -6,9 +6,9 @@ every finished slice with its commit.
 
 ## Where things stand (scheduled run, 2026-10-18, Linux cloud container)
 
-- Branch `codex/avalonia-migration`, pushed to `origin`. Latest code commit: `e64d1258` (docs follow).
+- Branch `codex/avalonia-migration`, pushed to `origin`. Latest code commit: `89a3ceca` (docs follow).
   Only `Avalonia/` changes. The branch also carries merges from `beta` (WPF-side changes, e.g. server-delete cleanup).
-- **561 tests pass** (Debug, zero warnings) on Linux with the .NET 10.0.112 SDK from Ubuntu's archive
+- **569 tests pass** (Debug, zero warnings) on Linux with the .NET 10.0.112 SDK from Ubuntu's archive
   (`apt-get update && apt-get install -y dotnet-sdk-10.0`; dotnet-install.sh is blocked by the proxy).
 - Done this run, in order (each in the PARITY-PLAN progress table):
   1. `38272535` AFK / AFK-return chat alerts: Core `AfkTracker` (0.05 m move, 5 min "AFK: m:ss" text on the team
@@ -32,6 +32,10 @@ every finished slice with its commit.
   8. `7bc4a26b` profile WipeTime write-back on every map load (`LegacyProfileWipeTimeStore`), fallback for the cache check.
   9. `e64d1258` Steam avatars (`SteamCommunityAvatarSource`, `AvatarCache` with 30 s retry) on the team dock, map player
      markers (MapShowSteamMarkers, Layers) and death pin heads.
+  10. `f02de809` player direction arrows (`PlayerHeadings`, MapShowPlayerArrows, Layers).
+  11. `4e58252d` Deep Sea announcement (`DeepSeaTracker`: "Casino Bar Shopkeeper" vending marker, AnnounceDeepSea).
+  12. `89a3ceca` cargo ship announcements (`CargoTracker` + `SettingsCargoMemory`: spawn, docking, learned arrival
+      trigger points, departure warning, learned docking duration/full run; "Cargo Ship" alert submenu).
 - Shared helpers added: `LegacyProfileStore.FindProfile` (profile by identity key), `IProfileFlagStore` for boolean
   profile fields, `CloudApiClient.DeleteAsync`.
 - Deliberately not ported (unchanged): notification sounds, Reduce UI effects, start minimized / close to tray (8.1).
@@ -46,7 +50,9 @@ every finished slice with its commit.
      which have an Avalonia equivalent; none may be inert).
    - **Team feature master** (reference MainWindow.TeamFeatureMaster: CanSendAutomatedTeamChat blocks automated chat
      when another team member is the chat master) — needs the cloud presence publication (2.4).
-   - **Cargo / oil rig / deep sea announcements** (AnnounceCargo*, AnnounceOilRig, AnnounceDeepSea flags are read-only so far).
+   - **Oil rig announcements** (reference MonumentWatcher OnOilRigTriggered/OnOilRigChatUpdate: Chinook at a rig → crate
+     timer, 10/5 min updates; AnnounceOilRig is the last read-only event flag) and the **event dock** timers
+     (cargo/heli/deep sea spawn times), then ghost (predicted) cargo markers.
    - **Team chat commands** (reference ChatCommandsOverlay, CmdAfk etc., profile command names).
 3. Shell wiring note: ServersViewModel is a primary-constructor class; cross-feature objects are created in
    `ObserveStreamerMode()` (first server selection, Notifications/Settings factories) and per-server reloads go in
