@@ -13,8 +13,8 @@ public static class ChatAlertSettings
     [
         "AnnounceCargo", "AnnounceCargoDocking", "AnnounceCargoEgress", "AnnounceCargoArrival",
         SettingKeys.AnnounceHeli, SettingKeys.AnnounceChinook, SettingKeys.AnnounceVendor, "AnnounceOilRig", "AnnounceDeepSea",
-        "AnnouncePlayerOnline", "AnnouncePlayerOffline", "AnnouncePlayerAfk", "AnnouncePlayerAfkReturn",
-        "AnnouncePlayerDeathSelf", "AnnouncePlayerDeathTeam", "AnnouncePlayerRespawnSelf", "AnnouncePlayerRespawnTeam",
+        SettingKeys.AnnouncePlayerOnline, SettingKeys.AnnouncePlayerOffline, "AnnouncePlayerAfk", "AnnouncePlayerAfkReturn",
+        SettingKeys.AnnouncePlayerDeathSelf, SettingKeys.AnnouncePlayerDeathTeam, SettingKeys.AnnouncePlayerRespawnSelf, SettingKeys.AnnouncePlayerRespawnTeam,
         "AnnounceTracking", SettingKeys.AnnounceNewShops, SettingKeys.AnnounceSuspiciousShops,
         "AnnounceSmartAlerts", "AnnounceTradeAlerts"
     ];

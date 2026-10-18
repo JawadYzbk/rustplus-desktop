@@ -32,6 +32,12 @@ public static class SettingKeys
     public const string AnnounceHeli = "AnnounceHeli";                     // default false
     public const string AnnounceChinook = "AnnounceChinook";               // default false
     public const string AnnounceVendor = "AnnounceVendor";                 // default false
+    public const string AnnouncePlayerOnline = "AnnouncePlayerOnline";     // default false
+    public const string AnnouncePlayerOffline = "AnnouncePlayerOffline";   // default false
+    public const string AnnouncePlayerDeathSelf = "AnnouncePlayerDeathSelf"; // default false
+    public const string AnnouncePlayerDeathTeam = "AnnouncePlayerDeathTeam"; // default false
+    public const string AnnouncePlayerRespawnSelf = "AnnouncePlayerRespawnSelf"; // default false
+    public const string AnnouncePlayerRespawnTeam = "AnnouncePlayerRespawnTeam"; // default false
     public const string AnnounceSuspiciousShops = "AnnounceSuspiciousShops"; // default false
     public const string NotificationsRetentionDays = "NotificationsRetentionDays"; // default 30 (<= 0 means 30)
     public const string MutedNotificationServers = "MutedNotificationServers";     // list of "host:port"

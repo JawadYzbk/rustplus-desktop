@@ -22,6 +22,7 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     private bool newShops;
     private bool suspiciousShops;
     private bool heli, chinook, vendor;
+    private bool playerOnline, playerOffline, deathSelf, deathTeam, respawnSelf, respawnTeam;
 
     public ChatAlertsViewModel(IAppSettingsStore? settings, ShopAlertsViewModel shopAlerts)
     {
@@ -33,6 +34,12 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
         heli = settings?.Get(SettingKeys.AnnounceHeli, false) ?? false;
         chinook = settings?.Get(SettingKeys.AnnounceChinook, false) ?? false;
         vendor = settings?.Get(SettingKeys.AnnounceVendor, false) ?? false;
+        playerOnline = settings?.Get(SettingKeys.AnnouncePlayerOnline, false) ?? false;
+        playerOffline = settings?.Get(SettingKeys.AnnouncePlayerOffline, false) ?? false;
+        deathSelf = settings?.Get(SettingKeys.AnnouncePlayerDeathSelf, false) ?? false;
+        deathTeam = settings?.Get(SettingKeys.AnnouncePlayerDeathTeam, false) ?? false;
+        respawnSelf = settings?.Get(SettingKeys.AnnouncePlayerRespawnSelf, false) ?? false;
+        respawnTeam = settings?.Get(SettingKeys.AnnouncePlayerRespawnTeam, false) ?? false;
         shopAlerts.Rules.CollectionChanged += RulesChanged;
         RulesChanged(null, new(NotifyCollectionChangedAction.Reset));
     }
@@ -46,6 +53,15 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     public bool AnnounceHeli => master && heli;
     public bool AnnounceChinook => master && chinook;
     public bool AnnounceVendor => master && vendor;
+    public bool AnnouncePlayerOnline => master && playerOnline;
+    public bool AnnouncePlayerOffline => master && playerOffline;
+    public bool AnnouncePlayerDeathSelf => master && deathSelf;
+    public bool AnnouncePlayerDeathTeam => master && deathTeam;
+    public bool AnnouncePlayerRespawnSelf => master && respawnSelf;
+    public bool AnnouncePlayerRespawnTeam => master && respawnTeam;
+    /// <summary>The player-presence flags as the announcer needs them (master already applied).</summary>
+    public PresenceAlertFlags PresenceFlags => new(AnnouncePlayerOnline, AnnouncePlayerOffline, AnnouncePlayerDeathSelf, AnnouncePlayerDeathTeam,
+        AnnouncePlayerRespawnSelf, AnnouncePlayerRespawnTeam);
 
     public int EnabledCount => settings is null ? Local() : ChatAlertSettings.EnabledCount(settings);
     public bool ShowCountBadge => master && EnabledCount > 0;
@@ -79,6 +95,12 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     [RelayCommand] private void ToggleHeli() => Flip(ref heli, SettingKeys.AnnounceHeli);
     [RelayCommand] private void ToggleChinook() => Flip(ref chinook, SettingKeys.AnnounceChinook);
     [RelayCommand] private void ToggleVendor() => Flip(ref vendor, SettingKeys.AnnounceVendor);
+    [RelayCommand] private void TogglePlayerOnline() => Flip(ref playerOnline, SettingKeys.AnnouncePlayerOnline);
+    [RelayCommand] private void TogglePlayerOffline() => Flip(ref playerOffline, SettingKeys.AnnouncePlayerOffline);
+    [RelayCommand] private void ToggleDeathSelf() => Flip(ref deathSelf, SettingKeys.AnnouncePlayerDeathSelf);
+    [RelayCommand] private void ToggleDeathTeam() => Flip(ref deathTeam, SettingKeys.AnnouncePlayerDeathTeam);
+    [RelayCommand] private void ToggleRespawnSelf() => Flip(ref respawnSelf, SettingKeys.AnnouncePlayerRespawnSelf);
+    [RelayCommand] private void ToggleRespawnTeam() => Flip(ref respawnTeam, SettingKeys.AnnouncePlayerRespawnTeam);
 
     /// <summary>
     /// Reference SelectAllAlerts_Click: every flag on, then the master on. Only the flags of ported alerts are written;
@@ -102,8 +124,11 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     private void SetAll(bool value)
     {
         newShops = suspiciousShops = heli = chinook = vendor = value;
+        playerOnline = playerOffline = deathSelf = deathTeam = respawnSelf = respawnTeam = value;
         foreach (string key in new[] { SettingKeys.AnnounceNewShops, SettingKeys.AnnounceSuspiciousShops, SettingKeys.AnnounceHeli,
-                     SettingKeys.AnnounceChinook, SettingKeys.AnnounceVendor })
+                     SettingKeys.AnnounceChinook, SettingKeys.AnnounceVendor, SettingKeys.AnnouncePlayerOnline, SettingKeys.AnnouncePlayerOffline,
+                     SettingKeys.AnnouncePlayerDeathSelf, SettingKeys.AnnouncePlayerDeathTeam, SettingKeys.AnnouncePlayerRespawnSelf,
+                     SettingKeys.AnnouncePlayerRespawnTeam })
             settings?.Set(key, value);
     }
 
@@ -138,12 +163,14 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
         Refresh();
     }
 
-    private int Local() => new[] { newShops, suspiciousShops, heli, chinook, vendor }.Count(flag => flag);
+    private int Local() => new[] { newShops, suspiciousShops, heli, chinook, vendor, playerOnline, playerOffline, deathSelf, deathTeam,
+        respawnSelf, respawnTeam }.Count(flag => flag);
 
     private void Refresh()
     {
         foreach (string name in new[] { nameof(IsMasterOn), nameof(AnnounceNewShops), nameof(AnnounceSuspiciousShops), nameof(AnnounceHeli), nameof(AnnounceChinook),
-                     nameof(AnnounceVendor), nameof(EnabledCount),
+                     nameof(AnnounceVendor), nameof(AnnouncePlayerOnline), nameof(AnnouncePlayerOffline), nameof(AnnouncePlayerDeathSelf),
+                     nameof(AnnouncePlayerDeathTeam), nameof(AnnouncePlayerRespawnSelf), nameof(AnnouncePlayerRespawnTeam), nameof(EnabledCount),
                      nameof(ShowCountBadge), nameof(ShowEmptyDot), nameof(CountText), nameof(MasterTip) })
             OnPropertyChanged(name);
     }

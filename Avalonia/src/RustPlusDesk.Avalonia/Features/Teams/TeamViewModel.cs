@@ -32,7 +32,9 @@ public sealed partial class TeamViewModel : ObservableObject
     [RelayCommand] private void Toggle() => IsExpanded = !IsExpanded;
     /// <summary>Raised for every successful team read (reference LoadTeamAsync feeds the death tracker).</summary>
     public event Action<ServerTeamSnapshot>? SnapshotRead;
-    public void Reset() { Members = []; Message = "Connect to a server to see its team."; }
+    /// <summary>Raised when the roster is reset (connection teardown); per-connection trackers start over.</summary>
+    public event Action? Cleared;
+    public void Reset() { Members = []; Message = "Connect to a server to see its team."; Cleared?.Invoke(); }
 
     public async Task RunAsync(IServerTeamSession session, CancellationToken ct)
     {

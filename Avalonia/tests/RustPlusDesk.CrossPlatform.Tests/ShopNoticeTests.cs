@@ -118,7 +118,8 @@ public sealed class ShopNoticeTests
         model.SelectAllCommand.Execute(null);
         Assert.IsTrue(model.IsMasterOn, "Select all turns the master on.");
         Assert.IsTrue(model.AnnounceHeli && model.AnnounceChinook && model.AnnounceVendor && model.AnnounceNewShops && model.AnnounceSuspiciousShops);
-        Assert.AreEqual(5, model.EnabledCount);
+        Assert.AreEqual(new PresenceAlertFlags(true, true, true, true, true, true), model.PresenceFlags);
+        Assert.AreEqual(11, model.EnabledCount);
         Assert.IsFalse(settings.Values.ContainsKey("AnnounceCargo"), "Flags of unported alerts are only read.");
 
         model.DeselectAllCommand.Execute(null);
@@ -257,10 +258,12 @@ public sealed class ShopNoticeTests
                 flyout.ShowAt(menuButton);
                 window.UpdateLayout();
                 var items = flyout.Items.OfType<MenuItem>().ToList();
-                CollectionAssert.AreEqual(new[] { "Select all", "Deselect all", "Events", "Patrol Helicopter", "Chinook (CH47)", "Travelling Vendor", "Shops", "New shops", "Suspicious shops", "Trade alerts" },
+                CollectionAssert.AreEqual(new[] { "Select all", "Deselect all", "Events", "Patrol Helicopter", "Chinook (CH47)", "Travelling Vendor", "Players", "Online Status", "Offline Status",
+                    "Self Death", "Team Death", "Self Respawn", "Team Respawn", "Shops", "New shops", "Suspicious shops", "Trade alerts" },
                     items.Select(item => (string)item.Header!).ToArray());
                 Assert.IsTrue(items[0].IsEnabled && items[1].IsEnabled, "Select all / Deselect all work whatever the master state.");
-                items = items.Skip(2).ToList();
+                Assert.IsFalse(items[8].IsChecked == true, "Player flags start off.");
+                items = items.Skip(2).Take(4).Concat(items.Skip(13)).ToList();
                 Assert.IsTrue(items[5].IsChecked);
                 Assert.IsFalse(items[6].IsChecked);
                 Assert.IsTrue(items[7].IsEnabled);

@@ -59,6 +59,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     public Alerts.ChatAlertsViewModel ChatAlerts => chatAlerts ??= CreateChatAlerts();
     public Shops.ShopNoticesViewModel? ShopNotices { get; private set; }
     public Alerts.EventAnnouncer? EventAnnouncer { get; private set; }
+    public Alerts.PresenceAnnouncer? PresenceAnnouncer { get; private set; }
 
     private Alerts.ChatAlertsViewModel CreateChatAlerts()
     {
@@ -70,6 +71,11 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             SendTeamChat = text => Connection.Chat.SendAutomatedAsync(text)
         };
         EventAnnouncer = new(Connection.Map, alerts)
+        {
+            Log = Activity.Append,
+            SendTeamChat = text => Connection.Chat.SendAutomatedAsync(text)
+        };
+        PresenceAnnouncer = new(Connection.Team, Connection.Map, alerts, () => Account?.Account.SteamId)
         {
             Log = Activity.Append,
             SendTeamChat = text => Connection.Chat.SendAutomatedAsync(text)

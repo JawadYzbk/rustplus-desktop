@@ -48,6 +48,20 @@
               <MenuItem Header="Travelling Vendor" ToggleType="CheckBox" IsChecked="{Binding AnnounceVendor, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleVendorCommand}" />
               <Separator />
+              <MenuItem Header="Players" IsEnabled="False" />
+              <MenuItem Header="Online Status" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerOnline, Mode=OneWay}"
+                        IsEnabled="{Binding IsMasterOn}" Command="{Binding TogglePlayerOnlineCommand}" />
+              <MenuItem Header="Offline Status" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerOffline, Mode=OneWay}"
+                        IsEnabled="{Binding IsMasterOn}" Command="{Binding TogglePlayerOfflineCommand}" />
+              <MenuItem Header="Self Death" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerDeathSelf, Mode=OneWay}"
+                        IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleDeathSelfCommand}" />
+              <MenuItem Header="Team Death" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerDeathTeam, Mode=OneWay}"
+                        IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleDeathTeamCommand}" />
+              <MenuItem Header="Self Respawn" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerRespawnSelf, Mode=OneWay}"
+                        IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleRespawnSelfCommand}" />
+              <MenuItem Header="Team Respawn" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerRespawnTeam, Mode=OneWay}"
+                        IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleRespawnTeamCommand}" />
+              <Separator />
               <MenuItem Header="Shops" IsEnabled="False" />
               <MenuItem Header="New shops" ToggleType="CheckBox" IsChecked="{Binding AnnounceNewShops, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleNewShopsCommand}" />
