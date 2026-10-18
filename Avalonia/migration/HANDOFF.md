@@ -6,9 +6,9 @@ every finished slice with its commit.
 
 ## Where things stand (scheduled run, 2026-10-18, Linux cloud container)
 
-- Branch `codex/avalonia-migration`, pushed to `origin`. Latest code commit: `4aeabc52` (docs follow).
+- Branch `codex/avalonia-migration`, pushed to `origin`. Latest code commit: `1359967c` (docs follow).
   Only `Avalonia/` changes.
-- **515 tests pass** (Debug, zero warnings) on Linux with the .NET 10.0.112 SDK from Ubuntu's archive
+- **525 tests pass** (Debug, zero warnings) on Linux with the .NET 10.0.112 SDK from Ubuntu's archive
   (`apt-get update && apt-get install -y dotnet-sdk-10.0`; the first install without `apt-get update` fails).
 - Done this run, in order (each in the PARITY-PLAN progress table):
   1. `5fdf1524` 5.1 Settings > General: auto-connect on startup (AutoConnectEnabled, 1 s head start), last selected
@@ -25,6 +25,10 @@ every finished slice with its commit.
   6. `b0b3f726` Death Stats page (rail entry before Raid, filters, cards, sparkline, tables, killers forget/clear,
      refresh, clear log).
   7. `4aeabc52` map "Deaths" toggle = death heatmap from the local log (MapShowDeathHeatmap).
+  8. `aa96bd53` player presence chat alerts (online/offline/death/respawn, self/team via the companion Steam ID).
+  9. `1a26ea62` editable chat alert templates (shared custom_alerts.json, Settings section, "Edit templates" menu item);
+     event, shop notice and presence texts go through `AlertTemplates` (Core/Alerts).
+  10. `1359967c` smart alarms to team chat (AnnounceSmartAlerts; `AlarmDecision.Accepted` for popup-less generic alarms).
 - Deliberately not ported (reference settings that are inert or need missing features): notification sounds (the
   reference only plays them for "Chat" notifications, which it never creates), Reduce UI effects (no Mica/animations
   in the Avalonia shell yet), start minimized / close to tray (8.1 tray).
@@ -39,8 +43,8 @@ every finished slice with its commit.
      revision/backup rules), the own Steam ID (companion account) for the self/team caps (MaxSelfDeathMarkers,
      MaxTeamDeathMarkers, 1–50), rename/delete context menu, wipe-all, settings dialog. Feed from the team snapshot
      (dead + position) like reference MainWindow.Team.Core ~line 805.
-   - **Player death/respawn/online/offline chat alerts** (AnnouncePlayer* flags) now that team snapshots carry state;
-     they need AlertTemplateService texts (AlertPlayerDied/AlertPlayerRespawned …) ported first.
+   - **AFK / AFK-return alerts** (AnnouncePlayerAfk/AfkReturn + AFK threshold submenu 5–30 min): detection from team
+     positions (reference MainWindow.Team AFK tracking); templates AlertPlayerAfk/AlertPlayerAfkReturn already exist.
    - **Map cache + wipe detection** (reference LoadMapAsync: LocalAppData/RustPlusDesk/map_cache/{host}_{port}.png/.json,
      harbor-based wipe check, server WipeTime) → then custom HD map URL (per-profile CustomMapUrl) and death-log wipe clear.
    - **5.1 Map Performance / Connected services** categories as their features land.
