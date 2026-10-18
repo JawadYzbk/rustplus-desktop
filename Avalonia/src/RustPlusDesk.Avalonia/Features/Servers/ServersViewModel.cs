@@ -25,7 +25,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     ICloudDeviceRestore? cloudDeviceRestore = null, IDeviceSyncPreferences? deviceSyncPreferences = null, ICloudDeviceSynchronizer? deviceSynchronizer = null,
     IDeviceImporter? deviceImporter = null, IRaidCatalog? raidCatalog = null, IRaidPlanStore? raidPlanStore = null,
     RustPlusDesk.Core.Settings.IAppSettingsStore? appSettings = null, RustPlusDesk.Core.Map.IShopAlertStore? shopAlertStore = null,
-    RustPlusDesk.Core.Map.IAlertSound? alertSound = null, RustPlusDesk.Core.Console.IConsoleCommandStore? consoleStore = null)
+    RustPlusDesk.Core.Map.IAlertSound? alertSound = null, RustPlusDesk.Core.Console.IConsoleCommandStore? consoleStore = null,
+    RustPlusDesk.Core.Notifications.INotificationHistoryStore? notificationStore = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -154,6 +155,21 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [RelayCommand] private void OpenRecycler() { if (HasRecyclerTool) WorkspaceIndex = 1; }
     public bool HasRaidTool => raidCatalog is not null && raidPlanStore is not null;
     [RelayCommand] private void OpenRaid() { if (HasRaidTool) WorkspaceIndex = 2; }
+    private Notifications.NotificationsViewModel? notifications;
+    /// <summary>Reference notification centre, fed by Rust+ pushes from the pairing listener.</summary>
+    public Notifications.NotificationsViewModel Notifications => notifications ??= new(notificationStore, appSettings)
+    {
+        ConnectToServer = (host, port) =>
+        {
+            var match = Servers.FirstOrDefault(server => server.Host == host && server.Port == port);
+            if (match is null) return false;
+            SelectedServer = match;
+            WorkspaceIndex = 0;
+            if (Connection.ConnectCommand.CanExecute(null)) Connection.ConnectCommand.Execute(null);
+            return true;
+        }
+    };
+    [RelayCommand] private void OpenNotifications() => WorkspaceIndex = 4;
     public bool HasConsoleTool => consoleStore is not null;
     [RelayCommand] private void OpenConsole() { if (HasConsoleTool) WorkspaceIndex = 3; }
     [ObservableProperty]
@@ -169,12 +185,14 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [NotifyPropertyChangedFor(nameof(IsRecyclerSelected))]
     [NotifyPropertyChangedFor(nameof(IsRaidSelected))]
     [NotifyPropertyChangedFor(nameof(IsConsoleSelected))]
+    [NotifyPropertyChangedFor(nameof(IsNotificationsSelected))]
     [NotifyPropertyChangedFor(nameof(IsToolSelected))]
     [NotifyCanExecuteChangedFor(nameof(CloseToolCommand))]
     private int workspaceIndex;
     public bool IsRecyclerSelected => WorkspaceIndex == 1;
     public bool IsRaidSelected => WorkspaceIndex == 2;
     public bool IsConsoleSelected => WorkspaceIndex == 3;
+    public bool IsNotificationsSelected => WorkspaceIndex == 4;
     /// <summary>A tool workspace replaces the map; the server sidebar stays available.</summary>
     public bool IsToolSelected => WorkspaceIndex != 0;
     [ObservableProperty] private string toolMessage = "";
@@ -305,6 +323,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
                 {
                     Activity.Append($"[pairing] {update.Title} · {update.Message}");
                     Alarms.Handle(update);
+                    Notifications.Handle(update);
                 }
             };
             OnPropertyChanged(nameof(Listener));
@@ -354,6 +373,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             try { await ShopAlerts.LoadAsync(cancellationToken); }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Activity.Append("[shops] Saved shop alerts could not be read."); }
             _ = ChatAlerts;
+            try { await Notifications.LoadAsync(cancellationToken); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Activity.Append("[notifications] The notification history could not be read."); }
             EnsureAccountServices();
             if (Cloud is not null) Cloud.CheckCommand.Execute(null);
             if (Account is null || Listener is null) return;
@@ -667,6 +688,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         await raidPlanLoad;
         if (Raid is not null) await Raid.FlushAsync();
         await consoleLoad;
+        if (notifications is not null) await notifications.FlushAsync();
         if (ConsoleHelper is not null) await ConsoleHelper.FlushAsync();
         if (shopAlerts is not null) await shopAlerts.FlushAsync();
         if (appSettings is not null)

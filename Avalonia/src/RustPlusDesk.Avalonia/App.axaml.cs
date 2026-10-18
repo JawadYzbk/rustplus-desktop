@@ -61,7 +61,8 @@ public sealed partial class App : Application
                 new BundledRaidCatalog(), new RaidPlanStore(RaidPlanStore.DefaultPath),
                 new TrackingSettingsStore(TrackingSettingsStore.DefaultPath),
                 new ShopAlertStore(ShopAlertStore.DefaultPath), new SystemAlertSound(SystemAlertSound.DefaultPath),
-                new RustPlusDesk.Infrastructure.Console.ConsoleCommandStore(RustPlusDesk.Infrastructure.Console.ConsoleCommandStore.DefaultPath));
+                new RustPlusDesk.Infrastructure.Console.ConsoleCommandStore(RustPlusDesk.Infrastructure.Console.ConsoleCommandStore.DefaultPath),
+                new RustPlusDesk.Infrastructure.Notifications.NotificationHistoryStore(RustPlusDesk.Infrastructure.Notifications.NotificationHistoryStore.DefaultPath));
             desktop.Exit += (_, _) => { accountHttp.Dispose(); cloudHttp.Dispose(); };
             window.DataContext = servers;
             window.Opened += async (_, _) => await servers.InitializeCommand.ExecuteAsync(null);

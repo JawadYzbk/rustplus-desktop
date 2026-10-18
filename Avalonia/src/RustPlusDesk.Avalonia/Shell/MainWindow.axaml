@@ -5,6 +5,7 @@
         xmlns:accounts="using:RustPlusDesk.Avalonia.Features.Accounts"
         xmlns:recycling="using:RustPlusDesk.Avalonia.Features.Recycling" xmlns:raid="using:RustPlusDesk.Avalonia.Features.Raid"
         xmlns:console="using:RustPlusDesk.Avalonia.Features.Console"
+        xmlns:notifications="using:RustPlusDesk.Avalonia.Features.Notifications"
         xmlns:shell="using:RustPlusDesk.Avalonia.Shell"
         xmlns:cloud="using:RustPlusDesk.Avalonia.Features.Cloud"
         xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
@@ -79,6 +80,17 @@
               </Grid>
             </Border>
             <console:ConsoleHelperView Grid.Row="1" Margin="16,12,16,16" DataContext="{Binding ConsoleHelper}" />
+          </Grid>
+          <Grid RowDefinitions="Auto,*" Background="{DynamicResource Surface}" IsVisible="{Binding IsNotificationsSelected}">
+            <Border Classes="toolbar">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                <icons:Icon Symbol="Alert24" FontSize="20" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="Notifications" Classes="title" />
+                <Button Grid.Column="2" Classes="icon" Command="{Binding CloseToolCommand}" ToolTip.Tip="Close (Esc)"
+                        AutomationProperties.Name="Close notifications"><icons:Icon Symbol="Dismiss24" /></Button>
+              </Grid>
+            </Border>
+            <notifications:NotificationsView Grid.Row="1" Margin="16,12,16,16" DataContext="{Binding Notifications}" />
           </Grid>
         </Grid>
       </SplitView>

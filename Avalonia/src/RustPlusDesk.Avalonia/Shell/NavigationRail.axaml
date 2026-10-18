@@ -3,6 +3,16 @@
              xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
              x:Class="RustPlusDesk.Avalonia.Shell.NavigationRail" x:DataType="vm:ServersViewModel">
   <!-- Navigation follows the reference RailCatalog order; areas appear here as they are ported. -->
+  <UserControl.Styles>
+    <Style Selector="Border.railBadge">
+      <Setter Property="Background" Value="{DynamicResource Accent}" />
+      <Setter Property="CornerRadius" Value="7" />
+      <Setter Property="MinWidth" Value="14" />
+      <Setter Property="Height" Value="14" />
+      <Setter Property="Padding" Value="3,0" />
+    </Style>
+    <Style Selector="Border.railBadge TextBlock"><Setter Property="HorizontalAlignment" Value="Center" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
+  </UserControl.Styles>
   <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,0,1,0">
     <Grid RowDefinitions="Auto,*,Auto" Margin="8,10,7,10">
       <StackPanel Spacing="4">
@@ -16,6 +26,14 @@
                 ToolTip.Tip="Monitor and control paired smart devices" AutomationProperties.Name="Devices">
           <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Connector24" />
             <TextBlock Grid.Column="1" Classes="navLabel" Text="Devices" IsVisible="{Binding IsRailExpanded}" /></Grid>
+        </Button>
+        <Button Classes="nav" Classes.selected="{Binding IsNotificationsSelected}" Command="{Binding OpenNotificationsCommand}"
+                ToolTip.Tip="Alarms, deaths and server events pushed by Rust+" AutomationProperties.Name="Notifications">
+          <Grid ColumnDefinitions="28,*,Auto"><Panel><icons:Icon Symbol="Alert24" />
+              <Border Classes="railBadge" IsVisible="{Binding Notifications.HasUnread}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-4,0">
+                <TextBlock Text="{Binding Notifications.UnreadText}" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource OnAccent}" />
+              </Border></Panel>
+            <TextBlock Grid.Column="1" Classes="navLabel" Text="Notifications" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
         <TextBlock Classes="navSection" Text="TOOLS" IsVisible="{Binding IsRailExpanded}" />
         <Border Height="1" Margin="6,6" Background="{DynamicResource CardBorder}" IsVisible="{Binding !IsRailExpanded}" />
