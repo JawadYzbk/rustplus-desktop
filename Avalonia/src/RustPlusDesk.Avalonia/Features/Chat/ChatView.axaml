@@ -1,7 +1,9 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:RustPlusDesk.Avalonia.Features.Chat"
              xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+             xmlns:shared="using:RustPlusDesk.Avalonia.Shared.Controls"
              xmlns:alerts="using:RustPlusDesk.Avalonia.Features.Alerts"
+             xmlns:core="clr-namespace:RustPlusDesk.Core.Chat;assembly=RustPlusDesk.Core"
              x:Class="RustPlusDesk.Avalonia.Features.Chat.ChatView" x:DataType="vm:ChatViewModel">
   <Grid RowDefinitions="Auto,*,Auto,Auto" RowSpacing="6">
     <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
@@ -63,8 +65,9 @@
         <ItemsControl ItemsSource="{Binding Lines}" AutomationProperties.Name="Chat messages">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:ChatLine">
-              <TextBlock TextWrapping="Wrap" Margin="0,2" Background="Transparent">
-                <TextBlock.ContextMenu>
+              <vm:ChatMessageText TextWrapping="Wrap" Margin="0,2" Background="Transparent" Line="{Binding}"
+                                  Catalog="{Binding $parent[UserControl].((vm:ChatViewModel)DataContext).Emoji}">
+                <vm:ChatMessageText.ContextMenu>
                   <ContextMenu>
                     <MenuItem Header="Copy text" Click="CopyText"><MenuItem.Icon><icons:Icon Symbol="Copy24" /></MenuItem.Icon></MenuItem>
                     <MenuItem Header="Copy Steam ID" Click="CopySteamId" IsVisible="{Binding HasSteamId}" />
@@ -74,11 +77,8 @@
                       <MenuItem.Icon><icons:Icon Symbol="Location24" /></MenuItem.Icon></MenuItem>
                     <MenuItem Header="Open Steam profile" Click="OpenSteamProfile" IsVisible="{Binding HasSteamId}" />
                   </ContextMenu>
-                </TextBlock.ContextMenu>
-                <Run Text="{Binding Time}" Foreground="{DynamicResource TextSubtle}" FontSize="11" />
-                <Run Text=" " /><Run Text="{Binding Name}" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" />
-                <Run Text=": " /><Run Text="{Binding Text}" />
-              </TextBlock>
+                </vm:ChatMessageText.ContextMenu>
+              </vm:ChatMessageText>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
@@ -90,16 +90,63 @@
       <TextBlock Text="{Binding Notice}" Classes="muted" FontSize="12" TextWrapping="Wrap"
                  IsVisible="{Binding Notice, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
     </StackPanel>
-    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
       <TextBox x:Name="DraftBox" Text="{Binding Draft}" PlaceholderText="Message your team…" MaxLength="128" IsEnabled="{Binding IsConnected}"
-               KeyDown="DraftKeyDown" AutomationProperties.Name="Chat message" />
-      <TextBlock Grid.Column="1" Text="{Binding CharacterCount}" VerticalAlignment="Center" FontSize="11"
+               AutomationProperties.Name="Chat message" />
+      <Popup PlacementTarget="{Binding #DraftBox}" Placement="TopEdgeAlignedLeft" IsOpen="{Binding IsEmojiSuggestionsOpen}" IsLightDismissEnabled="False">
+        <Border Classes="panel" Background="{DynamicResource Surface}" Padding="4" BoxShadow="0 6 18 0 #66000000" Width="280">
+          <ListBox x:Name="EmojiSuggestionList" ItemsSource="{Binding EmojiSuggestions}" SelectedItem="{Binding SelectedEmojiSuggestion}" MaxHeight="240"
+                   Background="Transparent" Tapped="EmojiSuggestionTapped" AutomationProperties.Name="Emoji suggestions">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="core:ChatEmoji">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EmojiPicture}" />
+                  <TextBlock Text="{Binding Tag}" VerticalAlignment="Center" FontWeight="SemiBold" />
+                  <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Border>
+      </Popup>
+      <Button Grid.Column="1" x:Name="EmojiButton" Classes="icon" IsEnabled="{Binding IsConnected}" ToolTip.Tip="Insert emoji" AutomationProperties.Name="Insert emoji">
+        <icons:Icon Symbol="Emoji24" />
+        <Button.Flyout>
+          <Flyout Placement="TopEdgeAlignedRight" Opened="EmojiPickerOpened">
+            <StackPanel Width="300" Spacing="8">
+              <TextBox x:Name="EmojiSearch" Text="{Binding EmojiPickerQuery}" PlaceholderText="Search emojis or items…" AutomationProperties.Name="Search emojis" />
+              <TextBlock Text="No emoji or item matches." Classes="muted" FontSize="12" IsVisible="{Binding HasNoEmojiPickerItems}" />
+              <ScrollViewer MaxHeight="220" HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding EmojiPickerItems}" AutomationProperties.Name="Emoji picker">
+                  <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="core:ChatEmoji">
+                      <Button Classes="icon" Width="36" Height="36" Click="EmojiPicked" ToolTip.Tip="{Binding ToolTip}" AutomationProperties.Name="{Binding Tag}">
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource EmojiPicture}" />
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+            </StackPanel>
+          </Flyout>
+        </Button.Flyout>
+      </Button>
+      <TextBlock Grid.Column="2" Text="{Binding CharacterCount}" VerticalAlignment="Center" FontSize="11"
                  Classes="muted" Classes.limit="{Binding IsAtLimit}" />
-      <Button Grid.Column="2" Classes="primary" Command="{Binding SendCommand}" AutomationProperties.Name="Send chat message" ToolTip.Tip="Send (Enter)">
+      <Button Grid.Column="3" Classes="primary" Command="{Binding SendCommand}" AutomationProperties.Name="Send chat message" ToolTip.Tip="Send (Enter)">
         <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Send24" FontSize="16" /><TextBlock Text="Send" /></StackPanel>
       </Button>
     </Grid>
   </Grid>
+  <UserControl.Resources>
+    <DataTemplate x:Key="EmojiPicture" x:DataType="core:ChatEmoji">
+      <Panel Width="22" Height="22">
+        <Image Source="{Binding Name, Converter={x:Static vm:ChatEmojiImages.Custom}}" IsVisible="{Binding IsCustom}" />
+        <shared:ItemIcon ShortName="{Binding Name}" IsVisible="{Binding !IsCustom}" />
+      </Panel>
+    </DataTemplate>
+  </UserControl.Resources>
   <UserControl.Styles>
     <Style Selector="Border.count">
       <Setter Property="Background" Value="{DynamicResource Accent}" />

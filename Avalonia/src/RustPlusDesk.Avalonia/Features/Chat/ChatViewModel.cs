@@ -60,6 +60,76 @@ public sealed partial class ChatViewModel : ObservableObject
     [ObservableProperty] private bool hasClan;
     /// <summary>Chat-alert switch and menu shown in the chat header (set by the shell).</summary>
     [ObservableProperty] private RustPlusDesk.Avalonia.Features.Alerts.ChatAlertsViewModel? alerts;
+
+    // Emoji (reference ChatEmojiInputHelper / ChatEmojiPickerPopup).
+    /// <summary>Custom emojis and Rust items usable as ":token:" in chat.</summary>
+    [ObservableProperty] private ChatEmojiCatalog emoji = new([]);
+    [ObservableProperty] private IReadOnlyList<ChatEmoji> emojiSuggestions = [];
+    [ObservableProperty] private ChatEmoji? selectedEmojiSuggestion;
+    [ObservableProperty] private bool isEmojiSuggestionsOpen;
+    [ObservableProperty] private string emojiPickerQuery = "";
+    [ObservableProperty] private IReadOnlyList<ChatEmoji> emojiPickerItems = ChatEmojiCatalog.Custom;
+    public bool HasNoEmojiPickerItems => EmojiPickerItems.Count == 0;
+    private int emojiStart = -1;
+
+    partial void OnEmojiPickerQueryChanged(string value) => RefreshEmojiPicker();
+    partial void OnEmojiPickerItemsChanged(IReadOnlyList<ChatEmoji> value) => OnPropertyChanged(nameof(HasNoEmojiPickerItems));
+
+    /// <summary>Reference picker: the custom emojis by default, the whole catalogue (60) once something is typed.</summary>
+    public void RefreshEmojiPicker()
+    {
+        string query = EmojiPickerQuery.Trim();
+        EmojiPickerItems = query.Length == 0 ? ChatEmojiCatalog.Custom : Emoji.Search(query, ChatEmojiCatalog.PickerResults);
+    }
+
+    /// <summary>Reference CheckAutocomplete after each edit: up to 15 matches for the ":query" before the caret.</summary>
+    public void UpdateEmojiAutocomplete(int caret)
+    {
+        if (ChatEmojiCatalog.AutocompleteQuery(Draft, caret) is { } found && Emoji.Search(found.Query, ChatEmojiCatalog.AutocompleteResults) is { Count: > 0 } results)
+        {
+            emojiStart = found.Start;
+            EmojiSuggestions = results;
+            SelectedEmojiSuggestion = results[0];
+            IsEmojiSuggestionsOpen = true;
+        }
+        else CloseEmojiSuggestions();
+    }
+
+    public void CloseEmojiSuggestions()
+    {
+        IsEmojiSuggestionsOpen = false;
+        emojiStart = -1;
+    }
+
+    public void MoveEmojiSuggestion(int delta)
+    {
+        if (EmojiSuggestions.Count == 0) return;
+        int index = SelectedEmojiSuggestion is { } current ? EmojiSuggestions.ToList().IndexOf(current) : -1;
+        SelectedEmojiSuggestion = EmojiSuggestions[((index + delta) % EmojiSuggestions.Count + EmojiSuggestions.Count) % EmojiSuggestions.Count];
+    }
+
+    /// <summary>Reference ApplyAutocomplete; returns the caret after the inserted tag, or null when nothing changed.</summary>
+    public int? AcceptEmojiSuggestion(int caret, ChatEmoji? choice = null)
+    {
+        if ((choice ?? SelectedEmojiSuggestion) is not { } emoji) { CloseEmojiSuggestions(); return null; }
+        var (text, next) = ChatEmojiCatalog.ApplyAutocomplete(Draft, caret, emojiStart, emoji);
+        CloseEmojiSuggestions();
+        return SetDraftWithinLimit(text, next);
+    }
+
+    /// <summary>Reference picker selection: the tag and a space at the caret.</summary>
+    public int? InsertEmoji(ChatEmoji emoji, int caret)
+    {
+        var (text, next) = ChatEmojiCatalog.Insert(Draft, caret, emoji);
+        return SetDraftWithinLimit(text, next);
+    }
+
+    private int? SetDraftWithinLimit(string text, int caret)
+    {
+        if (text.Length > ChatLimits.MaxLength) { Notice = "That emoji does not fit in the 128-character limit."; return null; }
+        Draft = text;
+        return caret;
+    }
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SendCommand))]
     private bool isSending;

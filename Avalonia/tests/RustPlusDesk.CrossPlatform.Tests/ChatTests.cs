@@ -209,7 +209,7 @@ public sealed class ChatTests
         }, default);
     }
 
-    private sealed class ChatSession : IServerChatSession
+    internal sealed class ChatSession : IServerChatSession
     {
         public Dictionary<ChatChannel, IReadOnlyList<ChatMessage>> History { get; } = new() { [ChatChannel.Team] = [], [ChatChannel.Clan] = [] };
         public Channel<ChatMessage> Live { get; } = Channel.CreateUnbounded<ChatMessage>();

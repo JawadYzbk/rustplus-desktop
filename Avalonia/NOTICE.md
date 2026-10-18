@@ -65,3 +65,5 @@ old host is retired, remove its superseded implementation after the parity check
 - `src/RustPlusDesk.Avalonia/Assets/Fonts/PermanentMarker.ttf` (Permanent Marker, Apache License 2.0) is copied unchanged from the
   reference app for its monument "Names" map style. Monument and marker icons are copied from the reference
   `Assets/icons` pack and downscaled to at most 128 px.
+- `src/RustPlusDesk.Avalonia/Assets/Emojis/*.png` are copied unchanged from `RustPlusDesktop/Assets/emojis/thumbs/`
+  (the reference custom chat emoji thumbnails).

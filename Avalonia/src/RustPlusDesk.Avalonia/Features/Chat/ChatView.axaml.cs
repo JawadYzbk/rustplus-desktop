@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 
 namespace RustPlusDesk.Avalonia.Features.Chat;
 
@@ -13,13 +14,60 @@ public sealed partial class ChatView : UserControl
         // Keep the newest message in view as lines arrive, like the reference chat list.
         Scroller.PropertyChanged += (_, e) => { if (e.Property == ScrollViewer.ExtentProperty) Scroller.ScrollToEnd(); };
         SearchRow.PropertyChanged += (_, e) => { if (e.Property == IsVisibleProperty && SearchRow.IsVisible) SearchBox.Focus(); };
+        // Tunnel so an open emoji list takes the arrows, Enter and Tab before the text box does (reference PreviewKeyDown).
+        DraftBox.AddHandler(KeyDownEvent, DraftKeyDown, RoutingStrategies.Tunnel);
+        DraftBox.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == TextBox.TextProperty && DraftBox.IsFocused && DataContext is ChatViewModel model)
+                Dispatcher.UIThread.Post(() => model.UpdateEmojiAutocomplete(DraftBox.CaretIndex));
+        };
+        DraftBox.LostFocus += (_, _) => { if (DataContext is ChatViewModel model && !EmojiSuggestionList.IsPointerOver) model.CloseEmojiSuggestions(); };
     }
 
-    private void DraftKeyDown(object? sender, KeyEventArgs e)
+    internal void DraftKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Enter || e.KeyModifiers != KeyModifiers.None || DataContext is not ChatViewModel model) return;
+        if (DataContext is not ChatViewModel model) return;
+        if (model.IsEmojiSuggestionsOpen)
+        {
+            switch (e.Key)
+            {
+                case Key.Down: model.MoveEmojiSuggestion(1); e.Handled = true; return;
+                case Key.Up: model.MoveEmojiSuggestion(-1); e.Handled = true; return;
+                case Key.Escape: model.CloseEmojiSuggestions(); e.Handled = true; return;
+                case Key.Enter or Key.Tab:
+                    if (model.AcceptEmojiSuggestion(DraftBox.CaretIndex) is int caret) { DraftBox.CaretIndex = caret; e.Handled = true; return; }
+                    break;
+            }
+        }
+        if (e.Key != Key.Enter || e.KeyModifiers != KeyModifiers.None) return;
         e.Handled = true;
         if (model.SendCommand.CanExecute(null)) model.SendCommand.Execute(null);
+    }
+
+    private void EmojiSuggestionTapped(object? sender, TappedEventArgs e)
+    {
+        if (DataContext is not ChatViewModel model || (e.Source as Control)?.DataContext is not RustPlusDesk.Core.Chat.ChatEmoji emoji) return;
+        if (model.AcceptEmojiSuggestion(DraftBox.CaretIndex, emoji) is int caret) DraftBox.CaretIndex = caret;
+        DraftBox.Focus();
+    }
+
+    private void EmojiPickerOpened(object? sender, EventArgs e)
+    {
+        if (DataContext is not ChatViewModel model) return;
+        model.EmojiPickerQuery = "";
+        model.RefreshEmojiPicker();
+    }
+
+    private void EmojiPicked(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not ChatViewModel model || (sender as Control)?.DataContext is not RustPlusDesk.Core.Chat.ChatEmoji emoji) return;
+        int caret = DraftBox.CaretIndex;
+        EmojiButton.Flyout?.Hide();
+        if (model.InsertEmoji(emoji, caret) is int next)
+        {
+            DraftBox.CaretIndex = next;
+            DraftBox.Focus();
+        }
     }
 
     private static ChatLine? LineOf(object? sender) => (sender as MenuItem)?.DataContext as ChatLine;

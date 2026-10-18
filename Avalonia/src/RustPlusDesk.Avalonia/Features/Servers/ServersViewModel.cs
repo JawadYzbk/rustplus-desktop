@@ -35,6 +35,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     private static ConnectionViewModel CreateConnection(IServerSessionFactory factory, RustPlusDesk.Core.Settings.IAppSettingsStore? settings)
     {
         var connection = new ConnectionViewModel(factory);
+        connection.Chat.Emoji = new(RustPlusDesk.Infrastructure.Items.BundledItemCatalog.Icons.Values.Select(item => (item.ShortName, item.Name)));
         if (settings is not null) connection.Map.UseSettings(settings);
         return connection;
     }
