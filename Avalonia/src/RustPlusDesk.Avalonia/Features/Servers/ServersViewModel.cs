@@ -25,7 +25,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     ICloudDeviceRestore? cloudDeviceRestore = null, IDeviceSyncPreferences? deviceSyncPreferences = null, ICloudDeviceSynchronizer? deviceSynchronizer = null,
     IDeviceImporter? deviceImporter = null, IRaidCatalog? raidCatalog = null, IRaidPlanStore? raidPlanStore = null,
     RustPlusDesk.Core.Settings.IAppSettingsStore? appSettings = null, RustPlusDesk.Core.Map.IShopAlertStore? shopAlertStore = null,
-    RustPlusDesk.Core.Map.IAlertSound? alertSound = null)
+    RustPlusDesk.Core.Map.IAlertSound? alertSound = null, RustPlusDesk.Core.Console.IConsoleCommandStore? consoleStore = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -154,6 +154,12 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [RelayCommand] private void OpenRecycler() { if (HasRecyclerTool) WorkspaceIndex = 1; }
     public bool HasRaidTool => raidCatalog is not null && raidPlanStore is not null;
     [RelayCommand] private void OpenRaid() { if (HasRaidTool) WorkspaceIndex = 2; }
+    public bool HasConsoleTool => consoleStore is not null;
+    [RelayCommand] private void OpenConsole() { if (HasConsoleTool) WorkspaceIndex = 3; }
+    [ObservableProperty]
+    private Console.ConsoleHelperViewModel? consoleHelper;
+    /// <summary>Raised when the Console Helper asks to pop out; the shell owns the window.</summary>
+    public event EventHandler? ConsolePopOutRequested;
     [ObservableProperty]
     private RecyclerViewModel? recycler;
     [ObservableProperty]
@@ -162,11 +168,13 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsRecyclerSelected))]
     [NotifyPropertyChangedFor(nameof(IsRaidSelected))]
+    [NotifyPropertyChangedFor(nameof(IsConsoleSelected))]
     [NotifyPropertyChangedFor(nameof(IsToolSelected))]
     [NotifyCanExecuteChangedFor(nameof(CloseToolCommand))]
     private int workspaceIndex;
     public bool IsRecyclerSelected => WorkspaceIndex == 1;
     public bool IsRaidSelected => WorkspaceIndex == 2;
+    public bool IsConsoleSelected => WorkspaceIndex == 3;
     /// <summary>A tool workspace replaces the map; the server sidebar stays available.</summary>
     public bool IsToolSelected => WorkspaceIndex != 0;
     [ObservableProperty] private string toolMessage = "";
@@ -188,6 +196,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
                 ToolMessage = "Unable to load the bundled recycling catalog. Check or reinstall this preview.";
             }
         }
+        else if (value == 3) EnsureConsoleHelper();
         else if (value == 2 && Raid is null)
         {
             try
@@ -204,6 +213,23 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             }
         }
     }
+
+    /// <summary>Opens the Console Helper model once; the tool page and the popout window share it.</summary>
+    public Console.ConsoleHelperViewModel? EnsureConsoleHelper()
+    {
+        if (ConsoleHelper is not null || consoleStore is null) return ConsoleHelper;
+        ConsoleHelper = new(consoleStore, RustPlusDesk.Infrastructure.Items.BundledItemCatalog.Icons.Values
+            .Select(item => new Console.ConsoleItemChoice(item.Id, item.Name))) { Log = Activity.Append };
+        ConsoleHelper.PopOutRequested += (_, _) =>
+        {
+            ConsolePopOutRequested?.Invoke(this, EventArgs.Empty);
+            // Reference: popping out returns the main window to the previous workspace.
+            if (IsConsoleSelected) WorkspaceIndex = 0;
+        };
+        consoleLoad = ConsoleHelper.LoadAsync(CancellationToken.None);
+        return ConsoleHelper;
+    }
+    private Task consoleLoad = Task.CompletedTask;
 
     private static async Task LoadRaidPlanAsync(RaidCalculatorViewModel model)
     {
@@ -640,6 +666,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         ImportDevicesCommand.Cancel();
         await raidPlanLoad;
         if (Raid is not null) await Raid.FlushAsync();
+        await consoleLoad;
+        if (ConsoleHelper is not null) await ConsoleHelper.FlushAsync();
         if (shopAlerts is not null) await shopAlerts.FlushAsync();
         if (appSettings is not null)
         {

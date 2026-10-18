@@ -18,6 +18,8 @@ and upstream attribution when copying or distributing it.
   and `Services/RustPlusClientReal.cs`. The storage adapter treats entity `not_found` independently of login denial.
 - `src/RustPlusDesk.Infrastructure/Assets/rust-item-list.json` is copied unchanged from
   `RustPlusDesktop/Assets/Data/rust-item-list.json`; it is embedded for offline item names.
+- `src/RustPlusDesk.Infrastructure/Assets/console-commands.json` is copied unchanged from
+  `RustPlusDesktop/Assets/Data/console-commands.json`; it is embedded as the Console Helper catalogue.
 - Editable server fields, blank-name handling and the address/device probe follow
   `Views/Windows/EditServerConnectionDialog.xaml.cs`. Unknown fields are preserved by the new writer.
 - Windows control theming uses the MIT-licensed `FluentAvaloniaUI` 3.1.0 by amwx;

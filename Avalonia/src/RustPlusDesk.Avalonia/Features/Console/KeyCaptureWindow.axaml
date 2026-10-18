@@ -1,0 +1,27 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+        x:Class="RustPlusDesk.Avalonia.Features.Console.KeyCaptureWindow"
+        Title="Choose key" Width="360" SizeToContent="Height" CanResize="False" WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+  <Border Background="{DynamicResource Surface}" Padding="16">
+    <StackPanel Spacing="12">
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <icons:Icon Symbol="Keyboard24" FontSize="20" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
+        <TextBlock Text="Press the key you want to bind" Classes="title" VerticalAlignment="Center" />
+      </StackPanel>
+      <TextBlock Text="Hold Ctrl, Shift or Alt for a combination. Esc cancels." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+      <Border Background="{DynamicResource SurfaceHover}" CornerRadius="8" Padding="12">
+        <TextBlock x:Name="Captured" Text="—" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" AutomationProperties.Name="Captured key" />
+      </Border>
+      <TextBlock x:Name="Warning" Foreground="{DynamicResource ConnectionDanger}" FontSize="12" TextWrapping="Wrap" IsVisible="False" />
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+        <TextBlock Text="Mouse or wheel" Classes="muted" VerticalAlignment="Center" />
+        <ComboBox Grid.Column="1" x:Name="Mouse" HorizontalAlignment="Stretch" SelectionChanged="MouseChosen" AutomationProperties.Name="Mouse button or wheel" />
+      </Grid>
+      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+        <Button Classes="subtle" Content="Clear" Click="ClearKey" AutomationProperties.Name="Clear key" />
+        <Button Classes="subtle" Content="Cancel" Click="Cancel" AutomationProperties.Name="Cancel key choice" />
+        <Button Classes="primary" Content="OK" Click="Accept" AutomationProperties.Name="Use this key" />
+      </StackPanel>
+    </StackPanel>
+  </Border>
+</Window>

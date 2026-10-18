@@ -1,0 +1,144 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RustPlusDesk.Avalonia.Features.Console"
+             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons" xmlns:shared="using:RustPlusDesk.Avalonia.Shared.Controls"
+             x:Class="RustPlusDesk.Avalonia.Features.Console.ConsoleHelperView" x:DataType="vm:ConsoleHelperViewModel">
+  <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="10">
+    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+      <TextBlock Text="Useful console commands, ready to copy into the F1 console." Classes="muted" VerticalAlignment="Center" TextWrapping="Wrap" />
+      <Button Grid.Column="1" Classes="subtle" Command="{Binding CopyAllBindsCommand}" ToolTip.Tip="Copy every bind you have set"
+              AutomationProperties.Name="Copy every bind">
+        <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="CopySelect24" FontSize="14" /><TextBlock Text="Copy all binds" /></StackPanel>
+      </Button>
+      <Button Grid.Column="2" Classes="subtle" Command="{Binding PopOutCommand}" IsVisible="{Binding CanPopOut}"
+              ToolTip.Tip="Pop out as an overlay, to sit next to the game" AutomationProperties.Name="Pop out console helper">
+        <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="WindowNew24" FontSize="14" /><TextBlock Text="Pop out" /></StackPanel>
+      </Button>
+    </Grid>
+    <Grid Grid.Row="1" ColumnDefinitions="Auto,*" ColumnSpacing="10">
+      <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+        <RadioButton Classes="chip" Content="Client commands" IsChecked="{Binding !IsAdminTab}" GroupName="ConsoleTab" AutomationProperties.Name="Client commands" />
+        <RadioButton Classes="chip" Content="Admin commands" IsChecked="{Binding IsAdminTab}" GroupName="ConsoleTab" AutomationProperties.Name="Admin commands" />
+      </StackPanel>
+      <TextBox Grid.Column="1" Text="{Binding SearchText}" PlaceholderText="Search commands…" AutomationProperties.Name="Search commands">
+        <TextBox.InnerLeftContent><icons:Icon Symbol="Search24" FontSize="15" Margin="8,0,0,0" Foreground="{DynamicResource TextSubtle}" /></TextBox.InnerLeftContent>
+        <TextBox.InnerRightContent>
+          <Button Classes="icon" Width="26" Height="26" Command="{Binding ClearSearchCommand}" AutomationProperties.Name="Clear command search"
+                  IsVisible="{Binding SearchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"><icons:Icon Symbol="Dismiss24" FontSize="14" /></Button>
+        </TextBox.InnerRightContent>
+      </TextBox>
+    </Grid>
+    <StackPanel Grid.Row="2" Spacing="4">
+      <Border Classes="note" IsVisible="{Binding IsAdminTab}">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <icons:Icon Symbol="ShieldKeyhole24" FontSize="16" Foreground="{DynamicResource Highlight}" VerticalAlignment="Center" />
+          <TextBlock Text="These only work if you are an owner or moderator on the server. Running them elsewhere does nothing." FontSize="12" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+      <TextBlock Text="{Binding Notice}" Classes="muted" FontSize="12" TextWrapping="Wrap"
+                 IsVisible="{Binding Notice, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    </StackPanel>
+    <Grid Grid.Row="3">
+      <TextBlock Text="{Binding EmptyMessage}" Classes="muted" HorizontalAlignment="Center" Margin="0,24,0,0" TextWrapping="Wrap" IsVisible="{Binding HasEmptyMessage}" />
+      <ScrollViewer HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Console commands">
+        <StackPanel Spacing="6">
+          <TextBlock Text="MOST USEFUL" Classes="section" IsVisible="{Binding HasFeatured}" />
+          <ItemsControl ItemsSource="{Binding Featured}" ItemTemplate="{StaticResource CommandCard}" />
+          <ItemsControl ItemsSource="{Binding Groups}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ConsoleCommandGroup">
+                <StackPanel Spacing="6">
+                  <TextBlock Text="{Binding Title}" Classes="section" Margin="0,6,0,0" />
+                  <ItemsControl ItemsSource="{Binding Commands}" ItemTemplate="{StaticResource CommandCard}" />
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </Grid>
+  <UserControl.Resources>
+    <DataTemplate x:Key="CommandCard" x:DataType="vm:ConsoleCommandViewModel">
+      <Border Classes="command">
+        <StackPanel Spacing="6">
+          <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding Description}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+          <ItemsControl ItemsSource="{Binding Params}" IsVisible="{Binding HasParams}">
+            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel ItemSpacing="10" LineSpacing="6" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ConsoleParamViewModel">
+                <StackPanel Spacing="2" MinWidth="120">
+                  <TextBlock Text="{Binding Label}" FontSize="11" Classes="muted" />
+                  <TextBox Text="{Binding Value}" IsVisible="{Binding IsPlainText}" MinWidth="120" AutomationProperties.Name="{Binding Label}" />
+                  <CheckBox IsChecked="{Binding BoolValue}" IsVisible="{Binding IsBool}" Content="{Binding Value}" AutomationProperties.Name="{Binding Label}" />
+                  <StackPanel IsVisible="{Binding IsItem}" Spacing="2" Width="220">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <shared:ItemIcon ItemId="{Binding ItemId}" Width="18" Height="18" />
+                      <TextBlock Text="{Binding ItemDisplay}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <TextBox Text="{Binding ItemQuery}" PlaceholderText="Search item…" AutomationProperties.Name="Search item" />
+                    <ListBox ItemsSource="{Binding ItemMatches}" IsVisible="{Binding IsItemListOpen}" MaxHeight="160" SelectionChanged="ItemPicked"
+                             AutomationProperties.Name="Item matches">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ConsoleItemChoice">
+                          <StackPanel Orientation="Horizontal" Spacing="6">
+                            <shared:ItemIcon ItemId="{Binding Id}" Width="16" Height="16" />
+                            <TextBlock Text="{Binding Label}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                          </StackPanel>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                  </StackPanel>
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+            <Border Classes="code"><SelectableTextBlock Text="{Binding ResolvedCommand}" Classes="code" TextWrapping="Wrap" /></Border>
+            <Button Grid.Column="1" Classes="icon" ToolTip.Tip="Reset values" AutomationProperties.Name="Reset command values"
+                    Command="{Binding ResetParamsCommand}" IsVisible="{Binding HasChangedParams}"><icons:Icon Symbol="ArrowReset24" FontSize="15" /></Button>
+            <Button Grid.Column="2" Classes="subtle" ToolTip.Tip="Copy command" AutomationProperties.Name="Copy command" CommandParameter="{Binding}"
+                    Command="{Binding $parent[UserControl].((vm:ConsoleHelperViewModel)DataContext).CopyCommandCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Copy24" FontSize="14" /><TextBlock Text="Copy" /></StackPanel>
+            </Button>
+          </Grid>
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6" IsVisible="{Binding Bindable}">
+            <Button Classes="subtle" Click="CaptureKey" ToolTip.Tip="Click, then press the key you want to bind this to" AutomationProperties.Name="Choose key">
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Keyboard24" FontSize="14" /><TextBlock Text="{Binding BindKeyDisplay}" FontWeight="SemiBold" /></StackPanel>
+            </Button>
+            <Border Grid.Column="1" Classes="code"><SelectableTextBlock Text="{Binding BindLine}" Classes="code" TextWrapping="Wrap" /></Border>
+            <Button Grid.Column="2" Classes="subtle" ToolTip.Tip="Copy bind" AutomationProperties.Name="Copy bind" CommandParameter="{Binding}"
+                    Command="{Binding $parent[UserControl].((vm:ConsoleHelperViewModel)DataContext).CopyBindCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Copy24" FontSize="14" /><TextBlock Text="Copy bind" /></StackPanel>
+            </Button>
+          </Grid>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+  </UserControl.Resources>
+  <UserControl.Styles>
+    <Style Selector="Border.command">
+      <Setter Property="Background" Value="{DynamicResource SurfaceAlt}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="12,10" />
+      <Setter Property="Margin" Value="0,0,0,6" />
+    </Style>
+    <Style Selector="Border.code">
+      <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="8,5" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="SelectableTextBlock.code">
+      <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Menlo, DejaVu Sans Mono, monospace" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="Border.note">
+      <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="10,6" />
+    </Style>
+  </UserControl.Styles>
+</UserControl>

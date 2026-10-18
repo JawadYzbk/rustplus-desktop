@@ -29,6 +29,11 @@
           <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Recycle32" />
             <TextBlock Grid.Column="1" Classes="navLabel" Text="Recycling Calculator" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
+        <Button Classes="nav" Classes.selected="{Binding IsConsoleSelected}" Command="{Binding OpenConsoleCommand}" IsVisible="{Binding HasConsoleTool}"
+                ToolTip.Tip="Useful console commands, ready to copy into the F1 console" AutomationProperties.Name="Console Helper">
+          <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="WindowConsole20" />
+            <TextBlock Grid.Column="1" Classes="navLabel" Text="Console Helper" IsVisible="{Binding IsRailExpanded}" /></Grid>
+        </Button>
       </StackPanel>
       <StackPanel Grid.Row="2" Spacing="4">
         <Button Classes="nav" Command="{Binding OpenCloudAccountCommand}" IsVisible="{Binding HasCloudAccount}"

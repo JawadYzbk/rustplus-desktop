@@ -13,7 +13,11 @@ public sealed partial class MainWindow : Window
         SizeChanged += (_, _) => ResizePane();
         DataContextChanged += (_, _) =>
         {
-            if (DataContext is Features.Servers.ServersViewModel model) model.Alarms.OpenRequested += ShowAlarms;
+            if (DataContext is Features.Servers.ServersViewModel model)
+            {
+                model.Alarms.OpenRequested += ShowAlarms;
+                model.ConsolePopOutRequested += ShowConsolePopout;
+            }
         };
     }
 
@@ -26,6 +30,19 @@ public sealed partial class MainWindow : Window
         alarmWindow = new Features.Alarms.AlarmWindow { DataContext = sender };
         alarmWindow.Closed += (_, _) => alarmWindow = null;
         alarmWindow.Show(this);
+    }
+
+    private Features.Console.ConsoleHelperWindow? consoleWindow;
+
+    /// <summary>Reference popout: one unowned always-on-top window; a second click focuses it.</summary>
+    private void ShowConsolePopout(object? sender, EventArgs e)
+    {
+        if (consoleWindow is not null) { consoleWindow.Activate(); return; }
+        if (sender is not Features.Servers.ServersViewModel { ConsoleHelper: { } helper }) return;
+        consoleWindow = new Features.Console.ConsoleHelperWindow { DataContext = helper };
+        helper.CanPopOut = false;
+        consoleWindow.Closed += (_, _) => { consoleWindow = null; helper.CanPopOut = true; };
+        consoleWindow.Show();
     }
 
     private void ResizePane() => WorkspaceSplit.OpenPaneLength = Math.Clamp(ClientSize.Width * sidebarFraction, 300, 480);
