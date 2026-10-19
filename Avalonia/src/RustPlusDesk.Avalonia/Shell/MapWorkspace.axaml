@@ -135,6 +135,8 @@
                         Avatars="{Binding Connection.Map.Avatars}" ShowPlayerArrows="{Binding Connection.Map.ShowPlayerArrows}"
                         PlayerHeadings="{Binding Connection.Map.PlayerHeadings}"
                         ShowDeathPins="{Binding DeathPins.Show, FallbackValue=False}" DeathPins="{Binding DeathPins.Pins, FallbackValue={x:Null}}"
+                        BitmapScalingMode="{Binding Connection.Map.BitmapScalingMode}" UseAliasedEdgeMode="{Binding Connection.Map.UseAliasedEdgeMode}"
+                        SceneCache="{Binding Connection.Map.UseCacheMode}" RenderScale="{Binding Connection.Map.RenderScale}"
                         IsVisible="{Binding Connection.Map.HasMap}" AutomationProperties.Name="Server map" />
         <ScrollViewer HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding !Connection.Map.HasMap}" Margin="20">
         <Border Classes="card" MaxWidth="360" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center">

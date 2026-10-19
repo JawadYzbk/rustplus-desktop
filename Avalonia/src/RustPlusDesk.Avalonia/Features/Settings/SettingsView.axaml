@@ -67,6 +67,73 @@
           </Grid>
         </StackPanel>
       </Border>
+      <Border Classes="panel" Padding="16" IsVisible="{Binding HasMap}">
+        <StackPanel Spacing="12">
+          <TextBlock Text="MAP PERFORMANCE" Classes="section" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <StackPanel>
+              <TextBlock Text="Image scaling quality" FontWeight="SemiBold" />
+              <TextBlock Text="Controls the map image scaling filter." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <ComboBox Grid.Column="1" Width="210" SelectedIndex="{Binding Map.BitmapScalingMode, FallbackValue=0}" AutomationProperties.Name="Image scaling quality">
+              <ComboBoxItem Content="High quality (bicubic)" />
+              <ComboBoxItem Content="Balanced (linear)" />
+              <ComboBoxItem Content="Performance (nearest neighbour)" />
+            </ComboBox>
+          </Grid>
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Enable GPU bitmap caching" FontWeight="SemiBold" />
+              <TextBlock Text="Caches the map scene; extremely improves panning and zooming smoothness." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding Map.UseCacheMode, FallbackValue=False}" OnContent="" OffContent=""
+                          AutomationProperties.Name="Enable GPU bitmap caching" />
+          </Grid>
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" IsEnabled="{Binding Map.UseCacheMode, FallbackValue=False}">
+            <StackPanel>
+              <TextBlock Text="GPU rendering scale" FontWeight="SemiBold" />
+              <TextBlock Text="Resolution scale of the cached map scene. Lower scales improve performance." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <ComboBox Grid.Column="1" Width="210" SelectedIndex="{Binding Map.RenderScaleIndex, FallbackValue=2}" AutomationProperties.Name="GPU rendering scale">
+              <ComboBoxItem Content="50% (fastest)" />
+              <ComboBoxItem Content="75% (performance)" />
+              <ComboBoxItem Content="100% (native)" />
+              <ComboBoxItem Content="125% (sharp)" />
+              <ComboBoxItem Content="150% (high resolution)" />
+              <ComboBoxItem Content="200% (ultra high resolution)" />
+            </ComboBox>
+          </Grid>
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Disable grid anti-aliasing (aliased edge mode)" FontWeight="SemiBold" />
+              <TextBlock Text="Disables anti-aliasing on grid lines and markers; improves rendering performance." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding Map.UseAliasedEdgeMode, FallbackValue=False}" OnContent="" OffContent=""
+                          AutomationProperties.Name="Disable grid anti-aliasing (aliased edge mode)" />
+          </Grid>
+        </StackPanel>
+      </Border>
+      <Border Classes="panel" Padding="16" IsVisible="{Binding HasMap}">
+        <StackPanel Spacing="12">
+          <TextBlock Text="TEAM MARKERS" Classes="section" />
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Profile markers" FontWeight="SemiBold" />
+              <TextBlock Text="Show circular team member markers with Steam avatars on the map." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding Map.ShowSteamAvatars, FallbackValue=True}" OnContent="" OffContent=""
+                          AutomationProperties.Name="Profile markers" />
+          </Grid>
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Player direction arrows" FontWeight="SemiBold" />
+              <TextBlock Text="Show a direction arrow pointing where each player is facing." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding Map.ShowPlayerArrows, FallbackValue=True}" OnContent="" OffContent=""
+                          AutomationProperties.Name="Player direction arrows" />
+          </Grid>
+        </StackPanel>
+      </Border>
       <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0" IsVisible="{Binding HasCustomMap}">
         <icons:Icon Symbol="Map24" FontSize="18" Foreground="{DynamicResource Accent}" />
         <StackPanel>

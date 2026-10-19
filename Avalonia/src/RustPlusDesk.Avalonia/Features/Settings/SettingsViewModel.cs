@@ -17,7 +17,9 @@ public sealed record MutedServerRow(string Key, string Name)
 /// <summary>
 /// App settings (reference AppSettingsOverlay), category by category for what is ported. General: auto-connect on
 /// startup and launch at sign-in. Alerts: Notification Center toasts, the 1–90 day retention, the muted-server list
-/// with Unmute, and the generic smart-alarm popup. Values live in tracking_settings.json under the reference names.
+/// with Unmute, and the generic smart-alarm popup. The Map page carries the Team markers switches and the Map
+/// performance group (scaling quality, GPU bitmap caching with its render scale, aliased edge mode). Values live in
+/// tracking_settings.json under the reference names.
 /// </summary>
 public sealed partial class SettingsViewModel : ObservableObject
 {

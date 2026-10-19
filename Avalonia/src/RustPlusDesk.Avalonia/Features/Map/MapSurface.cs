@@ -41,6 +41,10 @@ public sealed class MapSurface : Control
     public static readonly StyledProperty<bool> ShowPlayerArrowsProperty = AvaloniaProperty.Register<MapSurface, bool>(nameof(ShowPlayerArrows), true);
     public static readonly StyledProperty<IReadOnlyDictionary<ulong, double>?> PlayerHeadingsProperty =
         AvaloniaProperty.Register<MapSurface, IReadOnlyDictionary<ulong, double>?>(nameof(PlayerHeadings));
+    public static readonly StyledProperty<int> BitmapScalingModeProperty = AvaloniaProperty.Register<MapSurface, int>(nameof(BitmapScalingMode));
+    public static readonly StyledProperty<bool> UseAliasedEdgeModeProperty = AvaloniaProperty.Register<MapSurface, bool>(nameof(UseAliasedEdgeMode));
+    public static readonly StyledProperty<bool> SceneCacheProperty = AvaloniaProperty.Register<MapSurface, bool>(nameof(SceneCache));
+    public static readonly StyledProperty<double> RenderScaleProperty = AvaloniaProperty.Register<MapSurface, double>(nameof(RenderScale), 1.0);
     public static readonly StyledProperty<int> ResetRequestProperty = AvaloniaProperty.Register<MapSurface, int>(nameof(ResetRequest));
     public static readonly StyledProperty<MapFocus?> FocusRequestProperty = AvaloniaProperty.Register<MapSurface, MapFocus?>(nameof(FocusRequest));
 
@@ -76,6 +80,14 @@ public sealed class MapSurface : Control
     public bool ShowPlayerArrows { get => GetValue(ShowPlayerArrowsProperty); set => SetValue(ShowPlayerArrowsProperty, value); }
     /// <summary>Player marker headings in degrees clockwise from north, by marker ID.</summary>
     public IReadOnlyDictionary<ulong, double>? PlayerHeadings { get => GetValue(PlayerHeadingsProperty); set => SetValue(PlayerHeadingsProperty, value); }
+    /// <summary>Reference MapBitmapScalingMode: 0 high quality, 1 balanced, 2 nearest neighbour (the map image filter).</summary>
+    public int BitmapScalingMode { get => GetValue(BitmapScalingModeProperty); set => SetValue(BitmapScalingModeProperty, value); }
+    /// <summary>Reference MapUseAliasedEdgeMode: grid and markers are drawn without anti-aliasing (grid lines 1 px instead of 0.65).</summary>
+    public bool UseAliasedEdgeMode { get => GetValue(UseAliasedEdgeModeProperty); set => SetValue(UseAliasedEdgeModeProperty, value); }
+    /// <summary>Reference MapUseCacheMode: the map scene (image, grid, heatmap) is rasterized once and blitted while panning.</summary>
+    public bool SceneCache { get => GetValue(SceneCacheProperty); set => SetValue(SceneCacheProperty, value); }
+    /// <summary>Reference MapRenderScale: the scene cache's resolution factor (50–200 %).</summary>
+    public double RenderScale { get => GetValue(RenderScaleProperty); set => SetValue(RenderScaleProperty, value); }
     /// <summary>Changes when avatars arrive, so the map redraws.</summary>
     public int AvatarVersion { get => GetValue(AvatarVersionProperty); set => SetValue(AvatarVersionProperty, value); }
     /// <summary>Steam avatars by Steam ID (player markers and death pin heads).</summary>
@@ -99,6 +111,93 @@ public sealed class MapSurface : Control
     /// <summary>Death pin size on screen (reference pin path 40×56, drawn at half size).</summary>
     internal const double PinWidth = 20, PinHeight = 28;
 
+    private RenderTargetBitmap? sceneCache;
+    private double sceneCacheScale;
+    private bool sceneCacheLabels;
+    private bool sceneCacheFailed;
+    /// <summary>True while the scene cache is actually in use (a failed allocation falls back to direct drawing).</summary>
+    internal bool IsSceneCacheActive => sceneCache is not null;
+    /// <summary>The scale the scene cache was actually rasterized at (clamped by the renderer's surface limit).</summary>
+    internal double SceneCacheScale => sceneCacheScale;
+
+    public MapSurface()
+    {
+        ApplyScalingMode();
+        ApplyEdgeMode();
+    }
+
+    /// <summary>Reference ApplyMapPerformanceSettings: the image scaling filter for the map (and cached scene).</summary>
+    private void ApplyScalingMode() => RenderOptions.SetBitmapInterpolationMode(this, BitmapScalingMode switch
+    {
+        1 => BitmapInterpolationMode.LowQuality,
+        2 => BitmapInterpolationMode.None,
+        _ => BitmapInterpolationMode.HighQuality
+    });
+
+    /// <summary>Reference ApplyMapPerformanceSettings: aliased edge mode turns anti-aliasing off for grid lines and markers.</summary>
+    private void ApplyEdgeMode() => RenderOptions.SetEdgeMode(this, UseAliasedEdgeMode ? EdgeMode.Aliased : EdgeMode.Antialias);
+
+    private void DisposeSceneCache()
+    {
+        var old = sceneCache;
+        sceneCache = null;
+        sceneCacheFailed = false;
+        old?.Dispose();
+    }
+
+    /// <summary>Reference label rule: grid labels are only drawn once a cell is large enough on screen.</summary>
+    private bool GridLabelsVisible(MapGeometry geometry)
+    {
+        double cell = MapGrid.CellSize(geometry.WorldSize);
+        var (x0, _) = geometry.WorldToImage(0, 0);
+        var (x1, _) = geometry.WorldToImage(cell, 0);
+        return (x1 - x0) * scale >= 22;
+    }
+
+    /// <summary>
+    /// Reference ApplyMapPerformanceSettings cache branch: the pan-invariant scene (map image, grid, death
+    /// heatmap) rasterized at the render scale, so panning and zooming blit one bitmap instead of redrawing
+    /// the layers. Rebuilt when its inputs change; a failed allocation falls back to drawing directly.
+    /// </summary>
+    private void EnsureSceneCache(MapGeometry? geometry, bool labels)
+    {
+        if (Image is not { } image || sceneCacheFailed) return;
+        double cacheScale = MapPerformance.EffectiveCacheScale(RenderScale, (int)image.Size.Width, (int)image.Size.Height);
+        if (sceneCache is not null && Math.Abs(sceneCacheScale - cacheScale) < 1e-9 && sceneCacheLabels == labels) return;
+        try
+        {
+            var next = new RenderTargetBitmap(new PixelSize(
+                Math.Max(1, (int)Math.Ceiling(image.Size.Width * cacheScale)),
+                Math.Max(1, (int)Math.Ceiling(image.Size.Height * cacheScale))));
+            using (var ctx = next.CreateDrawingContext())
+            using (ctx.PushTransform(Matrix.CreateScale(cacheScale, cacheScale)))
+            {
+                ctx.DrawImage(image, new Rect(image.Size));
+                if (ShowGrid && geometry is { WorldSize: > 0 } grid)
+                    using (ctx.PushOpacity(GridOpacity)) DrawGrid(ctx, grid, labels);
+                if (ShowDeathHeatmap && geometry is { WorldSize: > 0 } heat && DeathPositions is { Count: > 0 } deaths)
+                    DrawDeathHeatmap(ctx, heat, deaths);
+            }
+            var old = sceneCache;
+            sceneCache = next;
+            sceneCacheScale = cacheScale;
+            sceneCacheLabels = labels;
+            old?.Dispose();
+        }
+        catch (Exception)
+        {
+            // No tiled caches here: if the render target cannot be allocated, keep drawing directly.
+            DisposeSceneCache();
+            sceneCacheFailed = true;
+        }
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        DisposeSceneCache();
+    }
+
     public double Scale => scale;
     public Vector Offset => offset;
     internal MapMonument? Hovered => hovered;
@@ -110,7 +209,8 @@ public sealed class MapSurface : Control
         AffectsRender<MapSurface>(ImageProperty, GeometryProperty, MonumentsProperty, ShowGridProperty, ShowMonumentsProperty,
             MarkersProperty, ShowPlayersProperty, ShowShopsProperty, MonumentScaleProperty, MonumentOpacityProperty, GridOpacityProperty, MonumentNamesProperty,
             AbbreviateNamesProperty, PlayerScaleProperty, ShowDeathHeatmapProperty, DeathPositionsProperty, ShowDeathPinsProperty, DeathPinsProperty,
-            ShowSteamAvatarsProperty, AvatarVersionProperty, AvatarsProperty, ShowPlayerArrowsProperty, PlayerHeadingsProperty);
+            ShowSteamAvatarsProperty, AvatarVersionProperty, AvatarsProperty, ShowPlayerArrowsProperty, PlayerHeadingsProperty,
+            BitmapScalingModeProperty, UseAliasedEdgeModeProperty, SceneCacheProperty, RenderScaleProperty);
         ClipToBoundsProperty.OverrideDefaultValue<MapSurface>(true);
         FocusableProperty.OverrideDefaultValue<MapSurface>(true);
     }
@@ -118,8 +218,13 @@ public sealed class MapSurface : Control
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == ImageProperty || change.Property == ResetRequestProperty) { needsFit = true; InvalidateVisual(); }
+        if (change.Property == ImageProperty || change.Property == ResetRequestProperty) { needsFit = true; DisposeSceneCache(); InvalidateVisual(); }
         else if (change.Property == FocusRequestProperty && change.NewValue is MapFocus focus) CenterOn(focus.X, focus.Y);
+        else if (change.Property == BitmapScalingModeProperty) { ApplyScalingMode(); InvalidateVisual(); }
+        else if (change.Property == UseAliasedEdgeModeProperty) { ApplyEdgeMode(); DisposeSceneCache(); InvalidateVisual(); }
+        else if (change.Property == SceneCacheProperty || change.Property == RenderScaleProperty || change.Property == GeometryProperty
+            || change.Property == ShowGridProperty || change.Property == GridOpacityProperty || change.Property == ShowDeathHeatmapProperty
+            || change.Property == DeathPositionsProperty) DisposeSceneCache();
     }
 
     protected override void OnSizeChanged(SizeChangedEventArgs e)
@@ -329,13 +434,23 @@ public sealed class MapSurface : Control
     {
         if (Image is not { } image) return;
         if (needsFit) Fit();
+        bool labels = Geometry is { WorldSize: > 0 } geo && GridLabelsVisible(geo);
+        if (SceneCache) EnsureSceneCache(Geometry, labels);
         using (context.PushTransform(Matrix.CreateScale(scale, scale) * Matrix.CreateTranslation(offset)))
         {
-            context.DrawImage(image, new Rect(image.Size));
-            if (ShowGrid && Geometry is { WorldSize: > 0 } geometry)
-                using (context.PushOpacity(GridOpacity)) DrawGrid(context, geometry);
-            // Reference: above the map and grid, below monuments and markers.
-            if (ShowDeathHeatmap && Geometry is { WorldSize: > 0 } heat && DeathPositions is { Count: > 0 } deaths) DrawDeathHeatmap(context, heat, deaths);
+            if (SceneCache && sceneCache is { } cached)
+            {
+                // Reference: one cached scene bitmap under the pan/zoom transform.
+                context.DrawImage(cached, new Rect(image.Size));
+            }
+            else
+            {
+                context.DrawImage(image, new Rect(image.Size));
+                if (ShowGrid && Geometry is { WorldSize: > 0 } geometry)
+                    using (context.PushOpacity(GridOpacity)) DrawGrid(context, geometry, labels);
+                // Reference: above the map and grid, below monuments and markers.
+                if (ShowDeathHeatmap && Geometry is { WorldSize: > 0 } heat && DeathPositions is { Count: > 0 } deaths) DrawDeathHeatmap(context, heat, deaths);
+            }
         }
         if (ShowMonuments && Geometry is { } world && Monuments is { Count: > 0 } monuments)
             using (context.PushOpacity(MonumentOpacity)) DrawMonuments(context, world, monuments);
@@ -498,12 +613,13 @@ public sealed class MapSurface : Control
         return IconCache[key] = new Bitmap(stream);
     }
 
-    private void DrawGrid(DrawingContext context, MapGeometry geometry)
+    private void DrawGrid(DrawingContext context, MapGeometry geometry, bool includeLabels)
     {
         double world = geometry.WorldSize;
         int cells = MapGrid.CellCount(world);
         double cell = MapGrid.CellSize(world);
-        var pen = new Pen(Brushes.Black, 0.65 / scale);
+        // Reference RefreshGridLineThickness: aliased edge mode uses 1.0 px lines, else 0.65, before the zoom divide.
+        var pen = new Pen(Brushes.Black, MapPerformance.GridLineThickness(UseAliasedEdgeMode) / scale);
         for (int i = 0; i <= cells; i++)
         {
             var (x1, y1) = geometry.WorldToImage(i * cell, world);
@@ -514,9 +630,7 @@ public sealed class MapSurface : Control
             context.DrawLine(pen, new Point(x3, y3), new Point(x4, y4));
         }
         // Labels are drawn once a cell is large enough on screen to read them.
-        var (cx0, _) = geometry.WorldToImage(0, 0);
-        var (cx1, _) = geometry.WorldToImage(cell, 0);
-        if ((cx1 - cx0) * scale < 22) return;
+        if (!includeLabels) return;
         for (int i = 0; i < cells; i++)
         {
             string column = MapGrid.ColumnLabel(i);

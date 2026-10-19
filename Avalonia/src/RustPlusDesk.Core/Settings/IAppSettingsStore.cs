@@ -57,6 +57,10 @@ public static class SettingKeys
     public const string MaxSelfDeathMarkers = "MaxSelfDeathMarkers";       // default 3 (1–50): own death pins kept
     public const string MaxTeamDeathMarkers = "MaxTeamDeathMarkers";       // default 3 (1–50): death pins kept per teammate
     public const string MapShowDeathHeatmap = "MapShowDeathHeatmap";       // default false: the map toolbar "Deaths" heatmap
+    public const string MapBitmapScalingMode = "MapBitmapScalingMode";     // 0 high quality (reference default), 1 balanced, 2 nearest neighbour
+    public const string MapUseCacheMode = "MapUseCacheMode";               // default false: cache the map scene instead of redrawing it per frame
+    public const string MapRenderScale = "MapRenderScale";                 // default 1.0: the scene cache's resolution (50–200 %)
+    public const string MapUseAliasedEdgeMode = "MapUseAliasedEdgeMode";   // default false: aliased grid lines (1.0 px) and markers
     public const string SelectedLanguage = "SelectedLanguage";             // "" = installed UI culture (5.2 picker not ported yet)
     public const string HideConsole = "HideConsole";                       // default false: hide the bottom log/console
     public const string AutoConnectEnabled = "AutoConnectEnabled";         // default false: connect the selected server on startup

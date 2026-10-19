@@ -79,6 +79,22 @@ public sealed partial class MapViewModel : ObservableObject
     public const double MinPlayerIconScale = 0.5, MaxPlayerIconScale = 1.5;
     /// <summary>Reference "Deaths" toolbar toggle (MapShowDeathHeatmap): a heatmap of the server's logged deaths.</summary>
     [ObservableProperty] private bool showDeathHeatmap;
+    /// <summary>Reference "Image scaling quality" (MapBitmapScalingMode): 0 high quality, 1 balanced, 2 nearest neighbour.</summary>
+    [ObservableProperty] private int bitmapScalingMode;
+    /// <summary>Reference "Enable GPU bitmap caching" (MapUseCacheMode): the map scene is cached instead of redrawn each frame.</summary>
+    [ObservableProperty] private bool useCacheMode;
+    /// <summary>Reference "GPU rendering scale" (MapRenderScale): the scene cache's resolution factor, 50–200 %.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RenderScaleIndex))]
+    private double renderScale = MapPerformance.DefaultRenderScale;
+    /// <summary>The render-scale combo's index (reference CmbMapRenderScale).</summary>
+    public int RenderScaleIndex
+    {
+        get => MapPerformance.RenderScaleIndex(RenderScale);
+        set => RenderScale = MapPerformance.RenderScaleOptions[Math.Clamp(value, 0, MapPerformance.RenderScaleOptions.Length - 1)];
+    }
+    /// <summary>Reference "Disable grid anti-aliasing" (MapUseAliasedEdgeMode).</summary>
+    [ObservableProperty] private bool useAliasedEdgeMode;
     /// <summary>Reference "Show profile markers" (MapShowSteamMarkers, default on): Steam avatars on player markers.</summary>
     [ObservableProperty] private bool showSteamAvatars = true;
     /// <summary>The player's Steam avatar, when loaded (team players and death pins).</summary>
@@ -104,6 +120,10 @@ public sealed partial class MapViewModel : ObservableObject
         AbbreviateNames = store.Get(SettingKeys.MapAbbreviateNames, false);
         PlayerIconScale = store.Get(SettingKeys.MapPlayerIconScale, 1.0);
         ShowDeathHeatmap = store.Get(SettingKeys.MapShowDeathHeatmap, false);
+        BitmapScalingMode = MapPerformance.ClampScalingMode(store.Get(SettingKeys.MapBitmapScalingMode, 0));
+        UseCacheMode = store.Get(SettingKeys.MapUseCacheMode, false);
+        RenderScale = store.Get(SettingKeys.MapRenderScale, MapPerformance.DefaultRenderScale);
+        UseAliasedEdgeMode = store.Get(SettingKeys.MapUseAliasedEdgeMode, false);
         ShowSteamAvatars = store.Get(SettingKeys.MapShowSteamMarkers, true);
         ShowPlayerArrows = store.Get(SettingKeys.MapShowPlayerArrows, true);
         ShowShops = AutoLoadShops;
@@ -117,6 +137,15 @@ public sealed partial class MapViewModel : ObservableObject
     partial void OnAutoLoadShopsChanged(bool value) => settings?.Set(SettingKeys.AutoLoadShops, value);
     partial void OnAbbreviateNamesChanged(bool value) => settings?.Set(SettingKeys.MapAbbreviateNames, value);
     partial void OnShowDeathHeatmapChanged(bool value) => settings?.Set(SettingKeys.MapShowDeathHeatmap, value);
+    partial void OnBitmapScalingModeChanged(int value) => settings?.Set(SettingKeys.MapBitmapScalingMode, MapPerformance.ClampScalingMode(value));
+    partial void OnUseCacheModeChanged(bool value) => settings?.Set(SettingKeys.MapUseCacheMode, value);
+    partial void OnRenderScaleChanged(double value)
+    {
+        double fixedValue = double.IsFinite(value) && value > 0 ? value : MapPerformance.DefaultRenderScale;
+        if (fixedValue != value) { RenderScale = fixedValue; return; }
+        settings?.Set(SettingKeys.MapRenderScale, value);
+    }
+    partial void OnUseAliasedEdgeModeChanged(bool value) => settings?.Set(SettingKeys.MapUseAliasedEdgeMode, value);
     partial void OnShowSteamAvatarsChanged(bool value) => settings?.Set(SettingKeys.MapShowSteamMarkers, value);
     partial void OnShowPlayerArrowsChanged(bool value) => settings?.Set(SettingKeys.MapShowPlayerArrows, value);
     partial void OnPlayerIconScaleChanged(double value)
