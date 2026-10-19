@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Layout;
 using RustPlusDesk.Avalonia.Features.Activity;
 using RustPlusDesk.Avalonia.Features.Map;
@@ -71,9 +72,22 @@ public sealed partial class MapWorkspace : UserControl
         flyout.ShowAt(Surface, showAtPointer: true);
     }
 
-    private RowDefinition ActivityRow => WorkspaceGrid.RowDefinitions[2];
+    /// <summary>Reference event dock hover: the whole panel reveals every row's labels while it is hovered.</summary>
+    private void OnEventDockPointerEntered(object? sender, PointerEventArgs e) => EventDockBox.Classes.Set("dockreveal", true);
+    private void OnEventDockPointerExited(object? sender, PointerEventArgs e) => EventDockBox.Classes.Set("dockreveal", false);
 
-    private void ObserveActivity(ActivityLogViewModel? next)
+    /// <summary>
+    /// Reference EventItem_Click: centre the map on a live, trackable event's marker. The reference also follows the
+    /// entity with the camera, which the port does not do (its own deviations note in PARITY-PLAN.md).
+    /// </summary>
+    private void OnEventDockRowPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is not EventDockRow row || !row.Active || !row.Trackable) return;
+        (DataContext as ServersViewModel)?.Connection.Map.CenterOnWorld(row.X, row.Y);
+        e.Handled = true;
+    }
+
+    private RowDefinition ActivityRow => WorkspaceGrid.RowDefinitions[2];    private void ObserveActivity(ActivityLogViewModel? next)
     {
         if (activity is not null) activity.PropertyChanged -= ActivityChanged;
         activity = next;

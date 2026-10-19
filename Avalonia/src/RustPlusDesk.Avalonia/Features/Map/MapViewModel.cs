@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -41,6 +42,20 @@ public sealed partial class MapViewModel : ObservableObject
     public bool HasMap => Image is not null;
 
     [RelayCommand] private void ResetView() => ViewResetRequest++;
+
+    /// <summary>Reference event dock (MainWindow.UpdateEventDock): the live event rows shown over the map.</summary>
+    public ObservableCollection<EventDockRow> EventDock { get; } = [];
+    public bool HasEventDock => EventDock.Count > 0;
+
+    /// <summary>Replaces the event dock rows after a marker poll (reference UpdateEventDock).</summary>
+    public void SetEventDock(IReadOnlyList<EventDockItem> items)
+    {
+        EventDock.Clear();
+        foreach (var item in items)
+            EventDock.Add(new EventDockRow(item.Key, item.Name, MapSurface.MarkerIcon(item.Icon), item.Active, item.Id, item.X, item.Y,
+                item.Trackable, item.TimerText, item.Tip));
+        OnPropertyChanged(nameof(HasEventDock));
+    }
 
     /// <summary>Latest request to centre the view on an image point at the current zoom.</summary>
     [ObservableProperty] private MapFocus? focusRequest;
@@ -237,3 +252,7 @@ public sealed partial class MapViewModel : ObservableObject
 
 /// <summary>An image-space point to centre on; <see cref="Sequence"/> makes repeated requests distinct.</summary>
 public sealed record MapFocus(double X, double Y, int Sequence);
+
+/// <summary>One event-dock row as bound in MapWorkspace.axaml (reference EventDockItem).</summary>
+public sealed record EventDockRow(string Key, string Name, Bitmap? Icon, bool Active, ulong Id, double X, double Y,
+    bool Trackable, string? TimerText, string? Tip);

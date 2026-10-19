@@ -18,8 +18,13 @@ public interface ICargoMemory
     (double X, double Y)? TriggerPoint(string host, string harbor);
     void SetTriggerPoint(string host, string harbor, double x, double y);
     bool HasAnyTrigger(string host);
+    int FullLifeMinutes(string host);
     void SetFullLife(string host, int minutes);
 }
+
+/// <summary>One live cargo ship's dock state, as the reference event dock reads _cargoDockStates.</summary>
+public sealed record CargoShipView(ulong Id, double LastX, double LastY, DateTime? FirstSeen, DateTime? DockTime, bool IsDocked,
+    bool WasAlreadyDocked, bool SeenAtEdge, string? HarborName);
 
 /// <summary>
 /// Reference ProcessCargoDocking + CleanupCargoDockStates for live cargo markers: a cargo first seen after the first poll is
@@ -42,6 +47,13 @@ public sealed class CargoTracker(ICargoMemory memory)
         ships.Clear();
         firstPoll = true;
     }
+
+    /// <summary>When the last tracked ship was despawned (reference _cargoLastDespawnUtc), for the event dock.</summary>
+    public DateTime? LastDespawnUtc { get; private set; }
+
+    /// <summary>The live ships, as the event dock reads the reference _cargoDockStates.</summary>
+    public IReadOnlyList<CargoShipView> Ships => ships.Select(entry => new CargoShipView(entry.Key, entry.Value.LastX, entry.Value.LastY,
+        entry.Value.FirstSeen, entry.Value.DockTime, entry.Value.IsDocked, entry.Value.WasAlreadyDocked, entry.Value.SeenAtEdge, entry.Value.HarborName)).ToArray();
 
     /// <summary>One marker poll: the chat messages to send and the log lines to write.</summary>
     public (IReadOnlyList<string> Messages, IReadOnlyList<string> Log) Observe(IReadOnlyList<MapMarker> markers, double worldSize,
@@ -171,6 +183,7 @@ public sealed class CargoTracker(ICargoMemory memory)
         foreach (var (id, state) in ships.ToArray())
         {
             if ((now - state.LastSeen).TotalSeconds <= 60) continue;
+            LastDespawnUtc = now;
             log.Add(string.Create(CultureInfo.InvariantCulture, $"[cargo] Despawn detected – last seen {(now - state.LastSeen).TotalSeconds:F0}s ago."));
             if (state.FirstSeen is { } first && state.HarborCount >= 1 && state.SeenAtEdge)
             {
@@ -235,6 +248,10 @@ public sealed class SettingsCargoMemory(Settings.IAppSettingsStore settings) : I
     }
 
     public bool HasAnyTrigger(string host) => Triggers().TryGetValue(host, out var points) && points.Count > 0;
+
+    /// <summary>Reference TrackingService.GetLearnedCargoFullLife: 0 when the server never taught a full run.</summary>
+    public int FullLifeMinutes(string host) =>
+        settings.Get<Dictionary<string, int>?>(FullLifeKey, null) is { } all && all.TryGetValue(host, out int minutes) ? minutes : 0;
 
     public void SetFullLife(string host, int minutes)
     {

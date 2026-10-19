@@ -141,6 +141,7 @@ public sealed class CargoTests
         public (double X, double Y)? TriggerPoint(string host, string harbor) => Triggers.TryGetValue(harbor, out var point) ? point : null;
         public void SetTriggerPoint(string host, string harbor, double x, double y) => Triggers[harbor] = (x, y);
         public bool HasAnyTrigger(string host) => Triggers.Count > 0;
+        public int FullLifeMinutes(string host) => FullLife;
         public void SetFullLife(string host, int minutes) => FullLife = minutes;
     }
 }

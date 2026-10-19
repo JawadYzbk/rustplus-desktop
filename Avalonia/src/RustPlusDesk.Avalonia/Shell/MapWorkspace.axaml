@@ -5,6 +5,36 @@
              xmlns:activity="using:RustPlusDesk.Avalonia.Features.Activity"
              xmlns:shops="using:RustPlusDesk.Avalonia.Features.Shops"
              x:Class="RustPlusDesk.Avalonia.Shell.MapWorkspace" x:DataType="vm:ServersViewModel">
+  <UserControl.Styles>
+    <!--  Reference event dock: every row reveals its labels while the panel itself is hovered.  -->
+    <Style Selector="Border.dockrow">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="CornerRadius" Value="8" />
+    </Style>
+    <Style Selector="Border.dockrow:pointerover">
+      <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+    </Style>
+    <Style Selector="Border.dockrow:not(.dockactive)">
+      <Setter Property="Opacity" Value="0.35" />
+    </Style>
+    <Style Selector="Border.dockrow.docktrackable.dockactive">
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Border.eventdock TextBlock.docktext">
+      <Setter Property="Opacity" Value="0" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Border.eventdock.dockreveal TextBlock.docktext">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="TextBlock.dockname.dockactive">
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+  </UserControl.Styles>
   <Grid x:Name="WorkspaceGrid">
     <Grid.RowDefinitions>
       <RowDefinition Height="*" MinHeight="190" />
@@ -170,6 +200,33 @@
                                   HorizontalAlignment="Right" VerticalAlignment="Stretch" Margin="0,12,12,12" />
         <teams:TeamView Grid.Row="1" DataContext="{Binding Connection.Team}" MaxHeight="{Binding #MapContent.Bounds.Height}"
                         HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="20,0,20,20" />
+        <!--  Reference event dock (Panel.ZIndex 100): live event rows with their spawn/despawn timers.  -->
+        <Border x:Name="EventDockBox" Classes="eventdock" Background="#AA16181C" BorderBrush="#40FFFFFF" BorderThickness="1" CornerRadius="12"
+                Padding="6,8" Margin="15" HorizontalAlignment="Right" VerticalAlignment="Top" BoxShadow="0 2 15 0 #4D000000"
+                IsVisible="{Binding Connection.Map.HasEventDock}"
+                PointerEntered="OnEventDockPointerEntered" PointerExited="OnEventDockPointerExited">
+          <ItemsControl x:Name="EventDock" ItemsSource="{Binding Connection.Map.EventDock}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="map:EventDockRow">
+                <Border Classes="dockrow" Classes.dockactive="{Binding Active}" Classes.docktrackable="{Binding Trackable}"
+                        Height="34" Padding="4,1" Margin="0,1" ToolTip.Tip="{Binding Tip}" PointerPressed="OnEventDockRowPressed">
+                  <Grid ColumnDefinitions="36,*" RowDefinitions="Auto,Auto">
+                    <Ellipse Grid.RowSpan="2" Grid.Column="0" Width="32" Height="32" Fill="{DynamicResource AccentSoft}" IsVisible="{Binding Active}" />
+                    <Image Grid.RowSpan="2" Grid.Column="0" Width="24" Height="24" Source="{Binding Icon}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <Ellipse Grid.RowSpan="2" Grid.Column="0" Width="6" Height="6" Margin="0,0,4,0" Fill="{DynamicResource Accent}"
+                             HorizontalAlignment="Right" VerticalAlignment="Center" IsVisible="{Binding Active}" />
+                    <TextBlock Classes="docktext dockname" Classes.dockactive="{Binding Active}" Grid.Row="0" Grid.Column="1" Text="{Binding Name}"
+                               FontSize="12" Foreground="{DynamicResource TextPrimary}" Margin="8,2,12,0" VerticalAlignment="Center" />
+                    <TextBlock Classes="docktext" Grid.Row="1" Grid.Column="1" Text="{Binding TimerText}" FontSize="10" FontWeight="SemiBold"
+                               Foreground="{DynamicResource Accent}" Margin="8,0,12,2" VerticalAlignment="Center"
+                               IsVisible="{Binding TimerText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Border>
         </Grid>
       </Border>
     </Grid>

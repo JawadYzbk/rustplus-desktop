@@ -9,6 +9,7 @@ public sealed class EventAnnouncer
 {
     private readonly EventSpawnTracker tracker = new();
     private readonly DeepSeaTracker deepSea = new();
+    private readonly EventDockModel dock = new();
     private CargoTracker? cargo;
     /// <summary>Cargo ship tracking (reference ProcessCargoDocking) with what the server taught it; null = not tracked.</summary>
     public ICargoMemory? CargoMemory { get => cargoMemory; set { cargoMemory = value; cargo = value is null ? null : new(value) { Templates = Templates }; } }
@@ -18,6 +19,8 @@ public sealed class EventAnnouncer
     public Func<DateTime> Now { get; set; } = () => DateTime.UtcNow;
     /// <summary>The Oil Rig crate countdowns that Smart Alarm pushes start (reference MonumentWatcher).</summary>
     public OilRigTimer? OilRigs { get; set; }
+    /// <summary>The most recent Smart Alarm time per canonical rig name (reference _oilRigAlarms), for the dock row.</summary>
+    public Func<string, DateTime?>? RigAlarmAt { get; set; }
     private readonly MapViewModel map;
     private readonly ChatAlertsViewModel alerts;
 
@@ -40,7 +43,14 @@ public sealed class EventAnnouncer
     private void MapChanged(object? sender, PropertyChangedEventArgs e)
     {
         // A new connection clears the map: the next poll is a first poll again (reference _firstPollDyn).
-        if (e.PropertyName == nameof(MapViewModel.Geometry) && map.Geometry is null) { tracker.Reset(); deepSea.Reset(); cargo?.Reset(); }
+        if (e.PropertyName == nameof(MapViewModel.Geometry) && map.Geometry is null)
+        {
+            tracker.Reset();
+            deepSea.Reset();
+            cargo?.Reset();
+            dock.Reset();
+            RefreshDock(0, [], DeepSeaChange.None);
+        }
         if (e.PropertyName != nameof(MapViewModel.Markers)) return;
         // Reference UpdateAndGetVirtualMarkers ticks the rig reminders on every marker poll, map image or not.
         if (OilRigs is not null)
@@ -60,6 +70,18 @@ public sealed class EventAnnouncer
             foreach (string message in messages) _ = DeliverAsync(message);
             alerts.RefreshCargoArrival();
         }
+        RefreshDock(geometry.WorldSize, map.Markers, change);
+    }
+
+    /// <summary>Reference UpdateEventDock: rebuild the over-map event rows for this poll.</summary>
+    private void RefreshDock(double worldSize, IReadOnlyList<MapMarker> markers, DeepSeaChange change)
+    {
+        string? host = Host?.Invoke();
+        bool knownHost = host is { Length: > 0 };
+        int fullLife = knownHost && CargoMemory is { } memory ? memory.FullLifeMinutes(host!) : 0;
+        int docking = knownHost && CargoMemory is { } cargoMemory ? cargoMemory.DockingMinutes(host!) : SettingsCargoMemory.DefaultDockingMinutes;
+        map.SetEventDock(dock.Observe(markers, worldSize, cargo?.Ships ?? [], cargo?.LastDespawnUtc, fullLife, docking, change, Now(),
+            OilRigs, RigAlarmAt));
     }
 
     private static string ReminderKey(OilRigReminder reminder) => reminder switch

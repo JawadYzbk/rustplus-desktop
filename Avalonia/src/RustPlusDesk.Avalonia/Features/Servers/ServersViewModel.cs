@@ -101,6 +101,10 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             CargoMemory = appSettings is null ? null : new RustPlusDesk.Core.Map.SettingsCargoMemory(appSettings),
             Host = () => SelectedServer?.Host,
             OilRigs = OilRigTimers,
+            // Reference DockOilRigAlarms: the dock tooltip/row uses this session's latest alarm for that rig.
+            RigAlarmAt = rig => recentOilRigAlarms.Where(OnSelectedServer)
+                .Where(entry => RustPlusDesk.Core.Map.OilRigTimer.CanonicalRigName(entry.Label) == rig)
+                .Select(entry => (DateTime?)entry.At).OrderByDescending(at => at).FirstOrDefault(),
             Templates = AlertTemplates,
             Log = Activity.Append,
             SendTeamChat = text => Connection.Chat.SendAutomatedAsync(text)
