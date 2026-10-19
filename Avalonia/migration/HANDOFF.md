@@ -4,6 +4,28 @@
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
 every finished slice with its commit.
 
+## Fifth run — oil rig crate timers and announcements (2026-10-19, local Windows continuation)
+
+- Branch `codex/avalonia-migration`; slice commit `89de8616` (docs follow). Only `Avalonia/` changes.
+- **574 tests** run locally on Windows: 571 pass; the 3 known Windows-local failures remain
+  (`DeathStatsTests.Page_OpensForTheSelectedServer_FiltersForgetsAndClears` and the two
+  `GeneralSettingsTests` XDG/macOS autostart cases — all platform-specific, clean on Linux).
+- Done: `OilRigTimer` + the alarm-push oil-rig branch (no raid popup, 30 s per-server de-duplication,
+  one `OilRigAlarm` inbox row, "…triggered! Crate unlocks in 15m." announcement gated by the master and
+  the new `AnnounceOilRig` flag with its "Oil Rig Crate Status" chat-alert menu item), and 10/5-minute
+  crate reminders on every marker poll (no map image needed) through `EventAnnouncer`.
+- Where the behaviour lives: `Core/Map/OilRigTimers.cs` (timer, rig labels, reference reminder windows
+  — the 15-min reminder only fires past a 15-minute timer, reference quirk kept), `ServersViewModel.
+  TryHandleOilRigAlarm` (runs from the push loop via `AlarmsViewModel.Intercept`; the loop skips
+  `Notifications.Handle` for consumed alarms), `EventAnnouncer.OilRigs`, `ChatAlertsViewModel.AnnounceOilRig`.
+- Tests: `OilRigTests` (labels, timer windows, the alarm→timer run through the real listener push loop,
+  reminders consumed silently while the flag is off, `ShopNoticeTests` menu click and the 20-flag count).
+  `Activity.Lines` is a raw `List<string>` — poll it through the test's `LinesContain` retry helper.
+- Not ported: chinook-at-a-rig timer learning (`MonumentWatcher.OnOilRigTriggered`/`OnOilRigChatUpdate`),
+  event dock timers, the Discord bot "events" channel.
+- Next slices unchanged: Settings > Team markers/Map Performance, team feature master, event dock timers,
+  then ghost (predicted) cargo markers.
+
 ## Where things stand (scheduled run, 2026-10-18, Linux cloud container)
 
 - Branch `codex/avalonia-migration`, pushed to `origin`. Latest code commit: `89a3ceca` (docs follow).

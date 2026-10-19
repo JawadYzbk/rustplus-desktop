@@ -11,6 +11,17 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- Oil-rig alarms and crate timers: `OilRigTimer` (15-minute timer per Small/Large/Generic rig, reset on
+  server switch, one 15/10/5-minute reminder window each) plus the alarm-push interceptor
+  (`ServersViewModel.TryHandleOilRigAlarm`): an explicit rig alarm is de-duplicated within 30 s on the
+  selected server, becomes one `OilRigAlarm` inbox row (no raid popup, no plain "Alarm" row), and
+  announces "…triggered! Crate unlocks in 15m." while connected with the master + the new AnnounceOilRig
+  flag ("Oil Rig Crate Status" chat-alert item; Select/Deselect all and the badge, 20 flags);
+  `EventAnnouncer` posts the 10/5-minute reminders on every marker poll without a map image.
+  **574 tests** on Windows (3 pre-existing platform failures: death-stats page + XDG/macOS autostart;
+  Linux 569/569 at the previous slice). Chinook-at-a-rig learning, event dock timers and the Discord
+  "events" channel remain pending.
+
 - Live collapsible Team dock with online/offline and alive/dead states, independent ten-second polling,
   stale-update messaging, cancellation/session ownership and disconnect reset. Minimum-size UI checks
   use 24 members, long names and the maximum activity panel. Direct device/group icon clicks open the
