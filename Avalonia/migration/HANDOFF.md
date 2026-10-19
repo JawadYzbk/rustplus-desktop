@@ -4,6 +4,50 @@
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
 every finished slice with its commit.
 
+## Ninth run - team chat commands (2026-10-19, local Windows continuation)
+
+- Branch `codex/avalonia-migration`; slice commit `5d1245c6` (docs follow). Only `Avalonia/` changes.
+- **628 tests** run locally on Windows: 625 pass; the same 3 known Windows-local failures remain
+  (`DeathStatsTests.Page_OpensForTheSelectedServer_FiltersForgetsAndClears` and the two
+  `GeneralSettingsTests` XDG/macOS autostart cases - platform-specific, clean on Linux). Build zero warnings.
+- Done: the reference team chat commands, first family (status commands). A message in team or clan chat
+  is matched against the selected profile's prefix and command names, with the reference enable gate, the
+  two-second cooldown and the reference answer texts; answers go back to the channel that asked after the
+  profile response delay. Commands: pop (population, plus the queue line only when there is a queue), time,
+  afk (the team's idle clock, or the clan-wide "Team" scope), promote, who/controller/bot, deepsea, cargo
+  (dock countdown, remaining life, mid-route, despawned-ago), heli (with the grid label), vendor, and the
+  command list - which advertises a command only when it can act.
+- Where the behaviour lives: `Core/Chat/ChatCommands.cs` (`ChatCommandSettings`, `ChatCommandTexts`,
+  `ChatCommandState`, `ChatCommandCooldown`, `ChatCommands.Process` and one answer builder per command),
+  `Core/Connections/IServerLeaderSession.cs` + `RustPlusTransport.PromoteToLeaderAsync`,
+  `Infrastructure/Profiles/LegacyChatCommandStore.cs` (only that profile's chat-command fields in
+  profiles.json, revision-checked backed-up writer), `Features/Chat/ChatCommandService.cs` (session
+  attach/reset, replies, promote), `ChatViewModel.LiveMessage` (history is never treated as a command) and
+  `SendCommandReplyAsync` (channel asked, profile delay, 128-character cut, never through the alert channel
+  or the chat-alert master switch), `Features/Settings/ChatCommandSettingsViewModel.cs` + the Settings >
+  Chat Commands card, `ConnectionViewModel.PlayerCount`/`QueueCount`/`CanPromote`,
+  `TeamViewModel.AfkMembers`, `AfkTracker.Idle`, `EventAnnouncer.EventState`/`CargoState`,
+  `EventDockModel.EventState`.
+- Tests: `ChatCommandTests` (24: the gate order including a disabled server not consuming the cooldown,
+  prefix/case/spacing, the cooldown log line, every command's text, the list gating, the 128-character cut,
+  `ValidateCommand`, `Ago`, the settings-store round trip with only this profile's fields changed,
+  invalid-prefix normalisation, and the live wiring through the real `ChatViewModel` - the channel asked,
+  history never answering, the promote hand-over, the log line, truncation, disconnected false);
+  `ChatTextParityTests` (2: every ported answer compared character by character against
+  `RustPlusDesktop/Properties/Resources.resx`, and the who answer against the reference literal);
+  `EventDockTests` and `ConnectionViewModelTests` gained the dock-state and raw-count cases.
+- Deviation: promote needs a session that can hand over leadership and is otherwise dropped, where the
+  reference answers the author that they were promoted and fires the request at the game; the reference
+  event-capability checks that dim events the server cannot report are not ported (deep sea and cargo
+  always track as available); `ChatCommandDelaySeconds` is a dead reference setting and is not ported.
+- Fidelity fix in the same commit: the event-dock tooltips (seventh run) had ASCII hyphens where the
+  reference resources carry en dashes, and read "Deep Sea Event active" where the reference reads
+  "Deep Sea active". Both are restored, and `ChatTextParityTests` now fails on that class of drift for the
+  chat answers.
+- Next slices: the remaining chat-command families (switch/group commands, upkeep and base codes, oil rig,
+  custom timers, the AI command, clan/master author gating), the team feature master (+ cloud presence),
+  chinook-at-a-rig timer learning, heli crash sites on the map, then the remaining PARITY-PLAN ports
+  (command dock is the largest).
 ## Eighth run — predicted (ghost) event markers (2026-10-19, local Windows continuation)
 
 - Branch `codex/avalonia-migration`; slice commit `e1fc3d78` (docs follow). Only `Avalonia/` changes.

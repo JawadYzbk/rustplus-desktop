@@ -11,6 +11,18 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- Team chat commands with their settings card: `Core/Chat/ChatCommands.cs` ports the reference
+  `ProcessChatCommands` status commands - the selected profile's prefix and command names, the enable gate,
+  the two-second cooldown (with the reference log line) and the answer texts copied verbatim from the
+  reference resources, which `ChatTextParityTests` now compares against `Resources.resx` character by
+  character. Commands: pop, time, afk, promote, who/controller/bot, deepsea, cargo, heli, vendor and the
+  command list, each reading live state (connection counts and clock, the team AFK tracker, the event dock
+  and the cargo memory); answers return to the channel that asked after the profile response delay and are
+  never redirected by the chat-alert channel or master switch. Settings > Chat Commands edits the profile's
+  command fields through the backed-up profile writer.
+  **628 tests** on Windows locally (625 pass; the 3 known platform failures). The remaining chat-command
+  families (switch/group commands, upkeep and base codes, oil rig, custom timers, the AI command and
+  clan/master gating), the team feature master, chinook-at-a-rig timer learning and heli crash sites remain.
 - Predicted (ghost) event markers: `Core/Map/PredictedMarkers.cs` ports the reference dynamic-marker
   persistence (`_dynStates` velocity state and the missing-marker loop) — a moving event marker (cargo
   ship, CH47, patrol helicopter, travelling vendor) that stops appearing in a poll keeps being drawn for
@@ -18,7 +30,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
   tenth. The map surface draws `MapViewModel.DrawnMarkers`; the predicted cargo positions are fed to
   `CargoTracker.ObserveGhosts` with the reference `isGhost` rules (a ghost keeps a ship alive but can
   never dock it, create it or announce; a docked ship's ghost stays pinned to its last position).
-  **600 tests** on Windows locally (597 pass; the 3 known platform failures). Chat commands, the team
+  **600 tests** on Windows locally (597 pass; the 3 known platform failures). The team
   feature master, chinook-at-a-rig timer learning and heli crash sites remain.
 
 - Event dock with spawn/despawn timers: `Core/Map/EventDock.cs` (`EventDockModel`) ports the reference
@@ -216,7 +228,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Live map/markers/overlays | Not ported | Separate coordinate/state logic from rendering; choose portable map/helper hosting |
 | Smart devices/automation/timers | Confirmed switches, nested group commands, alarm/storage state, local organization/icons/delete with rule+command cleanup, own-device sync and guarded shared/local import | Live-server acceptance, drag gestures, hotkey/overlay cleanup on delete, transfer, missing icon artwork/direct-click shortcuts, automation, timers, alarm notifications/audio and original layout |
 | Cloud identity/consent | Website handoff, scoped permission, local sign-out, fresh quotas, own recovery/automatic sync and import sources | Live authentication/version acceptance, concurrent writers, other consents, team membership/master/chat publication and remaining account/provider/session workflows |
-| Chat/team/clan | Read-only live roster dock; offline/alive/dead states and safe SDK projection | Full team map, chat/clan, moderation/history, membership publication/master coordination and remaining presentation |
+| Chat/team/clan | Live roster dock, chat history/search/emoji/message menu, automated alert routing and team chat commands (status commands with per-server command settings) | Moderation and clan management, chat/clan publication and master coordination, and the remaining chat-command families (switch/upkeep/base codes/oil rig/custom timers/AI, clan/master author gating) |
 | Cameras | Not ported | Validate camera SDK/runtime, stream decoding and portable rendering |
 | Genetics Lab/web tools | Not ported | Decide and verify portable web hosting/bridge rather than copying WebView2 |
 | Settings/localization/backups | Not ported | Portable settings models, resources, storage, lossless schema migration |
