@@ -35,7 +35,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     IServerDeleter? serverDeleter = null, ICloudServerForgetter? cloudForgetter = null, IProfileFlagStore? profileFlags = null,
     RustPlusDesk.Core.Alerts.IDiscordWebhookStore? webhookStore = null, RustPlusDesk.Core.Alerts.IDiscordWebhookSender? webhookSender = null,
     RustPlusDesk.Core.Alerts.ICloudSignInState? cloudSignIn = null, IProfileWipeTimeStore? wipeTimes = null,
-    ISteamAvatarSource? avatarSource = null)
+    ISteamAvatarSource? avatarSource = null, RustPlusDesk.Core.Chat.IChatCommandSettingsStore? chatCommandStore = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -63,6 +63,52 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     private Alerts.ChatAlertsViewModel? chatAlerts;
     /// <summary>Chat-alert master switch and flags; creating it also starts the new/suspicious shop notices.</summary>
     public Alerts.ChatAlertsViewModel ChatAlerts => chatAlerts ??= CreateChatAlerts();
+
+    /// <summary>
+    /// Reference ProcessChatCommands: answers the chat commands configured on the selected profile. It lives beside
+    /// the event announcer because the event answers read the dock, the cargo tracker and the learned cargo data.
+    /// </summary>
+    public Chat.ChatCommandService? ChatCommandEngine { get; private set; }
+
+    /// <summary>Everything the command answers read off the reference MainWindow (_vm, _dynStates, _cargo*).</summary>
+    private RustPlusDesk.Core.Chat.ChatCommandState BuildChatCommandState()
+    {
+        var connection = Connection;
+        return new RustPlusDesk.Core.Chat.ChatCommandState(
+            Connected: connection.Chat.IsConnected,
+            Players: connection.PlayerCount,
+            Queue: connection.QueueCount,
+            ServerTime: connection.ServerTime,
+            TimeUntilNextPhase: connection.NextPhase,
+            Afk: connection.Team.AfkMembers(),
+            Events: EventAnnouncer?.EventState(),
+            Cargo: EventAnnouncer?.CargoState(),
+            CanPromote: connection.CanPromote);
+    }
+
+    /// <summary>
+    /// Loads the selected profile's chat-command settings into the engine. A failed or missing read keeps the
+    /// defaults (commands on, "!") because the reference profile always had those defaults.
+    /// </summary>
+    private async Task ReloadChatCommandSettingsAsync()
+    {
+        if (ChatCommandEngine is not { } engine) return;
+        string path = SourcePath;
+        var server = SelectedServer;
+        engine.Reset();
+        engine.Settings = RustPlusDesk.Core.Chat.ChatCommandSettings.Defaults;
+        if (chatCommandStore is null || server is null) return;
+        try
+        {
+            var settings = await chatCommandStore.GetAsync(path, server.ProfileKey, CancellationToken.None);
+            if (SourcePath == path && SelectedServer == server) engine.Settings = settings;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+        {
+            Activity.Append("[ChatCommand] The profile's chat-command settings could not be read; using the defaults.");
+        }
+    }
+
     public Shops.ShopNoticesViewModel? ShopNotices { get; private set; }
     public Alerts.EventAnnouncer? EventAnnouncer { get; private set; }
     public Alerts.PresenceAnnouncer? PresenceAnnouncer { get; private set; }
@@ -90,6 +136,14 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             _ = alerts.Webhook.LoadAsync();
         }
         Connection.Chat.Alerts = alerts;
+        ChatCommandEngine = new Chat.ChatCommandService(Connection.Chat)
+        {
+            State = BuildChatCommandState,
+            PromoteToLeader = Connection.PromoteToLeaderAsync,
+            Log = Activity.Append
+        };
+        ChatCommandEngine.Attach();
+        _ = ReloadChatCommandSettingsAsync();
         ShopNotices = new(new RustPlusDesk.Core.Map.ShopNoticeTracker(RustPlusDesk.Infrastructure.Items.BundledItemCatalog.GetName) { Templates = AlertTemplates },
             Connection.Map, alerts)
         {
@@ -390,9 +444,13 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             Templates = AlertTemplates,
             Webhook = ChatAlerts.Webhook,
             CustomMap = customMapUrls is null ? null : new(customMapUrls, mapCache,
-                () => SelectedServer is { } server ? (SourcePath, server) : null, ReloadAfterCustomMapChangeAsync)
+                () => SelectedServer is { } server ? (SourcePath, server) : null, ReloadAfterCustomMapChangeAsync),
+            ChatCommands = chatCommandStore is null ? null : new(chatCommandStore,
+                () => SelectedServer is { } server ? (SourcePath, server) : null,
+                settings => { if (ChatCommandEngine is { } engine) engine.Settings = settings; })
         };
         _ = model.CustomMap?.LoadAsync();
+        _ = model.ChatCommands?.LoadAsync();
         ObserveStreamerMode();
         model.GenericAlarmPopupChanged += value => Alarms.GenericPopupEnabled = value;
         return model;
@@ -855,6 +913,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         OilRigTimers.Reset();
         recentOilRigAlarms.Clear();
         _ = settingsPage?.CustomMap?.LoadAsync();
+        _ = ReloadChatCommandSettingsAsync();
+        _ = settingsPage?.ChatCommands?.LoadAsync();
         _ = deathPins?.ReloadAsync();
         _ = chatAlerts?.LoadChannelAsync();
         chatAlerts?.RefreshCargoArrival();

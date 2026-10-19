@@ -73,6 +73,10 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
     [ObservableProperty] private string statusMessage = "Disconnected";
     [ObservableProperty] private string population = "—";
     [ObservableProperty] private string queue = "—";
+    /// <summary>Reference _vm.ServerPlayers: the raw count the chat "pop" command answers with.</summary>
+    public uint? PlayerCount { get; private set; }
+    /// <summary>Reference _vm.ServerQueue: the raw queue length the chat "pop" command reports.</summary>
+    public uint? QueueCount { get; private set; }
     [ObservableProperty] private string serverTime = "—";
     [ObservableProperty] private string nextPhase = "";
 
@@ -234,9 +238,20 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
         if (ConnectCommand.ExecutionTask is { } task) await task;
     }
 
+    /// <summary>Whether the live session can hand the team leadership to a teammate (the chat "promote" command).</summary>
+    public bool CanPromote => activeSession is { Session: IServerLeaderSession };
+
+    /// <summary>Reference real.PromoteToLeaderAsync through the live session; false when it cannot or the server refused.</summary>
+    public Task<bool> PromoteToLeaderAsync(ulong steamId, CancellationToken ct) =>
+        activeSession is { Session: IServerLeaderSession leader }
+            ? leader.PromoteToLeaderAsync(steamId, ct)
+            : Task.FromResult(false);
+
     private void ApplyStatus(ServerStatus status)
     {
         if (!string.IsNullOrWhiteSpace(status.Name)) ServerName = status.Name;
+        PlayerCount = status.Players;
+        QueueCount = status.Queue;
         Population = $"{status.Players?.ToString() ?? "—"} / {status.MaxPlayers?.ToString() ?? "—"}";
         Queue = status.Queue?.ToString() ?? "—";
         if (status.GameHours is { } hours && double.IsFinite(hours))
@@ -283,6 +298,7 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
         Chat.Reset();
         sampleTime = null;
         sampleHours = null;
+        PlayerCount = QueueCount = null;
         Population = Queue = ServerTime = "—";
         NextPhase = "";
     }

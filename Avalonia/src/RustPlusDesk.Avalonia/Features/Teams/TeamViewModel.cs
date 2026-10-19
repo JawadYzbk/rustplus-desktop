@@ -54,6 +54,19 @@ public sealed partial class TeamViewModel : ObservableObject
     /// <summary>Steam avatars by Steam ID (reference AvatarLoader cache).</summary>
     public Func<string, global::Avalonia.Media.Imaging.Bitmap?>? Avatars { get; set; }
 
+    /// <summary>Reference TeamMembers.Where(t =&gt; t.IsAfk) for the chat AFK command: the AFK rows with their idle clock.</summary>
+    public IReadOnlyList<RustPlusDesk.Core.Chat.ChatAfkMember> AfkMembers()
+    {
+        DateTime now = Now();
+        var result = new List<RustPlusDesk.Core.Chat.ChatAfkMember>();
+        foreach (var row in Members)
+        {
+            if (!row.IsAfk || afk.Idle(row.Member.SteamId, now) is not { } idle) continue;
+            result.Add(new RustPlusDesk.Core.Chat.ChatAfkMember(row.Name, now - idle));
+        }
+        return result;
+    }
+
     /// <summary>Reference EnsureAvatarAsync completion: rows pick up avatars that arrived.</summary>
     public void RefreshAvatars()
     {

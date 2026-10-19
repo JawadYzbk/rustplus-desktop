@@ -21,7 +21,6 @@ public sealed class EventDockModel
 {
     /// <summary>Reference GetPersistentEvent: a row is still shown for four polls after the marker went missing.</summary>
     public const int DisplayMissingPolls = 5;
-
     /// <summary>Reference removal bookkeeping happens at MissingCount == 10.</summary>
     public const int RemoveMissingPolls = 10;
 
@@ -43,6 +42,8 @@ public sealed class EventDockModel
     private readonly HashSet<string> known = new(StringComparer.Ordinal);
     private KindState heli = new(), chinook = new(), cargo = new(), vendor = new();
     private bool firstPoll = true;
+    /// <summary>The world size of the last poll, for the grid label of the chat "heli" answer.</summary>
+    private double lastWorldSize;
 
     private DateTime? heliSpawnTime, heliLastEventUtc;
     private bool heliMidEvent, heliLastEventWasCrash;
@@ -81,6 +82,7 @@ public sealed class EventDockModel
         DeepSeaChange deepSeaChange, DateTime now, OilRigTimer? rigs = null, Func<string, DateTime?>? rigAlarmAt = null)
     {
         ApplyDeepSeaChange(deepSeaChange, now);
+        lastWorldSize = worldSize;
 
         ProcessKind(heli, Marker(markers, MapMarkerKind.PatrolHelicopter), worldSize, now);
         ProcessKind(cargo, Marker(markers, MapMarkerKind.CargoShip), worldSize, now);
@@ -97,6 +99,25 @@ public sealed class EventDockModel
         firstPoll = false;
         return items;
     }
+
+    /// <summary>
+    /// The raw event state the reference chat commands read off MainWindow (_dynStates, _heliSpawnTime,
+    /// _heliLastEventUtc, _vendorSpawnTime, _vendorDespawnTime, _deepSeaSpawnTime, ...). "Active" is the marker
+    /// still being tracked (MissingCount below <see cref="RemoveMissingPolls"/>), which is what the reference's
+    /// dynamic-state dictionary holds, not the shorter dock-row display window.
+    /// </summary>
+    public Chat.ChatEventCommandState EventState() => new(
+        DeepSeaActive: deepSeaActive,
+        DeepSeaSpawnTime: deepSeaSpawnTime,
+        DeepSeaDespawnTime: deepSeaDespawnTime,
+        HeliActive: heli.Last is not null,
+        HeliSpawnTime: heliSpawnTime,
+        HeliGrid: heli.Last is { } marker ? MapGrid.Label(lastWorldSize, marker.X, marker.Y) : null,
+        HeliLastEventUtc: heliLastEventUtc,
+        HeliLastEventWasCrash: heliLastEventWasCrash,
+        VendorActive: vendor.Last is not null,
+        VendorSpawnTime: vendorSpawnTime,
+        VendorDespawnTime: vendorDespawnTime);
 
     private void ApplyDeepSeaChange(DeepSeaChange change, DateTime now)
     {
@@ -207,7 +228,7 @@ public sealed class EventDockModel
             else
             {
                 timer = "??:??";
-                tip = heliMidEvent ? "Connected mid-event - spawn time unknown" : "Patrol Heli active (spawn time unknown)";
+                tip = heliMidEvent ? "Connected mid-event – spawn time unknown" : "Patrol Heli active (spawn time unknown)";
             }
         }
         else if (heliLastEventUtc is { } last)
@@ -242,7 +263,7 @@ public sealed class EventDockModel
                 {
                     timer = "??:??";
                     tip = ship.WasAlreadyDocked
-                        ? "Already docked on connect - depart time unknown"
+                        ? "Already docked on connect – depart time unknown"
                         : $"Docked at {ship.HarborName ?? "harbor"} (dock duration not yet learned)";
                 }
             }
@@ -258,8 +279,8 @@ public sealed class EventDockModel
             else if (ship is { SeenAtEdge: false })
             {
                 tip = fullLifeMinutes > 0
-                    ? $"Connected mid-route - time unknown (route ~{fullLifeMinutes}m total)"
-                    : "Connected mid-route - time unknown";
+                    ? $"Connected mid-route – time unknown (route ~{fullLifeMinutes}m total)"
+                    : "Connected mid-route – time unknown";
             }
         }
         else if (lastDespawnUtc is { } despawn)
@@ -294,7 +315,7 @@ public sealed class EventDockModel
             else
             {
                 timer = "??:??";
-                tip = vendorMidEvent ? "Connected mid-event - spawn time unknown" : "Travelling Vendor active (spawn time unknown)";
+                tip = vendorMidEvent ? "Connected mid-event – spawn time unknown" : "Travelling Vendor active (spawn time unknown)";
             }
         }
         else if (vendorDespawnTime is { } despawn)
@@ -315,12 +336,12 @@ public sealed class EventDockModel
             {
                 var running = now - spawn;
                 timer = Elapsed(running);
-                tip = $"Deep Sea Event active - running for {Ago(running)}";
+                tip = $"Deep Sea active - running for {Ago(running)}";
             }
             else
             {
                 timer = "??:??";
-                tip = deepSeaMidEvent ? "Connected mid-event - spawn time unknown" : "Deep Sea Event active (spawn time unknown)";
+                tip = deepSeaMidEvent ? "Connected mid-event – spawn time unknown" : "Deep Sea active (spawn time unknown)";
             }
         }
         else if (deepSeaDespawnTime is { } despawn)

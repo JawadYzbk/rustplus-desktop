@@ -64,7 +64,7 @@ public sealed class EventDockTests
         var items = Poll(model, [M(7, MapMarkerKind.PatrolHelicopter, 100, 100)], T0);
         Assert.IsTrue(Row(items, "heli").Active);
         Assert.AreEqual("??:??", Row(items, "heli").TimerText);
-        Assert.AreEqual("Connected mid-event - spawn time unknown", Row(items, "heli").Tip);
+        Assert.AreEqual("Connected mid-event – spawn time unknown", Row(items, "heli").Tip);
     }
 
     [TestMethod]
@@ -101,7 +101,7 @@ public sealed class EventDockTests
         var model = new EventDockModel();
         var items = Poll(model, [M(3, MapMarkerKind.TravellingVendor, 100, 100)], T0);
         Assert.AreEqual("??:??", Row(items, "vendor").TimerText);
-        Assert.AreEqual("Connected mid-event - spawn time unknown", Row(items, "vendor").Tip);
+        Assert.AreEqual("Connected mid-event – spawn time unknown", Row(items, "vendor").Tip);
 
         var model2 = new EventDockModel();
         Poll(model2, [], T0);
@@ -132,7 +132,7 @@ public sealed class EventDockTests
         var already = new[] { new CargoShipView(5, 100, 100, T0.AddMinutes(-20), T0.AddMinutes(-3), true, true, true, "Harbor") };
         items = Poll(model, [M(5, MapMarkerKind.CargoShip, 100, 100)], T0, ships: already);
         Assert.AreEqual("??:??", Row(items, "cargo").TimerText);
-        Assert.AreEqual("Already docked on connect - depart time unknown", Row(items, "cargo").Tip);
+        Assert.AreEqual("Already docked on connect – depart time unknown", Row(items, "cargo").Tip);
     }
 
     [TestMethod]
@@ -148,7 +148,7 @@ public sealed class EventDockTests
         var midRoute = new[] { new CargoShipView(5, 100, 100, T0.AddMinutes(-30), null, false, false, false, null) };
         items = Poll(model, [M(5, MapMarkerKind.CargoShip, 100, 100)], T0, ships: midRoute, fullLife: 45);
         Assert.IsNull(Row(items, "cargo").TimerText, "A ship that was not seen at the edge has no countdown.");
-        Assert.AreEqual("Connected mid-route - time unknown (route ~45m total)", Row(items, "cargo").Tip);
+        Assert.AreEqual("Connected mid-route – time unknown (route ~45m total)", Row(items, "cargo").Tip);
     }
 
     [TestMethod]
@@ -170,13 +170,13 @@ public sealed class EventDockTests
         var items = Poll(model, [], T0, change: DeepSeaChange.ActiveOnFirstPoll);
         Assert.IsTrue(Row(items, "deepsea").Active);
         Assert.AreEqual("??:??", Row(items, "deepsea").TimerText);
-        Assert.AreEqual("Connected mid-event - spawn time unknown", Row(items, "deepsea").Tip);
+        Assert.AreEqual("Connected mid-event – spawn time unknown", Row(items, "deepsea").Tip);
 
         var model2 = new EventDockModel();
         Poll(model2, [], T0);
         items = Poll(model2, [], T0.AddMinutes(1), change: DeepSeaChange.Spawned);
         Assert.AreEqual("0m 00s", Row(items, "deepsea").TimerText);
-        Assert.AreEqual("Deep Sea Event active - running for 0m", Row(items, "deepsea").Tip);
+        Assert.AreEqual("Deep Sea active - running for 0m", Row(items, "deepsea").Tip);
         items = Poll(model2, [], T0.AddMinutes(21), change: DeepSeaChange.Despawned);
         Assert.IsFalse(Row(items, "deepsea").Active);
         Assert.AreEqual("-0:00", Row(items, "deepsea").TimerText);

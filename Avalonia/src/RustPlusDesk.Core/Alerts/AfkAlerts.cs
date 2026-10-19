@@ -86,6 +86,13 @@ public sealed class AfkTracker
     /// <summary>The member's "AFK: m:ss" text, or null while they are not shown as AFK.</summary>
     public string? AfkText(string steamId) => members.TryGetValue(steamId, out var state) ? state.AfkText : null;
 
+    /// <summary>
+    /// Reference t.LastMoveTime for the chat AFK answer: how long a member the tracker reports as AFK has been idle,
+    /// null for anyone it does not report (never seen, offline, dead, or below the five-minute display threshold).
+    /// </summary>
+    public TimeSpan? Idle(string steamId, DateTime now) =>
+        members.TryGetValue(steamId, out var state) && state.AfkText is not null ? now - state.LastMove : null;
+
     /// <summary>Stored thresholds of zero or less fall back to the reference default.</summary>
     public static int NormalizeThreshold(int minutes) => minutes > 0 ? minutes : DefaultThresholdMinutes;
 

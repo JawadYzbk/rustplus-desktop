@@ -171,7 +171,11 @@ public sealed partial class ChatViewModel : ObservableObject
             await LoadAsync(connected, ChatChannel.Team, ct);
             // Servers without clans answer the clan request with an error; the clan tab then stays hidden.
             HasClan = await LoadAsync(connected, ChatChannel.Clan, ct);
-            await foreach (var message in connected.WatchChatAsync(ct)) Add(message);
+            await foreach (var message in connected.WatchChatAsync(ct))
+            {
+                Add(message);
+                LiveMessage?.Invoke(message);
+            }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
         finally
@@ -179,6 +183,12 @@ public sealed partial class ChatViewModel : ObservableObject
             if (ReferenceEquals(session, connected)) { session = null; IsConnected = false; }
         }
     }
+
+    /// <summary>
+    /// A message that arrived live (not the history read on connect). The chat-command engine listens to this so a
+    /// command sent before the app connected cannot trigger an answer from the history.
+    /// </summary>
+    public event Action<ChatMessage>? LiveMessage;
 
     private async Task<bool> LoadAsync(IServerChatSession source, ChatChannel target, CancellationToken ct)
     {
@@ -250,6 +260,26 @@ public sealed partial class ChatViewModel : ObservableObject
         string message = text.Length > ChatLimits.MaxLength ? text[..ChatLimits.MaxLength] : text;
         // Reference SendTeamChatSafeAsync: the profile's alert channel, team or clan, never both.
         await target.SendChatAsync(Alerts?.AlertChannel ?? ChatChannel.Team, message, sessionToken);
+        return true;
+    }
+
+    /// <summary>
+    /// Reference SendChatCommandResponseAsync: a chat-command answer goes to the channel it was asked in, after the
+    /// profile's response delay, so the alert-channel setting cannot redirect it. The chat-alert master switch does
+    /// not block an answer either. Returns false while disconnected.
+    /// </summary>
+    public async Task<bool> SendCommandReplyAsync(ChatChannel channel, string text, TimeSpan delay)
+    {
+        if (delay > TimeSpan.Zero) await Task.Delay(delay);
+        if (string.IsNullOrWhiteSpace(text)) return false;
+        if (Alerts?.Webhook is { } webhook)
+        {
+            _ = webhook.SendAsync(text);
+            if (webhook.Exclusive) return true;
+        }
+        if (session is not { } target) return false;
+        string message = text.Length > ChatLimits.MaxLength ? text[..ChatLimits.MaxLength] : text;
+        await target.SendChatAsync(channel, message, sessionToken);
         return true;
     }
 

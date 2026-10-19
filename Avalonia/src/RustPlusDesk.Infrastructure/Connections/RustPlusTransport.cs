@@ -7,7 +7,7 @@ using System.Threading.Channels;
 
 namespace RustPlusDesk.Infrastructure.Connections;
 
-internal sealed class RustPlusTransport : IRustTransport, IServerTeamSession, IServerMarkerSession, IServerChatSession
+internal sealed class RustPlusTransport : IRustTransport, IServerTeamSession, IServerMarkerSession, IServerChatSession, IServerLeaderSession
 {
     private readonly RustPlus api;
     private readonly bool companionSocket;
@@ -151,6 +151,22 @@ internal sealed class RustPlusTransport : IRustTransport, IServerTeamSession, IS
     }
 
     public async Task<IReadOnlyList<ServerTeamMember>> ReadTeamAsync(CancellationToken ct) => (await ReadTeamSnapshotAsync(ct).ConfigureAwait(false)).Members;
+
+    /// <summary>Reference PromoteToLeaderAsync: hands the team leadership to a teammate (the chat "promote" command).</summary>
+    public async Task<bool> PromoteToLeaderAsync(ulong steamId, CancellationToken ct)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromSeconds(8));
+        try
+        {
+            await requests.WaitAsync(timeout.Token).ConfigureAwait(false);
+            var response = await api.PromoteToLeaderAsync(steamId, timeout.Token).WaitAsync(timeout.Token).ConfigureAwait(false);
+            return response.IsSuccess;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (ServerConnectionException) { throw; }
+        catch (Exception ex) { throw new ServerConnectionException(ConnectionFailureClassifier.Exception(ex, companionSocket)); }
+    }
 
     /// <summary>Reference GetTeamInfoAsync: members with position and spawn/death times, plus member and leader map notes.</summary>
     public async Task<ServerTeamSnapshot> ReadTeamSnapshotAsync(CancellationToken ct)

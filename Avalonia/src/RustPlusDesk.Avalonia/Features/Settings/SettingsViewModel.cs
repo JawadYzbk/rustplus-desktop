@@ -61,6 +61,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>The selected profile's Custom HD map image URL (reference Map settings card).</summary>
     public CustomMapSettingsViewModel? CustomMap { get; init; }
     public bool HasCustomMap => CustomMap is not null;
+    /// <summary>The selected profile's chat commands (reference ChatCommandsOverlay).</summary>
+    public ChatCommandSettingsViewModel? ChatCommands { get; init; }
+    public bool HasChatCommands => ChatCommands is not null;
 
     private RustPlusDesk.Core.Alerts.AlertTemplates? templates;
     /// <summary>Chat-alert templates (reference "Customize Chat Alert Templates"); rows are built from the reference list.</summary>

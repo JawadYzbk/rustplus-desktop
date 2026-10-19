@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using RustPlusDesk.Avalonia.Features.Map;
+using RustPlusDesk.Core.Chat;
 using RustPlusDesk.Core.Map;
 
 namespace RustPlusDesk.Avalonia.Features.Alerts;
@@ -21,6 +22,36 @@ public sealed class EventAnnouncer
     public OilRigTimer? OilRigs { get; set; }
     /// <summary>The most recent Smart Alarm time per canonical rig name (reference _oilRigAlarms), for the dock row.</summary>
     public Func<string, DateTime?>? RigAlarmAt { get; set; }
+
+    /// <summary>Raw dock event state (reference _dynStates/_heliSpawnTime/...), for the chat command answers.</summary>
+    public ChatEventCommandState EventState() => dock.EventState();
+
+    /// <summary>
+    /// Reference _cargoDockStates/_cargoLastDespawnUtc plus the learned durations, for the chat "cargo" answer.
+    /// The reference answers from the first live cargo state; the tracker keeps at most one ship per server.
+    /// </summary>
+    public ChatCargoCommandState CargoState()
+    {
+        var ship = cargo?.Ships.FirstOrDefault();
+        string? host = Host?.Invoke();
+        int docking = 0, fullLife = 0;
+        if (host is not null && CargoMemory is { } memory)
+        {
+            docking = memory.DockingMinutes(host);
+            fullLife = memory.FullLifeMinutes(host);
+        }
+        return new ChatCargoCommandState(
+            Active: ship is not null,
+            Docked: ship?.IsDocked ?? false,
+            DockTime: ship?.DockTime,
+            WasAlreadyDocked: ship?.WasAlreadyDocked ?? false,
+            HarborName: ship?.HarborName,
+            SeenAtEdge: ship?.SeenAtEdge ?? false,
+            FirstSeen: ship?.FirstSeen,
+            LearnedDockingMinutes: docking,
+            LearnedFullLifeMinutes: fullLife,
+            LastDespawnUtc: cargo?.LastDespawnUtc);
+    }
     private readonly MapViewModel map;
     private readonly ChatAlertsViewModel alerts;
 

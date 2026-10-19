@@ -116,6 +116,9 @@ public sealed class ConnectionViewModelTests
             Assert.AreEqual("Live server", model.ServerName);
             Assert.AreEqual("42 / 200", model.Population);
             Assert.AreEqual("3", model.Queue);
+            Assert.AreEqual(42u, model.PlayerCount, "The chat pop command reads the raw count.");
+            Assert.AreEqual(3u, model.QueueCount);
+            Assert.IsFalse(model.CanPromote, "A session that cannot hand out leadership answers no promote.");
             Assert.AreEqual("14:30", model.ServerTime);
             Assert.IsFalse(model.ConnectCommand.CanExecute(null));
             Assert.IsTrue(model.DisconnectCommand.CanExecute(null));
@@ -125,6 +128,8 @@ public sealed class ConnectionViewModelTests
         Assert.IsTrue(session.Disposed);
         Assert.AreEqual(ConnectionPhase.Disconnected, model.Phase);
         Assert.AreEqual("—", model.ServerTime);
+        Assert.IsNull(model.PlayerCount, "A cleared status has no counts to answer with.");
+        Assert.IsNull(model.QueueCount);
         Assert.IsTrue(model.ConnectCommand.CanExecute(null));
     }
 

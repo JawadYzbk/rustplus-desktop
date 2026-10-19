@@ -159,6 +159,69 @@
                      Classes="muted" Classes.error="{Binding CustomMap.IsError, FallbackValue=False}" />
         </StackPanel>
       </Border>
+      <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0" IsVisible="{Binding HasChatCommands}">
+        <icons:Icon Symbol="Chat24" FontSize="18" Foreground="{DynamicResource Accent}" />
+        <StackPanel>
+          <TextBlock Text="Chat Commands" Classes="title" />
+          <TextBlock Text="Answer commands typed in team chat" Classes="muted" FontSize="12" />
+        </StackPanel>
+      </StackPanel>
+      <Border Classes="panel" Padding="16" IsVisible="{Binding HasChatCommands}">
+        <StackPanel Spacing="8">
+          <TextBlock Text="CHAT COMMANDS" Classes="section" />
+          <TextBlock Text="Commands in team chat are answered while the app is connected. Each server keeps its own prefix and command names."
+                     Classes="muted" FontSize="12" TextWrapping="Wrap" />
+          <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+            <StackPanel>
+              <TextBlock Text="Enable Chat Commands" FontWeight="SemiBold" />
+              <TextBlock Text="Turn this off to stop answering every command on this server." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding ChatCommands.Enabled, FallbackValue=True}" OnContent="" OffContent=""
+                          AutomationProperties.Name="Enable chat commands" />
+          </Grid>
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+            <StackPanel Spacing="4">
+              <TextBlock Text="Prefix:" FontWeight="SemiBold" />
+              <TextBox Text="{Binding ChatCommands.Prefix, FallbackValue='!'}" MaxLength="1" Width="80" HorizontalAlignment="Left"
+                       AutomationProperties.Name="Chat command prefix" />
+              <TextBlock Text="One of ! . , or \" Classes="muted" FontSize="12" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="4">
+              <TextBlock Text="Command Delay:" FontWeight="SemiBold" />
+              <TextBox Text="{Binding ChatCommands.ResponseDelay, FallbackValue='0.5'}" Width="80" HorizontalAlignment="Left"
+                       AutomationProperties.Name="Chat command response delay" />
+              <TextBlock Text="Seconds to wait before an answer is sent (0 - 5)." Classes="muted" FontSize="12" />
+            </StackPanel>
+          </Grid>
+          <TextBlock Text="STANDARD COMMANDS" Classes="section" Margin="0,8,0,0" />
+          <Grid ColumnDefinitions="160,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="6" ColumnSpacing="8">
+            <TextBlock Text="Population:" VerticalAlignment="Center" />
+            <TextBox Grid.Column="1" Text="{Binding ChatCommands.Pop, FallbackValue=''}" AutomationProperties.Name="Population command name" />
+            <TextBlock Grid.Row="1" Text="Time:" VerticalAlignment="Center" />
+            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ChatCommands.Time, FallbackValue=''}" AutomationProperties.Name="Time command name" />
+            <TextBlock Grid.Row="2" Text="Promote:" VerticalAlignment="Center" />
+            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding ChatCommands.Promote, FallbackValue=''}" AutomationProperties.Name="Promote command name" />
+            <TextBlock Grid.Row="3" Text="Deep Sea:" VerticalAlignment="Center" />
+            <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ChatCommands.DeepSea, FallbackValue=''}" AutomationProperties.Name="Deep Sea command name" />
+            <TextBlock Grid.Row="4" Text="Cargo Ship:" VerticalAlignment="Center" />
+            <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding ChatCommands.Cargo, FallbackValue=''}" AutomationProperties.Name="Cargo Ship command name" />
+            <TextBlock Grid.Row="5" Text="Patrol Heli:" VerticalAlignment="Center" />
+            <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding ChatCommands.Heli, FallbackValue=''}" AutomationProperties.Name="Patrol Heli command name" />
+            <TextBlock Grid.Row="6" Text="Travelling Vendor:" VerticalAlignment="Center" />
+            <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding ChatCommands.Vendor, FallbackValue=''}" AutomationProperties.Name="Travelling Vendor command name" />
+            <TextBlock Grid.Row="7" Text="AFK Players" VerticalAlignment="Center" />
+            <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding ChatCommands.Afk, FallbackValue=''}" AutomationProperties.Name="AFK command name" />
+            <TextBlock Grid.Row="8" Text="List Chat Commands" VerticalAlignment="Center" />
+            <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding ChatCommands.List, FallbackValue=''}" AutomationProperties.Name="List commands command name" />
+          </Grid>
+          <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+            <Button Classes="primary" Content="Apply" Command="{Binding ChatCommands.ApplyCommand, FallbackValue={x:Null}}"
+                    AutomationProperties.Name="Apply chat commands" />
+            <TextBlock Text="{Binding ChatCommands.Status, FallbackValue=''}" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"
+                       Classes="muted" Classes.error="{Binding ChatCommands.IsError, FallbackValue=False}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
       <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0">
         <icons:Icon Symbol="Alert24" FontSize="18" Foreground="{DynamicResource Accent}" />
         <StackPanel>
