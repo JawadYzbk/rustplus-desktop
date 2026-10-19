@@ -68,6 +68,9 @@ public sealed class EventAnnouncer
             var (messages, lines) = cargo.Observe(map.Markers, geometry.WorldSize, map.Monuments, host, alerts.CargoFlags, Now());
             foreach (string entry in lines) Log?.Invoke(entry);
             foreach (string message in messages) _ = DeliverAsync(message);
+            // Reference missing-marker loop: the predicted (ghost) cargo positions keep a ship's dock state alive
+            // between polls, without ever docking it or announcing.
+            cargo.ObserveGhosts(map.GhostMarkers, geometry.WorldSize, map.Monuments, host, alerts.CargoFlags, Now());
             alerts.RefreshCargoArrival();
         }
         RefreshDock(geometry.WorldSize, map.Markers, change);

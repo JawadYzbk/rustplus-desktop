@@ -69,7 +69,26 @@ public sealed class CargoTracker(ICargoMemory memory)
         return (messages, log);
     }
 
-    private void Process(MapMarker m, double worldSize, MapMonument[] harbors, string host, CargoAlertFlags flags, DateTime now, List<string> messages, List<string> log)
+    /// <summary>
+    /// The predicted (ghost) cargo positions the missing-marker loop keeps feeding (reference
+    /// <c>ProcessCargoDocking(ghost, isGhost: true)</c>): they keep a ship's dock state and history alive between polls
+    /// but can never dock it or announce anything, and a docked ship's ghost stays at its last position.
+    /// </summary>
+    public void ObserveGhosts(IReadOnlyList<MapMarker> ghosts, double worldSize, IReadOnlyList<MapMonument> monuments,
+        string host, CargoAlertFlags flags, DateTime now)
+    {
+        var harbors = monuments.Where(monument => monument.Token.Contains("Harbor", StringComparison.OrdinalIgnoreCase)).ToArray();
+        foreach (var cargo in ghosts.Where(marker => marker.Kind == MapMarkerKind.CargoShip))
+        {
+            // A ghost continues a ship that is already tracked; it never creates one (the reference predicts
+            // positions of live marker states only).
+            if (!ships.ContainsKey(cargo.Id)) continue;
+            Process(cargo, worldSize, harbors, host, flags, now, [], [], isGhost: true);
+        }
+    }
+
+    private void Process(MapMarker m, double worldSize, MapMonument[] harbors, string host, CargoAlertFlags flags, DateTime now,
+        List<string> messages, List<string> log, bool isGhost = false)
     {
         if (!ships.TryGetValue(m.Id, out var state))
         {
@@ -91,6 +110,9 @@ public sealed class CargoTracker(ICargoMemory memory)
             }
             ships[m.Id] = state;
         }
+        // A docked ship's ghost stays at its last position, so a predicted velocity cannot look like a departure
+        // (which would reset DockTime and break the 5 s docking announcement).
+        if (isGhost && state.IsDocked) m = m with { X = state.LastX, Y = state.LastY };
         state.LastSeen = now;
         state.History.Add((now, m.X, m.Y));
         if (state.History.Count > 150) state.History.RemoveAll(entry => entry.At < now.AddMinutes(-12));
@@ -100,7 +122,7 @@ public sealed class CargoTracker(ICargoMemory memory)
         bool stationary = moved < 0.5;
         if (!stationary) state.EverMoved = true;
 
-        if (stationary && !state.IsDocked)
+        if (stationary && !state.IsDocked && !isGhost) // Ghost markers cannot trigger docking.
         {
             var harbor = harbors.FirstOrDefault(h => Math.Sqrt(Math.Pow(h.X - m.X, 2) + Math.Pow(h.Y - m.Y, 2)) < 300);
             if (harbor is not null)
@@ -138,13 +160,15 @@ public sealed class CargoTracker(ICargoMemory memory)
             state.AnnouncedArrival = false;
         }
 
-        if (state.IsDocked && !state.AnnouncedDock && flags.Docking && state.DockTime is { } dockTime && (now - dockTime).TotalSeconds >= 5)
+        // Docking is announced only from real markers: a ghost false-positive would burn the chat rate limit.
+        if (!isGhost && state.IsDocked && !state.AnnouncedDock && flags.Docking && state.DockTime is { } dockTime && (now - dockTime).TotalSeconds >= 5)
         {
             messages.Add(Templates.Format("AlertCargoDocked", state.HarborName ?? "", MapGrid.Label(worldSize, m.X, m.Y)));
             state.AnnouncedDock = true;
         }
 
-        if (!state.IsDocked && !state.AnnouncedArrival && flags.Arrival)
+        // The arrival warning is announced only from real markers.
+        if (!isGhost && !state.IsDocked && !state.AnnouncedArrival && flags.Arrival)
         {
             foreach (var h in harbors)
             {
@@ -160,7 +184,8 @@ public sealed class CargoTracker(ICargoMemory memory)
             }
         }
 
-        if (state.IsDocked && state.DockTime is { } since && !state.AnnouncedEgress && flags.Master)
+        // The departure warning is announced only from real markers.
+        if (!isGhost && state.IsDocked && state.DockTime is { } since && !state.AnnouncedEgress && flags.Master)
         {
             int duration = memory.DockingMinutes(host);
             double elapsed = (now - since).TotalMinutes;

@@ -156,7 +156,7 @@
                         Monuments="{Binding Connection.Map.Monuments}" ShowGrid="{Binding Connection.Map.ShowGrid}"
                         MonumentScale="{Binding Connection.Map.MonumentScale}" MonumentOpacity="{Binding Connection.Map.MonumentOpacity}"
                         GridOpacity="{Binding Connection.Map.GridOpacity}" MonumentNames="{Binding Connection.Map.ShowMonumentNames}"
-                        Markers="{Binding Connection.Map.Markers}" ShowPlayers="{Binding Connection.Map.ShowPlayers}" ShowShops="{Binding Connection.Map.ShowShops}"
+                        Markers="{Binding Connection.Map.DrawnMarkers}" ShowPlayers="{Binding Connection.Map.ShowPlayers}" ShowShops="{Binding Connection.Map.ShowShops}"
                         ShowMonuments="{Binding Connection.Map.ShowMonuments}" ResetRequest="{Binding Connection.Map.ViewResetRequest}"
                         FocusRequest="{Binding Connection.Map.FocusRequest}" AbbreviateNames="{Binding Connection.Map.AbbreviateNames}"
                         PlayerScale="{Binding Connection.Map.PlayerIconScale}" ShowDeathHeatmap="{Binding Connection.Map.ShowDeathHeatmap}"

@@ -30,9 +30,19 @@ public sealed partial class MapViewModel : ObservableObject
     /// <summary>Latest live markers (players, shops, events); replaced as a whole on every poll.</summary>
     [ObservableProperty] private IReadOnlyList<MapMarker> markers = [];
     private readonly PlayerHeadings headings = new();
+    private readonly PredictedMarkers predicted = new();
+    /// <summary>The markers the map draws: the live ones plus a predicted (ghost) marker for each event unseen for under 10 polls.</summary>
+    [ObservableProperty] private IReadOnlyList<MapMarker> drawnMarkers = [];
+    /// <summary>The predicted (ghost) markers of this poll; the cargo tracker is fed these (reference isGhost path).</summary>
+    public IReadOnlyList<MapMarker> GhostMarkers { get; private set; } = [];
     /// <summary>Each player marker's heading in degrees clockwise from north (reference direction arrows).</summary>
     [ObservableProperty] private IReadOnlyDictionary<ulong, double> playerHeadings = new Dictionary<ulong, double>();
-    partial void OnMarkersChanged(IReadOnlyList<MapMarker> value) => PlayerHeadings = headings.Observe(value);
+    partial void OnMarkersChanged(IReadOnlyList<MapMarker> value)
+    {
+        PlayerHeadings = headings.Observe(value);
+        DrawnMarkers = predicted.Observe(value);
+        GhostMarkers = predicted.Ghosts;
+    }
     /// <summary>Reference "Direction arrow" (MapShowPlayerArrows, default on).</summary>
     [ObservableProperty] private bool showPlayerArrows = true;
     /// <summary>Reference poll interval for dynamic markers.</summary>
@@ -176,7 +186,12 @@ public sealed partial class MapViewModel : ObservableObject
         Image = null;
         Geometry = null;
         Monuments = [];
+        predicted.Reset();
         Markers = [];
+        // An empty collection expression can be the same cached instance as the last poll's, so the derived
+        // properties are cleared directly as well (the setter would see no change).
+        DrawnMarkers = [];
+        GhostMarkers = [];
         FocusRequest = null;
         Message = "";
         IsLoading = false;
