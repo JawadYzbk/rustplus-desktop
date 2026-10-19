@@ -64,6 +64,9 @@
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleChinookCommand}" />
               <MenuItem Header="Travelling Vendor" ToggleType="CheckBox" IsChecked="{Binding AnnounceVendor, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleVendorCommand}" />
+              <MenuItem Header="Oil Rig Crate Status" ToggleType="CheckBox" IsChecked="{Binding AnnounceOilRig, Mode=OneWay}"
+                        IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleOilRigCommand}"
+                        ToolTip.Tip="Announce when an Oil Rig Smart Alarm starts the 15-minute crate timer, plus its 10- and 5-minute reminders" />
               <MenuItem Header="Deep Sea Event" ToggleType="CheckBox" IsChecked="{Binding AnnounceDeepSea, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleDeepSeaCommand}" />
               <MenuItem Header="Smart Alerts" ToggleType="CheckBox" IsChecked="{Binding AnnounceSmartAlerts, Mode=OneWay}"

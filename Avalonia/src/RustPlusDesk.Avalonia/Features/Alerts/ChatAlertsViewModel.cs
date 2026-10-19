@@ -24,7 +24,7 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     private bool master;
     private bool newShops;
     private bool suspiciousShops;
-    private bool heli, chinook, vendor, deepSea;
+    private bool heli, chinook, vendor, oilRig, deepSea;
     private bool cargo, cargoDocking, cargoEgress, cargoArrival;
     private bool playerAfk, playerAfkReturn;
     private int afkMinutes;
@@ -41,6 +41,7 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
         heli = settings?.Get(SettingKeys.AnnounceHeli, false) ?? false;
         chinook = settings?.Get(SettingKeys.AnnounceChinook, false) ?? false;
         vendor = settings?.Get(SettingKeys.AnnounceVendor, false) ?? false;
+        oilRig = settings?.Get(SettingKeys.AnnounceOilRig, false) ?? false;
         deepSea = settings?.Get(SettingKeys.AnnounceDeepSea, false) ?? false;
         cargo = settings?.Get(SettingKeys.AnnounceCargo, false) ?? false;
         cargoDocking = settings?.Get(SettingKeys.AnnounceCargoDocking, false) ?? false;
@@ -151,6 +152,8 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     public bool AnnounceHeli => master && heli;
     public bool AnnounceChinook => master && chinook;
     public bool AnnounceVendor => master && vendor;
+    /// <summary>Reference AnnounceOilRig: the Oil Rig crate timer start and its 15/10/5-minute reminders are posted to chat.</summary>
+    public bool AnnounceOilRig => master && oilRig;
     /// <summary>Reference AnnounceDeepSea: the Deep Sea event spawning is posted to chat.</summary>
     public bool AnnounceDeepSea => master && deepSea;
     public bool AnnounceCargo => master && cargo;
@@ -227,6 +230,7 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     [RelayCommand] private void ToggleHeli() => Flip(ref heli, SettingKeys.AnnounceHeli);
     [RelayCommand] private void ToggleChinook() => Flip(ref chinook, SettingKeys.AnnounceChinook);
     [RelayCommand] private void ToggleVendor() => Flip(ref vendor, SettingKeys.AnnounceVendor);
+    [RelayCommand] private void ToggleOilRig() => Flip(ref oilRig, SettingKeys.AnnounceOilRig);
     [RelayCommand] private void ToggleDeepSea() => Flip(ref deepSea, SettingKeys.AnnounceDeepSea);
     [RelayCommand] private void ToggleCargo() => Flip(ref cargo, SettingKeys.AnnounceCargo);
     [RelayCommand] private void ToggleCargoDocking() => Flip(ref cargoDocking, SettingKeys.AnnounceCargoDocking);
@@ -276,12 +280,12 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
 
     private void SetAll(bool value)
     {
-        newShops = suspiciousShops = heli = chinook = vendor = deepSea = value;
+        newShops = suspiciousShops = heli = chinook = vendor = oilRig = deepSea = value;
         cargo = cargoDocking = cargoEgress = cargoArrival = value;
         playerAfk = playerAfkReturn = value;
         playerOnline = playerOffline = deathSelf = deathTeam = respawnSelf = respawnTeam = smartAlerts = value;
         foreach (string key in new[] { SettingKeys.AnnounceNewShops, SettingKeys.AnnounceSuspiciousShops, SettingKeys.AnnounceHeli,
-                     SettingKeys.AnnounceChinook, SettingKeys.AnnounceVendor, SettingKeys.AnnounceDeepSea, SettingKeys.AnnounceCargo, SettingKeys.AnnounceCargoDocking,
+                     SettingKeys.AnnounceChinook, SettingKeys.AnnounceVendor, SettingKeys.AnnounceOilRig, SettingKeys.AnnounceDeepSea, SettingKeys.AnnounceCargo, SettingKeys.AnnounceCargoDocking,
                      SettingKeys.AnnounceCargoEgress, SettingKeys.AnnounceCargoArrival, SettingKeys.AnnouncePlayerOnline, SettingKeys.AnnouncePlayerOffline,
                      SettingKeys.AnnouncePlayerAfk, SettingKeys.AnnouncePlayerAfkReturn, SettingKeys.AnnouncePlayerDeathSelf, SettingKeys.AnnouncePlayerDeathTeam, SettingKeys.AnnouncePlayerRespawnSelf,
                      SettingKeys.AnnouncePlayerRespawnTeam, SettingKeys.AnnounceSmartAlerts })
@@ -319,13 +323,13 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
         Refresh();
     }
 
-    private int Local() => new[] { newShops, suspiciousShops, heli, chinook, vendor, deepSea, cargo, cargoDocking, cargoEgress, cargoArrival, playerOnline, playerOffline, playerAfk, playerAfkReturn, deathSelf, deathTeam,
+    private int Local() => new[] { newShops, suspiciousShops, heli, chinook, vendor, oilRig, deepSea, cargo, cargoDocking, cargoEgress, cargoArrival, playerOnline, playerOffline, playerAfk, playerAfkReturn, deathSelf, deathTeam,
         respawnSelf, respawnTeam, smartAlerts }.Count(flag => flag);
 
     private void Refresh()
     {
         foreach (string name in new[] { nameof(IsMasterOn), nameof(AnnounceNewShops), nameof(AnnounceSuspiciousShops), nameof(AnnounceHeli), nameof(AnnounceChinook),
-                     nameof(AnnounceVendor), nameof(AnnounceDeepSea), nameof(AnnounceCargo), nameof(AnnounceCargoDocking), nameof(AnnounceCargoEgress),
+                     nameof(AnnounceVendor), nameof(AnnounceOilRig), nameof(AnnounceDeepSea), nameof(AnnounceCargo), nameof(AnnounceCargoDocking), nameof(AnnounceCargoEgress),
                      nameof(AnnounceCargoArrival), nameof(AnyCargo), nameof(CanToggleCargoArrival), nameof(CargoArrivalHeader), nameof(AnnouncePlayerOnline), nameof(AnnouncePlayerOffline), nameof(AnnouncePlayerAfk), nameof(AnnouncePlayerAfkReturn), nameof(AnyPlayerAfk), nameof(AnnouncePlayerDeathSelf),
                      nameof(AnnouncePlayerDeathTeam), nameof(AnnouncePlayerRespawnSelf), nameof(AnnouncePlayerRespawnTeam), nameof(AnnounceSmartAlerts), nameof(AnnounceWebhook), nameof(CanToggleWebhook), nameof(EnabledCount),
                      nameof(ShowCountBadge), nameof(ShowEmptyDot), nameof(CountText), nameof(MasterTip) })

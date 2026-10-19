@@ -29,10 +29,17 @@ public sealed partial class AlarmsViewModel : ObservableObject
     public event EventHandler? OpenRequested;
     /// <summary>Raised for every alarm that passed de-duplication, with or without a popup (chat alerts, audio).</summary>
     public event Action<CompanionUpdate>? Accepted;
+    /// <summary>
+    /// Reference ShowAlarmPopup's oil-rig branch: true when the alarm was an Oil Rig trigger and has been reported as
+    /// an event instead, so no popup, no smart alert and no plain "Alarm" notification row are produced.
+    /// </summary>
+    public Func<CompanionUpdate, bool>? Intercept { get; set; }
 
-    public void Handle(CompanionUpdate update)
+    /// <returns>True when the alarm was consumed by <see cref="Intercept"/> and must not be shown.</returns>
+    public bool Handle(CompanionUpdate update)
     {
-        if (update.Kind != CompanionUpdateKind.Alarm) return;
+        if (update.Kind != CompanionUpdateKind.Alarm) return false;
+        if (Intercept?.Invoke(update) == true) return true;
         switch (gate.Decide(update.EntityId, update.Message, update.OccurredAt, GenericPopupEnabled))
         {
             case AlarmDecision.Show:
@@ -48,6 +55,7 @@ public sealed partial class AlarmsViewModel : ObservableObject
                 UpdateOrAdd(update);
                 break;
         }
+        return false;
     }
 
     private void UpdateOrAdd(CompanionUpdate update)

@@ -120,18 +120,19 @@ public sealed class ShopNoticeTests
         Assert.IsTrue(model.AnnounceHeli && model.AnnounceChinook && model.AnnounceVendor && model.AnnounceNewShops && model.AnnounceSuspiciousShops);
         Assert.AreEqual(new PresenceAlertFlags(true, true, true, true, true, true), model.PresenceFlags);
         Assert.IsTrue(model.AnnounceSmartAlerts);
-        Assert.AreEqual(19, model.EnabledCount);
+        Assert.AreEqual(20, model.EnabledCount);
         Assert.IsTrue(model.AnyCargo && model.AnnounceCargoArrival);
         Assert.IsTrue(model.AnnounceDeepSea);
+        Assert.IsTrue(model.AnnounceOilRig);
         Assert.IsTrue(model.AnnouncePlayerAfk && model.AnnouncePlayerAfkReturn && model.AnyPlayerAfk);
-        Assert.IsFalse(settings.Values.ContainsKey("AnnounceOilRig"), "Flags of unported alerts are only read.");
+        Assert.AreEqual(true, settings.Values[SettingKeys.AnnounceOilRig]);
 
         model.DeselectAllCommand.Execute(null);
         Assert.IsFalse(model.IsMasterOn, "Nothing left on: the master goes off (reference CheckIfAllOff).");
         Assert.AreEqual(false, settings.Values[SettingKeys.AnnounceHeli]);
         Assert.AreEqual(false, settings.Values[SettingKeys.AnnounceSpawnsMaster]);
 
-        settings.Set("AnnounceOilRig", true);
+        settings.Set("AnnounceTracking", true);
         model.SelectAllCommand.Execute(null);
         model.DeselectAllCommand.Execute(null);
         Assert.IsTrue(model.IsMasterOn, "A flag the other app set keeps the master on.");
@@ -156,13 +157,13 @@ public sealed class ShopNoticeTests
         Assert.IsTrue(model.AnnounceNewShops && model.AnnounceSuspiciousShops);
         Assert.AreEqual("2", model.CountText);
         Assert.IsTrue(model.ShowCountBadge);
-        settings.Values["AnnounceOilRig"] = true;
+        settings.Values["AnnounceTracking"] = true;
         Assert.AreEqual(3, model.EnabledCount, "Flags of features not ported yet still count, like the reference badge.");
         model.ToggleMasterCommand.Execute(null);
         Assert.IsFalse(model.AnnounceNewShops, "Flags only apply while the master is on.");
         Assert.AreEqual(true, settings.Values[SettingKeys.AnnounceNewShops], "The flag itself is kept.");
         model.ToggleMasterCommand.Execute(null);
-        settings.Values["AnnounceOilRig"] = false;
+        settings.Values["AnnounceTracking"] = false;
         model.ToggleNewShopsCommand.Execute(null);
         Assert.IsTrue(model.IsMasterOn);
         model.ToggleSuspiciousShopsCommand.Execute(null);
@@ -262,7 +263,7 @@ public sealed class ShopNoticeTests
                 flyout.ShowAt(menuButton);
                 window.UpdateLayout();
                 var items = flyout.Items.OfType<MenuItem>().ToList();
-                CollectionAssert.AreEqual(new[] { "Select all", "Deselect all", "Edit templates", "Send alerts to", "Events", "Cargo Ship", "Patrol Helicopter", "Chinook (CH47)", "Travelling Vendor", "Deep Sea Event", "Smart Alerts", "Players", "Online Status", "Offline Status", "Player AFK",
+                CollectionAssert.AreEqual(new[] { "Select all", "Deselect all", "Edit templates", "Send alerts to", "Events", "Cargo Ship", "Patrol Helicopter", "Chinook (CH47)", "Travelling Vendor", "Oil Rig Crate Status", "Deep Sea Event", "Smart Alerts", "Players", "Online Status", "Offline Status", "Player AFK",
                     "Self Death", "Team Death", "Self Respawn", "Team Respawn", "Shops", "New shops", "Suspicious shops", "Trade alerts", "Discord webhook", "Discord webhook settings…" },
                     items.Select(item => (string)item.Header!).ToArray());
                 MenuItem Item(string header) => items.Single(item => (string)item.Header! == header);
@@ -279,9 +280,12 @@ public sealed class ShopNoticeTests
                 Assert.IsTrue(alerts.AnnounceSuspiciousShops);
                 Item("Patrol Helicopter").Command!.Execute(null);
                 Assert.IsTrue(alerts.AnnounceHeli);
+                Item("Oil Rig Crate Status").Command!.Execute(null);
+                Assert.IsTrue(alerts.AnnounceOilRig);
                 window.UpdateLayout();
                 Assert.IsTrue(Item("Suspicious shops").IsChecked);
                 Assert.IsTrue(Item("Patrol Helicopter").IsChecked);
+                Assert.IsTrue(Item("Oil Rig Crate Status").IsChecked);
                 flyout.Hide();
             }
             finally { window.Close(); }

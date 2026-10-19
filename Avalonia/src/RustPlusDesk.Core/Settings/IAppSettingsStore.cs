@@ -36,6 +36,7 @@ public static class SettingKeys
     public const string AnnounceHeli = "AnnounceHeli";                     // default false
     public const string AnnounceChinook = "AnnounceChinook";               // default false
     public const string AnnounceVendor = "AnnounceVendor";                 // default false
+    public const string AnnounceOilRig = "AnnounceOilRig";                 // default false: Oil Rig crate timer → team chat
     public const string AnnounceDeepSea = "AnnounceDeepSea";               // default false: Deep Sea spawn → team chat
     public const string AnnounceSmartAlerts = "AnnounceSmartAlerts";       // default false: smart alarm → team chat
     public const string AnnouncePlayerOnline = "AnnouncePlayerOnline";     // default false

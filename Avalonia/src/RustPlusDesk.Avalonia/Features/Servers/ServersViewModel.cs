@@ -100,6 +100,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         {
             CargoMemory = appSettings is null ? null : new RustPlusDesk.Core.Map.SettingsCargoMemory(appSettings),
             Host = () => SelectedServer?.Host,
+            OilRigs = OilRigTimers,
             Templates = AlertTemplates,
             Log = Activity.Append,
             SendTeamChat = text => Connection.Chat.SendAutomatedAsync(text)
@@ -135,6 +136,53 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     {
         try { await Connection.Chat.SendAutomatedAsync(message); }
         catch (Exception) { Activity.Append("[alarm] The smart alert could not be sent to team chat."); }
+    }
+
+    /// <summary>
+    /// Reference ShowAlarmPopup's oil-rig branch (OilRigTriggerRegistry.Lookup + RecordOilRigAlarm): an alarm whose
+    /// title or message is an explicit Oil Rig name is de-duplicated within 30 seconds, recorded as an "OilRigAlarm"
+    /// notification row and turned into a 15-minute crate timer; the popup and the plain alarm row are skipped.
+    /// </summary>
+    private bool TryHandleOilRigAlarm(CompanionUpdate update)
+    {
+        if (!RustPlusDesk.Core.Map.OilRigTimer.TryGetRigLabel(update.Title, update.Message, out string label)) return false;
+        var profile = SelectedServer;
+        DateTime eventTime = update.OccurredAt.UtcDateTime;
+        recentOilRigAlarms.RemoveAll(entry => Math.Abs((eventTime - entry.At).TotalSeconds) >= 30);
+        // Reference DockOilRigAlarms: only rows recorded on the server selected right now take part.
+        bool duplicate = recentOilRigAlarms.Where(OnSelectedServer).Any(entry =>
+            (update.EntityId.HasValue && entry.EntityId == update.EntityId)
+            || string.Equals(entry.Label, label, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(entry.Label, update.Title?.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (duplicate) return true;
+        recentOilRigAlarms.Add((label, update.EntityId, eventTime, update.Host, update.Port, update.ServerName));
+
+        Notifications.Add(new RustPlusDesk.Core.Notifications.InboxNotification
+        {
+            Type = "OilRigAlarm",
+            Title = label,
+            Message = update.Message,
+            Timestamp = update.OccurredAt.LocalDateTime,
+            ServerIp = string.IsNullOrWhiteSpace(update.Host) ? profile?.Host : update.Host,
+            ServerPort = update.Port ?? profile?.Port,
+            ServerName = string.IsNullOrWhiteSpace(update.ServerName) ? profile?.Name : update.ServerName,
+            EntityId = update.EntityId
+        });
+
+        string canonical = RustPlusDesk.Core.Map.OilRigTimer.CanonicalRigName(label);
+        if (OilRigTimers.Trigger(canonical, TimeSpan.FromMinutes(RustPlusDesk.Core.Map.OilRigTimer.DefaultMinutes), DateTime.UtcNow))
+        {
+            string message = AlertTemplates.Format("AlertOilRigTriggered", canonical,
+                RustPlusDesk.Core.Map.OilRigTimer.FormatDuration(TimeSpan.FromMinutes(RustPlusDesk.Core.Map.OilRigTimer.DefaultMinutes)));
+            if (Connection.IsConnected && ChatAlerts.AnnounceOilRig)
+            {
+                Activity.Append("[alarm] " + message);
+                _ = SendAlarmAsync(message);
+            }
+        }
+
+        Activity.Append($"[alarm] Suppressed alarm from {label} trigger (entity {update.EntityId?.ToString() ?? "unknown"}) - reported as an oil rig event instead.");
+        return true;
     }
 
     private RustPlusDesk.Core.Map.ShopSearch CreateShopSearch()
@@ -229,11 +277,34 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [ObservableProperty] private bool isSidebarOpen = true;
     [RelayCommand] private void ToggleSidebar() => IsSidebarOpen = !IsSidebarOpen;
     /// <summary>Reference rail "labels" toggle: icon-only rail or icon + label navigation.</summary>
+    private RustPlusDesk.Avalonia.Features.Alarms.AlarmsViewModel? alarms;
     /// <summary>Reference smart-alarm popup, fed by alarm pushes from the pairing listener.</summary>
-    public RustPlusDesk.Avalonia.Features.Alarms.AlarmsViewModel Alarms { get; } = new()
+    public RustPlusDesk.Avalonia.Features.Alarms.AlarmsViewModel Alarms => alarms ??= CreateAlarms();
+
+    private RustPlusDesk.Avalonia.Features.Alarms.AlarmsViewModel CreateAlarms()
     {
-        GenericPopupEnabled = appSettings?.Get(RustPlusDesk.Core.Settings.SettingKeys.GenericAlarmPopupEnabled, false) ?? false
-    };
+        var model = new RustPlusDesk.Avalonia.Features.Alarms.AlarmsViewModel
+        {
+            GenericPopupEnabled = appSettings?.Get(RustPlusDesk.Core.Settings.SettingKeys.GenericAlarmPopupEnabled, false) ?? false
+        };
+        // Reference ShowAlarmPopup: an Oil Rig Smart Alarm is reported as an event, never as an alarm popup.
+        model.Intercept = TryHandleOilRigAlarm;
+        return model;
+    }
+
+    /// <summary>The Oil Rig crate countdowns (reference MonumentWatcher): Smart Alarm pushes start them, marker polls tick reminders.</summary>
+    public RustPlusDesk.Core.Map.OilRigTimer OilRigTimers { get; } = new();
+    /// <summary>The last recorded Oil Rig alarms per label/entity/server, for the reference 30-second de-duplication.</summary>
+    private readonly List<(string Label, uint? EntityId, DateTime At, string? Host, int? Port, string? Name)> recentOilRigAlarms = [];
+
+    /// <summary>Reference DockOilRigAlarms: a row belongs to the selected server by address, else by name.</summary>
+    private bool OnSelectedServer((string Label, uint? EntityId, DateTime At, string? Host, int? Port, string? Name) entry)
+    {
+        if (SelectedServer is not { } server) return false;
+        return !string.IsNullOrWhiteSpace(entry.Host)
+            ? entry.Host == server.Host && entry.Port == server.Port
+            : !string.IsNullOrWhiteSpace(entry.Name) && entry.Name == server.Name;
+    }
     [ObservableProperty] private bool isRailExpanded = appSettings?.Get(RustPlusDesk.Core.Settings.SettingKeys.RailShowLabels, false) ?? false;
     partial void OnIsRailExpandedChanged(bool value) => appSettings?.Set(RustPlusDesk.Core.Settings.SettingKeys.RailShowLabels, value);
     public RustPlusDesk.Core.Settings.IAppSettingsStore? AppSettings => appSettings;
@@ -499,8 +570,9 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
                 foreach (var update in args.NewItems?.OfType<CompanionUpdate>() ?? [])
                 {
                     Activity.Append($"[pairing] {update.Title} · {update.Message}");
-                    Alarms.Handle(update);
-                    Notifications.Handle(update);
+                    // Reference ShowAlarmPopup returns before the notification row for an oil rig trigger, which
+                    // was already recorded as an "OilRigAlarm" row by the interceptor.
+                    if (!Alarms.Handle(update)) Notifications.Handle(update);
                 }
             };
             OnPropertyChanged(nameof(Listener));
@@ -775,6 +847,9 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             && appSettings.Get(RustPlusDesk.Core.Settings.SettingKeys.LastSelectedServerKey, "") != value.MatchKey)
             appSettings.Set(RustPlusDesk.Core.Settings.SettingKeys.LastSelectedServerKey, value.MatchKey);
         Hotkeys.SelectServer(value?.Host, value?.Port);
+        // Reference MainWindow server-selection reset (_monumentWatcher.Reset): rig countdowns belong to one server.
+        OilRigTimers.Reset();
+        recentOilRigAlarms.Clear();
         _ = settingsPage?.CustomMap?.LoadAsync();
         _ = deathPins?.ReloadAsync();
         _ = chatAlerts?.LoadChannelAsync();
