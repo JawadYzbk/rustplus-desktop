@@ -74,6 +74,62 @@
                           ToolTip.Tip="Search vending machine offers" AutomationProperties.Name="Shop search">
               <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="BuildingShop24" FontSize="16" /><TextBlock Text="Shop search" /></StackPanel>
             </ToggleButton>
+            <Button x:Name="TimersButton" Classes="subtle" ToolTip.Tip="Custom timers" AutomationProperties.Name="Custom timers">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <icons:Icon Symbol="Timer32" FontSize="16" />
+                <TextBlock Text="Timers" />
+                <Ellipse Width="7" Height="7" Fill="Orange" VerticalAlignment="Center" IsVisible="{Binding Timers.IsCritical}" />
+              </StackPanel>
+              <Button.Flyout>
+                <Flyout Placement="BottomEdgeAlignedLeft">
+                  <StackPanel Width="340" Spacing="8" Margin="4">
+                    <TextBlock Text="Active timers" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Timers.CountText}" Classes="muted" FontSize="12" />
+                    <ItemsControl ItemsSource="{Binding Timers.Timers}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="map:CustomTimerRowViewModel">
+                          <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,4">
+                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                              <TextBlock Text="{Binding CommandText, StringFormat='({0})'}" Classes="muted" FontSize="11" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="1" Text="{Binding RemainingText}" FontFamily="Consolas" FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Accent}" Margin="8,0" VerticalAlignment="Center" />
+                            <Button Grid.Column="2" Classes="icon" Command="{Binding RemoveCommand}" ToolTip.Tip="Delete timer" AutomationProperties.Name="Delete timer">
+                              <icons:Icon Symbol="Dismiss24" FontSize="14" Foreground="IndianRed" />
+                            </Button>
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Border BorderThickness="0,1,0,0" BorderBrush="{DynamicResource CardBorder}" Margin="0,4,0,0" Padding="0,10,0,0">
+                      <StackPanel Spacing="8">
+                        <TextBlock Text="Add timer" FontWeight="SemiBold" />
+                        <Grid ColumnDefinitions="*,Auto">
+                          <TextBox Text="{Binding Timers.NewName}" PlaceholderText="Name" MaxLength="32" AutomationProperties.Name="Timer name" />
+                          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" Margin="8,0,0,0">
+                            <TextBox Text="{Binding Timers.NewHours}" PlaceholderText="hh" MaxLength="2" Width="44" TextAlignment="Center" AutomationProperties.Name="Hours" />
+                            <TextBlock Text=":" VerticalAlignment="Center" Classes="muted" />
+                            <TextBox Text="{Binding Timers.NewMinutes}" PlaceholderText="mm" MaxLength="2" Width="44" TextAlignment="Center" AutomationProperties.Name="Minutes" />
+                            <TextBlock Text=":" VerticalAlignment="Center" Classes="muted" />
+                            <TextBox Text="{Binding Timers.NewSeconds}" PlaceholderText="ss" MaxLength="2" Width="44" TextAlignment="Center" AutomationProperties.Name="Seconds" />
+                          </StackPanel>
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Spacing="2">
+                          <TextBlock Text="{Binding Timers.Prefix}" FontWeight="Bold" Classes="muted" FontSize="12" />
+                          <TextBlock Text="{Binding Timers.PreviewText}" Classes="muted" FontSize="12" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding Timers.Validation}" Foreground="{DynamicResource ConnectionDanger}" FontSize="12"
+                                   IsVisible="{Binding Timers.Validation, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        <CheckBox Content="Send timer alerts to chat" IsChecked="{Binding Timers.AlertCustomTimer}" />
+                        <TextBlock Text="Countdown and alarm audio are not available in this build." Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                        <Button Content="Add timer" Classes="primary" Command="{Binding Timers.AddCommand}" HorizontalAlignment="Right" />
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
+                </Flyout>
+              </Button.Flyout>
+            </Button>
             <Button x:Name="LayersButton" Classes="subtle" ToolTip.Tip="Map layer settings" AutomationProperties.Name="Layers">
               <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Layer24" FontSize="16" /><TextBlock Text="Layers" /></StackPanel>
               <Button.Flyout>

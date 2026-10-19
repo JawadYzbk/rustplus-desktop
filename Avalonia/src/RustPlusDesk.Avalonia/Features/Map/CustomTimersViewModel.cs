@@ -45,6 +45,9 @@ public sealed partial class CustomTimersViewModel(ICustomTimerStore? store,
     [ObservableProperty] private string newSeconds = "";
     [ObservableProperty] private string validation = "";
 
+    /// <summary>Reference TxtTimerCommandPreview: the command the timer is started with, after the chat prefix.</summary>
+    public string PreviewText => ChatCustomTimer.CommandFor(NewName);
+
     /// <summary>The engine's view of the timers, read on every chat message.</summary>
     public IReadOnlyList<ChatCustomTimer> Snapshot => tracker.Timers;
 
@@ -211,7 +214,7 @@ public sealed partial class CustomTimersViewModel(ICustomTimerStore? store,
             var row = Timers.FirstOrDefault(candidate => candidate.Id == timer.Id);
             if (row is null)
             {
-                Timers.Add(new CustomTimerRowViewModel(timer, Prefix));
+                Timers.Add(new CustomTimerRowViewModel(timer, Prefix) { Delete = removed => _ = RemoveAsync(removed) });
                 continue;
             }
             row.Update(timer, Prefix);
@@ -222,6 +225,8 @@ public sealed partial class CustomTimersViewModel(ICustomTimerStore? store,
     }
 
     partial void OnPrefixChanged(string value) => RefreshRows();
+
+    partial void OnNewNameChanged(string value) => OnPropertyChanged(nameof(PreviewText));
 
     private static int Parse(string text) => int.TryParse(text.Trim(), out int value) ? Math.Max(0, value) : 0;
 }
@@ -235,6 +240,12 @@ public sealed partial class CustomTimerRowViewModel(ChatCustomTimer timer, strin
     public string CommandText { get; private set; } = prefix + timer.Command;
 
     [ObservableProperty] private string remainingText = timer.RemainingText(DateTime.UtcNow);
+
+    /// <summary>Reference BtnDeleteTimer_Click: the panel asks the profile to drop this timer.</summary>
+    public Action<CustomTimerRowViewModel>? Delete { get; init; }
+
+    [RelayCommand]
+    private void Remove() => Delete?.Invoke(this);
 
     internal void Update(ChatCustomTimer updated, string currentPrefix)
     {

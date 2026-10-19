@@ -244,8 +244,10 @@ public sealed class CustomTimerTests
 
         await panel.LoadAsync(fixture.Path, server.ProfileKey);
         Assert.AreEqual("!", panel.Prefix);
+        Assert.AreEqual("", panel.PreviewText);
 
         panel.NewName = "5min";   // the reference refuses a name that starts with a digit
+        Assert.AreEqual("5min", panel.PreviewText, "Reference TxtTimerCommandPreview: lower case, whitespace dropped.");
         panel.NewMinutes = "5";
         await panel.AddCommand.ExecuteAsync(null);
         Assert.AreEqual(ChatCommandTexts.TimerNameMustStartWithLetter, panel.Validation);
@@ -290,11 +292,18 @@ public sealed class CustomTimerTests
         panel.NewName = "Door";
         panel.NewSeconds = "30";
         await panel.AddCommand.ExecuteAsync(null);
+        panel.NewName = "Gate";
+        panel.NewSeconds = "45";
+        await panel.AddCommand.ExecuteAsync(null);
+        Assert.AreEqual(2, panel.Timers.Count);
+
+        panel.Timers[0].RemoveCommand.Execute(null);
+        Assert.AreEqual(1, panel.Timers.Count, "The row's delete command takes its timer off the profile.");
         await panel.RemoveCommand.ExecuteAsync(panel.Timers[0]);
         Assert.AreEqual(0, panel.Timers.Count, "The delete button takes the timer off the profile.");
         Assert.AreEqual(0, panel.Snapshot.Count);
-        Assert.AreEqual(0, (await store.GetAsync(fixture.Path, server.ProfileKey, default)).Timers.Count);
         await panel.FlushAsync();
+        Assert.AreEqual(0, (await store.GetAsync(fixture.Path, server.ProfileKey, default)).Timers.Count);
     }
 
     [TestMethod]
