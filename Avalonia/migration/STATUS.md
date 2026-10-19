@@ -11,6 +11,18 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- Team chat commands, switches, upkeep and oil rig: `Core/Chat/ChatCommands.cs` also reads the profile's
+  `SwitchCommandMappings` and `UpkeepCommandMappings`. A switch command toggles every Smart Switch leaf
+  below the bound device or group to the opposite of the first leaf (800 ms apart, skipped when already
+  there) and answers only for confirmed writes, `upkeepdetail` reports each mapped tool cupboard with its
+  time and the daily wood/stone/metal/HQM need (two seconds apart), `upkeep` answers the single and multi
+  forms, and `!oilrig` reports the running crate timer, the last alarm time or None for the small, large
+  and generic rigs. The list sends its device half three seconds later; `DevicesViewModel.SetSwitchStateAsync`
+  drives a switch from chat; the profile store round-trips both mapping arrays. The oil-rig interceptor
+  keeps older alarm rows so "last called" survives.
+  **641 tests** on Windows locally (638 pass; the 3 known platform failures). The last chat-command
+  family (base codes, custom timers, the AI command, logic-engine chat rules and clan/master gating),
+  the team feature master, chinook-at-a-rig timer learning and heli crash sites remain.
 - Team chat commands with their settings card: `Core/Chat/ChatCommands.cs` ports the reference
   `ProcessChatCommands` status commands - the selected profile's prefix and command names, the enable gate,
   the two-second cooldown (with the reference log line) and the answer texts copied verbatim from the
@@ -21,8 +33,8 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
   never redirected by the chat-alert channel or master switch. Settings > Chat Commands edits the profile's
   command fields through the backed-up profile writer.
   **628 tests** on Windows locally (625 pass; the 3 known platform failures). The remaining chat-command
-  families (switch/group commands, upkeep and base codes, oil rig, custom timers, the AI command and
-  clan/master gating), the team feature master, chinook-at-a-rig timer learning and heli crash sites remain.
+  families (base codes, custom timers, the AI command, logic-engine chat rules and clan/master gating),
+  the team feature master, chinook-at-a-rig timer learning and heli crash sites remain.
 - Predicted (ghost) event markers: `Core/Map/PredictedMarkers.cs` ports the reference dynamic-marker
   persistence (`_dynStates` velocity state and the missing-marker loop) — a moving event marker (cargo
   ship, CH47, patrol helicopter, travelling vendor) that stops appearing in a poll keeps being drawn for

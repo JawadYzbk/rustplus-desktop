@@ -4,6 +4,47 @@
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
 every finished slice with its commit.
 
+## Tenth run - chat switches, upkeep and oil rig (2026-10-19, local Windows continuation)
+
+- Branch `codex/avalonia-migration`; slice commit `c45820b7` (docs follow). Only `Avalonia/` changes.
+- **641 tests** run locally on Windows: 638 pass; the same 3 known Windows-local failures remain
+  (`DeathStatsTests.Page_OpensForTheSelectedServer_FiltersForgetsAndClears` and the two
+  `GeneralSettingsTests` XDG/macOS autostart cases - platform-specific, clean on Linux). Build zero warnings.
+- Done: the second reference chat-command family. A switch command bound to a paired switch or group
+  drives every Smart Switch leaf below it to the opposite of the first leaf's state (groups recurse,
+  leaves already at the target are skipped, 800 ms between writes) and answers only for confirmed
+  writes: "Porch turned ON." / "A, B turned ON." for several, "Bound Smart Switch not found or not
+  paired." for a group without leaves, and nothing at all when the mapped device is gone. `upkeepdetail`
+  reports every mapped tool cupboard (one message each, at least two seconds apart) with the reference
+  "2 days, 2 hours, 3 minutes." time and the daily materials (Wood 480, Stone 240, Metal 120, HQM 24 -
+  the hardcoded item IDs, ceil per 24 h, comma-free). `upkeep` answers one mapped cupboard with the
+  detailed time (no materials, as the reference) and several with the short "Base: 1d, 2h | FOB:
+  Empty/expired" line. `!oilrig` answers "Small Oil: crate unlocks in 14m 59s" (then Large), falls back
+  to the last alarm time and then "None", and says "No Oil Rig Smart Alarm notification received." when
+  nothing was seen. The list's device half arrives three seconds after the standard list.
+- Where the behaviour lives: `Core/Chat/ChatCommands.cs` (`ChatCommandMapping`, `ChatDeviceState` with
+  `PureName`/`LooksLikeToolCupboard`, `ChatMessageStep`, `ChatOilRigState`, the switch/upkeep/oil-rig
+  branches, `UpkeepTime`/`UpkeepMaterials`/`SwitchLeaves`/`ToggleAsync`, `DeviceListAnswer`),
+  `ChatCommandService.HandleAsync` (awaits deferred device work) plus `SendFollowUpAsync` (list and
+  upkeepdetail pacing), `Infrastructure/Profiles/LegacyChatCommandStore.cs` (the two mapping arrays),
+  `Features/Devices/DevicesViewModel.SetSwitchStateAsync`, `Features/Servers/ServersViewModel`
+  (`ChatDevices`, `ChatOilRigs`, the switch setter), and the alarm interceptor now retaining older
+  oil-rig rows so "last called" and the dock timestamps survive.
+- Tests: `ChatCommandTests` (38: the previous 24 plus the switch group/skip/not-paired/silent cases,
+  the single and multi upkeep forms, the upkeepdetail materials and two-second spacing, the device list
+  three seconds later, the settings-store mapping round trip, the real-chat service follow-up, and the
+  oil rig timer/alarm/None/no-alarm answers); `ChatTextParityTests` (3: every ported answer compared
+  character by character against `RustPlusDesktop/Properties/Resources.resx`, plus the oil rig
+  no-alarm/None literals); `OilRigTests` still cover the timer and dock path.
+- Deviations: a chat switch uses the device client's own timeout instead of the reference 5 s CTS and a
+  failed toggle is logged at the device row, not in the activity log; upkeep materials match the four
+  reference item IDs because the port's snapshot has no short name; the oil rig answer has no
+  logic-rule half yet (alarms/timers only); the logic-engine chat rules and `_logicEngineRunningAction`
+  gate wait for the next family.
+- Next slices: the last chat-command family (base codes, custom timers, the AI command, clan/master
+  author gating, logic-engine chat rules), then the team feature master (+ cloud presence) and the
+  remaining PARITY-PLAN ports.
+
 ## Ninth run - team chat commands (2026-10-19, local Windows continuation)
 
 - Branch `codex/avalonia-migration`; slice commit `5d1245c6` (docs follow). Only `Avalonia/` changes.
