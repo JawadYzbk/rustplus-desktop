@@ -4,6 +4,29 @@
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
 every finished slice with its commit.
 
+## Sixth run — Team markers and Map Performance settings (2026-10-19, local Windows continuation)
+
+- Branch `codex/avalonia-migration`; slice commit `70072ba4` (docs follow). Only `Avalonia/` changes.
+- **576 tests** run locally on Windows: 573 pass; the same 3 known Windows-local failures remain
+  (`DeathStatsTests.Page_OpensForTheSelectedServer_FiltersForgetsAndClears` and the two
+  `GeneralSettingsTests` XDG/macOS autostart cases — platform-specific, clean on Linux). Build zero warnings.
+- Done: Settings > Map "Team markers" card (Profile markers = MapShowSteamMarkers, Player direction
+  arrows = MapShowPlayerArrows; both behaviours were live on the map, now visible in Settings) and
+  "Map performance" card (scaling quality 0-2, render scale 0.5-2.0 enabled only while caching, GPU
+  bitmap caching, aliased edges), all loaded/persisted with the reference `Map*` setting names and defaults.
+- Where the behaviour lives: `Core/Map/MapPerformance.cs` (reference defaults, combo-index rule,
+  cache-scale clamp, grid thickness), `MapViewModel` (settings), `SettingsView.axaml` (cards),
+  `MapSurface` (RenderOptions scaling/edge mode, the RenderTargetBitmap scene cache with direct-draw
+  fallback). WPF's `BitmapCache RenderAtScale` is reproduced as an explicit RenderTargetBitmap because
+  Avalonia's `Visual.CacheMode` caches in local coordinates; the surface property is named `SceneCache`
+  so it does not hide `Visual.CacheMode` (reference setting names unchanged).
+- Tests: `MapPerformanceTests` (core rules incl. the reference combo-index quirk; UI test applying the
+  card settings, asserting the settings keys, persistence and a rendered scene-cache frame at scale 2.0).
+- Deviations: the scaling filter covers all map bitmaps (reference set it on the map/heatmap images
+  only); cache scales beyond the 16384 px surface edge are clamped.
+- Next slices: event dock timers (cargo/heli/deep-sea spawn times), ghost (predicted) cargo markers,
+  team chat commands, then the team feature master (+ cloud presence), plus chinook-at-a-rig timer learning.
+
 ## Fifth run — oil rig crate timers and announcements (2026-10-19, local Windows continuation)
 
 - Branch `codex/avalonia-migration`; slice commit `89de8616` (docs follow). Only `Avalonia/` changes.

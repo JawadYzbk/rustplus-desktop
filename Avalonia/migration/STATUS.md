@@ -11,6 +11,16 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- Map performance and team markers Settings cards: `MapPerformance` core rules (scaling mode 0-2 with
+  the reference default, render-scale list with the reference combo-index quirk, cache-scale clamp to the
+  16384 px surface edge, grid line 1.0/0.65 px); `MapSurface` applies `RenderOptions` scaling/edge mode
+  and caches the pan-invariant scene in one `RenderTargetBitmap` at the render scale (direct-draw
+  fallback; built-in `Visual.CacheMode` is unusable with the in-control pan/zoom transform); Settings >
+  Map "Team markers" (profile markers, direction arrows) and "Map performance" (quality, caching,
+  render scale, aliased edges) cards. **576 tests** on Windows locally (573 pass; the 3 known
+  platform failures). Event dock timers, ghost cargo markers, chat commands and the team feature
+  master remain.
+
 - Oil-rig alarms and crate timers: `OilRigTimer` (15-minute timer per Small/Large/Generic rig, reset on
   server switch, one 15/10/5-minute reminder window each) plus the alarm-push interceptor
   (`ServersViewModel.TryHandleOilRigAlarm`): an explicit rig alarm is de-duplicated within 30 s on the
