@@ -137,6 +137,13 @@ public static class ChatCommandTexts
     public const string OilRigGenericLabel = "Oil Rig";
     public const string BaseCodeNameDefault = "Doorcode";
     public const string NoBaseCodes = "No base codes are set.";
+    public const string NoActiveTimers = "No active timers.";
+    public const string TimerMaxReached = "Maximum of 5 timers allowed.";
+    public const string TimerNameMustStartWithLetter = "Timer name must start with a letter.";
+    public const string TimerCreated = "Timer {0} created for {1}h {2}m {3}s";
+    public const string TimerDurationRequired = "Please enter a timer duration (hours, minutes, or seconds).";
+    public const string CountdownOneMinute = "1-minute countdown...";
+    public const string TimerExpiredTitle = "Timer Expired";
 }
 
 /// <summary>Reference ChatCommandMapping: one chat command name bound to one paired entity.</summary>
@@ -242,7 +249,8 @@ public sealed record ChatCommandState(
     ChatCargoCommandState? Cargo = null,
     bool CanPromote = false,
     bool CanListAi = false,
-    string? FirstCustomTimerCommand = null,
+    IReadOnlyList<ChatCustomTimer>? CustomTimers = null,
+    bool AlertCustomTimer = true,
     IReadOnlyList<ChatDeviceState>? Devices = null,
     Func<uint, bool, CancellationToken, Task<bool>>? SetSwitch = null,
     IReadOnlyList<ChatOilRigState>? OilRigs = null);
@@ -263,7 +271,8 @@ public interface IChatCommandSettingsStore
 
 /// <summary>What a command produced: the reply to send (if any), whether the author asked to be promoted, and a log line.</summary>
 public sealed record ChatCommandReply(string? Message = null, bool PromoteToLeader = false, string? Log = null,
-    Func<CancellationToken, Task<ChatCommandReply?>>? Deferred = null, IReadOnlyList<ChatMessageStep>? FollowUp = null)
+    Func<CancellationToken, Task<ChatCommandReply?>>? Deferred = null, IReadOnlyList<ChatMessageStep>? FollowUp = null,
+    ChatCustomTimer? NewCustomTimer = null)
 {
     /// <summary>Nothing to answer: not a command, disabled, cooling down, or an event that cannot be tracked.</summary>
     public static readonly ChatCommandReply Ignored = new();
@@ -390,6 +399,77 @@ public static class ChatCommands
 
         if (cmd == settings.Vendor.ToLowerInvariant())
             return new ChatCommandReply(VendorAnswer(state.Events ?? new ChatEventCommandState(), now), Log: Log("Vendor"));
+
+        // Custom timers answer to their own command names before the create/list command, as the reference does.
+        foreach (var timer in state.CustomTimers ?? [])
+        {
+            if (!string.Equals(cmd, timer.Command.ToLowerInvariant(), StringComparison.Ordinal)) continue;
+            TimeSpan remaining = timer.EndTimeUtc - now;
+            return remaining.TotalSeconds <= 0
+                ? ChatCommandReply.Ignored
+                : new ChatCommandReply($"{timer.Name}: {timer.RemainingText(now)}",
+                    Log: $"[ChatCommand] Timer '{timer.Name}' checked by {request.Author}");
+        }
+
+        string timerCommand = settings.CustomTimer.ToLowerInvariant();
+        if (cmd == timerCommand)
+        {
+            var timers = state.CustomTimers ?? [];
+            string message = timers.Count == 0
+                ? ChatCommandTexts.NoActiveTimers
+                : string.Join(" | ", timers.Select(timer => $"{prefix}{timer.Command} : {timer.RemainingText(now)}"));
+            return new ChatCommandReply(message);
+        }
+        if (cmd.StartsWith(timerCommand + " ", StringComparison.Ordinal))
+        {
+            if ((state.CustomTimers?.Count ?? 0) >= ChatCustomTimer.MaxTimers)
+                return new ChatCommandReply(ChatCommandTexts.TimerMaxReached);
+
+            string[] args = cmd[(timerCommand.Length + 1)..].Split(',');
+            if (args.Length != 2) return ChatCommandReply.Ignored;
+            string timerName = args[0].Trim();
+            string timePart = args[1].Trim();
+
+            int hours = 0, minutes = 0, seconds = 0;
+            if (timePart.Contains(':'))
+            {
+                string[] parts = timePart.Split(':');
+                if (parts.Length == 3)
+                {
+                    _ = int.TryParse(parts[0], out hours);
+                    _ = int.TryParse(parts[1], out minutes);
+                    _ = int.TryParse(parts[2], out seconds);
+                }
+                else if (parts.Length == 2)
+                {
+                    _ = int.TryParse(parts[0], out minutes);
+                    _ = int.TryParse(parts[1], out seconds);
+                }
+            }
+            else
+            {
+                _ = int.TryParse(timePart, out minutes);
+            }
+
+            int totalSeconds = hours * 3600 + minutes * 60 + seconds;
+            if (totalSeconds <= 0) return ChatCommandReply.Ignored;
+            if (!ChatCustomTimer.IsValidName(timerName))
+                return new ChatCommandReply(ChatCommandTexts.TimerNameMustStartWithLetter);
+
+            string command = ChatCustomTimer.CommandFor(timerName);
+            double totalMinutes = totalSeconds / 60.0;
+            var timer = new ChatCustomTimer(Guid.NewGuid().ToString(), timerName, command,
+                now.AddSeconds(totalSeconds), request.Channel, CreatedNotified: false,
+                Notified60: totalMinutes <= 60, Notified30: totalMinutes <= 30,
+                Notified10: totalMinutes <= 10, Notified3: totalMinutes <= 3);
+            string? created = state.AlertCustomTimer
+                ? string.Format(CultureInfo.InvariantCulture, ChatCommandTexts.TimerCreated, prefix + command,
+                    hours, minutes, seconds)
+                : null;
+            return new ChatCommandReply(created,
+                Log: $"[ChatCommand] Timer created by {request.Author}: {timerName} for {hours}h {minutes}m {seconds}s",
+                NewCustomTimer: timer);
+        }
 
         var switchMappings = allowSwitches ? Mappings(settings.SwitchMappings, cmd) : [];
         if (switchMappings.Count > 0)
@@ -672,7 +752,8 @@ public static class ChatCommands
     {
         string prefix = settings.EffectivePrefix;
         var standard = new List<string>();
-        if (!string.IsNullOrWhiteSpace(state.FirstCustomTimerCommand)) standard.Add(prefix + state.FirstCustomTimerCommand);
+        if (!string.IsNullOrWhiteSpace(state.CustomTimers?.FirstOrDefault()?.Command))
+            standard.Add(prefix + state.CustomTimers![0].Command);
         Add(standard, prefix, settings.Pop);
         Add(standard, prefix, settings.Time);
         Add(standard, prefix, settings.Promote);

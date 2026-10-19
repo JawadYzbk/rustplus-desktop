@@ -242,10 +242,6 @@ public sealed class ChatCommandTests
         Assert.AreEqual("COMMANDS: !pop, !time, !promote, !deepsea, !cargo, !oilrig, !heli, !vendor, !upkeepdetail, !afk, !who",
             Run("!commands", Live).Message);
 
-        Assert.AreEqual("COMMANDS: !timer, !pop, !time, !promote, !deepsea, !cargo, !oilrig, !heli, !vendor, !upkeepdetail, !afk, !who",
-            Run("!commands", Live with { FirstCustomTimerCommand = "timer" }).Message,
-            "A running custom timer is advertised first.");
-
         Assert.AreEqual("COMMANDS: !pop, !time, !promote, !deepsea, !cargo, !oilrig, !heli, !vendor, !upkeepdetail, !afk, !who, !code, !ai",
             Run("!commands", Live with { CanListAi = true },
                 ChatCommandSettings.Defaults with { BaseCodeRows = [new ChatBaseCode("Base", "1234")] }).Message);

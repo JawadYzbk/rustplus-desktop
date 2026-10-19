@@ -35,7 +35,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     IServerDeleter? serverDeleter = null, ICloudServerForgetter? cloudForgetter = null, IProfileFlagStore? profileFlags = null,
     RustPlusDesk.Core.Alerts.IDiscordWebhookStore? webhookStore = null, RustPlusDesk.Core.Alerts.IDiscordWebhookSender? webhookSender = null,
     RustPlusDesk.Core.Alerts.ICloudSignInState? cloudSignIn = null, IProfileWipeTimeStore? wipeTimes = null,
-    ISteamAvatarSource? avatarSource = null, RustPlusDesk.Core.Chat.IChatCommandSettingsStore? chatCommandStore = null)
+    ISteamAvatarSource? avatarSource = null, RustPlusDesk.Core.Chat.IChatCommandSettingsStore? chatCommandStore = null,
+    RustPlusDesk.Core.Chat.ICustomTimerStore? customTimerStore = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -84,9 +85,40 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             Events: EventAnnouncer?.EventState(),
             Cargo: EventAnnouncer?.CargoState(),
             CanPromote: connection.CanPromote,
+            CustomTimers: Timers.Snapshot,
+            AlertCustomTimer: Timers.AlertCustomTimer,
             Devices: ChatDevices(connection),
             SetSwitch: connection.Devices.SetSwitchStateAsync,
             OilRigs: ChatOilRigs());
+    }
+
+    private Map.CustomTimersViewModel? timers;
+
+    /// <summary>
+    /// Reference custom timers: the selected profile's timers, the ticking warnings and the timer panel behind the
+    /// map's timer button.
+    /// </summary>
+    public Map.CustomTimersViewModel Timers => timers ??= CreateTimers();
+
+    private Map.CustomTimersViewModel CreateTimers() => new(customTimerStore,
+        (channel, text) => _ = SendTimerChatAsync(channel, text),
+        (text, alarm) => Toasts.Show(
+            alarm ? RustPlusDesk.Core.Chat.ChatCommandTexts.TimerExpiredTitle : RustPlusDesk.Core.Chat.ChatCommandTexts.CountdownOneMinute,
+            text, alarm ? RustPlusDesk.Avalonia.Features.Toasts.ToastKind.Danger : RustPlusDesk.Avalonia.Features.Toasts.ToastKind.Caution),
+        Activity.Append);
+
+    /// <summary>
+    /// Reference SendTeamChatSafeAsync(forceChannel: timer.OriginChannel): a chat-started timer reports back to the
+    /// channel it came from, while one made in the app follows the alert-channel setting.
+    /// </summary>
+    private async Task SendTimerChatAsync(RustPlusDesk.Core.Chat.ChatChannel? channel, string text)
+    {
+        try
+        {
+            if (channel is { } origin) await Connection.Chat.SendCommandReplyAsync(origin, text, TimeSpan.Zero);
+            else await Connection.Chat.SendAutomatedAsync(text);
+        }
+        catch (Exception) { Activity.Append("[timer] The timer message could not be sent to chat."); }
     }
 
     /// <summary>
@@ -146,7 +178,11 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         var server = SelectedServer;
         engine.Reset();
         engine.Settings = RustPlusDesk.Core.Chat.ChatCommandSettings.Defaults;
-        if (chatCommandStore is null || server is null) return;
+        if (chatCommandStore is null || server is null)
+        {
+            Timers.Prefix = engine.Settings.EffectivePrefix;
+            return;
+        }
         try
         {
             var settings = await chatCommandStore.GetAsync(path, server.ProfileKey, CancellationToken.None);
@@ -156,6 +192,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         {
             Activity.Append("[ChatCommand] The profile's chat-command settings could not be read; using the defaults.");
         }
+        Timers.Prefix = engine.Settings.EffectivePrefix;
     }
 
     public Shops.ShopNoticesViewModel? ShopNotices { get; private set; }
@@ -189,6 +226,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         {
             State = BuildChatCommandState,
             PromoteToLeader = Connection.PromoteToLeaderAsync,
+            StartTimer = timer => Timers.AddFromChatAsync(timer),
             Log = Activity.Append
         };
         ChatCommandEngine.Attach();
@@ -320,6 +358,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     public bool RequiresSignIn => Account?.RequiresSignIn == true || Listener?.RequiresSignIn == true;
     private bool shuttingDown;
     private bool initialized;
+    private readonly CancellationTokenSource timerStop = new();
+    private Task timerLoop = Task.CompletedTask;
     private bool pendingPairingRefresh;
     private readonly Dictionary<string, string> pairedProfileKeys = [];
     public bool HasAccount => accountService is not null || cloudAccountService is not null;
@@ -740,6 +780,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             try { await Notifications.LoadAsync(cancellationToken); }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Activity.Append("[notifications] The notification history could not be read."); }
             EnsureAccountServices();
+            timerLoop = Timers.RunAsync(timerStop.Token);
             if (Cloud is not null) Cloud.CheckCommand.Execute(null);
             if (Account is null || Listener is null) return;
             string initialSource = SourcePath;
@@ -964,6 +1005,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         recentOilRigAlarms.Clear();
         _ = settingsPage?.CustomMap?.LoadAsync();
         _ = ReloadChatCommandSettingsAsync();
+        _ = Timers.LoadAsync(SourcePath, value?.ProfileKey ?? "");
         _ = settingsPage?.ChatCommands?.LoadAsync();
         _ = deathPins?.ReloadAsync();
         _ = chatAlerts?.LoadChannelAsync();
@@ -1254,6 +1296,9 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     public async Task ShutdownAsync()
     {
         shuttingDown = true;
+        timerStop.Cancel();
+        await timerLoop;
+        await Timers.FlushAsync();
         InitializeCommand.Cancel();
         RefreshCommand.Cancel();
         OpenFileCommand.Cancel();

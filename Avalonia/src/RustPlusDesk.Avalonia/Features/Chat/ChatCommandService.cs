@@ -20,6 +20,9 @@ public sealed class ChatCommandService(ChatViewModel chat)
     /// <summary>Reference real.PromoteToLeaderAsync; null when the live session cannot hand out leadership.</summary>
     public Func<ulong, CancellationToken, Task<bool>>? PromoteToLeader { get; set; }
 
+    /// <summary>Reference profile.CustomTimers.Add: the timer is stored on the profile before the answer is posted.</summary>
+    public Func<ChatCustomTimer, Task>? StartTimer { get; set; }
+
     public Action<string>? Log { get; set; }
     public Func<DateTime> Now { get; set; } = () => DateTime.UtcNow;
 
@@ -41,6 +44,12 @@ public sealed class ChatCommandService(ChatViewModel chat)
 
         if (reply.PromoteToLeader && PromoteToLeader is { } promote)
             _ = PromoteAsync(promote, message, ct);
+
+        if (reply.NewCustomTimer is { } timer && StartTimer is { } startTimer)
+        {
+            try { await startTimer(timer).ConfigureAwait(false); }
+            catch (Exception) { Log?.Invoke("[ChatCommand] The timer could not be saved."); }
+        }
 
         if (reply.Deferred is { } action)
         {
