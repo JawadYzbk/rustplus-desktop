@@ -4,6 +4,54 @@
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
 every finished slice with its commit.
 
+## Eleventh run - base codes, clan flags and custom timers (2026-10-19, local Windows continuation)
+
+- Branch `codex/avalonia-migration`; slice commits `9b3f0de4` (base codes and clan permissions) and
+  `2a79fabf` (custom timers; docs follow). Only `Avalonia/` changes.
+- **656 tests** run locally on Windows: 653 pass; the same 3 known Windows-local failures remain
+  (`DeathStatsTests.Page_OpensForTheSelectedServer_FiltersForgetsAndClears` and the two
+  `GeneralSettingsTests` XDG/macOS autostart cases - platform-specific, clean on Linux). Build zero warnings.
+- Done, base codes: the selected profile's `BaseCodes` (up to five label/code rows, blank spare rows
+  dropped) and the two clan switches (`ClanCommandsAllowBaseCodes`, `ClanCommandsAllowSwitches`)
+  round-trip through profiles.json and are edited in Settings > Chat Commands (BASE CODES rows, CLAN CHAT
+  checkboxes). A base-code command answers only complete 4-digit rows as "{label}: {code} - {label}:
+  {code}", names an unlabelled row "Doorcode" and says "No base codes are set." when none are complete; a
+  half-typed row never reaches chat, the reply is cut at 128 characters by dropping whole entries, and the
+  list advertises the command only when a complete row exists and the channel is allowed. Both clan
+  switches apply to clan chat only - team chat always gets base codes and switches.
+- Done, custom timers: `!timer NAME,MINUTES` (`H:M:S`, `M:S` or minutes) creates one of at most five
+  timers, refuses a name that does not start with a letter ("Timer name must start with a letter."),
+  stays silent for a zero duration, pre-marks warnings that already passed and answers "Timer !name
+  created for 0h 30m 0s" only while timer alerts are on. `!timer` lists "!raid : 30:00 | ..." ("No active
+  timers."), and each timer answers its own command with "Name: 30:00" / "01:05:00". The one-second clock
+  posts the 60/30/10/3-minute warnings and the "Name: 00:00" expiry line to the channel that started the
+  timer (an app-made timer follows the alert-channel setting), then drops the timer a minute after
+  expiry. Timers are profile state (`CustomTimers`, `AlertCustomTimer`), loaded on profile change with
+  already-ended timers purged silently, and saved through the revision-checked backed-up writer.
+- Where: `Core/Chat/ChatCommands.cs` (`ChatBaseCode`, `ChatCommandSettings.BaseCodeRows`/clan flags, the
+  base-code branch, the `CustomTimers`/`AlertCustomTimer` state, the timer check/list/create branches and
+  texts), `Core/Chat/CustomTimers.cs` (`ChatCustomTimer`, `CustomTimerTracker`, `ChatTimerNotification`,
+  `CustomTimerSettings`, `ICustomTimerStore`), `Infrastructure/Profiles/LegacyChatCommandStore.cs` +
+  `LegacyCustomTimerStore.cs`, `Features/Settings/ChatCommandSettingsViewModel.cs`/`SettingsView.axaml`
+  (base-code rows, clan checkboxes), `Features/Map/CustomTimersViewModel.cs` (rows, add/delete, one-second
+  clock, serialized saves, `IsCritical`), `Features/Servers/ServersViewModel.cs` (`Timers`, the chat and
+  toast callbacks, prefix sync, ticker lifetime, `BuildChatCommandState`), `Features/Chat/
+  ChatCommandService.StartTimer` (a chat-created timer is stored before its answer posts).
+- Tests: `CustomTimerTests` (12: the check/list/create commands and refusals, the clock thresholds,
+  cleanup, snooze and startup purge, the store round trip and incomplete rows, the panel add/remove/tick/
+  save and the alarm-audio case), `ChatCommandTests` (41: adds the base-code delivery/limit and
+  clan-gating cases and the base-code store round trip, updates the list expectation) and
+  `ChatTextParityTests` (two new resource texts; 53 run across the timer and chat-command files).
+- Deviations: this tree has no audio pipeline yet, so the reference countdown/alarm sounds and snackbars
+  become a callback the shell turns into a toast (countdown gated by EnableCountdownAudio, expiry alarm by
+  EnableAlarmAudio); the snooze button, per-timer audio switches and the map's timer button/flyout are not
+  built yet, so timers are reachable through chat and the VM but not yet through the map UI. Clan/master
+  author gating (`IsClanCommandAuthorAllowed`, needs the clan roster and the team feature master) and the
+  AI command (needs the AI companion) stay with their own slices. The docs for both slices are batched in
+  this entry instead of one docs commit per code commit.
+- Next slices: the AI command with the companion port, clan/master author gating with the team feature
+  master (phase 5), then the remaining PARITY-PLAN ports.
+
 ## Tenth run - chat switches, upkeep and oil rig (2026-10-19, local Windows continuation)
 
 - Branch `codex/avalonia-migration`; slice commit `c45820b7` (docs follow). Only `Avalonia/` changes.

@@ -11,6 +11,21 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- Team chat base codes, clan switches and custom timers: `Core/Chat/ChatCommands.cs` reads the profile's
+  `BaseCodes` and the two clan switches and answers with complete 4-digit rows only ("{label}: {code}",
+  unlabelled rows "Doorcode", "No base codes are set.", whole-entry 128-character cut, clan chat gated);
+  the settings card edits the five label/code rows and the CLAN CHAT checkboxes, and the store round-trips
+  all three fields. `Core/Chat/CustomTimers.cs` adds `ChatCustomTimer`/`CustomTimerTracker`; `!timer
+  NAME,time` creates one of at most five timers (letter-start check, silent zero duration, "Timer !name
+  created for 0h 30m 0s" only while alerts are on) and each timer answers its own `!name` command, while
+  the one-second clock posts the 60/30/10/3-minute warnings and the 00:00 expiry line to the timer's
+  origin channel (app timers follow the alert-channel setting) and drops a timer a minute after expiry.
+  `LegacyCustomTimerStore` round-trips `CustomTimers`/`AlertCustomTimer`; `CustomTimersViewModel` holds
+  the rows, add/delete actions, serialized saves and the critical-icon flag; `ServersViewModel` owns the
+  ticker, toast and chat callbacks and stores chat-created timers through `ChatCommandService.StartTimer`.
+  **656 tests** on Windows locally (653 pass; the 3 known platform failures). The map timer flyout, timer
+  audio/snooze and per-timer audio switches, the AI command, the logic-engine chat rules, clan/master
+  author gating, the team feature master, chinook-at-a-rig timer learning and heli crash sites remain.
 - Team chat commands, switches, upkeep and oil rig: `Core/Chat/ChatCommands.cs` also reads the profile's
   `SwitchCommandMappings` and `UpkeepCommandMappings`. A switch command toggles every Smart Switch leaf
   below the bound device or group to the opposite of the first leaf (800 ms apart, skipped when already
@@ -20,9 +35,9 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
   and generic rigs. The list sends its device half three seconds later; `DevicesViewModel.SetSwitchStateAsync`
   drives a switch from chat; the profile store round-trips both mapping arrays. The oil-rig interceptor
   keeps older alarm rows so "last called" survives.
-  **641 tests** on Windows locally (638 pass; the 3 known platform failures). The last chat-command
-  family (base codes, custom timers, the AI command, logic-engine chat rules and clan/master gating),
-  the team feature master, chinook-at-a-rig timer learning and heli crash sites remain.
+  **641 tests** on Windows locally (638 pass; the 3 known platform failures). The AI command,
+  logic-engine chat rules and clan/master gating, the team feature master, chinook-at-a-rig timer
+  learning and heli crash sites remain.
 - Team chat commands with their settings card: `Core/Chat/ChatCommands.cs` ports the reference
   `ProcessChatCommands` status commands - the selected profile's prefix and command names, the enable gate,
   the two-second cooldown (with the reference log line) and the answer texts copied verbatim from the
@@ -32,9 +47,9 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
   and the cargo memory); answers return to the channel that asked after the profile response delay and are
   never redirected by the chat-alert channel or master switch. Settings > Chat Commands edits the profile's
   command fields through the backed-up profile writer.
-  **628 tests** on Windows locally (625 pass; the 3 known platform failures). The remaining chat-command
-  families (base codes, custom timers, the AI command, logic-engine chat rules and clan/master gating),
-  the team feature master, chinook-at-a-rig timer learning and heli crash sites remain.
+  **628 tests** on Windows locally (625 pass; the 3 known platform failures). The AI command,
+  logic-engine chat rules and clan/master gating, the team feature master, chinook-at-a-rig timer
+  learning and heli crash sites remain.
 - Predicted (ghost) event markers: `Core/Map/PredictedMarkers.cs` ports the reference dynamic-marker
   persistence (`_dynStates` velocity state and the missing-marker loop) — a moving event marker (cargo
   ship, CH47, patrol helicopter, travelling vendor) that stops appearing in a poll keeps being drawn for
@@ -240,7 +255,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Live map/markers/overlays | Not ported | Separate coordinate/state logic from rendering; choose portable map/helper hosting |
 | Smart devices/automation/timers | Confirmed switches, nested group commands, alarm/storage state, local organization/icons/delete with rule+command cleanup, own-device sync and guarded shared/local import | Live-server acceptance, drag gestures, hotkey/overlay cleanup on delete, transfer, missing icon artwork/direct-click shortcuts, automation, timers, alarm notifications/audio and original layout |
 | Cloud identity/consent | Website handoff, scoped permission, local sign-out, fresh quotas, own recovery/automatic sync and import sources | Live authentication/version acceptance, concurrent writers, other consents, team membership/master/chat publication and remaining account/provider/session workflows |
-| Chat/team/clan | Live roster dock, chat history/search/emoji/message menu, automated alert routing and team chat commands (status commands with per-server command settings) | Moderation and clan management, chat/clan publication and master coordination, and the remaining chat-command families (switch/upkeep/base codes/oil rig/custom timers/AI, clan/master author gating) |
+| Chat/team/clan | Live roster dock, chat history/search/emoji/message menu, automated alert routing and team chat commands (status commands, switches/upkeep/oil rig, base codes and clan switches, custom timers, with per-server command settings) | Moderation and clan management, chat/clan publication and master coordination, and the remaining chat-command work (AI command, logic-engine rules, clan/master author gating, timer flyout/audio) |
 | Cameras | Not ported | Validate camera SDK/runtime, stream decoding and portable rendering |
 | Genetics Lab/web tools | Not ported | Decide and verify portable web hosting/bridge rather than copying WebView2 |
 | Settings/localization/backups | Not ported | Portable settings models, resources, storage, lossless schema migration |
