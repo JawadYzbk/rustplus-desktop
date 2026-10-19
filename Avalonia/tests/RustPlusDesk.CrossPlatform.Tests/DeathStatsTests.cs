@@ -16,7 +16,9 @@ namespace RustPlusDesk.CrossPlatform.Tests;
 [TestClass]
 public sealed class DeathStatsTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 10, 18, 12, 0, 0, TimeSpan.Zero);
+    // Wall-clock based: the stats page filters its ranges against DateTimeOffset.Now, so the sample timestamps must
+    // follow the same clock or the 24 h/7 d assertions drift out of the window the day after they are written.
+    private static readonly DateTimeOffset Now = DateTimeOffset.Now;
     private static long Ago(double hours) => Now.AddHours(-hours).ToUnixTimeSeconds();
 
     private static string Line(string name, long died, long? spawn, string grid, string type, string? place) =>
