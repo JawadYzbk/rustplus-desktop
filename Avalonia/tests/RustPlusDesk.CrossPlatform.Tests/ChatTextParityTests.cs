@@ -52,6 +52,29 @@ public sealed class ChatTextParityTests
             (ChatCommandTexts.NoOneAfk, "ChatCmdNoOneAfk"),
             (ChatCommandTexts.AfkTeamScope, "ChatCmdAfkTeamScope"),
             (ChatCommandTexts.HarborFallback, "HarborFallback"),
+            (ChatCommandTexts.SwitchToggled, "ChatCmdSwitchToggled"),
+            (ChatCommandTexts.SwitchStateOn, "ChatCmdSwitchStateOn"),
+            (ChatCommandTexts.SwitchStateOff, "ChatCmdSwitchStateOff"),
+            (ChatCommandTexts.SwitchNotPaired, "ChatCmdSwitchNotPaired"),
+            (ChatCommandTexts.UpkeepNoTcMapped, "ChatCmdUpkeepNoTcMapped"),
+            (ChatCommandTexts.UpkeepTcEmptyExpired, "ChatCmdUpkeepTcEmptyExpired"),
+            (ChatCommandTexts.UpkeepNeed24h, "ChatCmdUpkeepNeed24h"),
+            (ChatCommandTexts.UpkeepTcTime, "ChatCmdUpkeepTcTime"),
+            (ChatCommandTexts.UpkeepDays, "ChatCmdUpkeepDays"),
+            (ChatCommandTexts.UpkeepHours, "ChatCmdUpkeepHours"),
+            (ChatCommandTexts.UpkeepMinutes, "ChatCmdUpkeepMinutes"),
+            (ChatCommandTexts.UpkeepEmptyExpiredShort, "ChatCmdUpkeepEmptyExpiredShort"),
+            (ChatCommandTexts.UpkeepTimeShort, "ChatCmdUpkeepTimeShort"),
+            (ChatCommandTexts.UpkeepHeader, "ChatCmdUpkeepHeader"),
+            (ChatCommandTexts.UpkeepNotPaired, "ChatCmdUpkeepNotPaired"),
+            (ChatCommandTexts.UpkeepNotPairedSingle, "ChatCmdUpkeepNotPairedSingle"),
+            (ChatCommandTexts.MaterialWood, "MaterialWood"),
+            (ChatCommandTexts.MaterialStone, "MaterialStone"),
+            (ChatCommandTexts.MaterialMetal, "MaterialMetal"),
+            (ChatCommandTexts.MaterialHQM, "MaterialHQM"),
+            (ChatCommandTexts.OilRigHackRunning, "ChatCmdOilRigHackRunning"),
+            (ChatCommandTexts.OilRigSmallLabel, "UiBadgeSmallOil"),
+            (ChatCommandTexts.OilRigLargeLabel, "UiBadgeLargeOil"),
         };
 
         foreach (var (text, key) in ported)
@@ -68,6 +91,20 @@ public sealed class ChatTextParityTests
             "MainWindow.Map.ChatCommands.cs"));
         Assert.IsTrue(source.Contains($"\"{ChatCommandTexts.WhoResponse}\"", StringComparison.Ordinal),
             "The who answer is a literal in the reference chat-command handler.");
+    }
+
+    [TestMethod]
+    public void OilRigFallbackTexts_AreTheReferenceLiterals()
+    {
+        var source = File.ReadAllText(Path.Combine(RepositoryRoot(), "RustPlusDesktop", "Views", "MainWindow",
+            "MainWindow.OilRigTimers.cs"));
+        Assert.IsTrue(source.Contains($"\"{ChatCommandTexts.OilRigNoAlarm}\"", StringComparison.Ordinal),
+            "The no-alarm answer is a literal in the reference oil rig handler.");
+        Assert.IsTrue(source.Contains("GetString(\"CodeUiNone\") ?? \"None\"", StringComparison.Ordinal),
+            "Reference BuildSingleRigAnswer falls back to the literal None.");
+        Assert.IsFalse(ReadReferenceResources().ContainsKey("CodeUiNone"),
+            "CodeUiNone is not in the reference resources, so the None fallback is what users see.");
+        Assert.AreEqual("None", ChatCommandTexts.OilRigNone[(ChatCommandTexts.OilRigNone.IndexOf(':') + 2)..]);
     }
 
     private static Dictionary<string, string> ReadReferenceResources()

@@ -260,6 +260,34 @@ public sealed partial class DevicesViewModel : ObservableObject
         return confirmed;
     }
 
+    /// <summary>
+    /// Reference chat-command switch branch action: drive one paired switch to a requested state and confirm it,
+    /// updating the panel row the same way the toolbar does. False when there is no live session, the device is not a
+    /// switch, or the server did not confirm.
+    /// </summary>
+    public async Task<bool> SetSwitchStateAsync(uint entityId, bool value, CancellationToken cancellationToken = default)
+    {
+        if (active is not { } context) return false;
+        var target = AllRows.FirstOrDefault(row => row.Definition.EntityId == entityId && row.Definition.Kind == DeviceKind.Switch);
+        if (target is null) return false;
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, context.Token);
+        await operations.WaitAsync(linked.Token);
+        try
+        {
+            var state = await context.Client.SetSwitchAsync(target.Definition, value, linked.Token).WaitAsync(linked.Token);
+            if (active == context) Apply(state);
+            return state.EntityId == entityId && !state.IsMissing && state.IsOn == value;
+        }
+        catch (OperationCanceledException) when (linked.IsCancellationRequested) { return false; }
+        catch (Exception ex)
+        {
+            if (active == context && byId.TryGetValue(entityId, out var aliases))
+                foreach (var alias in aliases) alias.ErrorMessage = FailureMessage(ex);
+            return false;
+        }
+        finally { operations.Release(); }
+    }
+
     private void Apply(DeviceSnapshot state)
     {
         if (byId.TryGetValue(state.EntityId, out var rows)) foreach (var row in rows) row.Apply(state);

@@ -7,6 +7,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RustPlusDesk.Avalonia.Features.Chat;
 using RustPlusDesk.Avalonia.Features.Settings;
 using RustPlusDesk.Core.Chat;
+using RustPlusDesk.Core.Devices;
+using RustPlusDesk.Core.Map;
 using RustPlusDesk.Core.Servers;
 using RustPlusDesk.Infrastructure.Profiles;
 
@@ -196,6 +198,40 @@ public sealed class ChatCommandTests
         Assert.AreEqual("Travelling Vendor not active. Despawned 5m ago this session.",
             Run("!vendor", Live with { Events = new ChatEventCommandState(VendorDespawnTime: Now.AddMinutes(-5)) }).Message);
         Assert.AreEqual("Travelling Vendor event status unknown (not seen this session).", Run("!vendor", Live).Message);
+    }
+
+    // ---- the oil rig command --------------------------------------------------------------------
+
+    [TestMethod]
+    public void OilRig_ReportsTheRunningCrateTimer_ForTheSmallAndLargeVariants()
+    {
+        var small = new ChatOilRigState(OilRigTimer.SmallRig, 14 * 60 + 59);
+        var large = new ChatOilRigState(OilRigTimer.LargeRig, 60);
+
+        var single = Run("!oilrig", Live with { OilRigs = [small] });
+        Assert.AreEqual("Small Oil: crate unlocks in 14m 59s", single.Message);
+        Assert.IsNull(single.Log, "The reference oil rig branch does not append a command log line.");
+
+        Assert.AreEqual("Small Oil: crate unlocks in 14m 59s | Large Oil: crate unlocks in 1m 0s",
+            Run("!oilrig", Live with { OilRigs = [large, small] }).Message,
+            "Both rigs answer small first, whatever order the state arrives in.");
+    }
+
+    [TestMethod]
+    public void OilRig_FallsBackToTheLastAlarm_ThenNone_AndSaysWhenNoAlarmWasSeen()
+    {
+        var alarm = new DateTime(2026, 5, 1, 9, 30, 0, DateTimeKind.Utc);
+        string stamp = alarm.ToLocalTime().ToString("g");
+
+        Assert.AreEqual($"Large Oil: {stamp}", Run("!oilrig", Live with
+        {
+            OilRigs = [new ChatOilRigState(OilRigTimer.LargeRig, null, alarm)]
+        }).Message);
+        Assert.AreEqual("Oil Rig: None",
+            Run("!oilrig", Live with { OilRigs = [new ChatOilRigState(OilRigTimer.GenericRig)] }).Message);
+        Assert.AreEqual("No Oil Rig Smart Alarm notification received.", Run("!oilrig", Live).Message);
+        Assert.AreEqual("No Oil Rig Smart Alarm notification received.",
+            Run("!oilrig", Live with { OilRigs = [] }).Message);
     }
 
     // ---- the list command -----------------------------------------------------------------------
@@ -389,6 +425,240 @@ public sealed class ChatCommandTests
         return true;
     }, default);
 
+    // ---- switch and upkeep commands ------------------------------------------------------------
+
+    private static PairedDevice SwitchDevice(uint id, string name, string? alias = null) =>
+        new(id, name, DeviceKind.Switch) { Alias = alias };
+
+    private static PairedDevice CupboardDevice(uint id, string name) =>
+        new(id, name, DeviceKind.StorageMonitor);
+
+    private static ChatDeviceState Switch(PairedDevice device, bool? isOn) => new(device, IsOn: isOn);
+
+    private static ChatDeviceState Cupboard(PairedDevice device, int? seconds,
+        IReadOnlyList<DeviceItem>? items = null, bool hasProtection = true) =>
+        new(device, Storage: new DeviceStorage(null, hasProtection, null, items ?? []), UpkeepSeconds: seconds);
+
+    [TestMethod]
+    public void Switches_FlipEveryLeafToTheOppositeOfTheFirst_AndReportOneAnswer()
+    {
+        var group = new PairedDevice(100, "Lights", DeviceKind.Group)
+        {
+            Children = [SwitchDevice(1, "Player A"), SwitchDevice(2, "Player B")]
+        };
+        var calls = new List<(uint EntityId, bool Value)>();
+        var state = Live with
+        {
+            Devices =
+            [
+                new ChatDeviceState(group),
+                Switch(SwitchDevice(1, "Player A"), false),
+                Switch(SwitchDevice(2, "Player B"), false)
+            ],
+            SetSwitch = (id, value, _) => { calls.Add((id, value)); return Task.FromResult(true); }
+        };
+        var settings = ChatCommandSettings.Defaults with { SwitchMappings = [new ChatCommandMapping(100, "lights")] };
+
+        var reply = Run("!lights", state, settings);
+
+        Assert.IsNull(reply.Message, "The reference answers the switch command after the devices have been driven.");
+        Assert.IsNotNull(reply.Deferred);
+        var outcome = reply.Deferred!(default).GetAwaiter().GetResult();
+        Assert.AreEqual("Player A, Player B turned ON.", outcome!.Message);
+        CollectionAssert.AreEqual(new[] { (1u, true), (2u, true) }, calls);
+        Assert.AreEqual("[ChatCommand] Toggled 2 switches to True by Alice", outcome.Log);
+    }
+
+    [TestMethod]
+    public void Switches_SkipLeavesAlreadyAtTheTarget_AndUseTheAliasInTheAnswer()
+    {
+        var calls = new List<(uint EntityId, bool Value)>();
+        var state = Live with
+        {
+            Devices =
+            [
+                Switch(SwitchDevice(1, "Lamp", "Porch"), false),
+                Switch(SwitchDevice(2, "Sign"), true)
+            ],
+            SetSwitch = (id, value, _) => { calls.Add((id, value)); return Task.FromResult(true); }
+        };
+        var settings = ChatCommandSettings.Defaults with
+        {
+            SwitchMappings = [new ChatCommandMapping(1, "lights"), new ChatCommandMapping(2, "lights")]
+        };
+
+        var outcome = Run("!lights", state, settings).Deferred!(default).GetAwaiter().GetResult();
+
+        Assert.AreEqual("Porch turned ON.", outcome!.Message);
+        CollectionAssert.AreEqual(new[] { (1u, true) }, calls, "A leaf already at the target is not written to.");
+    }
+
+    [TestMethod]
+    public void Switches_SayNotPairedForAnEmptyGroup_AndStaySilentWhenTheDeviceIsGone()
+    {
+        var emptyGroup = new PairedDevice(100, "Lights", DeviceKind.Group);
+        var state = Live with { Devices = [new ChatDeviceState(emptyGroup)] };
+        var settings = ChatCommandSettings.Defaults with
+        {
+            SwitchMappings = [new ChatCommandMapping(100, "lights"), new ChatCommandMapping(999, "lamp")]
+        };
+
+        Assert.AreEqual("Bound Smart Switch not found or not paired.", Run("!lights", state, settings).Message);
+
+        var gone = Run("!lamp", state, settings);
+        Assert.IsNull(gone.Message, "A mapping whose device is gone answers nothing.");
+        Assert.IsNull(gone.Deferred);
+    }
+
+    [TestMethod]
+    public void Switches_StaySilentWhenNoServerConfirmedTheChange()
+    {
+        var state = Live with
+        {
+            Devices = [Switch(SwitchDevice(1, "Lamp"), false)],
+            SetSwitch = (_, _, _) => Task.FromResult(false)
+        };
+        var settings = ChatCommandSettings.Defaults with { SwitchMappings = [new ChatCommandMapping(1, "lights")] };
+
+        var reply = Run("!lights", state, settings);
+
+        Assert.IsNull(reply.Message);
+        Assert.IsNull(reply.Deferred!(default).GetAwaiter().GetResult(), "A toggle the server did not confirm says nothing.");
+    }
+
+    [TestMethod]
+    public void Upkeep_SingleMapping_ReportsTheTimeOnly_LikeTheReference()
+    {
+        var items = new[]
+        {
+            new DeviceItem(-151838493, 1000, false),
+            new DeviceItem(-2099697608, 500, false),
+            new DeviceItem(69511070, 250, false),
+            new DeviceItem(317398316, 50, false),
+            new DeviceItem(12345, 999, false)
+        };
+        var state = Live with { Devices = [Cupboard(CupboardDevice(1, "Base"), 180180, items)] };
+        var settings = ChatCommandSettings.Defaults with { UpkeepMappings = [new ChatCommandMapping(1, "upkeep")] };
+
+        var reply = Run("!upkeep", state, settings);
+
+        Assert.AreEqual("Upkeep in Base TC: 2 days, 2 hours, 3 minutes.", reply.Message);
+    }
+
+    [TestMethod]
+    public void UpkeepDetail_AddsTheDailyNeed_AndSkipsUnmappedOrNonCupboardStorage()
+    {
+        var items = new[]
+        {
+            new DeviceItem(-151838493, 1000, false),
+            new DeviceItem(-2099697608, 500, false),
+            new DeviceItem(69511070, 250, false),
+            new DeviceItem(317398316, 50, false),
+            new DeviceItem(12345, 999, false)
+        };
+        var state = Live with
+        {
+            Devices =
+            [
+                Cupboard(CupboardDevice(1, "Base"), 180180, items),
+                Cupboard(CupboardDevice(2, "FOB"), 3600, [new DeviceItem(-151838493, 200, false)]),
+                Cupboard(CupboardDevice(3, "Box"), 5000, [new DeviceItem(317398316, 10, false)], hasProtection: false)
+            ]
+        };
+        var settings = ChatCommandSettings.Defaults with
+        {
+            ResponseDelaySeconds = 0.5,
+            UpkeepMappings = [new ChatCommandMapping(1, "upkeepdetail"), new ChatCommandMapping(2, "upkeepdetail"),
+                new ChatCommandMapping(3, "upkeepdetail")]
+        };
+
+        var reply = Run("!upkeepdetail", state, settings);
+
+        Assert.IsNull(reply.Message);
+        Assert.AreEqual(2, reply.FollowUp!.Count, "A storage monitor that is not a tool cupboard is skipped.");
+        Assert.AreEqual("Upkeep in Base TC: 2 days, 2 hours, 3 minutes. Need/24h: Wood 480, Stone 240, Metal 120, HQM 24.",
+            reply.FollowUp[0].Text);
+        Assert.AreEqual(0, reply.FollowUp[0].DelaySeconds);
+        Assert.AreEqual("Upkeep in FOB TC: 1 hours, 0 minutes. Need/24h: Wood 4800.", reply.FollowUp[1].Text);
+        Assert.AreEqual(2, reply.FollowUp[1].DelaySeconds, "Tool cupboards are spaced at least two seconds apart.");
+    }
+
+    [TestMethod]
+    public void Upkeep_AnswersTheSingleAndMultiForms_AndSaysWhenNothingIsPaired()
+    {
+        var settings = ChatCommandSettings.Defaults with
+        {
+            UpkeepMappings = [new ChatCommandMapping(1, "upkeep"), new ChatCommandMapping(2, "base")]
+        };
+        var empty = Live with { Devices = [Cupboard(CupboardDevice(1, "Base"), 0)] };
+        Assert.AreEqual("Upkeep in Base TC: Empty or expired.", Run("!upkeep", empty, settings).Message);
+
+        var missing = Live with { Devices = [] };
+        Assert.AreEqual("Bound Tool Cupboard monitor not found or not paired.", Run("!upkeep", missing, settings).Message);
+
+        var many = Live with
+        {
+            Devices = [Cupboard(CupboardDevice(1, "Base"), 93600), Cupboard(CupboardDevice(2, "FOB"), 0)]
+        };
+        var multi = settings with { UpkeepMappings = [new ChatCommandMapping(1, "upkeep"), new ChatCommandMapping(2, "upkeep")] };
+        Assert.AreEqual("Upkeep: Base: 1d, 2h | FOB: Empty/expired", Run("!upkeep", many, multi).Message);
+
+        Assert.AreEqual("No Tool Cupboards are mapped for upkeep commands.",
+            Run("!upkeepdetail", many, ChatCommandSettings.Defaults).Message);
+    }
+
+    [TestMethod]
+    public void List_SendsTheDeviceCommandsThreeSecondsLater()
+    {
+        var state = Live with
+        {
+            Devices =
+            [
+                Switch(SwitchDevice(1, "Lamp", "Porch"), false),
+                Cupboard(CupboardDevice(2, "Base"), 3600),
+                Switch(SwitchDevice(7, "Unmapped"), false)
+            ]
+        };
+        var settings = ChatCommandSettings.Defaults with
+        {
+            SwitchMappings = [new ChatCommandMapping(1, "lights"), new ChatCommandMapping(9, "gone")],
+            UpkeepMappings = [new ChatCommandMapping(2, "upkeep")]
+        };
+
+        var reply = Run("!commands", state, settings);
+
+        Assert.IsTrue(reply.Message!.StartsWith("COMMANDS: "), "The standard list answers at once.");
+        Assert.AreEqual(1, reply.FollowUp!.Count);
+        Assert.AreEqual("[Porch]: !lights | [Base]: !upkeep", reply.FollowUp[0].Text);
+        Assert.AreEqual(3, reply.FollowUp[0].DelaySeconds);
+    }
+
+    [TestMethod]
+    public async Task SettingsStore_ReadsTheSwitchAndUpkeepMappings_AndLeavesThemOnSave()
+    {
+        using var fixture = new DeviceProfileEditorTests.Fixture();
+        var server = await fixture.ServerAsync();
+        var json = await fixture.JsonAsync();
+        json[0]!["SwitchCommandMappings"] = new System.Text.Json.Nodes.JsonArray(
+            new System.Text.Json.Nodes.JsonObject { ["EntityId"] = 11, ["Command"] = "lights" },
+            new System.Text.Json.Nodes.JsonObject { ["EntityId"] = 0, ["Command"] = "ignored" });
+        json[0]!["UpkeepCommandMappings"] = new System.Text.Json.Nodes.JsonArray(
+            new System.Text.Json.Nodes.JsonObject { ["EntityId"] = 22, ["Command"] = "upkeep" });
+        await File.WriteAllTextAsync(fixture.Path, json.ToJsonString());
+
+        var store = new LegacyChatCommandStore();
+        var settings = await store.GetAsync(fixture.Path, server.ProfileKey, default);
+        CollectionAssert.AreEqual(new[] { new ChatCommandMapping(11, "lights") }, settings.SwitchMappings.ToArray());
+        CollectionAssert.AreEqual(new[] { new ChatCommandMapping(22, "upkeep") }, settings.UpkeepMappings.ToArray());
+
+        await store.SaveAsync(fixture.Path, server.ProfileKey, settings with { Pop = "players" }, default);
+
+        var saved = await store.GetAsync(fixture.Path, server.ProfileKey, default);
+        Assert.AreEqual("players", saved.Pop);
+        CollectionAssert.AreEqual(settings.SwitchMappings.ToArray(), saved.SwitchMappings.ToArray());
+        CollectionAssert.AreEqual(settings.UpkeepMappings.ToArray(), saved.UpkeepMappings.ToArray());
+    }
+
     // ---- live wiring: the real chat view model -------------------------------------------------
 
     private static async Task WaitUntil(Func<bool> condition)
@@ -462,6 +732,39 @@ public sealed class ChatCommandTests
         var reply = await service.HandleAsync(new ChatMessage(ChatChannel.Team, AuthorId, "Alice", "!pop", DateTimeOffset.UtcNow), default);
         Assert.AreEqual("1 players currently online.", reply?.Message);
         Assert.AreEqual("[ChatCommand] Pop executed by Alice", logs.Single());
+    }
+
+    [TestMethod]
+    public async Task Service_DrivesTheSwitchThenAnswersInTheChannelAsked()
+    {
+        var chat = new ChatViewModel();
+        var session = new ChatTests.ChatSession();
+        using var cts = new CancellationTokenSource();
+        var running = chat.RunAsync(session, cts.Token);
+        var toggled = new List<(uint EntityId, bool Value)>();
+        var service = new ChatCommandService(chat)
+        {
+            Settings = ChatCommandSettings.Defaults with
+            {
+                ResponseDelaySeconds = 0,
+                SwitchMappings = [new ChatCommandMapping(1, "lights")]
+            },
+            State = () => Live with
+            {
+                Devices = [Switch(SwitchDevice(1, "Lamp"), false)],
+                SetSwitch = (id, value, _) => { toggled.Add((id, value)); return Task.FromResult(true); }
+            }
+        };
+        service.Attach();
+        try
+        {
+            await WaitUntil(() => chat.IsConnected);
+            await session.Live.Writer.WriteAsync(new ChatMessage(ChatChannel.Clan, AuthorId, "Alice", "!lights", DateTimeOffset.UtcNow));
+            await WaitUntil(() => session.Sent.Count > 0);
+            Assert.AreEqual((ChatChannel.Clan, "Lamp turned ON."), session.Sent[0]);
+            CollectionAssert.AreEqual(new[] { (1u, true) }, toggled, "The device is driven before the answer is posted.");
+        }
+        finally { cts.Cancel(); await running; }
     }
 
     [TestMethod]

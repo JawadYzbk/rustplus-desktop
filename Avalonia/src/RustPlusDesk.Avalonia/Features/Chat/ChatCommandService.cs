@@ -42,15 +42,48 @@ public sealed class ChatCommandService(ChatViewModel chat)
         if (reply.PromoteToLeader && PromoteToLeader is { } promote)
             _ = PromoteAsync(promote, message, ct);
 
-        if (reply.Message is not { } text) return reply;
-
-        try
+        if (reply.Deferred is { } action)
         {
-            await chat.SendCommandReplyAsync(message.Channel, text, TimeSpan.FromSeconds(Settings.ResponseDelaySeconds));
+            ChatCommandReply? outcome = null;
+            try { outcome = await action(ct).ConfigureAwait(false); }
+            catch (OperationCanceledException) { }
+            catch (Exception) { Log?.Invoke("[ChatCommand] The command's device action failed."); }
+            if (outcome?.Log is { } actionLine) Log?.Invoke(actionLine);
+            reply = outcome ?? ChatCommandReply.Ignored;
         }
-        catch (OperationCanceledException) { }
-        catch (Exception) { Log?.Invoke("[ChatCommand] The answer could not be sent to chat."); }
+
+        if (reply.Message is { } text)
+        {
+            try
+            {
+                await chat.SendCommandReplyAsync(message.Channel, text, TimeSpan.FromSeconds(Settings.ResponseDelaySeconds));
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception) { Log?.Invoke("[ChatCommand] The answer could not be sent to chat."); }
+        }
+
+        if (reply.FollowUp is { Count: > 0 } steps)
+            _ = SendFollowUpAsync(message.Channel, steps);
+
         return reply;
+    }
+
+    /// <summary>
+    /// Reference follow-up answers: the list sends the device commands three seconds after the standard list, and
+    /// detailed upkeep spaces tool cupboards at least two seconds apart. Each send still waits the response delay.
+    /// </summary>
+    private async Task SendFollowUpAsync(ChatChannel channel, IReadOnlyList<ChatMessageStep> steps)
+    {
+        foreach (var step in steps)
+        {
+            try
+            {
+                if (step.DelaySeconds > 0) await Task.Delay(TimeSpan.FromSeconds(step.DelaySeconds));
+                await chat.SendCommandReplyAsync(channel, step.Text, TimeSpan.FromSeconds(Settings.ResponseDelaySeconds));
+            }
+            catch (OperationCanceledException) { return; }
+            catch (Exception) { Log?.Invoke("[ChatCommand] The answer could not be sent to chat."); }
+        }
     }
 
     /// <summary>Reference: the promotion request is fired and the answer is posted without waiting for it.</summary>

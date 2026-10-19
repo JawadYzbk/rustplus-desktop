@@ -1,4 +1,6 @@
 using System.Globalization;
+using RustPlusDesk.Core.Devices;
+using RustPlusDesk.Core.Map;
 
 namespace RustPlusDesk.Core.Chat;
 
@@ -26,7 +28,16 @@ public sealed record ChatCommandSettings(
     string Ai = "ai",
     string CustomTimer = "timer")
 {
+    /// <summary>Shared empty mapping list, so two settings records with no mappings compare equal.</summary>
+    public static IReadOnlyList<ChatCommandMapping> NoMappings { get; } = [];
+
     public static ChatCommandSettings Defaults { get; } = new();
+
+    /// <summary>Reference ServerProfile.SwitchCommandMappings: the switch names the chat can toggle.</summary>
+    public IReadOnlyList<ChatCommandMapping> SwitchMappings { get; init; } = NoMappings;
+
+    /// <summary>Reference ServerProfile.UpkeepCommandMappings: the storage monitors the upkeep commands report.</summary>
+    public IReadOnlyList<ChatCommandMapping> UpkeepMappings { get; init; } = NoMappings;
 
     /// <summary>Reference ChatCommandPrefix getter: an empty prefix reads as "!".</summary>
     public string EffectivePrefix => string.IsNullOrEmpty(Prefix) ? "!" : Prefix;
@@ -83,7 +94,61 @@ public static class ChatCommandTexts
     public const string NoOneAfk = "No one is AFK.";
     public const string AfkTeamScope = "Team";
     public const string HarborFallback = "harbor";
+    public const string SwitchToggled = "{0} turned {1}.";
+    public const string SwitchStateOn = "ON";
+    public const string SwitchStateOff = "OFF";
+    public const string SwitchNotPaired = "Bound Smart Switch not found or not paired.";
+    public const string UpkeepNoTcMapped = "No Tool Cupboards are mapped for upkeep commands.";
+    public const string UpkeepTcEmptyExpired = "Upkeep in {0} TC: Empty or expired.";
+    public const string UpkeepNeed24h = " Need/24h: {0}.";
+    public const string UpkeepTcTime = "Upkeep in {0} TC: {1}.";
+    public const string UpkeepDays = "{0} days";
+    public const string UpkeepHours = "{0} hours";
+    public const string UpkeepMinutes = "{0} minutes";
+    public const string UpkeepEmptyExpiredShort = "{0}: Empty/expired";
+    public const string UpkeepTimeShort = "{0}: {1}d, {2}h";
+    public const string UpkeepHeader = "Upkeep: {0}";
+    public const string UpkeepNotPaired = "Bound Tool Cupboard monitors not found or not paired.";
+    public const string UpkeepNotPairedSingle = "Bound Tool Cupboard monitor not found or not paired.";
+    public const string MaterialWood = "Wood";
+    public const string MaterialStone = "Stone";
+    public const string MaterialMetal = "Metal";
+    public const string MaterialHQM = "HQM";
+    public const string OilRigHackRunning = "{0}: crate unlocks in {1}m {2}s";
+    public const string OilRigNone = "{0}: None";
+    public const string OilRigNoAlarm = "No Oil Rig Smart Alarm notification received.";
+    public const string OilRigSmallLabel = "Small Oil";
+    public const string OilRigLargeLabel = "Large Oil";
+    public const string OilRigGenericLabel = "Oil Rig";
 }
+
+/// <summary>Reference ChatCommandMapping: one chat command name bound to one paired entity.</summary>
+public sealed record ChatCommandMapping(uint EntityId, string Command);
+
+/// <summary>
+/// One paired device as the switch and upkeep commands see it: the saved definition plus the live snapshot the device
+/// panel last read. <see cref="UpkeepSeconds"/> is the reference ProtectSeconds (time left on the tool cupboard).
+/// </summary>
+public sealed record ChatDeviceState(PairedDevice Device, bool? IsOn = null, DeviceStorage? Storage = null,
+    int? UpkeepSeconds = null)
+{
+    /// <summary>Reference SmartDevice.PureName: the alias, else the name, else the kind.</summary>
+    public string PureName => string.IsNullOrWhiteSpace(Device.Alias)
+        ? string.IsNullOrWhiteSpace(Device.Name) ? Device.Kind.ToString() : Device.Name
+        : Device.Alias;
+
+    /// <summary>Reference storage lookup test: unknown, protected (tool cupboard) or empty storage.</summary>
+    public bool LooksLikeToolCupboard => Storage is null || Storage.HasProtection == true || Storage.Items.Count == 0;
+}
+
+/// <summary>One answer in a sequence, with the delay that precedes it (reference inter-TC delay).</summary>
+public sealed record ChatMessageStep(string Text, double DelaySeconds = 0);
+
+/// <summary>
+/// One oil rig as the reference BuildOilRigAlarmAnswer reads it: the running crate timer (when the rig was called)
+/// and the latest Smart Alarm for that rig. The port has no logic rules yet, so only alarms make a rig show up.
+/// </summary>
+public sealed record ChatOilRigState(string CanonicalRig, int? SecondsLeft = null, DateTime? LastAlarmUtc = null);
 
 /// <summary>One teammate the AFK answer reports: the reference reads TeamMembers.Where(t =&gt; t.IsAfk).</summary>
 public sealed record ChatAfkMember(string Name, DateTime LastMoveUtc);
@@ -149,7 +214,10 @@ public sealed record ChatCommandState(
     bool CanPromote = false,
     bool HasBaseCodes = false,
     bool CanListAi = false,
-    string? FirstCustomTimerCommand = null);
+    string? FirstCustomTimerCommand = null,
+    IReadOnlyList<ChatDeviceState>? Devices = null,
+    Func<uint, bool, CancellationToken, Task<bool>>? SetSwitch = null,
+    IReadOnlyList<ChatOilRigState>? OilRigs = null);
 
 /// <summary>An incoming chat message as the command engine sees it (reference TeamChatMessage + channel).</summary>
 public sealed record ChatCommandRequest(ChatChannel Channel, string Author, ulong SteamId, string Text);
@@ -166,7 +234,8 @@ public interface IChatCommandSettingsStore
 }
 
 /// <summary>What a command produced: the reply to send (if any), whether the author asked to be promoted, and a log line.</summary>
-public sealed record ChatCommandReply(string? Message = null, bool PromoteToLeader = false, string? Log = null)
+public sealed record ChatCommandReply(string? Message = null, bool PromoteToLeader = false, string? Log = null,
+    Func<CancellationToken, Task<ChatCommandReply?>>? Deferred = null, IReadOnlyList<ChatMessageStep>? FollowUp = null)
 {
     /// <summary>Nothing to answer: not a command, disabled, cooling down, or an event that cannot be tracked.</summary>
     public static readonly ChatCommandReply Ignored = new();
@@ -232,7 +301,11 @@ public static class ChatCommands
         string Log(string what) => $"[ChatCommand] {what} executed by {request.Author}";
 
         if (cmd == settings.List.ToLowerInvariant())
-            return new ChatCommandReply(ListAnswer(settings, state), Log: Log("List"));
+        {
+            string? deviceList = DeviceListAnswer(settings, state);
+            return new ChatCommandReply(ListAnswer(settings, state), Log: Log("List"),
+                FollowUp: deviceList is null ? null : [new ChatMessageStep(deviceList, 3)]);
+        }
 
         if (cmd == settings.Pop.ToLowerInvariant())
         {
@@ -277,13 +350,264 @@ public static class ChatCommands
             return new ChatCommandReply(CargoAnswer(state.Cargo ?? new ChatCargoCommandState(), now), Log: Log("Cargo"));
         }
 
+        if (cmd == settings.OilRig.ToLowerInvariant())
+            return new ChatCommandReply(OilRigAnswer(state));
+
         if (cmd == settings.Heli.ToLowerInvariant())
             return new ChatCommandReply(HeliAnswer(state.Events ?? new ChatEventCommandState(), now), Log: Log("Heli"));
 
         if (cmd == settings.Vendor.ToLowerInvariant())
             return new ChatCommandReply(VendorAnswer(state.Events ?? new ChatEventCommandState(), now), Log: Log("Vendor"));
 
+        var switchMappings = Mappings(settings.SwitchMappings, cmd);
+        if (switchMappings.Count > 0)
+        {
+            var seeds = switchMappings
+                .Select(mapping => FindDevice(state, mapping.EntityId, DeviceKind.Switch, allowGroup: true))
+                .Where(device => device is not null).Select(device => device!).ToList();
+            // Reference: a mapping whose device is gone stays silent, while a group without switches says "not paired".
+            if (seeds.Count == 0) return ChatCommandReply.Ignored;
+
+            var leaves = seeds.SelectMany(seed => SwitchLeaves(state, seed.Device))
+                .GroupBy(leaf => leaf.Device.EntityId).Select(group => group.First()).ToList();
+            if (leaves.Count == 0) return new ChatCommandReply(ChatCommandTexts.SwitchNotPaired);
+
+            bool targetOn = !(leaves[0].IsOn ?? false);
+            if (state.SetSwitch is not { } setSwitch) return ChatCommandReply.Ignored;
+            return new ChatCommandReply(Deferred: ct => ToggleAsync(setSwitch, leaves, targetOn, request.Author, ct));
+        }
+
+        if (cmd == settings.UpkeepDetail.ToLowerInvariant())
+        {
+            var cupboards = (settings.UpkeepMappings ?? []).Where(mapping => mapping.EntityId != 0).ToList();
+            if (cupboards.Count == 0)
+                return new ChatCommandReply(ChatCommandTexts.UpkeepNoTcMapped, Log: Log("UpkeepDetail"));
+
+            var steps = new List<ChatMessageStep>();
+            foreach (var mapping in cupboards)
+            {
+                var device = FindDevice(state, mapping.EntityId, DeviceKind.StorageMonitor);
+                if (device is null || !device.LooksLikeToolCupboard) continue;
+                int seconds = device.UpkeepSeconds ?? 0;
+                string text = seconds <= 0
+                    ? string.Format(CultureInfo.InvariantCulture, ChatCommandTexts.UpkeepTcEmptyExpired, device.PureName)
+                    : string.Format(CultureInfo.InvariantCulture, ChatCommandTexts.UpkeepTcTime, device.PureName,
+                        UpkeepTime(seconds)) + UpkeepMaterials(device, seconds);
+                steps.Add(new ChatMessageStep(text,
+                    steps.Count == 0 ? 0 : Math.Max(2.0, settings.ResponseDelaySeconds)));
+            }
+            return new ChatCommandReply(Log: Log("UpkeepDetail"), FollowUp: steps);
+        }
+
+        var upkeepMappings = Mappings(settings.UpkeepMappings, cmd);
+        if (upkeepMappings.Count == 1)
+        {
+            var device = FindDevice(state, upkeepMappings[0].EntityId, DeviceKind.StorageMonitor);
+            string? upkeepLog = device is not null && device.LooksLikeToolCupboard
+                ? $"[ChatCommand] Upkeep for {device.Device.Name} executed by {request.Author}"
+                : null;
+            return new ChatCommandReply(UpkeepSingleAnswer(device), Log: upkeepLog);
+        }
+        if (upkeepMappings.Count > 1)
+        {
+            var parts = new List<string>();
+            foreach (var mapping in upkeepMappings)
+            {
+                var device = FindDevice(state, mapping.EntityId, DeviceKind.StorageMonitor);
+                if (device is null || !device.LooksLikeToolCupboard) continue;
+                int seconds = device.UpkeepSeconds ?? 0;
+                parts.Add(seconds <= 0
+                    ? string.Format(CultureInfo.InvariantCulture, ChatCommandTexts.UpkeepEmptyExpiredShort, device.PureName)
+                    : string.Format(CultureInfo.InvariantCulture, ChatCommandTexts.UpkeepTimeShort, device.PureName,
+                        seconds / 86400, seconds % 86400 / 3600));
+            }
+            return new ChatCommandReply(parts.Count > 0
+                ? string.Format(CultureInfo.InvariantCulture, ChatCommandTexts.UpkeepHeader, string.Join(" | ", parts))
+                : ChatCommandTexts.UpkeepNotPaired,
+                Log: $"[ChatCommand] Multi-Upkeep for cmd={cmd} executed by {request.Author}");
+        }
+
         return ChatCommandReply.Ignored;
+    }
+
+    private static List<ChatCommandMapping> Mappings(IReadOnlyList<ChatCommandMapping>? mappings, string cmd) =>
+        (mappings ?? []).Where(mapping => mapping.EntityId != 0 &&
+            cmd == (mapping.Command ?? "").ToLowerInvariant()).ToList();
+
+    /// <summary>
+    /// Reference BuildOilRigAlarmAnswer (without the logic-rule half, which is not ported yet): small and large
+    /// answers when both are known, otherwise the one that is, then a generic alarm, then the first alarm seen.
+    /// </summary>
+    private static string OilRigAnswer(ChatCommandState state)
+    {
+        var rigs = state.OilRigs ?? [];
+        var small = rigs.FirstOrDefault(rig => rig.CanonicalRig == OilRigTimer.SmallRig);
+        var large = rigs.FirstOrDefault(rig => rig.CanonicalRig == OilRigTimer.LargeRig);
+        var generic = rigs.FirstOrDefault(rig => rig.CanonicalRig == OilRigTimer.GenericRig);
+
+        if (small is not null && large is not null)
+            return string.Join(" | ", SingleRig(OilRigTimer.SmallRig, ChatCommandTexts.OilRigSmallLabel, small),
+                SingleRig(OilRigTimer.LargeRig, ChatCommandTexts.OilRigLargeLabel, large));
+        if (small is not null) return SingleRig(OilRigTimer.SmallRig, ChatCommandTexts.OilRigSmallLabel, small);
+        if (large is not null) return SingleRig(OilRigTimer.LargeRig, ChatCommandTexts.OilRigLargeLabel, large);
+        if (generic is not null) return SingleRig(OilRigTimer.GenericRig, ChatCommandTexts.OilRigGenericLabel, generic);
+        if (rigs.Count > 0)
+        {
+            var first = rigs[0];
+            string label = first.CanonicalRig switch
+            {
+                OilRigTimer.SmallRig => ChatCommandTexts.OilRigSmallLabel,
+                OilRigTimer.LargeRig => ChatCommandTexts.OilRigLargeLabel,
+                _ => ChatCommandTexts.OilRigGenericLabel
+            };
+            return SingleRig(first.CanonicalRig, label, first);
+        }
+        return ChatCommandTexts.OilRigNoAlarm;
+    }
+
+    /// <summary>Reference BuildSingleRigAnswer: running crate timer, else the last alarm time, else "None".</summary>
+    private static string SingleRig(string canonicalRig, string label, ChatOilRigState rig)
+    {
+        if (rig.SecondsLeft is { } seconds && seconds > 0)
+            return string.Format(CultureInfo.InvariantCulture, ChatCommandTexts.OilRigHackRunning, label,
+                seconds / 60, seconds % 60);
+        if (rig.LastAlarmUtc is { } alarm)
+            return $"{label}: {alarm.ToLocalTime():g}";
+        return string.Format(CultureInfo.InvariantCulture, ChatCommandTexts.OilRigNone, label);
+    }
+
+    private static ChatDeviceState? FindDevice(ChatCommandState state, uint entityId, DeviceKind kind, bool allowGroup = false) =>
+        state.Devices?.FirstOrDefault(device => device.Device.EntityId == entityId &&
+            (device.Device.Kind == kind || allowGroup && device.Device.Kind == DeviceKind.Group));
+
+    /// <summary>Reference AddSwitches: recurse through groups and collect the SmartSwitch leaves.</summary>
+    private static IEnumerable<ChatDeviceState> SwitchLeaves(ChatCommandState state, PairedDevice device)
+    {
+        if (device.Kind == DeviceKind.Group)
+        {
+            foreach (var child in device.Children)
+                foreach (var leaf in SwitchLeaves(state, child)) yield return leaf;
+        }
+        else if (device.Kind == DeviceKind.Switch && state.Devices is { } devices)
+        {
+            var live = devices.FirstOrDefault(item => item.Device.EntityId == device.EntityId);
+            if (live is not null) yield return live;
+        }
+    }
+
+    /// <summary>Reference switch branch: one target state from the first leaf, 800 ms between toggles.</summary>
+    private static async Task<ChatCommandReply?> ToggleAsync(Func<uint, bool, CancellationToken, Task<bool>> setSwitch,
+        IReadOnlyList<ChatDeviceState> leaves, bool targetOn, string author, CancellationToken ct)
+    {
+        var names = new List<string>();
+        foreach (var leaf in leaves)
+        {
+            if (leaf.IsOn == targetOn) continue;
+            try
+            {
+                if (await setSwitch(leaf.Device.EntityId, targetOn, ct).ConfigureAwait(false))
+                    names.Add(leaf.PureName);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { return null; }
+            catch (Exception) { }
+            try { await Task.Delay(800, ct).ConfigureAwait(false); }
+            catch (OperationCanceledException) { break; }
+        }
+        if (names.Count == 0) return null;
+
+        string stateName = targetOn ? ChatCommandTexts.SwitchStateOn : ChatCommandTexts.SwitchStateOff;
+        string text = names.Count == 1 ? names[0] : string.Join(", ", names);
+        if (names.Count > 1 && text.Length > 80) text = text[..77] + "...";
+        return new ChatCommandReply(
+            string.Format(CultureInfo.InvariantCulture, ChatCommandTexts.SwitchToggled, text, stateName),
+            Log: $"[ChatCommand] Toggled {names.Count} switches to {targetOn} by {author}");
+    }
+
+    private static string UpkeepSingleAnswer(ChatDeviceState? device)
+    {
+        if (device is null || !device.LooksLikeToolCupboard) return ChatCommandTexts.UpkeepNotPairedSingle;
+        int seconds = device.UpkeepSeconds ?? 0;
+        return seconds <= 0
+            ? string.Format(CultureInfo.InvariantCulture, ChatCommandTexts.UpkeepTcEmptyExpired, device.PureName)
+            : string.Format(CultureInfo.InvariantCulture, ChatCommandTexts.UpkeepTcTime, device.PureName,
+                UpkeepTime(seconds));
+    }
+
+    private static string UpkeepTime(int seconds)
+    {
+        int days = seconds / 86400;
+        int remainder = seconds % 86400;
+        int hours = remainder / 3600;
+        int minutes = remainder % 3600 / 60;
+        var parts = new List<string>();
+        if (days > 0) parts.Add(string.Format(CultureInfo.InvariantCulture, ChatCommandTexts.UpkeepDays, days));
+        if (hours > 0 || days > 0) parts.Add(string.Format(CultureInfo.InvariantCulture, ChatCommandTexts.UpkeepHours, hours));
+        parts.Add(string.Format(CultureInfo.InvariantCulture, ChatCommandTexts.UpkeepMinutes, minutes));
+        return string.Join(", ", parts);
+    }
+
+    private static string UpkeepMaterials(ChatDeviceState device, int seconds)
+    {
+        if (seconds <= 0 || device.Storage?.Items is not { Count: > 0 } items) return "";
+        string materials = string.Join(", ", items
+            .Select(item => (Item: item, Sort: UpkeepMaterialSort(item.ItemId)))
+            .Where(entry => entry.Sort > 0)
+            .GroupBy(entry => entry.Sort)
+            .Select(group => new
+            {
+                Sort = group.Key,
+                Name = UpkeepMaterialName(group.Key),
+                Amount = (int)Math.Ceiling(group.Sum(entry => Math.Max(0, entry.Item.Quantity ?? 0)) * 86400.0 / seconds)
+            })
+            .Where(material => material.Amount > 0)
+            .OrderBy(material => material.Sort)
+            .Select(material => $"{material.Name} {material.Amount.ToString("N0", CultureInfo.CurrentCulture).Replace(",", "")}"));
+        return string.IsNullOrEmpty(materials)
+            ? ""
+            : string.Format(CultureInfo.InvariantCulture, ChatCommandTexts.UpkeepNeed24h, materials);
+    }
+
+    /// <summary>
+    /// Reference hardcoded upkeep item IDs: wood, stone, metal fragments, high quality metal. The reference also
+    /// matches short names; the port's snapshot only carries the ID, which is the reliable half of that test.
+    /// </summary>
+    private static int UpkeepMaterialSort(int itemId) => itemId switch
+    {
+        -151838493 => 10,
+        -2099697608 => 20,
+        69511070 => 30,
+        317398316 => 40,
+        _ => 0
+    };
+
+    private static string UpkeepMaterialName(int sort) => sort switch
+    {
+        10 => ChatCommandTexts.MaterialWood,
+        20 => ChatCommandTexts.MaterialStone,
+        30 => ChatCommandTexts.MaterialMetal,
+        40 => ChatCommandTexts.MaterialHQM,
+        _ => ""
+    };
+
+    /// <summary>Reference list: each switch/TC mapping whose device still exists, sent three seconds later.</summary>
+    public static string? DeviceListAnswer(ChatCommandSettings settings, ChatCommandState state)
+    {
+        if (state.Devices is null) return null;
+        string prefix = settings.EffectivePrefix;
+        var parts = new List<string>();
+        foreach (var mapping in settings.SwitchMappings ?? [])
+        {
+            if (string.IsNullOrWhiteSpace(mapping.Command) || mapping.EntityId == 0) continue;
+            var device = FindDevice(state, mapping.EntityId, DeviceKind.Switch);
+            if (device is not null) parts.Add($"[{device.PureName}]: {prefix}{mapping.Command}");
+        }
+        foreach (var mapping in settings.UpkeepMappings ?? [])
+        {
+            if (string.IsNullOrWhiteSpace(mapping.Command) || mapping.EntityId == 0) continue;
+            var device = FindDevice(state, mapping.EntityId, DeviceKind.StorageMonitor);
+            if (device is not null) parts.Add($"[{device.PureName}]: {prefix}{mapping.Command}");
+        }
+        return parts.Count == 0 ? null : Truncate(string.Join(" | ", parts));
     }
 
     /// <summary>

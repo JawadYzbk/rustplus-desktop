@@ -83,8 +83,57 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             Afk: connection.Team.AfkMembers(),
             Events: EventAnnouncer?.EventState(),
             Cargo: EventAnnouncer?.CargoState(),
-            CanPromote: connection.CanPromote);
+            CanPromote: connection.CanPromote,
+            Devices: ChatDevices(connection),
+            SetSwitch: connection.Devices.SetSwitchStateAsync,
+            OilRigs: ChatOilRigs());
     }
+
+    /// <summary>
+    /// Reference DockOilRigAlarms as the oil rig command reads it: the latest alarm per rig on the selected server,
+    /// plus the running 15-minute crate timer. The reference also shows a rig with a logic rule bound to it; the
+    /// logic engine is not ported yet, so only alarms make a rig answer.
+    /// </summary>
+    private List<RustPlusDesk.Core.Chat.ChatOilRigState> ChatOilRigs()
+    {
+        DateTime now = DateTime.UtcNow;
+        var alarms = recentOilRigAlarms.Where(OnSelectedServer).ToList();
+        var rigs = new List<RustPlusDesk.Core.Chat.ChatOilRigState>();
+        foreach (string canonical in new[]
+                 {
+                     RustPlusDesk.Core.Map.OilRigTimer.SmallRig,
+                     RustPlusDesk.Core.Map.OilRigTimer.LargeRig,
+                     RustPlusDesk.Core.Map.OilRigTimer.GenericRig
+                 })
+        {
+            DateTime? lastAlarm = alarms
+                .Where(entry => RustPlusDesk.Core.Map.OilRigTimer.CanonicalRigName(entry.Label) == canonical)
+                .Select(entry => (DateTime?)entry.At).OrderByDescending(at => at).FirstOrDefault();
+            if (lastAlarm is null) continue;
+            TimeSpan? left = OilRigTimers.TimeLeft(canonical, now);
+            rigs.Add(new RustPlusDesk.Core.Chat.ChatOilRigState(canonical,
+                left is { TotalSeconds: > 0 } ? (int)left.Value.TotalSeconds : null, lastAlarm));
+        }
+        return rigs;
+    }
+
+    /// <summary>
+    /// Reference _vm.Selected.AllDevices as the switch and upkeep commands read it: the saved definition plus the
+    /// live snapshot the device panel last read, with the tool cupboard's remaining protection as UpkeepSeconds.
+    /// </summary>
+    private static List<RustPlusDesk.Core.Chat.ChatDeviceState> ChatDevices(ConnectionViewModel connection) =>
+        connection.Devices.Devices.SelectMany(row => row.DescendantsAndSelf())
+            .Where(row => row.Definition.EntityId != 0)
+            .GroupBy(row => row.Definition.EntityId).Select(group => group.First())
+            .Select(row => new RustPlusDesk.Core.Chat.ChatDeviceState(row.Definition, row.IsOn, row.Storage,
+                UpkeepSeconds(row.Storage)))
+            .ToList();
+
+    /// <summary>Reference SmartDevice.UpkeepSeconds (protect seconds left); unknown when the device has no protection.</summary>
+    private static int? UpkeepSeconds(DeviceStorage? storage) =>
+        storage?.HasProtection == true && storage.ProtectionExpiry is { } expiry
+            ? Math.Max(0, (int)(expiry - DateTimeOffset.UtcNow).TotalSeconds)
+            : null;
 
     /// <summary>
     /// Loads the selected profile's chat-command settings into the engine. A failed or missing read keeps the
@@ -206,12 +255,13 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         if (!RustPlusDesk.Core.Map.OilRigTimer.TryGetRigLabel(update.Title, update.Message, out string label)) return false;
         var profile = SelectedServer;
         DateTime eventTime = update.OccurredAt.UtcDateTime;
-        recentOilRigAlarms.RemoveAll(entry => Math.Abs((eventTime - entry.At).TotalSeconds) >= 30);
-        // Reference DockOilRigAlarms: only rows recorded on the server selected right now take part.
+        // Reference RecordOilRigAlarm: an alarm de-duplicates against any row for the same rig within 30 seconds.
+        // Older rows stay, because the dock and the oil rig command read their timestamps as "last called".
         bool duplicate = recentOilRigAlarms.Where(OnSelectedServer).Any(entry =>
-            (update.EntityId.HasValue && entry.EntityId == update.EntityId)
+            Math.Abs((eventTime - entry.At).TotalSeconds) < 30 &&
+            ((update.EntityId.HasValue && entry.EntityId == update.EntityId)
             || string.Equals(entry.Label, label, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(entry.Label, update.Title?.Trim(), StringComparison.OrdinalIgnoreCase));
+            || string.Equals(entry.Label, update.Title?.Trim(), StringComparison.OrdinalIgnoreCase)));
         if (duplicate) return true;
         recentOilRigAlarms.Add((label, update.EntityId, eventTime, update.Host, update.Port, update.ServerName));
 

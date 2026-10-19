@@ -62,7 +62,26 @@ public sealed class LegacyChatCommandStore : IChatCommandSettingsStore
             UpkeepDetail: Command(profile, "CmdUpkeepDetail", defaults.UpkeepDetail),
             BaseCodes: Command(profile, "CmdBaseCodes", defaults.BaseCodes),
             Ai: Command(profile, "CmdAi", defaults.Ai),
-            CustomTimer: Command(profile, "CmdCustomTimer", defaults.CustomTimer));
+            CustomTimer: Command(profile, "CmdCustomTimer", defaults.CustomTimer))
+        {
+            SwitchMappings = Mappings(profile, "SwitchCommandMappings"),
+            UpkeepMappings = Mappings(profile, "UpkeepCommandMappings")
+        };
+    }
+
+    /// <summary>Reference ChatCommandMapping rows: the entity the command is bound to and the command name.</summary>
+    private static IReadOnlyList<ChatCommandMapping> Mappings(JsonObject profile, string name)
+    {
+        if (profile[name] is not JsonArray rows) return ChatCommandSettings.NoMappings;
+        var mappings = new List<ChatCommandMapping>();
+        foreach (var row in rows)
+        {
+            if (row is not JsonObject mapping) continue;
+            uint entityId = mapping["EntityId"] is JsonValue id && id.TryGetValue(out uint value) ? value : 0;
+            if (entityId == 0) continue;
+            mappings.Add(new ChatCommandMapping(entityId, Text(mapping, "Command") ?? ""));
+        }
+        return mappings.Count == 0 ? ChatCommandSettings.NoMappings : mappings;
     }
 
     private static bool? Flag(JsonObject profile, string name) =>
