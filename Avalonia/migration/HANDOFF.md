@@ -4,6 +4,37 @@
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
 every finished slice with its commit.
 
+## Thirteenth run - the chat-alert Custom Timer item (2026-10-19, Linux follow-up)
+
+- Branch `codex/avalonia-migration`; slice commits `17343db9` (wall-clock death stats sample) and
+  `86e3cd77` (the menu item; docs follow). Only `Avalonia/` changes.
+- **659 tests** in this Linux worktree: all pass. The parallel Windows session's 657 (654 pass) listed
+  `DeathStatsTests.Page_OpensForTheSelectedServer_FiltersForgetsAndClears` as a known failure because its
+  sample log was pinned to 2026-10-18; the sample now follows `DateTimeOffset.Now`, the clock the page
+  filters against, so the 24 h/7 d windows no longer expire. The two `GeneralSettingsTests` XDG/macOS
+  autostart cases stay Windows-local. Build zero warnings.
+- Done: the reference chat-alert menu's "Custom Timer" item (`Alert_MenuItem_Click`, Tag="CustomTimer"):
+  the last entry of the Events section after Smart Alerts, checked while the master is on and the selected
+  profile's `AlertCustomTimer` is on, and enabled only while the master is on. It flips the same
+  `CustomTimersViewModel.AlertCustomTimer` the map timer flyout writes, so profiles.json still has one
+  writer; the flyout switch and the menu item follow each other. The badge count now includes the profile
+  switch, Select all / Deselect all write it, and turning it off as the last alert turns the master off
+  (reference CheckIfAllOff). Without a selected profile the click leaves the switch alone, matching the
+  reference's `_vm.Selected != null` guard.
+- Where: `Features/Alerts/ChatAlertsViewModel.cs` (`CustomTimers` bridge, `AnnounceCustomTimer`,
+  `ToggleCustomTimer`, the badge count and Select/Deselect all), `Features/Chat/ChatView.axaml` (the menu
+  item), `Features/Map/CustomTimersViewModel.cs` (`HasProfile` and its change notification) and
+  `Features/Servers/ServersViewModel.cs` (`CreateChatAlerts` hands the timer panel to the menu).
+- Tests: `CustomTimerTests` (2: the menu switch is the profile's own - badge, persistence, CheckIfAllOff,
+  Select/Deselect all and the flyout feedback - and the click without a profile), `ShopNoticeTests` (the
+  menu list carries Custom Timer) and `DeathStatsTests` (the wall-clock sample).
+- Deviations: the switch stays reachable from both the reference alerts menu and the port's timer flyout
+  (the WPF popup had no such switch). A flip on the flyout refreshes the menu and the badge but does not
+  run CheckIfAllOff; the reference only re-checks after a menu click. Timer audio/snooze and the per-timer
+  audio switches still wait for the audio pipeline.
+- Next slices: as the twelfth run - clan/master author gating with the team feature master (phase 5), the
+  AI command with the companion port, then the remaining PARITY-PLAN ports.
+
 ## Twelfth run - the map timer flyout (2026-10-19, local Windows continuation)
 
 - Branch `codex/avalonia-migration`; slice commit `9a3e7582` (docs follow). Only `Avalonia/` changes.

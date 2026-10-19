@@ -11,6 +11,15 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- Chat-alert menu "Custom Timer": the reference `Alert_MenuItem_Click` item joins the Events section after
+  Smart Alerts and reads/flips the selected profile's `AlertCustomTimer` through `CustomTimersViewModel` -
+  the same switch the map timer flyout writes - so the menu, the flyout and profiles.json share one writer.
+  The alert badge counts the switch, Select all / Deselect all write it, and the master follows the
+  reference CheckIfAllOff; without a selected profile the click is skipped. The `DeathStatsTests` sample
+  clock now follows `DateTimeOffset.Now`, so its 24 h/7 d windows no longer expire. **659 tests** pass on
+  this Linux worktree; the two `GeneralSettingsTests` XDG/macOS cases remain Windows-local. Timer
+  audio/snooze and per-timer audio switches, the AI command, the logic-engine chat rules, clan/master
+  author gating, the team feature master, chinook-at-a-rig timer learning and heli crash sites remain.
 - Map custom-timer flyout: the reference BtnCustomTimer_Click/PopupCustomTimer pair - the map toolbar's
   `TimersButton` (Timer32, an orange dot while a timer is under five minutes) opens a flyout with the
   "Active timers" list (name and `(prefixcommand)`, remaining time, per-row delete) and the add form
