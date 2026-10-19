@@ -4,6 +4,36 @@
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
 every finished slice with its commit.
 
+## Seventh run — event dock with spawn/despawn timers (2026-10-19, local Windows continuation)
+
+- Branch `codex/avalonia-migration`; slice commit `f1464c18` (docs follow). Only `Avalonia/` changes.
+- **589 tests** run locally on Windows: 586 pass; the same 3 known Windows-local failures remain
+  (`DeathStatsTests.Page_OpensForTheSelectedServer_FiltersForgetsAndClears` and the two
+  `GeneralSettingsTests` XDG/macOS autostart cases — platform-specific, clean on Linux). Build zero warnings.
+- Done: the reference event dock over the map (corner panel, hover reveals the row labels) with a row per
+  patrol helicopter, cargo ship, CH47, travelling vendor, deep sea event and oil rig crate timer. Timers
+  follow the reference bookkeeping: a marker already present on the first poll reads "connected mid-event —
+  spawn time unknown", a new one counts up ("0m 04s" / "1h 04m"), a finished event counts down ("-3:21"),
+  the row stays for four polls after its marker goes missing and the event is booked at the tenth missing
+  poll (a helicopter whose last position was inside the map reads "shot down", otherwise "left the map"),
+  cargo shows its dock countdown / remaining life / mid-route / despawned-ago line, deep sea keeps its
+  spawn and despawn times until the connection resets.
+- Where the behaviour lives: `Core/Map/EventDock.cs` (`EventDockModel`, the reference key
+  `id`-or-position rule, the 5/10 poll display/removal constants, the timer formats), `CargoShips.cs`
+  (`Ships`, `LastDespawnUtc`, `ICargoMemory.FullLifeMinutes`), `EventAnnouncer.RefreshDock` (rebuilds the
+  rows on every marker poll and on a connection reset), `MapViewModel.EventDock`/`SetEventDock`,
+  `MapWorkspace.axaml` (the panel plus the `.dockrow`/`.docktext` styles) and its code-behind (hover
+  reveal, click → `CenterOnWorld`).
+- Tests: `EventDockTests` (13: every timer/row branch of the model plus a rendered `MapWorkspace` frame
+  with a populated and an emptied dock); `CargoTests.MemoryCargo` gained the new memory getter.
+- Deviations: the heli/CH47 rotor blades are static and the active icon's drop shadow is not drawn; the
+  oil rig row shows the crate countdown where the reference shows the alarm's local timestamp (the port
+  has no Logic Engine rules, so a rig row keys off a running timer or a recorded alarm); a click centres
+  the map without the reference camera follow; the custom-timer button beside the dock is not ported.
+- Next slices: ghost (predicted) cargo markers, team chat commands, the team feature master (+ cloud
+  presence), chinook-at-a-rig timer learning, then the remaining PARITY-PLAN ports (command dock is the
+  largest).
+
 ## Sixth run — Team markers and Map Performance settings (2026-10-19, local Windows continuation)
 
 - Branch `codex/avalonia-migration`; slice commit `70072ba4` (docs follow). Only `Avalonia/` changes.

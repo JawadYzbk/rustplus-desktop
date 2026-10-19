@@ -11,6 +11,17 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- Event dock with spawn/despawn timers: `Core/Map/EventDock.cs` (`EventDockModel`) ports the reference
+  over-map panel — a row per patrol helicopter, cargo ship, CH47, travelling vendor, deep sea event and
+  oil rig crate timer, with the reference first-poll "connected mid-event" rule, the elapsed/since timer
+  formats, the removal bookkeeping at the tenth missing poll (a helicopter whose last position was inside
+  the map reads "shot down"), the four-poll display persistence, the cargo dock/remaining-life/mid-route/
+  despawned branches and the deep-sea spawn/despawn times. `CargoTracker.Ships`/`LastDespawnUtc` and
+  `ICargoMemory.FullLifeMinutes` feed it; `EventAnnouncer` rebuilds it on every marker poll; it renders via
+  `MapViewModel.EventDock` in `MapWorkspace.axaml` (hover reveals the labels, a click centres the map).
+  **589 tests** on Windows locally (586 pass; the 3 known platform failures). Ghost cargo markers, chat
+  commands, the team feature master and chinook-at-a-rig timer learning remain.
+
 - Map performance and team markers Settings cards: `MapPerformance` core rules (scaling mode 0-2 with
   the reference default, render-scale list with the reference combo-index quirk, cache-scale clamp to the
   16384 px surface edge, grid line 1.0/0.65 px); `MapSurface` applies `RenderOptions` scaling/edge mode
@@ -18,8 +29,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
   fallback; built-in `Visual.CacheMode` is unusable with the in-control pan/zoom transform); Settings >
   Map "Team markers" (profile markers, direction arrows) and "Map performance" (quality, caching,
   render scale, aliased edges) cards. **576 tests** on Windows locally (573 pass; the 3 known
-  platform failures). Event dock timers, ghost cargo markers, chat commands and the team feature
-  master remain.
+  platform failures). Ghost cargo markers, chat commands and the team feature master remain.
 
 - Oil-rig alarms and crate timers: `OilRigTimer` (15-minute timer per Small/Large/Generic rig, reset on
   server switch, one 15/10/5-minute reminder window each) plus the alarm-push interceptor
