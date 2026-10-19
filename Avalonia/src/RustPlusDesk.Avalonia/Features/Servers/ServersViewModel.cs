@@ -212,7 +212,9 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             ProfileFlags = profileFlags,
             Profile = () => SelectedServer is { } server ? (SourcePath, server.ProfileKey) : null,
             Log = Activity.Append,
-            OpenWebhookSettings = OpenWebhookSettings
+            OpenWebhookSettings = OpenWebhookSettings,
+            // Reference _vm.Selected.AlertCustomTimer: the alerts menu reads and flips the timer panel's own switch.
+            CustomTimers = Timers
         };
         _ = alerts.LoadChannelAsync();
         if (webhookStore is not null && webhookSender is not null)

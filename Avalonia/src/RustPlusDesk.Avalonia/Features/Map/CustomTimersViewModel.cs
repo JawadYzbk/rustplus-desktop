@@ -27,6 +27,9 @@ public sealed partial class CustomTimersViewModel(ICustomTimerStore? store,
     /// <summary>The active timers, newest last, as the timer panel lists them.</summary>
     public ObservableCollection<CustomTimerRowViewModel> Timers { get; } = [];
 
+    /// <summary>Whether the view model holds a selected profile's timers (reference MainViewModel.Selected != null).</summary>
+    public bool HasProfile => profileKey.Length > 0;
+
     public bool HasTimers => Timers.Count > 0;
     public string CountText => Timers.Count == 0 ? "No active timers." : $"{Timers.Count} active timer{(Timers.Count == 1 ? "" : "s")}.";
 
@@ -70,6 +73,9 @@ public sealed partial class CustomTimersViewModel(ICustomTimerStore? store,
         loading = false;
         tracker.Load(settings.Timers, DateTime.UtcNow);
         RefreshRows();
+        // The chat-alert menu reads the flag and whether a profile is loaded; announce the selection even when the
+        // stored switch did not change value.
+        OnPropertyChanged(nameof(HasProfile));
     }
 
     /// <summary>Reference BtnAddTimer_Click: validated, stored, and announced to chat when timer alerts are on.</summary>

@@ -263,7 +263,7 @@ public sealed class ShopNoticeTests
                 flyout.ShowAt(menuButton);
                 window.UpdateLayout();
                 var items = flyout.Items.OfType<MenuItem>().ToList();
-                CollectionAssert.AreEqual(new[] { "Select all", "Deselect all", "Edit templates", "Send alerts to", "Events", "Cargo Ship", "Patrol Helicopter", "Chinook (CH47)", "Travelling Vendor", "Oil Rig Crate Status", "Deep Sea Event", "Smart Alerts", "Players", "Online Status", "Offline Status", "Player AFK",
+                CollectionAssert.AreEqual(new[] { "Select all", "Deselect all", "Edit templates", "Send alerts to", "Events", "Cargo Ship", "Patrol Helicopter", "Chinook (CH47)", "Travelling Vendor", "Oil Rig Crate Status", "Deep Sea Event", "Smart Alerts", "Custom Timer", "Players", "Online Status", "Offline Status", "Player AFK",
                     "Self Death", "Team Death", "Self Respawn", "Team Respawn", "Shops", "New shops", "Suspicious shops", "Trade alerts", "Discord webhook", "Discord webhook settings…" },
                     items.Select(item => (string)item.Header!).ToArray());
                 MenuItem Item(string header) => items.Single(item => (string)item.Header! == header);
