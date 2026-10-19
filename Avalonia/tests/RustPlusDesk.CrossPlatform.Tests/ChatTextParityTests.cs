@@ -75,6 +75,8 @@ public sealed class ChatTextParityTests
             (ChatCommandTexts.OilRigHackRunning, "ChatCmdOilRigHackRunning"),
             (ChatCommandTexts.OilRigSmallLabel, "UiBadgeSmallOil"),
             (ChatCommandTexts.OilRigLargeLabel, "UiBadgeLargeOil"),
+            (ChatCommandTexts.BaseCodeNameDefault, "BaseCodesNameDefault"),
+            (ChatCommandTexts.NoBaseCodes, "ChatCmdNoBaseCodes"),
         };
 
         foreach (var (text, key) in ported)

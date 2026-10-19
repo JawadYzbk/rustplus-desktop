@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -37,8 +38,18 @@ public sealed partial class ChatCommandSettingsViewModel(IChatCommandSettingsSto
     [ObservableProperty] private string heli = "";
     [ObservableProperty] private string vendor = "";
     [ObservableProperty] private string afk = "";
+    [ObservableProperty] private string oilRig = "";
+    [ObservableProperty] private string upkeepDetail = "";
+    [ObservableProperty] private string baseCodes = "";
+    [ObservableProperty] private string ai = "";
+    [ObservableProperty] private string customTimer = "";
+    [ObservableProperty] private bool clanAllowBaseCodes;
+    [ObservableProperty] private bool clanAllowSwitches;
     [ObservableProperty] private string status = NoServerStatus;
     [ObservableProperty] private bool isError;
+
+    /// <summary>Reference Base Codes editor: five labelled four-digit codes, padded with spare rows.</summary>
+    public ObservableCollection<BaseCodeRowViewModel> BaseCodeRows { get; } = [];
 
     /// <summary>Reference settings load: the selected profile's chat-command settings.</summary>
     public async Task LoadAsync(CancellationToken ct = default)
@@ -52,6 +63,9 @@ public sealed partial class ChatCommandSettingsViewModel(IChatCommandSettingsSto
             Prefix = loaded.EffectivePrefix;
             ResponseDelay = DelayText(loaded.ResponseDelaySeconds);
             Pop = List = Time = Promote = DeepSea = Cargo = Heli = Vendor = Afk = "";
+            OilRig = UpkeepDetail = BaseCodes = Ai = CustomTimer = "";
+            ClanAllowBaseCodes = ClanAllowSwitches = false;
+            SetBaseCodeRows(ChatCommandSettings.NoBaseCodes);
             loading = false;
             Status = NoServerStatus;
             return;
@@ -78,6 +92,14 @@ public sealed partial class ChatCommandSettingsViewModel(IChatCommandSettingsSto
         Heli = settings.Heli;
         Vendor = settings.Vendor;
         Afk = settings.Afk;
+        OilRig = settings.OilRig;
+        UpkeepDetail = settings.UpkeepDetail;
+        BaseCodes = settings.BaseCodes;
+        Ai = settings.Ai;
+        CustomTimer = settings.CustomTimer;
+        ClanAllowBaseCodes = settings.ClanCommandsAllowBaseCodes;
+        ClanAllowSwitches = settings.ClanCommandsAllowSwitches;
+        SetBaseCodeRows(settings.BaseCodeRows);
         loading = false;
         Status = SavedStatus;
         applied?.Invoke(settings);
@@ -110,6 +132,11 @@ public sealed partial class ChatCommandSettingsViewModel(IChatCommandSettingsSto
         double delay = double.TryParse(ResponseDelay, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
             ? Math.Clamp(parsed, 0, 5)
             : loaded.ResponseDelaySeconds;
+        var baseCodes = BaseCodeRows
+            .Select(row => new ChatBaseCode(row.Label.Trim(), BaseCodeRowViewModel.Sanitize(row.Code)))
+            .Where(code => code.Code.Length > 0)
+            .Take(ChatCommandSettings.MaxBaseCodes)
+            .ToList();
         var settings = loaded with
         {
             Enabled = Enabled,
@@ -123,7 +150,15 @@ public sealed partial class ChatCommandSettingsViewModel(IChatCommandSettingsSto
             Cargo = ChatCommandSettings.ValidateCommand(Cargo, ChatCommandSettings.Defaults.Cargo),
             Heli = ChatCommandSettings.ValidateCommand(Heli, ChatCommandSettings.Defaults.Heli),
             Vendor = ChatCommandSettings.ValidateCommand(Vendor, ChatCommandSettings.Defaults.Vendor),
-            Afk = ChatCommandSettings.ValidateCommand(Afk, ChatCommandSettings.Defaults.Afk)
+            Afk = ChatCommandSettings.ValidateCommand(Afk, ChatCommandSettings.Defaults.Afk),
+            OilRig = ChatCommandSettings.ValidateCommand(OilRig, ChatCommandSettings.Defaults.OilRig),
+            UpkeepDetail = ChatCommandSettings.ValidateCommand(UpkeepDetail, ChatCommandSettings.Defaults.UpkeepDetail),
+            BaseCodes = ChatCommandSettings.ValidateCommand(BaseCodes, ChatCommandSettings.Defaults.BaseCodes),
+            Ai = ChatCommandSettings.ValidateCommand(Ai, ChatCommandSettings.Defaults.Ai),
+            CustomTimer = ChatCommandSettings.ValidateCommand(CustomTimer, ChatCommandSettings.Defaults.CustomTimer),
+            ClanCommandsAllowBaseCodes = ClanAllowBaseCodes,
+            ClanCommandsAllowSwitches = ClanAllowSwitches,
+            BaseCodeRows = baseCodes.Count == 0 ? ChatCommandSettings.NoBaseCodes : baseCodes
         };
 
         loaded = settings;
@@ -163,9 +198,44 @@ public sealed partial class ChatCommandSettingsViewModel(IChatCommandSettingsSto
         Heli = settings.Heli;
         Vendor = settings.Vendor;
         Afk = settings.Afk;
+        OilRig = settings.OilRig;
+        UpkeepDetail = settings.UpkeepDetail;
+        BaseCodes = settings.BaseCodes;
+        Ai = settings.Ai;
+        CustomTimer = settings.CustomTimer;
+        ClanAllowBaseCodes = settings.ClanCommandsAllowBaseCodes;
+        ClanAllowSwitches = settings.ClanCommandsAllowSwitches;
+        SetBaseCodeRows(settings.BaseCodeRows);
         ResponseDelay = DelayText(settings.ResponseDelaySeconds);
         loading = false;
     }
 
+    private void SetBaseCodeRows(IReadOnlyList<ChatBaseCode> codes)
+    {
+        BaseCodeRows.Clear();
+        foreach (var code in codes.Take(ChatCommandSettings.MaxBaseCodes))
+            BaseCodeRows.Add(new BaseCodeRowViewModel { Label = code.Label, Code = code.Code });
+        while (BaseCodeRows.Count < ChatCommandSettings.MaxBaseCodes) BaseCodeRows.Add(new BaseCodeRowViewModel());
+    }
+
     private static string DelayText(double seconds) => seconds.ToString("0.0#", CultureInfo.InvariantCulture);
+}
+
+/// <summary>
+/// One Base Codes editor row. The reference ServerProfile.BaseCode setter keeps only digits and caps the length at
+/// four, so a pasted code is normalised as it is typed.
+/// </summary>
+public sealed partial class BaseCodeRowViewModel : ObservableObject
+{
+    [ObservableProperty] private string code = "";
+    [ObservableProperty] private string label = "";
+
+    partial void OnCodeChanged(string value)
+    {
+        string digits = Sanitize(value);
+        if (digits != value) Code = digits;
+    }
+
+    public static string Sanitize(string? value) =>
+        new((value ?? "").Where(char.IsDigit).Take(4).ToArray());
 }

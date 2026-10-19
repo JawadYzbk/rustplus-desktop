@@ -194,7 +194,7 @@
             </StackPanel>
           </Grid>
           <TextBlock Text="STANDARD COMMANDS" Classes="section" Margin="0,8,0,0" />
-          <Grid ColumnDefinitions="160,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="6" ColumnSpacing="8">
+          <Grid ColumnDefinitions="160,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="6" ColumnSpacing="8">
             <TextBlock Text="Population:" VerticalAlignment="Center" />
             <TextBox Grid.Column="1" Text="{Binding ChatCommands.Pop, FallbackValue=''}" AutomationProperties.Name="Population command name" />
             <TextBlock Grid.Row="1" Text="Time:" VerticalAlignment="Center" />
@@ -213,7 +213,37 @@
             <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding ChatCommands.Afk, FallbackValue=''}" AutomationProperties.Name="AFK command name" />
             <TextBlock Grid.Row="8" Text="List Chat Commands" VerticalAlignment="Center" />
             <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding ChatCommands.List, FallbackValue=''}" AutomationProperties.Name="List commands command name" />
+            <TextBlock Grid.Row="9" Text="Oil Rig:" VerticalAlignment="Center" />
+            <TextBox Grid.Row="9" Grid.Column="1" Text="{Binding ChatCommands.OilRig, FallbackValue=''}" AutomationProperties.Name="Oil rig command name" />
+            <TextBlock Grid.Row="10" Text="Upkeep Detail:" VerticalAlignment="Center" />
+            <TextBox Grid.Row="10" Grid.Column="1" Text="{Binding ChatCommands.UpkeepDetail, FallbackValue=''}" AutomationProperties.Name="Upkeep detail command name" />
+            <TextBlock Grid.Row="11" Text="Base Codes:" VerticalAlignment="Center" />
+            <TextBox Grid.Row="11" Grid.Column="1" Text="{Binding ChatCommands.BaseCodes, FallbackValue=''}" AutomationProperties.Name="Base codes command name" />
+            <TextBlock Grid.Row="12" Text="Custom Timer:" VerticalAlignment="Center" />
+            <TextBox Grid.Row="12" Grid.Column="1" Text="{Binding ChatCommands.CustomTimer, FallbackValue=''}" AutomationProperties.Name="Custom timer command name" />
+            <TextBlock Grid.Row="13" Text="Ask AI:" VerticalAlignment="Center" />
+            <TextBox Grid.Row="13" Grid.Column="1" Text="{Binding ChatCommands.Ai, FallbackValue=''}" AutomationProperties.Name="Ask AI command name" />
           </Grid>
+          <TextBlock Text="BASE CODES" Classes="section" Margin="0,8,0,0" />
+          <TextBlock Text="Labelled door codes answered by the base-code command. Only four-digit codes are sent, and blank rows are ignored."
+                     Classes="muted" FontSize="12" TextWrapping="Wrap" />
+          <ItemsControl ItemsSource="{Binding ChatCommands.BaseCodeRows, FallbackValue={x:Null}}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,3,0,0">
+                  <TextBox Text="{Binding Code, FallbackValue=''}" Width="90" MaxLength="4"
+                           PlaceholderText="Code" AutomationProperties.Name="Base door code" />
+                  <TextBox Text="{Binding Label, FallbackValue=''}" Width="220"
+                           PlaceholderText="Label (Doorcode)" AutomationProperties.Name="Base code label" />
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Text="CLAN CHAT" Classes="section" Margin="0,8,0,0" />
+          <CheckBox IsChecked="{Binding ChatCommands.ClanAllowBaseCodes, FallbackValue=False}"
+                    Content="Allow clan chat to read the base codes" AutomationProperties.Name="Allow clan base codes" />
+          <CheckBox IsChecked="{Binding ChatCommands.ClanAllowSwitches, FallbackValue=False}"
+                    Content="Allow clan chat to toggle mapped switches" AutomationProperties.Name="Allow clan switches" />
           <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
             <Button Classes="primary" Content="Apply" Command="{Binding ChatCommands.ApplyCommand, FallbackValue={x:Null}}"
                     AutomationProperties.Name="Apply chat commands" />

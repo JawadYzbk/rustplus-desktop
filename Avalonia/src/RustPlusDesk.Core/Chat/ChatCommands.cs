@@ -28,8 +28,14 @@ public sealed record ChatCommandSettings(
     string Ai = "ai",
     string CustomTimer = "timer")
 {
+    /// <summary>Reference ServerProfile.MaxBaseCodes: a profile holds at most five door codes.</summary>
+    public const int MaxBaseCodes = 5;
+
     /// <summary>Shared empty mapping list, so two settings records with no mappings compare equal.</summary>
     public static IReadOnlyList<ChatCommandMapping> NoMappings { get; } = [];
+
+    /// <summary>Shared empty base-code list, so two settings records with no codes compare equal.</summary>
+    public static IReadOnlyList<ChatBaseCode> NoBaseCodes { get; } = [];
 
     public static ChatCommandSettings Defaults { get; } = new();
 
@@ -38,6 +44,15 @@ public sealed record ChatCommandSettings(
 
     /// <summary>Reference ServerProfile.UpkeepCommandMappings: the storage monitors the upkeep commands report.</summary>
     public IReadOnlyList<ChatCommandMapping> UpkeepMappings { get; init; } = NoMappings;
+
+    /// <summary>Reference ServerProfile.BaseCodes: the labelled door codes the base-code command answers with.</summary>
+    public IReadOnlyList<ChatBaseCode> BaseCodeRows { get; init; } = NoBaseCodes;
+
+    /// <summary>Reference ServerProfile.ClanCommandsAllowBaseCodes: clan chat may read the base codes.</summary>
+    public bool ClanCommandsAllowBaseCodes { get; init; }
+
+    /// <summary>Reference ServerProfile.ClanCommandsAllowSwitches: clan chat may toggle mapped switches.</summary>
+    public bool ClanCommandsAllowSwitches { get; init; }
 
     /// <summary>Reference ChatCommandPrefix getter: an empty prefix reads as "!".</summary>
     public string EffectivePrefix => string.IsNullOrEmpty(Prefix) ? "!" : Prefix;
@@ -120,10 +135,24 @@ public static class ChatCommandTexts
     public const string OilRigSmallLabel = "Small Oil";
     public const string OilRigLargeLabel = "Large Oil";
     public const string OilRigGenericLabel = "Oil Rig";
+    public const string BaseCodeNameDefault = "Doorcode";
+    public const string NoBaseCodes = "No base codes are set.";
 }
 
 /// <summary>Reference ChatCommandMapping: one chat command name bound to one paired entity.</summary>
 public sealed record ChatCommandMapping(uint EntityId, string Command);
+
+/// <summary>
+/// Reference ServerProfile.BaseCode: one labelled door code. Only complete codes are answered, because a
+/// half-typed code in team chat would be tried on a door.
+/// </summary>
+public sealed record ChatBaseCode(string Label, string Code)
+{
+    public bool IsComplete => Code.Length == 4;
+
+    /// <summary>Reference answer label: the trimmed custom name, else "Doorcode".</summary>
+    public string DisplayLabel => string.IsNullOrWhiteSpace(Label) ? ChatCommandTexts.BaseCodeNameDefault : Label.Trim();
+}
 
 /// <summary>
 /// One paired device as the switch and upkeep commands see it: the saved definition plus the live snapshot the device
@@ -212,7 +241,6 @@ public sealed record ChatCommandState(
     ChatEventCommandState? Events = null,
     ChatCargoCommandState? Cargo = null,
     bool CanPromote = false,
-    bool HasBaseCodes = false,
     bool CanListAi = false,
     string? FirstCustomTimerCommand = null,
     IReadOnlyList<ChatDeviceState>? Devices = null,
@@ -300,10 +328,14 @@ public static class ChatCommands
 
         string Log(string what) => $"[ChatCommand] {what} executed by {request.Author}";
 
+        // Reference: clan chat sees switches and base codes only when the profile allows it. Team chat always does.
+        bool allowSwitches = request.Channel != ChatChannel.Clan || settings.ClanCommandsAllowSwitches;
+        bool allowBaseCodes = request.Channel != ChatChannel.Clan || settings.ClanCommandsAllowBaseCodes;
+
         if (cmd == settings.List.ToLowerInvariant())
         {
-            string? deviceList = DeviceListAnswer(settings, state);
-            return new ChatCommandReply(ListAnswer(settings, state), Log: Log("List"),
+            string? deviceList = DeviceListAnswer(settings, state, allowSwitches);
+            return new ChatCommandReply(ListAnswer(settings, state, allowBaseCodes), Log: Log("List"),
                 FollowUp: deviceList is null ? null : [new ChatMessageStep(deviceList, 3)]);
         }
 
@@ -359,7 +391,7 @@ public static class ChatCommands
         if (cmd == settings.Vendor.ToLowerInvariant())
             return new ChatCommandReply(VendorAnswer(state.Events ?? new ChatEventCommandState(), now), Log: Log("Vendor"));
 
-        var switchMappings = Mappings(settings.SwitchMappings, cmd);
+        var switchMappings = allowSwitches ? Mappings(settings.SwitchMappings, cmd) : [];
         if (switchMappings.Count > 0)
         {
             var seeds = switchMappings
@@ -397,6 +429,24 @@ public static class ChatCommands
                     steps.Count == 0 ? 0 : Math.Max(2.0, settings.ResponseDelaySeconds)));
             }
             return new ChatCommandReply(Log: Log("UpkeepDetail"), FollowUp: steps);
+        }
+
+        if (allowBaseCodes && !string.IsNullOrWhiteSpace(settings.BaseCodes) && cmd == settings.BaseCodes.ToLowerInvariant())
+        {
+            var parts = (settings.BaseCodeRows ?? [])
+                .Where(code => code.IsComplete)
+                .Select(code => $"{code.DisplayLabel}: {code.Code}")
+                .ToList();
+            if (parts.Count == 0) return new ChatCommandReply(ChatCommandTexts.NoBaseCodes, Log: Log("BaseCodes"));
+
+            string message = string.Join(" | ", parts);
+            // Team chat truncates at 128 characters: drop whole entries rather than cut a code in half.
+            while (message.Length > ChatLimits.MaxLength && parts.Count > 1)
+            {
+                parts.RemoveAt(parts.Count - 1);
+                message = string.Join(" | ", parts) + " ...";
+            }
+            return new ChatCommandReply(message, Log: Log("BaseCodes"));
         }
 
         var upkeepMappings = Mappings(settings.UpkeepMappings, cmd);
@@ -590,16 +640,19 @@ public static class ChatCommands
     };
 
     /// <summary>Reference list: each switch/TC mapping whose device still exists, sent three seconds later.</summary>
-    public static string? DeviceListAnswer(ChatCommandSettings settings, ChatCommandState state)
+    public static string? DeviceListAnswer(ChatCommandSettings settings, ChatCommandState state, bool allowSwitches = true)
     {
         if (state.Devices is null) return null;
         string prefix = settings.EffectivePrefix;
         var parts = new List<string>();
-        foreach (var mapping in settings.SwitchMappings ?? [])
+        if (allowSwitches)
         {
-            if (string.IsNullOrWhiteSpace(mapping.Command) || mapping.EntityId == 0) continue;
-            var device = FindDevice(state, mapping.EntityId, DeviceKind.Switch);
-            if (device is not null) parts.Add($"[{device.PureName}]: {prefix}{mapping.Command}");
+            foreach (var mapping in settings.SwitchMappings ?? [])
+            {
+                if (string.IsNullOrWhiteSpace(mapping.Command) || mapping.EntityId == 0) continue;
+                var device = FindDevice(state, mapping.EntityId, DeviceKind.Switch);
+                if (device is not null) parts.Add($"[{device.PureName}]: {prefix}{mapping.Command}");
+            }
         }
         foreach (var mapping in settings.UpkeepMappings ?? [])
         {
@@ -615,7 +668,7 @@ public static class ChatCommands
     /// timer exists, base codes only to a channel allowed to see them and only once a code is set, and the AI
     /// command only to an author allowed to use it.
     /// </summary>
-    public static string ListAnswer(ChatCommandSettings settings, ChatCommandState state)
+    public static string ListAnswer(ChatCommandSettings settings, ChatCommandState state, bool allowBaseCodes = true)
     {
         string prefix = settings.EffectivePrefix;
         var standard = new List<string>();
@@ -631,7 +684,8 @@ public static class ChatCommands
         Add(standard, prefix, settings.UpkeepDetail);
         Add(standard, prefix, settings.Afk);
         standard.Add(prefix + "who");
-        if (!string.IsNullOrWhiteSpace(settings.BaseCodes) && state.HasBaseCodes) Add(standard, prefix, settings.BaseCodes);
+        if (!string.IsNullOrWhiteSpace(settings.BaseCodes) && (settings.BaseCodeRows ?? []).Any(code => code.IsComplete) && allowBaseCodes)
+            Add(standard, prefix, settings.BaseCodes);
         if (!string.IsNullOrWhiteSpace(settings.Ai) && state.CanListAi) Add(standard, prefix, settings.Ai);
         return Truncate(string.Format(CultureInfo.InvariantCulture, ChatCommandTexts.ListHeader, string.Join(", ", standard)));
 

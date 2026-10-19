@@ -247,7 +247,11 @@ public sealed class ChatCommandTests
             "A running custom timer is advertised first.");
 
         Assert.AreEqual("COMMANDS: !pop, !time, !promote, !deepsea, !cargo, !oilrig, !heli, !vendor, !upkeepdetail, !afk, !who, !code, !ai",
-            Run("!commands", Live with { HasBaseCodes = true, CanListAi = true }).Message);
+            Run("!commands", Live with { CanListAi = true },
+                ChatCommandSettings.Defaults with { BaseCodeRows = [new ChatBaseCode("Base", "1234")] }).Message);
+        Assert.AreEqual("COMMANDS: !pop, !time, !promote, !deepsea, !cargo, !oilrig, !heli, !vendor, !upkeepdetail, !afk, !who",
+            Run("!commands", Live, ChatCommandSettings.Defaults with { BaseCodeRows = [new ChatBaseCode("Base", "12")] }).Message,
+            "A half-typed code is not advertised.");
     }
 
     [TestMethod]
@@ -328,7 +332,8 @@ public sealed class ChatCommandTests
         Assert.AreEqual("codes", profile["CmdBaseCodes"]!.GetValue<string>());
         foreach (string name in new[] { "ChatCommandsEnabled", "ChatCommandPrefix", "ChatResponseDelaySeconds", "CmdPop",
                      "CmdList", "CmdTime", "CmdPromote", "CmdDeepSea", "CmdCargo", "CmdAfk", "CmdOilRig", "CmdHeli",
-                     "CmdVendor", "CmdUpkeepDetail", "CmdBaseCodes", "CmdAi", "CmdCustomTimer" })
+                     "CmdVendor", "CmdUpkeepDetail", "CmdBaseCodes", "CmdAi", "CmdCustomTimer", "BaseCodes",
+                     "ClanCommandsAllowBaseCodes", "ClanCommandsAllowSwitches" })
             profile.Remove(name);
         Assert.IsTrue(System.Text.Json.Nodes.JsonNode.DeepEquals(before, after), "Only this profile's fields change.");
 
@@ -349,6 +354,93 @@ public sealed class ChatCommandTests
         var settings = await new LegacyChatCommandStore().GetAsync(fixture.Path, server.ProfileKey, default);
         Assert.AreEqual("!", settings.Prefix, "An invalid stored prefix reads as the reference default.");
         Assert.AreEqual("Players", settings.Pop, "A leading ! is removed like the reference setter.");
+    }
+
+    // ---- base codes --------------------------------------------------------------------------
+
+    [TestMethod]
+    public void BaseCodes_AnswerCompleteRowsOnly_WithTheDoorcodeFallback_AndDropWholeEntriesAtTheLimit()
+    {
+        var settings = ChatCommandSettings.Defaults with
+        {
+            BaseCodeRows = [new ChatBaseCode("Home", "1234"), new ChatBaseCode("", "5678"), new ChatBaseCode("Half", "12")]
+        };
+        var reply = Run("!code", Live, settings);
+        Assert.AreEqual("Home: 1234 | Doorcode: 5678", reply.Message, "Half-typed codes are skipped, not truncated.");
+        Assert.AreEqual("[ChatCommand] BaseCodes executed by Alice", reply.Log);
+
+        Assert.AreEqual("No base codes are set.",
+            Run("!code", Live, ChatCommandSettings.Defaults with { BaseCodeRows = [new ChatBaseCode("Home", "12")] }).Message);
+        Assert.AreEqual("No base codes are set.", Run("!code", Live).Message);
+        Assert.IsNull(Run("!code", Live, ChatCommandSettings.Defaults with { BaseCodes = "" }).Message,
+            "A blank command name disables the command.");
+
+        var longRows = Enumerable.Range(1, ChatCommandSettings.MaxBaseCodes)
+            .Select(i => new ChatBaseCode($"Garage door number {i}", "1234")).ToList();
+        string longAnswer = Run("!code", Live, ChatCommandSettings.Defaults with { BaseCodeRows = longRows }).Message!;
+        Assert.IsTrue(longAnswer.Length <= ChatLimits.MaxLength);
+        Assert.IsTrue(longAnswer.EndsWith(" ...", StringComparison.Ordinal), "The cut is marked.");
+        Assert.IsFalse(longAnswer.Contains("Garage door number 5", StringComparison.Ordinal), "The last entry is dropped first.");
+        Assert.IsTrue(longAnswer.Contains("Garage door number 4", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void ClanChat_OnlySeesBaseCodesAndSwitches_WhenTheProfileAllowsIt()
+    {
+        var device = SwitchDevice(1, "Generator");
+        var state = Live with { Devices = [Switch(device, false)], SetSwitch = (_, _, _) => Task.FromResult(true) };
+        var settings = ChatCommandSettings.Defaults with
+        {
+            BaseCodeRows = [new ChatBaseCode("Home", "1234")],
+            SwitchMappings = [new ChatCommandMapping(1, "gen")]
+        };
+
+        Assert.IsNull(Run("!code", state, settings, channel: ChatChannel.Clan).Message);
+        Assert.IsNull(Run("!gen", state, settings, channel: ChatChannel.Clan).Deferred);
+        string clanList = Run("!commands", state, settings, channel: ChatChannel.Clan).Message!;
+        Assert.IsFalse(clanList.Contains("!code", StringComparison.Ordinal));
+        Assert.IsNotNull(Run("!code", state, settings).Message, "Team chat always sees the codes.");
+        Assert.IsNotNull(Run("!gen", state, settings).Deferred, "Team chat always sees the switches.");
+
+        var allowed = settings with { ClanCommandsAllowBaseCodes = true, ClanCommandsAllowSwitches = true };
+        Assert.AreEqual("Home: 1234", Run("!code", state, allowed, channel: ChatChannel.Clan).Message);
+        Assert.IsNotNull(Run("!gen", state, allowed, channel: ChatChannel.Clan).Deferred);
+        Assert.IsTrue(Run("!commands", state, allowed, channel: ChatChannel.Clan).Message!.Contains("!code", StringComparison.Ordinal));
+        Assert.IsTrue(Run("!commands", state, allowed, channel: ChatChannel.Clan).FollowUp![0].Text.Contains("!gen", StringComparison.Ordinal),
+            "The device list follows the switch permission too.");
+        Assert.AreEqual(3, Run("!commands", state, allowed, channel: ChatChannel.Clan).FollowUp![0].DelaySeconds,
+            "The device list still follows the list answer three seconds later.");
+    }
+
+    [TestMethod]
+    public async Task SettingsStore_RoundTripsBaseCodesAndClanPermissions()
+    {
+        using var fixture = new DeviceProfileEditorTests.Fixture();
+        var server = await fixture.ServerAsync();
+        var store = new LegacyChatCommandStore();
+        var settings = ChatCommandSettings.Defaults with
+        {
+            BaseCodeRows = [new ChatBaseCode("Home", "1234"), new ChatBaseCode("", "5678")],
+            ClanCommandsAllowBaseCodes = true,
+            ClanCommandsAllowSwitches = true
+        };
+        await store.SaveAsync(fixture.Path, server.ProfileKey, settings, default);
+
+        var read = await store.GetAsync(fixture.Path, server.ProfileKey, default);
+        CollectionAssert.AreEqual(settings.BaseCodeRows.ToList(), read.BaseCodeRows.ToList());
+        Assert.IsTrue(read.ClanCommandsAllowBaseCodes);
+        Assert.IsTrue(read.ClanCommandsAllowSwitches);
+        var document = await fixture.JsonAsync();
+        var written = document[0]!.AsObject();
+        Assert.AreEqual("Home", written["BaseCodes"]![0]!["Label"]!.GetValue<string>());
+        Assert.AreEqual("1234", written["BaseCodes"]![0]!["Code"]!.GetValue<string>());
+
+        written["BaseCodes"] = System.Text.Json.Nodes.JsonNode.Parse(
+            """[{"Label":"","Code":""},{"Label":"Shed","Code":"99"}]""");
+        await File.WriteAllTextAsync(fixture.Path, document.ToJsonString());
+        var blankRows = await store.GetAsync(fixture.Path, server.ProfileKey, default);
+        Assert.AreEqual(new ChatBaseCode("Shed", "99"), blankRows.BaseCodeRows.Single(),
+            "Blank spare rows are editor slots, not stored codes.");
     }
 
     // ---- the state the answers read -----------------------------------------------------------
@@ -405,6 +497,19 @@ public sealed class ChatCommandTests
             await store.GetAsync(fixture.Path, server.ProfileKey, default));
         Assert.AreEqual(".", pushed?.Prefix, "The engine is told as soon as the card saves.");
 
+        card.BaseCodeRows[0].Code = "12ab34";
+        card.BaseCodeRows[0].Label = " Home ";
+        card.BaseCodeRows[1].Code = "5678";
+        card.ClanAllowBaseCodes = true;
+        card.OilRig = "rig";
+        await card.ApplyCommand.ExecuteAsync(null);
+        Assert.AreEqual("1234", card.BaseCodeRows[0].Code, "The row keeps the digits, at most four.");
+        var stored = await store.GetAsync(fixture.Path, server.ProfileKey, default);
+        CollectionAssert.AreEqual(
+            new[] { new ChatBaseCode("Home", "1234"), new ChatBaseCode("", "5678") }, stored.BaseCodeRows.ToList());
+        Assert.IsTrue(stored.ClanCommandsAllowBaseCodes);
+        Assert.AreEqual("rig", stored.OilRig);
+
         var settings = new SettingsViewModel(new ShopNoticeTests.MemorySettings()) { ChatCommands = card };
         var window = new Window { Width = 1000, Height = 700, RequestedThemeVariant = ThemeVariant.Dark,
             Content = new Border { Padding = new global::Avalonia.Thickness(16), Child = new SettingsView { DataContext = settings } } };
@@ -417,6 +522,9 @@ public sealed class ChatCommandTests
             var box = window.GetVisualDescendants().OfType<TextBox>()
                 .Single(t => global::Avalonia.Automation.AutomationProperties.GetName(t) == "Population command name");
             Assert.AreEqual("Players", box.Text);
+            var codeBox = window.GetVisualDescendants().OfType<TextBox>()
+                .First(t => global::Avalonia.Automation.AutomationProperties.GetName(t) == "Base door code");
+            Assert.AreEqual("1234", codeBox.Text, "The base codes editor shows the stored code.");
         }
         finally { window.Close(); }
 
@@ -747,6 +855,7 @@ public sealed class ChatCommandTests
             Settings = ChatCommandSettings.Defaults with
             {
                 ResponseDelaySeconds = 0,
+                ClanCommandsAllowSwitches = true,
                 SwitchMappings = [new ChatCommandMapping(1, "lights")]
             },
             State = () => Live with

@@ -39,6 +39,13 @@ public sealed class LegacyChatCommandStore : IChatCommandSettingsStore
             node["CmdBaseCodes"] = settings.BaseCodes;
             node["CmdAi"] = settings.Ai;
             node["CmdCustomTimer"] = settings.CustomTimer;
+            node["ClanCommandsAllowBaseCodes"] = settings.ClanCommandsAllowBaseCodes;
+            node["ClanCommandsAllowSwitches"] = settings.ClanCommandsAllowSwitches;
+            node["BaseCodes"] = new JsonArray(settings.BaseCodeRows.Select(code => (JsonNode)new JsonObject
+            {
+                ["Label"] = code.Label,
+                ["Code"] = code.Code
+            }).ToArray());
         }, null, ct).ConfigureAwait(false);
 
     private static ChatCommandSettings Read(JsonObject? profile)
@@ -65,8 +72,27 @@ public sealed class LegacyChatCommandStore : IChatCommandSettingsStore
             CustomTimer: Command(profile, "CmdCustomTimer", defaults.CustomTimer))
         {
             SwitchMappings = Mappings(profile, "SwitchCommandMappings"),
-            UpkeepMappings = Mappings(profile, "UpkeepCommandMappings")
+            UpkeepMappings = Mappings(profile, "UpkeepCommandMappings"),
+            BaseCodeRows = BaseCodes(profile),
+            ClanCommandsAllowBaseCodes = Flag(profile, "ClanCommandsAllowBaseCodes") ?? false,
+            ClanCommandsAllowSwitches = Flag(profile, "ClanCommandsAllowSwitches") ?? false
         };
+    }
+
+    /// <summary>Reference ServerProfile.BaseCodes rows; blank rows are spare editor slots and are not carried over.</summary>
+    private static IReadOnlyList<ChatBaseCode> BaseCodes(JsonObject profile)
+    {
+        if (profile["BaseCodes"] is not JsonArray rows) return ChatCommandSettings.NoBaseCodes;
+        var codes = new List<ChatBaseCode>();
+        foreach (var row in rows)
+        {
+            if (row is not JsonObject code) continue;
+            string label = Text(code, "Label") ?? "";
+            string value = Text(code, "Code") ?? "";
+            if (string.IsNullOrWhiteSpace(label) && string.IsNullOrWhiteSpace(value)) continue;
+            codes.Add(new ChatBaseCode(label, value));
+        }
+        return codes.Count == 0 ? ChatCommandSettings.NoBaseCodes : codes;
     }
 
     /// <summary>Reference ChatCommandMapping rows: the entity the command is bound to and the command name.</summary>
