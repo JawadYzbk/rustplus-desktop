@@ -4,6 +4,36 @@
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
 every finished slice with its commit.
 
+## Eighth run — predicted (ghost) event markers (2026-10-19, local Windows continuation)
+
+- Branch `codex/avalonia-migration`; slice commit `e1fc3d78` (docs follow). Only `Avalonia/` changes.
+- **600 tests** run locally on Windows: 597 pass; the same 3 known Windows-local failures remain
+  (`DeathStatsTests.Page_OpensForTheSelectedServer_FiltersForgetsAndClears` and the two
+  `GeneralSettingsTests` XDG/macOS autostart cases — platform-specific, clean on Linux). Build zero warnings.
+- Done: the reference dynamic-marker persistence (`_dynStates` + the missing-marker loop). A moving event
+  marker (cargo ship, CH47, patrol helicopter, travelling vendor) that stops appearing in a poll keeps
+  being drawn for nine more polls, moving one velocity step per poll from its last real position
+  (velocity = the delta between two consecutive polls, zero for a marker seen once), and is forgotten on
+  the tenth missing poll. The predicted positions are fed to the cargo tracker exactly as the reference
+  `ProcessCargoDocking(ghost, isGhost: true)` does: a ghost keeps a ship's dock state, history and last
+  position alive, but can never dock it, create it or announce, and a docked ship's ghost is pinned to its
+  last position so a predicted velocity cannot look like a departure.
+- Where the behaviour lives: `Core/Map/PredictedMarkers.cs` (per-id velocity state, the 10-poll removal,
+  the ghost list), `MapViewModel.DrawnMarkers`/`GhostMarkers` (rebuilt on every poll, cleared on reset),
+  `MapWorkspace.axaml` (the surface binds the drawn list), `CargoShips.cs` (`ObserveGhosts` + the
+  `isGhost` gates in `Process`), `EventAnnouncer.MapChanged` (the ghost feed runs after the real markers
+  and before the event dock, as in the reference).
+- Tests: `GhostCargoTests` (11: the velocity extrapolation and its nine/ten poll boundary, in-place
+  ghosts, the excluded kinds, a returned marker, the reset, the docked-ship pin, a ghost never creating a
+  ship, the 60 s despawn measured from the last sighting, a stationary ghost that cannot dock, the
+  `MapViewModel` drawn/ghost lists and a rendered `MapWorkspace` frame asserting the surface binding).
+- Deviation: only the moving event kinds are predicted — the reference keys markers without an id by
+  position, which in this port (player markers carry real SteamIds) would leave a trail of stale player
+  dots; the heli crash/despawn bookkeeping at the tenth missing poll comes from `EventAnnouncer`'s last
+  real position instead of the predictor.
+- Next slices: team chat commands, the team feature master (+ cloud presence), chinook-at-a-rig timer
+  learning, heli crash sites on the map, then the remaining PARITY-PLAN ports (command dock is the largest).
+
 ## Seventh run — event dock with spawn/despawn timers (2026-10-19, local Windows continuation)
 
 - Branch `codex/avalonia-migration`; slice commit `f1464c18` (docs follow). Only `Avalonia/` changes.
