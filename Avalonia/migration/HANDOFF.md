@@ -4,6 +4,32 @@
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
 every finished slice with its commit.
 
+## Twelfth run - the map timer flyout (2026-10-19, local Windows continuation)
+
+- Branch `codex/avalonia-migration`; slice commit `9a3e7582` (docs follow). Only `Avalonia/` changes.
+- **657 tests** run locally on Windows: 654 pass; the same 3 known Windows-local failures remain
+  (`DeathStatsTests.Page_OpensForTheSelectedServer_FiltersForgetsAndClears` and the two
+  `GeneralSettingsTests` XDG/macOS autostart cases - platform-specific, clean on Linux). Build zero warnings.
+- Done: the reference `BtnCustomTimer_Click`/`PopupCustomTimer` pair - the map toolbar's timer button
+  (Timer32, an orange dot while any timer is under five minutes) opens a flyout with the reference
+  "Active timers" heading, the count line, one row per timer (the name with `(prefixcommand)` in the
+  muted reference style, the remaining time in the accent colour, a per-row delete) and then the add
+  form: a name box, the hh/mm/ss boxes, the `prefix` + command preview (reference TxtTimerCommandPreview:
+  lower case, whitespace dropped), the validation line in the danger colour, the `AlertCustomTimer`
+  switch and the Add button.
+- Where: `Features/Map/CustomTimersViewModel.cs` (`PreviewText` with its change notification, and the
+  row's `Delete` action behind `RemoveCommand`, wired in `RefreshRows`), `Shell/MapWorkspace.axaml` (the
+  `TimersButton` flyout before Layers).
+- Tests: `CustomTimerViewTests` (1: the flyout opens from the toolbar, reads the workspace's timers,
+  shows the heading, the empty count and the alert switch, and the switch writes back to the profile) and
+  `CustomTimerTests` (the panel test now checks the preview text and deletes one timer through the row's
+  own command and one through the panel's).
+- Deviations: the reference per-timer countdown/alarm audio toggles are not in the row and the add form
+  says so ("Countdown and alarm audio are not available in this build.") because this tree has no audio
+  pipeline yet; the reference popup's snooze button is still pending. The AI command and the clan/master
+  author gating still wait for their slices (phase 5 brings the roster and the team feature master).
+- Next slices: clan/master author gating with the team feature master and cloud presence (phase 5), then
+  the AI command with the companion port, then the remaining PARITY-PLAN ports.
 ## Eleventh run - base codes, clan flags and custom timers (2026-10-19, local Windows continuation)
 
 - Branch `codex/avalonia-migration`; slice commits `9b3f0de4` (base codes and clan permissions) and

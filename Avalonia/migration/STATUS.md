@@ -11,6 +11,12 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- Map custom-timer flyout: the reference BtnCustomTimer_Click/PopupCustomTimer pair - the map toolbar's
+  `TimersButton` (Timer32, an orange dot while a timer is under five minutes) opens a flyout with the
+  "Active timers" list (name and `(prefixcommand)`, remaining time, per-row delete) and the add form
+  (name, hh/mm/ss, the `prefix` + command preview, validation, the `AlertCustomTimer` switch, Add);
+  `CustomTimersViewModel.PreviewText` follows the name box and each row's `RemoveCommand` deletes
+  through the serialized save. **657 tests** on Windows locally (654 pass; the 3 known platform failures).
 - Team chat base codes, clan switches and custom timers: `Core/Chat/ChatCommands.cs` reads the profile's
   `BaseCodes` and the two clan switches and answers with complete 4-digit rows only ("{label}: {code}",
   unlabelled rows "Doorcode", "No base codes are set.", whole-entry 128-character cut, clan chat gated);
@@ -23,9 +29,9 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
   `LegacyCustomTimerStore` round-trips `CustomTimers`/`AlertCustomTimer`; `CustomTimersViewModel` holds
   the rows, add/delete actions, serialized saves and the critical-icon flag; `ServersViewModel` owns the
   ticker, toast and chat callbacks and stores chat-created timers through `ChatCommandService.StartTimer`.
-  **656 tests** on Windows locally (653 pass; the 3 known platform failures). The map timer flyout, timer
-  audio/snooze and per-timer audio switches, the AI command, the logic-engine chat rules, clan/master
-  author gating, the team feature master, chinook-at-a-rig timer learning and heli crash sites remain.
+  **657 tests** on Windows locally (654 pass; the 3 known platform failures). Timer audio/snooze and
+  per-timer audio switches, the AI command, the logic-engine chat rules, clan/master author gating, the
+  team feature master, chinook-at-a-rig timer learning and heli crash sites remain.
 - Team chat commands, switches, upkeep and oil rig: `Core/Chat/ChatCommands.cs` also reads the profile's
   `SwitchCommandMappings` and `UpkeepCommandMappings`. A switch command toggles every Smart Switch leaf
   below the bound device or group to the opposite of the first leaf (800 ms apart, skipped when already
