@@ -195,4 +195,16 @@ public sealed class AchievementTests
         finally { window.Close(); }
         return true;
     }, default);
+
+    [TestMethod]
+    public void TheLastAchievementRaisesTheCompletedEvent()
+    {
+        var model = new AchievementsViewModel();
+        model.Load();
+        var completed = 0;
+        model.Completed += () => completed++;
+        foreach (var definition in RustPlusDesk.Core.Achievements.AchievementCatalog.All) model.Unlock(definition.Id);
+        Assert.AreEqual(1, completed, "The question is asked once, when the set is complete.");
+        Assert.IsTrue(model.IsComplete);
+    }
 }

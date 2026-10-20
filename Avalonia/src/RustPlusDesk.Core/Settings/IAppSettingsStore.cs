@@ -70,4 +70,5 @@ public static class SettingKeys
     public const string CrosshairStyle = "CrosshairStyle";                 // the crosshair style shown over the game
     public const string CrosshairCustomImagePath = "CrosshairCustomImagePath"; // the image the custom style shows
     public const string CrosshairEnabled = "CrosshairEnabled";             // default false: the crosshair is off
+    public const string AllAchievementsTicketOffered = "AllAchievementsTicketOffered"; // the prompt is asked once
 }

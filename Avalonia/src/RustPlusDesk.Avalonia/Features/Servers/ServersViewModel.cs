@@ -816,8 +816,46 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         var model = new Achievements.AchievementsViewModel(new RustPlusDesk.Core.Achievements.AchievementTracker(achievementStore));
         model.Load();
         model.Unlocked += definition => Toasts.Show("Achievement unlocked", definition.Name,
-            RustPlusDesk.Avalonia.Features.Toasts.ToastKind.Success);        return model;
+            RustPlusDesk.Avalonia.Features.Toasts.ToastKind.Success);
+        model.Completed += () => AllAchievementsCompleted?.Invoke();
+        return model;
     }
+
+    /// <summary>
+    /// Reference the "all achievements unlocked" prompt: the app asks once whether to tell the developers. The
+    /// answer is remembered, so the question is not asked twice.
+    /// </summary>
+    public event Action? AllAchievementsCompleted;
+
+    /// <summary>Reference RememberAllAchievementsOffered: the question is asked once.</summary>
+    public bool AllAchievementsTicketOffered
+    {
+        get => appSettings?.Get(RustPlusDesk.Core.Settings.SettingKeys.AllAchievementsTicketOffered, false) ?? false;
+        set
+        {
+            if (appSettings is not null)
+                appSettings.Set(RustPlusDesk.Core.Settings.SettingKeys.AllAchievementsTicketOffered, value);
+        }
+    }
+
+    /// <summary>
+    /// Reference SendAllAchievementsTicketAsync: a ticket that says the whole set is unlocked, with the app version
+    /// and the platform beside it.
+    /// </summary>
+    public async Task<bool> FileAchievementTicketAsync(int earned, int total)
+    {
+        if (supportService is null) return false;
+        var meta = new Dictionary<string, string>
+        {
+            ["app_version"] = RustPlusDesk.Core.Updates.AppVersion.Short(RustPlusDesk.Core.Updates.AppVersion.Raw()).ToString(),
+            ["os"] = Environment.OSVersion.VersionString,
+            ["achievements_earned"] = earned.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["achievements_total"] = total.ToString(System.Globalization.CultureInfo.InvariantCulture)
+        };
+        return await supportService.CreateTicketAsync("other", "All achievements unlocked",
+            $"All {total} achievements unlocked.\n\nSent from the achievements screen.", meta, null, null, CancellationToken.None);
+    }
+
 
     /// <summary>Opens the achievements workspace.</summary>
     [RelayCommand]

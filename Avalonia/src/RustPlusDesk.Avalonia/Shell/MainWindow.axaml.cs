@@ -20,6 +20,7 @@ public sealed partial class MainWindow : Window
                 model.Hotkeys.EditRequested += ShowHotkeys;
                 model.TrafficWindowRequested += ShowTraffic;
                 model.CrosshairVisibilityRequested += ShowCrosshair;
+                model.AllAchievementsCompleted += ShowAchievementPrompt;
             }
         };
     }
@@ -53,6 +54,38 @@ public sealed partial class MainWindow : Window
     private Features.Console.ConsoleHelperWindow? consoleWindow;
     private Features.Diagnostics.TrafficMonitorWindow? trafficWindow;
     private Features.Crosshair.CrosshairWindow? crosshairWindow;
+
+    /// <summary>
+    /// Reference the "all achievements unlocked" prompt: the app asks once whether to tell the developers, and
+    /// sends the ticket when the answer is yes.
+    /// </summary>
+    private async void ShowAchievementPrompt()
+    {
+        if (DataContext is not Features.Servers.ServersViewModel shell) return;
+        if (shell.AllAchievementsTicketOffered) return;
+        shell.AllAchievementsTicketOffered = true;
+        var prompt = new Features.Achievements.AchievementTicketPrompt();
+        prompt.Closed += (_, _) =>
+        {
+            if (!prompt.Accepted) return;
+            _ = SendAchievementTicketAsync(shell);
+        };
+        await prompt.ShowDialog(this);
+    }
+
+    private static async Task SendAchievementTicketAsync(Features.Servers.ServersViewModel shell)
+    {
+        try
+        {
+            int earned = shell.Achievements?.EarnedCount ?? 0;
+            int total = shell.Achievements?.TotalCount ?? 0;
+            await shell.FileAchievementTicketAsync(earned, total);
+        }
+        catch (Exception)
+        {
+            // A failed ticket must never break what earned it.
+        }
+    }
 
     /// <summary>
     /// Reference the crosshair overlay: a small transparent window over the game. It follows the chosen style, and it

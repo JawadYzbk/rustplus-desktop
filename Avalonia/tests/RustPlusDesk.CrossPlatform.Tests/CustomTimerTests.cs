@@ -232,7 +232,8 @@ public sealed class CustomTimerTests
         model.NewCountdownAudio = false;
         await model.AddAsync();
 
-        model.Tick(DateTime.UtcNow.AddSeconds(59));
+        // Half way into the countdown window, so the check does not depend on where the second boundary falls.
+        model.Tick(DateTime.UtcNow.AddSeconds(30));
         Assert.AreEqual(0, audio.Countdowns, "A timer without the countdown switch stays quiet.");
     }
 

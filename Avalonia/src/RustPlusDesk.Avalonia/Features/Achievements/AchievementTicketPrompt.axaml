@@ -1,0 +1,21 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+        x:Class="RustPlusDesk.Avalonia.Features.Achievements.AchievementTicketPrompt"
+        Title="All achievements unlocked" Width="460" Height="260"
+        WindowStartupLocation="CenterOwner" CanResize="False" ShowInTaskbar="False">
+  <Border Classes="card" Margin="14" Padding="22">
+    <StackPanel Spacing="14">
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <icons:Icon Symbol="Trophy24" FontSize="24"
+                     Foreground="{DynamicResource Accent}" />
+        <TextBlock Text="All achievements unlocked" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+      </StackPanel>
+      <TextBlock Text="Well done! Would you like to let the developers know?" TextWrapping="Wrap" />
+      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+        <Button Content="Yes" Classes="primary" Click="Yes" AutomationProperties.Name="Send the achievement ticket" />
+        <Button Content="No" Classes="subtle" Click="No" AutomationProperties.Name="Do not send the achievement ticket" />
+      </StackPanel>
+    </StackPanel>
+  </Border>
+</Window>

@@ -46,8 +46,14 @@ public sealed partial class AchievementsViewModel(AchievementTracker tracker) : 
     public int TotalCount => AchievementCatalog.All.Count;
     public string Summary => $"{EarnedCount} of {TotalCount} earned";
 
+    /// <summary>True once every achievement is earned (reference AchievementService.AllEarned).</summary>
+    public bool IsComplete => EarnedCount >= TotalCount && TotalCount > 0;
+
     /// <summary>Reference AchievementService.Unlocked: the toast and the badge follow it.</summary>
     public event Action<AchievementDef>? Unlocked;
+
+    /// <summary>Raised when the last achievement is earned, so the app can offer to tell the developers.</summary>
+    public event Action? Completed;
 
     public AchievementsViewModel() : this(new AchievementTracker(new NullAchievementStore())) { }
 
@@ -79,6 +85,7 @@ public sealed partial class AchievementsViewModel(AchievementTracker tracker) : 
 
     private void Refresh()
     {
+        bool wasComplete = IsComplete;
         EarnedCount = tracker.EarnedCount;
         UnseenCount = tracker.UnseenCount;
         var sheet = Sheet;
@@ -89,6 +96,7 @@ public sealed partial class AchievementsViewModel(AchievementTracker tracker) : 
             Rows.Add(new AchievementRow(definition, earned, tracker.IsUnseen(definition.Id), tracker.EarnedAt(definition.Id),
                 earned ? Crop(sheet, definition.SheetIndex) : null));
         }
+        if (!wasComplete && IsComplete) Completed?.Invoke();
     }
 
     /// <summary>Reference the sprite sheet: the cell of the achievement, cut out of the sheet.</summary>
