@@ -67,8 +67,8 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
   state is saved beside the other local app data and the new Achievements workspace shows the list with the
   artwork cut from the bundled sheet, the secret achievement staying "???" until it is earned. The shell earns
   the ones the ported features produce: a teammate, a paired device, the clan, the death stats, the raid
-  calculator and a chat timer. **695 tests** on Windows locally (695 pass). The reference's "tell the developers
-  about a full set" prompt needs the support API, which is not ported yet.
+  calculator and a chat timer. When the last one is earned, the app asks once whether to tell the developers and
+  sends the ticket the reference sends. **764 tests** on Windows locally (764 pass).
 - Installable builds: `installer/` now produces what a user installs - a self-contained Windows build with an
   Inno Setup installer (`installer/Setup.iss` and `installer/build-installer.ps1`, which publishes first and
   then compiles the script, stopping with a clear message when Inno Setup is not installed), a macOS `.app`
@@ -421,7 +421,7 @@ themes, and full keyboard/screen-reader acceptance are still pending.
 
 ## Local verification
 
-- Windows: all **763 .NET test cases** pass on the current source, including the clan workspace and its role-gated
+- Windows: all **764 .NET test cases** pass on the current source, including the clan workspace and its role-gated
   commands, the device-automation rules, the achievements list, the traffic monitor, the timer sounds, the
   organization, recycling and socket-teardown work; build and isolated-copy results are recorded in HANDOFF.md at each checkpoint.
 - Native browser crash reproduced using a local callback: Windows threw `Unable to create child window
