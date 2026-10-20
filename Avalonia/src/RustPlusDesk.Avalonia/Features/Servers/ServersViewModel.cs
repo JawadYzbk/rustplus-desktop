@@ -682,7 +682,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
                 () => AutomationTeammates(),
                 CaptureDeviceLocationAsync),
             LogicRules = LogicRules,
-            Crosshair = CreateCrosshairSettings(),
+            Crosshair = CrosshairSettings,
             Language = CreateLanguageSettings(),
             Support = supportService is null ? null : new Support.SupportViewModel(
                 ct => supportService.GetTicketsAsync(ct),
@@ -870,6 +870,14 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     /// window owns the crosshair, because only a window can be on top of another program.
     /// </summary>
     public event Action<bool>? CrosshairVisibilityRequested;
+
+    private Settings.CrosshairSettingsViewModel? crosshairSettings;
+
+    /// <summary>
+    /// The crosshair settings. They are read when the app starts, so a crosshair that was left on is shown again
+    /// without the user opening the settings first.
+    /// </summary>
+    public Settings.CrosshairSettingsViewModel? CrosshairSettings => crosshairSettings ??= CreateCrosshairSettings();
 
     private Settings.CrosshairSettingsViewModel? CreateCrosshairSettings()
     {
@@ -1282,6 +1290,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             EnsureAccountServices();
             ObserveAchievements();
             CreateLogicEngine();
+            // The crosshair is read at start-up, so one that was left on is shown again.
+            _ = CrosshairSettings;
             timerLoop = Timers.RunAsync(timerStop.Token);
             trafficLoop = RunTrafficAsync(timerStop.Token);
             if (Cloud is not null) Cloud.CheckCommand.Execute(null);
