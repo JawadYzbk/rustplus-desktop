@@ -10,6 +10,7 @@
 # Publish-Output (dotnet publish)
 **/publish/
 .antigravitycli
+/rustplus-rust/
 # NuGet / Paketmanager
 *.nupkg
 !packages-local/*.nupkg
