@@ -86,7 +86,11 @@ public sealed partial class App : Application
                 pickSound: new SoundFilePicker(window).PickAsync,
                 logicRuleStore: new LegacyLogicRuleStore(),
                 drawingStore: new RustPlusDesk.Infrastructure.Map.MapDrawingStore(
-                    RustPlusDesk.Infrastructure.Map.MapDrawingStore.DefaultRoot));
+                    RustPlusDesk.Infrastructure.Map.MapDrawingStore.DefaultRoot),
+                updateService: new RustPlusDesk.Infrastructure.Updates.GitHubReleaseClient(
+                    new HttpClient { Timeout = TimeSpan.FromSeconds(15) },
+                    RustPlusDesk.Infrastructure.Updates.GitHubReleaseClient.DefaultOwner,
+                    RustPlusDesk.Infrastructure.Updates.GitHubReleaseClient.DefaultRepository));
             desktop.Exit += (_, _) => { accountHttp.Dispose(); cloudHttp.Dispose(); };
             window.DataContext = servers;
             window.Opened += async (_, _) => await servers.InitializeCommand.ExecuteAsync(null);

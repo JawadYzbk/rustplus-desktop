@@ -493,6 +493,36 @@
           </StackPanel>
         </StackPanel>
       </Border>
+      <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0" IsVisible="{Binding HasUpdate, FallbackValue=False}">
+        <icons:Icon Symbol="ArrowSync24" FontSize="18" Foreground="{DynamicResource Accent}" />
+        <StackPanel>
+          <TextBlock Text="Updates" Classes="title" />
+          <TextBlock Text="The running build and the newest published release" Classes="muted" FontSize="12" />
+        </StackPanel>
+      </StackPanel>
+      <Border Classes="panel" Padding="16" IsVisible="{Binding HasUpdate, FallbackValue=False}">
+        <StackPanel Spacing="12">
+          <TextBlock Text="VERSION" Classes="section" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <StackPanel>
+              <TextBlock Text="Installed version" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding Update.CurrentVersionText, FallbackValue=''}" Classes="muted" FontSize="12" />
+            </StackPanel>
+            <Button Grid.Column="1" Classes="subtle" Command="{Binding Update.CheckCommand, FallbackValue={x:Null}}"
+                    IsEnabled="{Binding !Update.IsChecking, FallbackValue=True}" ToolTip.Tip="Check for a new release"
+                    AutomationProperties.Name="Check for updates">
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ArrowSync24" FontSize="14" /><TextBlock Text="Check for updates" /></StackPanel>
+            </Button>
+          </Grid>
+          <TextBlock Text="{Binding Update.Status, FallbackValue=''}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <Button Classes="subtle" Command="{Binding Update.OpenReleasesCommand, FallbackValue={x:Null}}"
+                    ToolTip.Tip="Open the releases page" AutomationProperties.Name="Open the releases page">
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Open24" FontSize="14" /><TextBlock Text="Open the releases page" /></StackPanel>
+            </Button>
+          </StackPanel>
+        </StackPanel>
+      </Border>
       <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0">
         <icons:Icon Symbol="Alert24" FontSize="18" Foreground="{DynamicResource Accent}" />
         <StackPanel>

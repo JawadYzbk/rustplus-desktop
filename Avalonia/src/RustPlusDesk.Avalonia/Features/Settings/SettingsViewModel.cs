@@ -67,6 +67,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>The selected profile's logic rules (reference LogicEngineOverlay).</summary>
     public RustPlusDesk.Avalonia.Features.Logic.LogicRulesViewModel? LogicRules { get; init; }
     public bool HasLogicRules => LogicRules is not null;
+    /// <summary>The update card: the running version and the newest published release.</summary>
+    public UpdateSettingsViewModel? Update { get; init; }
+    public bool HasUpdate => Update is not null;
     /// <summary>The selected profile's device automation rules (reference DeviceAutomationOverlay).</summary>
     public RustPlusDesk.Avalonia.Features.Devices.DeviceAutomationSettingsViewModel? Automation { get; init; }
     public bool HasAutomation => Automation is not null;

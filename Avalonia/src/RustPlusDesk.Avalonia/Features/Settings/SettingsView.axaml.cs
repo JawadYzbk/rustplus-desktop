@@ -16,6 +16,11 @@ public sealed partial class SettingsView : UserControl
             if (model is not null) { model.TemplatesFocusRequested -= ShowTemplates; model.WebhookFocusRequested -= ShowWebhook; }
             model = DataContext as SettingsViewModel;
             if (model is not null) { model.TemplatesFocusRequested += ShowTemplates; model.WebhookFocusRequested += ShowWebhook; }
+            // Only a window can open a link, so the update card borrows the one this view lives in.
+            if (model?.Update is { } update)
+            {
+                update.OpenUrl = url => TopLevel.GetTopLevel(this)?.Launcher?.LaunchUriAsync(new Uri(url)) ?? Task.FromResult(false);
+            }
         };
     }
 

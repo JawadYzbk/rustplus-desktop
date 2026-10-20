@@ -43,7 +43,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Core.Chat.ITimerAudio? timerAudio = null,
     Func<Task<string?>>? pickSound = null,
     RustPlusDesk.Core.Logic.ILogicRuleStore? logicRuleStore = null,
-    RustPlusDesk.Infrastructure.Map.MapDrawingStore? drawingStore = null)
+    RustPlusDesk.Infrastructure.Map.MapDrawingStore? drawingStore = null,
+    RustPlusDesk.Infrastructure.Updates.GitHubReleaseClient? updateService = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -678,7 +679,13 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
                 () => SelectedServer?.Devices ?? [],
                 settings => automation = settings,
                 () => AutomationTeammates(),
-                CaptureDeviceLocationAsync)
+                CaptureDeviceLocationAsync),
+            LogicRules = LogicRules,
+            Update = updateService is null ? null : new Settings.UpdateSettingsViewModel(
+                async () => await updateService.GetLatestAsync(Settings.UpdateSettingsViewModel.InstallerAssetName, CancellationToken.None))
+            {
+                ReleasesPageUrl = updateService.ReleasesPageUrl
+            }
         };
         _ = model.CustomMap?.LoadAsync();
         _ = model.ChatCommands?.LoadAsync();

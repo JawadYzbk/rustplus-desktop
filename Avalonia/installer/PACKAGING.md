@@ -63,13 +63,37 @@ user: the files under `~/.local/opt/rustplus-desktop`, a launcher in
 entry is installed switched off; the app registers it itself when "launch at
 sign-in" is turned on in the settings.
 
+## Updating
+
+The app has an **Updates** card in the settings: it shows the running build and, when asked, reads the newest
+published release of this repository. If the release is newer, the card says so and opens the releases page, where
+the installer and the portable build are.
+
+`installer/build-release.ps1` builds both assets with the names the card looks for:
+
+```powershell
+powershell -File installer/build-release.ps1
+```
+
+The assets land in `artifacts/release/win-x64/`:
+
+| File | What it is |
+| --- | --- |
+| `RustPlusDesk-Avalonia-Setup.exe` | the installer, the asset the update card offers |
+| `RustPlusDesk-Avalonia-win-x64.zip` | the portable build |
+| `RELEASE-NOTES.txt` | what is in the release |
+
+Publishing those files as a GitHub release is what makes an update visible to an installed app. Nothing in the
+migration uploads anything by itself.
+
 ## What is not in these packages
 
 - **Signing.** Neither the Windows installer nor the macOS bundle is signed, so
   Windows SmartScreen and Gatekeeper will warn on a first run from a
   downloaded file.
-- **Automatic updates.** The app does not update itself yet. A new build is
-  installed by running the installer again; the user's data is kept.
+- **In-app update and restart.** The app can *find* a new release and open the
+  releases page, but it does not replace itself: the user runs the installer,
+  and the user's data is kept.
 - **Native macOS and Linux appearance.** The app runs on all three platforms
   with the built-in Fluent theme. The system-native controls, fonts and menus
   are still pending.
