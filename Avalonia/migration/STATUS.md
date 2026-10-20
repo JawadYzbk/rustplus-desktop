@@ -11,6 +11,17 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- The players tab: `Core/Tracking` carries the reference's tracked players (the profile id, the name, the server the
+  player was last seen on, the group and the sessions) and its rules - the filter, the grouping by server and then
+  by group, the order the user put the groups in, the play time and the twelve-week cut-off; `Infrastructure/Tracking`
+  reads and writes the reference's own `tracked_players.json`, so both apps see the same bookmarks, and the name of a
+  Steam profile is read from the same public profile XML the avatars come from. The new **Players** tab has the
+  reference's two halves: the online one, which says the player activity tracking was removed and where the team
+  history is, and the tracked one, with the filter, the groups, the group order and the per-player actions (rename,
+  group, stop tracking). The rail entry follows the reference's order and its opt-in - which the reference's own
+  setter could never turn on, so its Players tab could not be reached at all. **803 tests** on Windows locally
+  (803 pass). The reference's group manager (creating and renaming groups with their colours), the pop-out window,
+  the how-to-track window, the analysis report and the player wipe tracker are not ported yet.
 - The whole interface reads the catalogue: every label the reference's catalogue carries is bound to its own key
   (`{DynamicResource ...}`), so the 32 shipped translations cover the port's interface and not only the rail, the
   settings cards and the map toolbar. The catalogue itself is put into the app's resources at start-up and read again
@@ -408,6 +419,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Map drawing/routes/layers/3D | The shape tools, the named routes, the icon and the text tools, drawn on the map and saved per server | The drawing groups, import/export, keycards, no-build zones, monument overlays, the 3D map and the helper integration |
 | Command dock/minimap/popouts | Not ported | Preserve tiles/templates/configuration, overlays, floating windows and appearance settings |
 | Death markers/stats/wipe tracker | Not ported | Preserve history, heatmaps, archives, marker configuration and cloud synchronization |
+| Players tab / player wipe tracker | The players the user keeps an eye on: the reference's own `tracked_players.json`, the filter, the groups by server, the group order, the rename, the group and the stop-tracking actions, and the rail entry in the reference's place | The group manager (creating and renaming groups with their colours), the pop-out window, the how-to-track window, the analysis report and the player wipe tracker itself |
 | AI companion | The companion, the `!ai` chat command, the provider and model choice and the private key file | The spoken answers, the recording, the Anthropic and Gemini providers, the history and the recipe and raid tables |
 | Notifications/custom alerts | In-memory pairing/alarm/chat/death feed while listening, sent-time normalization and duplicate suppression | Durable inbox, unread state, popup paging, sounds, channel settings and integrations |
 | Community/LFG/support/admin | The support card: the user's tickets, the thread, the categories and filing a ticket | The community profiles, moderation and reporting, the attachments in the form, the LFG and the admin panel |
@@ -486,11 +498,11 @@ themes, and full keyboard/screen-reader acceptance are still pending.
   code/web candidates and generated-tree exclusions.
 - Isolation: a source-only copy of the folder **outside** the repository, restored against a fresh, separate
   package cache (including the local protocol package and FluentAvaloniaUI), builds with zero warnings, passes
-  **783 tests** with 4 skipped and none failed, and publishes self-contained builds for win-x64, linux-x64 and
+  **799 tests** with 4 skipped and none failed, and publishes self-contained builds for win-x64, linux-x64 and
   osx-arm64. The published Windows executable was started and stayed up. The four skipped checks are the ones that
   compare the ported chat texts and the catalogue against the reference app's resources, which are not beside the
   copy; they are skipped rather than failed, because the port itself does not need the reference. The isolation copy
-  is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-iso6` (a local path, not part of the repository).
+  is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-iso7` (a local path, not part of the repository).
 - Data continuity: the app reads the shipped app's own `profiles.json` and `tracking_settings.json` from the
   operating system's application-data folder, and writes its own files beside them (the achievements file was
   written there by the published build). A user who switches from the Windows app to this one keeps the servers,

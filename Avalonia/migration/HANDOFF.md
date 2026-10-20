@@ -1,8 +1,49 @@
-# Avalonia migration handoff — 2026-10-20 (fourteenth run)
+# Avalonia migration handoff — 2026-10-20 (fifteenth run)
 
 **Plan of record: [PARITY-PLAN.md](PARITY-PLAN.md).** Bar set by Jawad on 2026-10-18: *same functionality as the WPF
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
 every finished slice with its commit.
+
+## Fifteenth run - the players tab (2026-10-20, local Windows continuation)
+
+- Branch `codex/avalonia-migration`; slice commit `c65f8c89` (docs follow). Only `Avalonia/` changes.
+- **803 tests** run locally on Windows: 803 pass, none fail. Build zero warnings.
+- Done: the reference's Players tab - the players the user keeps an eye on. `Core/Tracking` carries the reference's
+  `TrackedPlayer` (the profile id, the name, the server the player was last seen on, the group, the colour and the
+  sessions) and its rules: the filter (the name or the server), the grouping by server and then by group, the order
+  the user put the groups in (a group that is in the order comes first, the ones that are not come after them and
+  the ungrouped ones come last), the play time as "hh:mm" and the twelve-week cut-off on the sessions.
+  `Infrastructure/Tracking/TrackedPlayerFile` reads and writes the reference's own `tracked_players.json` in the
+  app's data folder, with the reference's shape (a list of the players), so both apps see the same bookmarks; the
+  name of a Steam profile is read from the same public profile XML the avatars come from
+  (`SteamCommunityProfileNameSource`), and a profile id that is not a Steam id is the name already.
+- The new **Players** workspace has the reference's two halves. The online half says what the reference says - that
+  the player activity tracking was removed and that the team history is in the wipe tracker - and the box where a
+  player is added by hand. The tracked half has the filter, the servers, the groups with their colour, the order the
+  groups are in (the reference drags them; the port moves them with the two buttons beside the group), and the
+  per-player actions: give the player another name, put it in a group (an existing one or a new one), and stop
+  tracking it.
+- The rail entry follows the reference: the players sit between the clan and the notifications, with the reference's
+  globe and the reference's help text, and the entry only shows once the user turns the Players tab on in the
+  settings. The reference's opt-in could never be turned on - its setter always wrote the flag back to false - so
+  its Players tab could not be reached at all; the port's switch works, because a switch that cannot be turned on is
+  a switch that does nothing.
+- Where: `Core/Tracking/TrackedPlayers.cs`, `Infrastructure/Tracking/TrackedPlayerFile.cs`,
+  `Infrastructure/Steam/SteamCommunityProfileNameSource.cs`, `Features/Players/PlayersViewModel.cs`,
+  `Features/Players/PlayersView.axaml`, `Shell/{MainWindow,NavigationRail}.axaml`,
+  `Features/{Servers,Settings}` (the workspace and the opt-in).
+- Tests: `TrackedPlayerTests` (16: the filter, the grouping and its order, the play time, the twelve-week cut-off,
+  the Steam profile id, the file's round trip and its reference shape, a file that cannot be read, the workspace's
+  actions, the group's folded-away state, the group order, the rail entry and the rendered view).
+- Deviations: the reference's manual track adds nothing - its call leaves out the flag that says "a bookmark", so
+  the button does nothing - and the port's adds the bookmark, because a button that does nothing is a button the
+  plan does not allow. The reference's group manager (creating and renaming groups with their colours), the pop-out
+  window, the how-to-track window and the analysis report are not ported yet, and neither is the player wipe
+  tracker, which is the next half of this slice.
+- Next slices: the rest of this slice - the player wipe tracker (the `.pwt` reader and writer, the records, the
+  insights and the window) - then the command dock and the mini-map, the cameras, the tutorials and the gallery, the
+  cloud account windows, the LFG and admin surfaces, the AI companion's history window and model picker, and the
+  tray, audio and speech adapters.
 
 ## Fourteenth run - the whole interface reads the catalogue (2026-10-20, local Windows continuation)
 
@@ -904,11 +945,11 @@ The checks never used personal credentials or contacted Steam/Facepunch.
 
 ## Verified current source
 
-- Debug/Release builds: zero warnings/errors. The current source has **787 passing tests** in the repository.
-- Source-only external copy with separate package cache: **783 tests pass, 4 skipped, none failed**, zero
+- Debug/Release builds: zero warnings/errors. The current source has **803 passing tests** in the repository.
+- Source-only external copy with separate package cache: **799 tests pass, 4 skipped, none failed**, zero
   warnings, and self-contained publishes for win-x64, linux-x64 and osx-arm64. The skipped checks are the
   reference-text comparisons, which need the reference app beside the copy. The published Windows executable was
-  started and stayed up. The copy is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-iso6`.
+  started and stayed up. The copy is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-iso7`.
 - Self-contained Release publishes on Windows: win-x64, linux-x64, osx-arm64 succeed. The published Windows
   executable was started and stayed up.
 - Native Windows browser callback and cancellation smoke passes. Native Linux/macOS executables untested.
