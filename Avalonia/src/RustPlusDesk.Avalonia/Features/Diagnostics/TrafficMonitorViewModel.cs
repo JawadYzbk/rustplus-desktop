@@ -30,6 +30,19 @@ public sealed partial class TrafficMonitorViewModel(NetworkTrafficMonitor monito
     /// <summary>The one-line readout the title bar shows (reference BandwidthSummaryBadge).</summary>
     public string Summary => $"{DownloadSpeed} ↓ {UploadSpeed} ↑";
 
+    /// <summary>Reference IsRecording: the log can be paused without losing what is already there.</summary>
+    public bool IsRecording
+    {
+        get => monitor.IsRecording;
+        set
+        {
+            if (monitor.IsRecording == value) return;
+            monitor.IsRecording = value;
+            OnPropertyChanged();
+            Status = value ? "Recording." : "Paused: new requests are not recorded.";
+        }
+    }
+
     /// <summary>Reference Clear: the counters and the log start over.</summary>
     [RelayCommand]
     public void Clear()

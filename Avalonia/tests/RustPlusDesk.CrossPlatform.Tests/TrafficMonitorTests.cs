@@ -141,6 +141,34 @@ public sealed class TrafficMonitorTests
         Assert.AreEqual("HTTP", TrafficTrackingHttpMessageHandler.DetectCategoryFromUri(new Uri("https://example.test/x")));
     }
 
+    [TestMethod]
+    public void RecordingCanBePaused_WithoutLosingWhatIsAlreadyThere()
+    {
+        var monitor = new NetworkTrafficMonitor();
+        monitor.Record("HTTP", TrafficDirection.Inbound, "GET /a", 100, 0);
+        Assert.IsTrue(monitor.IsRecording);
+
+        monitor.IsRecording = false;
+        monitor.Record("HTTP", TrafficDirection.Inbound, "GET /b", 100, 0);
+        Assert.AreEqual(1, monitor.Entries.Count, "A paused monitor records nothing new.");
+        Assert.AreEqual(1, monitor.TotalRequestsCount);
+
+        monitor.IsRecording = true;
+        monitor.Record("HTTP", TrafficDirection.Inbound, "GET /c", 100, 0);
+        Assert.AreEqual(2, monitor.Entries.Count);
+    }
+
+    [TestMethod]
+    public void TheViewModel_PausesTheMonitor()
+    {
+        var monitor = new NetworkTrafficMonitor();
+        var model = new TrafficMonitorViewModel(monitor);
+        Assert.IsTrue(model.IsRecording);
+        model.IsRecording = false;
+        Assert.IsFalse(monitor.IsRecording);
+        Assert.AreEqual("Paused: new requests are not recorded.", model.Status);
+    }
+
     private sealed class StubHandler : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
