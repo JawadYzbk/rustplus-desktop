@@ -104,7 +104,8 @@ public sealed class DeathStatsTests
             File.WriteAllLines(log.KillerPathFor("1.2.3.4-28082"),
                 ["{\"died_at\":" + Ago(1) + ",\"killer\":\"Raider\",\"weapon\":\"AK\",\"recorded_at\":1}",
                  "{\"died_at\":" + Ago(2) + ",\"killer\":\"Misread\",\"weapon\":null,\"recorded_at\":1}"]);
-            var shell = new ServersViewModel(new OneServer(), new NoPicker(), "profiles.json", new UnusedSessionFactory(), deathLog: log);
+            var shell = new ServersViewModel(new OneServer(), new NoPicker(), "profiles.json", new UnusedSessionFactory(), deathLog: log,
+                clock: new RustPlusDesk.Core.Time.FixedClock(Now));
             await shell.RefreshCommand.ExecuteAsync(null);
             Assert.IsTrue(shell.HasDeathStats);
             shell.OpenDeathStatsCommand.Execute(null);

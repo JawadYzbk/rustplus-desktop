@@ -68,14 +68,25 @@ public sealed class GeneralSettingsTests
         try
         {
             var entry = new XdgAutostart(folder, "/opt/Rust Plus/$app\"x%");
-            Assert.IsTrue(entry.IsSupported);
-            Assert.IsTrue(entry.Apply(true));
-            string text = File.ReadAllText(entry.EntryPath);
-            StringAssert.Contains(text, "[Desktop Entry]\nType=Application\n");
-            StringAssert.Contains(text, "Exec=\"/opt/Rust Plus/\\$app\\\"x%%\" --background\n");
-            Assert.IsTrue(entry.Apply(false));
-            Assert.IsFalse(File.Exists(entry.EntryPath));
-            Assert.IsTrue(entry.Apply(false), "Removing a missing entry is fine.");
+            if (OperatingSystem.IsLinux())
+            {
+                Assert.IsTrue(entry.IsSupported);
+                Assert.IsTrue(entry.Apply(true));
+                string text = File.ReadAllText(entry.EntryPath);
+                StringAssert.Contains(text, "[Desktop Entry]\nType=Application\n");
+                StringAssert.Contains(text, "Exec=\"/opt/Rust Plus/\\$app\\\"x%%\" --background\n");
+                Assert.IsTrue(entry.Apply(false));
+                Assert.IsFalse(File.Exists(entry.EntryPath));
+                Assert.IsTrue(entry.Apply(false), "Removing a missing entry is fine.");
+            }
+            else
+            {
+                Assert.IsFalse(entry.IsSupported, "The XDG autostart entry belongs to Linux only.");
+                Assert.IsFalse(entry.Apply(true));
+                Assert.IsFalse(File.Exists(entry.EntryPath));
+            }
+            // The entry format is the same on every host, so it is checked everywhere.
+            Assert.AreEqual("\"/opt/Rust Plus/\\$app\\\"x%%\"", XdgAutostart.QuoteExecArgument("/opt/Rust Plus/$app\"x%"));
         }
         finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
     }
@@ -87,13 +98,28 @@ public sealed class GeneralSettingsTests
         try
         {
             var agent = new MacLaunchAgent(folder, "/Applications/R&D.app/Contents/MacOS/RustPlusDesk");
-            Assert.IsTrue(agent.Apply(true));
-            string text = File.ReadAllText(agent.AgentPath);
-            StringAssert.Contains(text, "<string>com.rustplusdesk.app</string>");
-            StringAssert.Contains(text, "<string>/Applications/R&amp;D.app/Contents/MacOS/RustPlusDesk</string><string>--background</string>");
-            StringAssert.Contains(text, "<key>RunAtLoad</key><true/>");
-            Assert.IsTrue(agent.Apply(false));
-            Assert.IsFalse(File.Exists(agent.AgentPath));
+            if (OperatingSystem.IsMacOS())
+            {
+                Assert.IsTrue(agent.IsSupported);
+                Assert.IsTrue(agent.Apply(true));
+                string text = File.ReadAllText(agent.AgentPath);
+                StringAssert.Contains(text, "<string>com.rustplusdesk.app</string>");
+                StringAssert.Contains(text, "<string>/Applications/R&amp;D.app/Contents/MacOS/RustPlusDesk</string><string>--background</string>");
+                StringAssert.Contains(text, "<key>RunAtLoad</key><true/>");
+                Assert.IsTrue(agent.Apply(false));
+                Assert.IsFalse(File.Exists(agent.AgentPath));
+            }
+            else
+            {
+                Assert.IsFalse(agent.IsSupported, "The LaunchAgent belongs to macOS only.");
+                Assert.IsFalse(agent.Apply(true));
+                Assert.IsFalse(File.Exists(agent.AgentPath));
+            }
+            // The plist format is the same on every host, so it is checked everywhere.
+            string plist = MacLaunchAgent.BuildPlist("/Applications/R&D.app/Contents/MacOS/RustPlusDesk");
+            StringAssert.Contains(plist, "<string>com.rustplusdesk.app</string>");
+            StringAssert.Contains(plist, "<string>/Applications/R&amp;D.app/Contents/MacOS/RustPlusDesk</string><string>--background</string>");
+            StringAssert.Contains(plist, "<key>RunAtLoad</key><true/>");
         }
         finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
     }
@@ -109,6 +135,16 @@ public sealed class GeneralSettingsTests
             Assert.AreNotEqual("", entry.UnsupportedReason);
         }
         Assert.IsNotNull(LaunchAtLogin.ForCurrentPlatform());
+    }
+
+    [TestMethod]
+    public void LoginItems_PickTheAdapterOfTheRunningOperatingSystem()
+    {
+        var login = LaunchAtLogin.ForCurrentPlatform();
+        if (OperatingSystem.IsWindows()) Assert.IsInstanceOfType<WindowsRunKeyLaunchAtLogin>(login);
+        else if (OperatingSystem.IsMacOS()) Assert.IsInstanceOfType<MacLaunchAgent>(login);
+        else if (OperatingSystem.IsLinux()) Assert.IsInstanceOfType<XdgAutostart>(login);
+        else Assert.IsFalse(login.IsSupported);
     }
 
     [TestMethod]

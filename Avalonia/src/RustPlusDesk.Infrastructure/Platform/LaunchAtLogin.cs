@@ -71,9 +71,17 @@ public sealed class WindowsRunKeyLaunchAtLogin(string? executable) : ILaunchAtLo
 public sealed class XdgAutostart(string folder, string? executable) : ILaunchAtLogin
 {
     public string EntryPath => Path.Combine(folder, LaunchAtLogin.AppName + ".desktop");
-    public bool IsSupported => LaunchAtLogin.UsableExecutable(executable);
+    public bool IsSupported => OperatingSystem.IsLinux() && LaunchAtLogin.UsableExecutable(executable);
     public string UnsupportedReason => IsSupported ? "" : LaunchAtLogin.NoExecutable;
     public string Label => "Launch at sign-in";
+
+    /// <summary>The Exec value: the path quoted with the characters the desktop-entry spec escapes inside quotes.</summary>
+    internal static string QuoteExecArgument(string executable) => "\"" + executable
+        .Replace("\\", "\\\\", StringComparison.Ordinal)
+        .Replace("\"", "\\\"", StringComparison.Ordinal)
+        .Replace("`", "\\`", StringComparison.Ordinal)
+        .Replace("$", "\\$", StringComparison.Ordinal)
+        .Replace("%", "%%", StringComparison.Ordinal) + "\"";
 
     public bool Apply(bool enabled)
     {
@@ -82,9 +90,7 @@ public sealed class XdgAutostart(string folder, string? executable) : ILaunchAtL
         {
             if (!enabled) { File.Delete(EntryPath); return true; }
             Directory.CreateDirectory(folder);
-            // Desktop Entry spec: quote the path and escape the characters that are special inside quotes.
-            string quoted = "\"" + executable!.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal)
-                .Replace("`", "\\`", StringComparison.Ordinal).Replace("$", "\\$", StringComparison.Ordinal).Replace("%", "%%", StringComparison.Ordinal) + "\"";
+            string quoted = QuoteExecArgument(executable!);
             File.WriteAllText(EntryPath, string.Join('\n',
                 "[Desktop Entry]", "Type=Application", "Name=Rust+ Desktop", $"Exec={quoted} {LaunchAtLogin.BackgroundArgument}",
                 "Terminal=false", "X-GNOME-Autostart-enabled=true", ""), new UTF8Encoding(false));
@@ -99,9 +105,24 @@ public sealed class MacLaunchAgent(string folder, string? executable) : ILaunchA
 {
     public const string AgentLabel = "com.rustplusdesk.app";
     public string AgentPath => Path.Combine(folder, AgentLabel + ".plist");
-    public bool IsSupported => LaunchAtLogin.UsableExecutable(executable);
+    public bool IsSupported => OperatingSystem.IsMacOS() && LaunchAtLogin.UsableExecutable(executable);
     public string UnsupportedReason => IsSupported ? "" : LaunchAtLogin.NoExecutable;
     public string Label => "Open at login";
+
+    /// <summary>The agent plist: the executable runs with the reference background argument at sign-in.</summary>
+    internal static string BuildPlist(string executable) => $"""
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>Label</key><string>{AgentLabel}</string>
+          <key>ProgramArguments</key>
+          <array><string>{SecurityElement.Escape(executable)}</string><string>{LaunchAtLogin.BackgroundArgument}</string></array>
+          <key>RunAtLoad</key><true/>
+        </dict>
+        </plist>
+
+        """;
 
     public bool Apply(bool enabled)
     {
@@ -110,19 +131,7 @@ public sealed class MacLaunchAgent(string folder, string? executable) : ILaunchA
         {
             if (!enabled) { File.Delete(AgentPath); return true; }
             Directory.CreateDirectory(folder);
-            File.WriteAllText(AgentPath, $"""
-                <?xml version="1.0" encoding="UTF-8"?>
-                <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-                <plist version="1.0">
-                <dict>
-                  <key>Label</key><string>{AgentLabel}</string>
-                  <key>ProgramArguments</key>
-                  <array><string>{SecurityElement.Escape(executable)}</string><string>{LaunchAtLogin.BackgroundArgument}</string></array>
-                  <key>RunAtLoad</key><true/>
-                </dict>
-                </plist>
-
-                """, new UTF8Encoding(false));
+            File.WriteAllText(AgentPath, BuildPlist(executable!), new UTF8Encoding(false));
             return true;
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or IOException) { return false; }

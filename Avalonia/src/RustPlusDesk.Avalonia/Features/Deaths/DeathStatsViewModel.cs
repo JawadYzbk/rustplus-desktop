@@ -2,6 +2,7 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using RustPlusDesk.Core.Deaths;
+using RustPlusDesk.Core.Time;
 
 namespace RustPlusDesk.Avalonia.Features.Deaths;
 
@@ -19,10 +20,10 @@ public sealed record DayBar(DayCount Day, double Height)
 /// Reference DeathStatsView: the local death log of the selected server with search, player, place and time filters that
 /// recompute every table; the 14-day sparkline; killers with Forget / Clear (confirmed); Refresh and Clear log (confirmed).
 /// </summary>
-public sealed partial class DeathStatsViewModel(IDeathLog log, Func<DateTimeOffset>? clock = null) : ObservableObject
+public sealed partial class DeathStatsViewModel(IDeathLog log, IClock? clock = null) : ObservableObject
 {
     public const double SparkHeight = 42.0;
-    private readonly Func<DateTimeOffset> clock = clock ?? (() => DateTimeOffset.Now);
+    private readonly IClock clock = clock ?? SystemClock.Instance;
     private List<DeathEntry> all = [];
     private string? serverKey;
     private bool ready;
@@ -76,7 +77,7 @@ public sealed partial class DeathStatsViewModel(IDeathLog log, Func<DateTimeOffs
     private void Apply()
     {
         if (!ready) return;
-        var now = clock();
+        var now = clock.Now;
         var filtered = DeathStats.Filter(all, SearchText, Player?.Tag ?? "all", Place.Tag, Range.Tag, now.ToUnixTimeSeconds()).ToList();
         var killers = serverKey is { Length: > 0 } key ? DeathStats.ParseKillers(log.ReadKillerLines(key)) : [];
         Summary = DeathStats.Summarize(filtered, killers, all.Count == 0, now.LocalDateTime.Date);

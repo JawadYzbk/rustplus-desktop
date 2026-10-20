@@ -36,7 +36,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Core.Alerts.IDiscordWebhookStore? webhookStore = null, RustPlusDesk.Core.Alerts.IDiscordWebhookSender? webhookSender = null,
     RustPlusDesk.Core.Alerts.ICloudSignInState? cloudSignIn = null, IProfileWipeTimeStore? wipeTimes = null,
     ISteamAvatarSource? avatarSource = null, RustPlusDesk.Core.Chat.IChatCommandSettingsStore? chatCommandStore = null,
-    RustPlusDesk.Core.Chat.ICustomTimerStore? customTimerStore = null)
+    RustPlusDesk.Core.Chat.ICustomTimerStore? customTimerStore = null, RustPlusDesk.Core.Time.IClock? clock = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -583,7 +583,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     public bool HasDeathStats => deathLog is not null;
     private DeathsPage.DeathStatsViewModel? deathStats;
     /// <summary>Reference Death Stats workspace over the selected server's local death log.</summary>
-    public DeathsPage.DeathStatsViewModel? DeathStats => deathStats ??= deathLog is null ? null : new(deathLog);
+    public DeathsPage.DeathStatsViewModel? DeathStats => deathStats ??= deathLog is null ? null : new(deathLog, clock);
 
     /// <summary>Reference OpenDeathStatsWorkspace: (re)reads the log for the selected server each time it opens.</summary>
     [RelayCommand]
