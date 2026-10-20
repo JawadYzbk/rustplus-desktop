@@ -11,6 +11,16 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- The AI companion: `Core/Ai` carries the reference's question, answer and provider shapes and its standing
+  instructions, and `Core/Chat/ChatAiCommand` the reference's command rules - the command matches on its first
+  word, the question is taken from the raw message, the answer is cut at a sentence end, and the allowance is a
+  rolling hour. The `!ai` command is answered by the companion before the command engine, so it works whether or
+  not the game is connected, and it is gated the way the reference gates it: it needs a key, a supporter plan and
+  (for everybody but the owner) the profile's permission. The new **AI Companion** card in the settings picks the
+  provider and the model and holds the key, which is written to a private file only the current account can read -
+  the reference protects it with Windows data protection, which does not exist on the other two platforms.
+  **783 tests** on Windows locally (783 pass). The reference's Anthropic and Gemini providers, the spoken
+  answers, the recording and the recipe and raid tables are not ported.
 - Localization: the app carries the reference's own resource catalogue (its `Resources.resx` and all 32 satellite
   catalogues), so the translations the reference ships apply here. `Core/Localization` has the reference's `Loc`
   (a string is read in the language the user chose, not in the operating system's language) and its
@@ -383,7 +393,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Map drawing/routes/layers/3D | The shape tools, the named routes, the icon and the text tools, drawn on the map and saved per server | The drawing groups, import/export, keycards, no-build zones, monument overlays, the 3D map and the helper integration |
 | Command dock/minimap/popouts | Not ported | Preserve tiles/templates/configuration, overlays, floating windows and appearance settings |
 | Death markers/stats/wipe tracker | Not ported | Preserve history, heatmaps, archives, marker configuration and cloud synchronization |
-| AI companion | Not ported | Preserve answers/history, provider/model selection, chat commands and account settings |
+| AI companion | The companion, the `!ai` chat command, the provider and model choice and the private key file | The spoken answers, the recording, the Anthropic and Gemini providers, the history and the recipe and raid tables |
 | Notifications/custom alerts | In-memory pairing/alarm/chat/death feed while listening, sent-time normalization and duplicate suppression | Durable inbox, unread state, popup paging, sounds, channel settings and integrations |
 | Community/LFG/support/admin | The support card: the user's tickets, the thread, the categories and filing a ticket | The community profiles, moderation and reporting, the attachments in the form, the LFG and the admin panel |
 | Tutorials/achievements/help | The achievements list with its artwork, the unlock triggers and the saved state | Guided tutorial targets and their progress, patch notes, galleries, the help content and the consent dialogs |
@@ -427,7 +437,7 @@ themes, and full keyboard/screen-reader acceptance are still pending.
 
 ## Local verification
 
-- Windows: all **772 .NET test cases** pass on the current source, including the clan workspace and its role-gated
+- Windows: all **783 .NET test cases** pass on the current source, including the clan workspace and its role-gated
   commands, the device-automation rules, the achievements list, the traffic monitor, the timer sounds, the
   organization, recycling and socket-teardown work; build and isolated-copy results are recorded in HANDOFF.md at each checkpoint.
 - Native browser crash reproduced using a local callback: Windows threw `Unable to create child window
