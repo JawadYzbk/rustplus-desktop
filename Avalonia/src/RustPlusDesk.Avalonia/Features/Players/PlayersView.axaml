@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:RustPlusDesk.Avalonia.Features.Players"
              xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+             xmlns:sys="using:System"
              x:Class="RustPlusDesk.Avalonia.Features.Players.PlayersView" x:DataType="vm:PlayersViewModel">
   <UserControl.Styles>
     <Style Selector="TextBlock.colHeader"><Setter Property="FontSize" Value="11" /><Setter Property="FontWeight" Value="SemiBold" />
@@ -44,13 +45,56 @@
     </StackPanel>
 
     <!-- The tracked half: the bookmarks, by the server they were seen on and by their group. -->
-    <Grid Grid.Row="2" RowDefinitions="Auto,Auto,*" RowSpacing="8" IsVisible="{Binding IsTrackedTab}">
+    <Grid Grid.Row="2" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="8" IsVisible="{Binding IsTrackedTab}">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
         <TextBlock Text="{DynamicResource TrackedPlayers}" Classes="title" VerticalAlignment="Center" />
+        <Button Grid.Column="1" Classes="subtle" Command="{Binding OpenGroupManagerCommand}"
+                ToolTip.Tip="Create a group and put the players in it" AutomationProperties.Name="Manage groups">
+          <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Group24" FontSize="14" />
+            <TextBlock Text="{DynamicResource ManageGroups}" /></StackPanel>
+        </Button>
       </Grid>
       <TextBox Grid.Row="1" Text="{Binding Filter}" PlaceholderText="{DynamicResource FilterPlayersPlaceholder}"
                AutomationProperties.Name="Filter tracked players" />
-      <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
+      <Border Grid.Row="2" Classes="panel" Padding="12" IsVisible="{Binding IsManagingGroups}" Margin="0,0,0,8">
+        <StackPanel Spacing="8">
+          <TextBlock Text="{DynamicResource CodeUiManagePlayerGroup}" Classes="section" />
+          <TextBox Text="{Binding GroupName}" PlaceholderText="{DynamicResource EnterGroupNamePlaceholder}"
+                   AutomationProperties.Name="The name of the group" />
+          <ItemsControl ItemsSource="{Binding Groups}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="sys:String">
+                <Button Classes="subtle" Margin="0,0,4,4" Padding="8,4" Content="{Binding}"
+                        Command="{Binding $parent[ItemsControl].((vm:PlayersViewModel)DataContext).ChooseGroupCommand}"
+                        CommandParameter="{Binding}" AutomationProperties.Name="Edit the group" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <ComboBox ItemsSource="{Binding GroupColours}" SelectedItem="{Binding GroupColour}" HorizontalAlignment="Stretch"
+                    AutomationProperties.Name="The colour of the group" />
+          <TextBlock Text="{Binding GroupError}" Foreground="{DynamicResource ConnectionDanger}" FontSize="12" TextWrapping="Wrap"
+                     IsVisible="{Binding GroupError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <ScrollViewer MaxHeight="180" HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl ItemsSource="{Binding GroupPlayers}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:TrackedPlayerRow">
+                  <CheckBox Margin="0,2,0,2" IsChecked="{Binding IsSelected}" Content="{Binding Name}" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+          <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+            <Button Classes="subtle" Content="{DynamicResource Cancel}" Command="{Binding CancelGroupManagerCommand}"
+                    AutomationProperties.Name="Close the group manager" />
+            <Button Classes="primary" Content="{DynamicResource SaveGroup}" Command="{Binding SaveGroupCommand}"
+                    AutomationProperties.Name="Save the group" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <ScrollViewer Grid.Row="3" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Spacing="6">
           <ItemsControl ItemsSource="{Binding Servers}">
             <ItemsControl.ItemTemplate>

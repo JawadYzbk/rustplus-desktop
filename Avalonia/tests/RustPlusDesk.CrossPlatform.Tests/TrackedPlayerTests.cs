@@ -318,6 +318,69 @@ public sealed class TrackedPlayerTests
         public void Dispose() => System.IO.Directory.Delete(Directory, recursive: true);
     }
 
+    // ---- the group manager ----------------------------------------------------------------------
+
+    [TestMethod]
+    public async Task TheGroupManagerPutsThePlayersInTheGroupAndTakesThemOutAgain()
+    {
+        using var file = new TempFile("tracked_players.json");
+        var settings = new ShopNoticeTests.MemorySettings();
+        var store = new TrackedPlayerFile(file.Path);
+        await store.SaveAsync(
+            [Player("a", "Alice", "Test Server", "Rivals"), Player("b", "Bob", "Test Server", "Rivals")],
+            CancellationToken.None);
+
+        var model = new PlayersViewModel(store, settings);
+        await model.LoadAsync(CancellationToken.None);
+
+        model.OpenGroupManagerCommand.Execute(null);
+        Assert.IsTrue(model.IsManagingGroups, "The group manager is open.");
+        Assert.AreEqual(2, model.GroupPlayers.Count, "Every player is listed.");
+
+        // An existing group is picked: its name, its colour and its players come with it.
+        model.ChooseGroupCommand.Execute("Rivals");
+        Assert.AreEqual("Rivals", model.GroupName);
+        Assert.IsTrue(model.GroupPlayers.All(row => row.IsSelected), "The players in the group are checked.");
+
+        // Bob is taken out of the group: the players that are not checked leave the group that is being saved.
+        model.GroupPlayers.Single(row => row.BMId == "b").IsSelected = false;
+        await model.SaveGroupCommand.ExecuteAsync(null);
+
+        var saved = await store.LoadAsync(CancellationToken.None);
+        Assert.AreEqual("Rivals", saved.Single(player => player.BMId == "a").GroupName, "Alice stays in the group.");
+        Assert.AreEqual("", saved.Single(player => player.BMId == "b").GroupName, "Bob is out of the group.");
+        Assert.IsFalse(model.IsManagingGroups, "The manager is closed once the group is saved.");
+
+        // A new name moves the players that are checked into a new group.
+        model.OpenGroupManagerCommand.Execute(null);
+        model.GroupPlayers.Single(row => row.BMId == "a").IsSelected = true;
+        model.GroupName = "Friends";
+        model.GroupColour = "Blue";
+        await model.SaveGroupCommand.ExecuteAsync(null);
+
+        saved = await store.LoadAsync(CancellationToken.None);
+        Assert.AreEqual("Friends", saved.Single(player => player.BMId == "a").GroupName, "Alice is in the new group.");
+        Assert.AreEqual("Blue", saved.Single(player => player.BMId == "a").GroupColor, "The group has its colour.");
+    }
+
+    [TestMethod]
+    public async Task AGroupWithoutANameIsNotSaved()
+    {
+        using var file = new TempFile("tracked_players.json");
+        var store = new TrackedPlayerFile(file.Path);
+        await store.SaveAsync([Player("a", "Alice")], CancellationToken.None);
+
+        var model = new PlayersViewModel(store, new ShopNoticeTests.MemorySettings());
+        await model.LoadAsync(CancellationToken.None);
+        model.OpenGroupManagerCommand.Execute(null);
+        model.GroupName = "   ";
+        await model.SaveGroupCommand.ExecuteAsync(null);
+
+        Assert.IsTrue(model.IsManagingGroups, "The manager stays open.");
+        Assert.AreEqual("Please enter a group name.", model.GroupError, "The reference says what is wrong.");
+        Assert.AreEqual("", (await store.LoadAsync(CancellationToken.None))[0].GroupName, "Nothing was saved.");
+    }
+
     /// <summary>The file picker the tests never use.</summary>
     private sealed class Picker : RustPlusDesk.Avalonia.Services.IProfileFilePicker
     {

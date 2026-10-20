@@ -36,6 +36,9 @@ public sealed partial class TrackedPlayerRow : ObservableObject
     /// <summary>Reference BtnGroupTracked_Click: the group is chosen in place.</summary>
     [ObservableProperty] private bool isGrouping;
 
+    /// <summary>Reference ShowBulkGroupEditorDialog: the player is checked in the group manager.</summary>
+    [ObservableProperty] private bool isSelected;
+
     /// <summary>Reference TrackedPlayer.IsOnline: the last session has not ended yet.</summary>
     public bool IsOnline => Player.IsOnline;
 
@@ -257,6 +260,85 @@ public sealed partial class PlayersViewModel : ObservableObject
         settings.Set(SettingKeys.GroupStates, states);
         Refresh();
     }
+
+    /// <summary>Reference ShowBulkGroupEditorDialog: the group manager is open.</summary>
+    [RelayCommand]
+    private void OpenGroupManager()
+    {
+        GroupName = "";
+        GroupColour = "None";
+        GroupError = "";
+        foreach (var row in GroupPlayers) row.IsSelected = false;
+        IsManagingGroups = true;
+    }
+
+    /// <summary>
+    /// Reference ShowBulkGroupEditorDialog: an existing group is picked, and its name, its colour and the players in it
+    /// are filled in.
+    /// </summary>
+    [RelayCommand]
+    private void ChooseGroup(string name)
+    {
+        GroupName = name;
+        var sample = players.FirstOrDefault(player => player.GroupName == name);
+        GroupColour = string.IsNullOrEmpty(sample?.GroupColor) ? "None" : sample!.GroupColor;
+        foreach (var row in GroupPlayers) row.IsSelected = row.Player.GroupName == name;
+    }
+
+    /// <summary>
+    /// Reference ShowBulkGroupEditorDialog: the group is saved - the players that are checked are in it, and the players
+    /// that are not and were in it are out of it.
+    /// </summary>
+    [RelayCommand]
+    private async Task SaveGroupAsync()
+    {
+        string name = GroupName.Trim();
+        if (name.Length == 0)
+        {
+            GroupError = Loc.Text("EnterGroupName", "Please enter a group name.");
+            return;
+        }
+        GroupError = "";
+        players = players.Select(player =>
+        {
+            bool selected = rows.TryGetValue(player.BMId, out var row) && row.IsSelected;
+            if (selected) return player with { GroupName = name, GroupColor = GroupColour };
+            if (player.GroupName == name) return player with { GroupName = "", GroupColor = "" };
+            return player;
+        }).ToList();
+        await SaveAsync().ConfigureAwait(false);
+        IsManagingGroups = false;
+        Refresh();
+    }
+
+    /// <summary>Reference ShowBulkGroupEditorDialog: the group manager is closed without saving.</summary>
+    [RelayCommand]
+    private void CancelGroupManager()
+    {
+        IsManagingGroups = false;
+        GroupError = "";
+        foreach (var row in GroupPlayers) row.IsSelected = false;
+    }
+
+    /// <summary>Reference ShowBulkGroupEditorDialog: the group manager is open.</summary>
+    [ObservableProperty] private bool isManagingGroups;
+
+    /// <summary>Reference ShowBulkGroupEditorDialog: the name of the group being edited.</summary>
+    [ObservableProperty] private string groupName = "";
+
+    /// <summary>Reference ShowBulkGroupEditorDialog: the colour of the group being edited.</summary>
+    [ObservableProperty] private string groupColour = "None";
+
+    /// <summary>Reference ShowBulkGroupEditorDialog: what is wrong with the group that is being edited.</summary>
+    [ObservableProperty] private string groupError = "";
+
+    /// <summary>Reference ShowBulkGroupEditorDialog: the players the manager lists, by their name.</summary>
+    public IReadOnlyList<TrackedPlayerRow> GroupPlayers =>
+        players.OrderBy(player => player.Name, StringComparer.OrdinalIgnoreCase).Select(Row).ToList();
+
+    /// <summary>Reference CreateColorSelector: the colours the reference offers.</summary>
+    public static IReadOnlyList<string> GroupColours { get; } =
+        ["None", "Red", "Green", "Blue", "Yellow", "Purple", "Cyan", "Orange", "Pink", "White", "Gray"];
 
     /// <summary>Reference SetGroupOrder: the groups of a server are put in the order the user wants them in.</summary>
     [RelayCommand]
