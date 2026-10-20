@@ -25,6 +25,8 @@ public sealed class LegacyCustomTimerStore : ICustomTimerStore
         {
             var node = LegacyProfileStore.FindProfile(document, profileKey) ?? throw new ProfileChangedException();
             node["AlertCustomTimer"] = settings.AlertCustomTimer;
+            node["TimerCountdownAudioPath"] = settings.CountdownAudioPath;
+            node["TimerAlarmAudioPath"] = settings.AlarmAudioPath;
             node["CustomTimers"] = new JsonArray(settings.Timers.Select(timer => (JsonNode)new JsonObject
             {
                 ["Id"] = timer.Id,
@@ -47,7 +49,10 @@ public sealed class LegacyCustomTimerStore : ICustomTimerStore
         var defaults = CustomTimerSettings.Defaults;
         if (profile is null) return defaults;
         bool alert = profile["AlertCustomTimer"] is JsonValue flag && flag.TryGetValue(out bool value) ? value : true;
-        if (profile["CustomTimers"] is not JsonArray rows) return defaults with { AlertCustomTimer = alert };
+        string? countdownPath = Text(profile, "TimerCountdownAudioPath");
+        string? alarmPath = Text(profile, "TimerAlarmAudioPath");
+        if (profile["CustomTimers"] is not JsonArray rows)
+            return defaults with { AlertCustomTimer = alert, CountdownAudioPath = countdownPath, AlarmAudioPath = alarmPath };
 
         var timers = new List<ChatCustomTimer>();
         foreach (var row in rows)
@@ -69,7 +74,7 @@ public sealed class LegacyCustomTimerStore : ICustomTimerStore
                 Flag(timer, "Notified10") ?? false,
                 Flag(timer, "Notified3") ?? false));
         }
-        return new CustomTimerSettings(timers.Count == 0 ? CustomTimerSettings.NoTimers : timers, alert);
+        return new CustomTimerSettings(timers.Count == 0 ? CustomTimerSettings.NoTimers : timers, alert, countdownPath, alarmPath);
     }
 
     /// <summary>Reference OriginChannel is "Team", "Clan", or null for a timer made in the app.</summary>

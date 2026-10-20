@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using RustPlusDesk.Core.Chat;
 using RustPlusDesk.Core.Map;
 
 namespace RustPlusDesk.Infrastructure.Shops;
@@ -10,50 +11,62 @@ namespace RustPlusDesk.Infrastructure.Shops;
 /// </summary>
 public sealed class SystemAlertSound : IAlertSound
 {
-    private const uint SndAsync = 0x0001, SndNoDefault = 0x0002, SndFilename = 0x00020000;
-    private static readonly string[] LinuxPlayers = ["paplay", "pw-play", "aplay"];
-    private readonly string path;
-    private readonly string? player;
+    private readonly PlatformSoundPlayer player;
 
-    public SystemAlertSound(string path, Func<string, string?>? findExecutable = null)
-    {
-        this.path = path;
-        findExecutable ??= FindOnPath;
-        player = OperatingSystem.IsWindows() ? null
-            : OperatingSystem.IsMacOS() ? findExecutable("afplay")
-            : LinuxPlayers.Select(findExecutable).FirstOrDefault(found => found is not null);
-    }
+    public SystemAlertSound(string path, Func<string, string?>? findExecutable = null) =>
+        player = new PlatformSoundPlayer(path, findExecutable);
 
     public static string DefaultPath => Path.Combine(AppContext.BaseDirectory, "Assets", "cash.wav");
 
     /// <summary>The external player used on macOS/Linux, or null on Windows or when none is installed.</summary>
-    public string? Player => player;
-    public bool IsAvailable => File.Exists(path) && (OperatingSystem.IsWindows() || player is not null);
+    public string? Player => player.Player;
 
-    public void Play()
+    public bool IsAvailable => player.IsAvailable;
+
+    public void Play() => player.Play();
+}
+
+/// <summary>
+/// Reference PlayTimerAudio: the one-minute countdown and the zero-minute alarm. The reference ships them as
+/// <c>Assets/1min.mp3</c> and <c>Assets/bell.mp3</c>; the packaging carries wav copies, because Windows' own player
+/// has no mp3 support and every platform here plays wav. A sound the user picked replaces the default.
+/// </summary>
+public sealed class TimerAudioPlayer : ITimerAudio
+{
+    private readonly PlatformSoundPlayer countdown;
+    private readonly PlatformSoundPlayer alarm;
+
+    public TimerAudioPlayer(string? countdownPath = null, string? alarmPath = null)
     {
-        if (!IsAvailable) return;
-        try
-        {
-            if (OperatingSystem.IsWindows()) { PlaySound(path, IntPtr.Zero, SndAsync | SndNoDefault | SndFilename); return; }
-            var start = new ProcessStartInfo(player!) { UseShellExecute = false, CreateNoWindow = true };
-            start.ArgumentList.Add(path);
-            Process.Start(start)?.Dispose();
-        }
-        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or DllNotFoundException or EntryPointNotFoundException) { }
+        countdown = new PlatformSoundPlayer(countdownPath ?? DefaultCountdownPath);
+        alarm = new PlatformSoundPlayer(alarmPath ?? DefaultAlarmPath);
     }
 
-    internal static string? FindOnPath(string name)
-    {
-        foreach (string directory in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
-        {
-            string candidate = Path.Combine(directory, name);
-            if (File.Exists(candidate)) return candidate;
-        }
-        return null;
-    }
+    public static string DefaultCountdownPath => Path.Combine(AppContext.BaseDirectory, "Assets", "timer-countdown.wav");
+    public static string DefaultAlarmPath => Path.Combine(AppContext.BaseDirectory, "Assets", "timer-alarm.wav");
 
-    [DllImport("winmm.dll", EntryPoint = "PlaySoundW", CharSet = CharSet.Unicode)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool PlaySound(string sound, IntPtr module, uint flags);
+    public bool IsAvailable => countdown.IsAvailable || alarm.IsAvailable;
+
+    public void PlayCountdown() => countdown.Play();
+
+    public void PlayAlarm() => alarm.Play();
+
+    /// <summary>
+    /// Reference BtnStopTimerAlarm: the sound stops at once. On Windows the sound is played by the system, which
+    /// cannot be stopped from here, so the port stops the process it started on the other platforms and stays quiet
+    /// on Windows rather than pretending.
+    /// </summary>
+    public void Stop()
+    {
+        if (OperatingSystem.IsWindows()) return;
+        foreach (string name in new[] { "afplay", "paplay", "pw-play", "aplay" })
+        {
+            foreach (var process in Process.GetProcessesByName(name))
+            {
+                try { process.Kill(); }
+                catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or NotSupportedException) { }
+                finally { process.Dispose(); }
+            }
+        }
+    }
 }

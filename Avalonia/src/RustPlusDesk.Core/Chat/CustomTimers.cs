@@ -213,7 +213,8 @@ public sealed class CustomTimerTracker
 }
 
 /// <summary>The profile's custom timers and the AlertCustomTimer switch, read and written as one profile snapshot.</summary>
-public sealed record CustomTimerSettings(IReadOnlyList<ChatCustomTimer> Timers, bool AlertCustomTimer = true)
+public sealed record CustomTimerSettings(IReadOnlyList<ChatCustomTimer> Timers, bool AlertCustomTimer = true,
+    string? CountdownAudioPath = null, string? AlarmAudioPath = null)
 {
     public static IReadOnlyList<ChatCustomTimer> NoTimers { get; } = [];
 

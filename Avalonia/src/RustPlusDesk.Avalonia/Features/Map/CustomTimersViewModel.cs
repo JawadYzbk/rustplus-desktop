@@ -9,13 +9,13 @@ namespace RustPlusDesk.Avalonia.Features.Map;
 
 /// <summary>
 /// Reference custom timers (MainWindow.Map.Timers): the profile's timers, the one-second clock that posts the
-/// 60/30/10/3-minute warnings and the 00:00 expiry line back to the chat the timer was started from, and the add and
-/// delete actions of the timer popup. The reference played audio and showed snackbars alongside these chat lines; the
-/// port has no audio pipeline yet, so a countdown or expiry surfaces as a callback the shell turns into a toast.
+/// 60/30/10/3-minute warnings and the 00:00 expiry line back to the chat the timer was started from, the countdown
+/// and alarm sounds, and the add, delete and snooze actions of the timer popup.
 /// </summary>
 public sealed partial class CustomTimersViewModel(ICustomTimerStore? store,
     Action<ChatChannel?, string>? sendChat = null,
-    Action<string, bool>? showToast = null, Action<string>? log = null) : ObservableObject
+    Action<string, bool>? showToast = null, Action<string>? log = null, ITimerAudio? audio = null,
+    Func<Task<string?>>? pickSound = null) : ObservableObject
 {
     private readonly CustomTimerTracker tracker = new();
     private readonly SemaphoreSlim gate = new(1, 1);
@@ -45,6 +45,18 @@ public sealed partial class CustomTimersViewModel(ICustomTimerStore? store,
     [ObservableProperty] private string newSeconds = "";
     [ObservableProperty] private string validation = "";
 
+    /// <summary>Reference TglAddTimerCountdown: the new timer plays the one-minute sound (on by default).</summary>
+    [ObservableProperty] private bool newCountdownAudio = true;
+
+    /// <summary>Reference TglAddTimerAlarm: the new timer plays the alarm at zero (off by default).</summary>
+    [ObservableProperty] private bool newAlarmAudio;
+
+    /// <summary>Reference BtnSelectTimerCountdownAudio: the sound the user picked for the countdown.</summary>
+    [ObservableProperty] private string? countdownAudioPath;
+
+    /// <summary>Reference BtnSelectTimerAlarmAudio: the sound the user picked for the alarm.</summary>
+    [ObservableProperty] private string? alarmAudioPath;
+
     /// <summary>Reference TxtTimerCommandPreview: the command the timer is started with, after the chat prefix.</summary>
     public string PreviewText => ChatCustomTimer.CommandFor(NewName);
 
@@ -67,6 +79,8 @@ public sealed partial class CustomTimersViewModel(ICustomTimerStore? store,
         }
         loading = true;
         AlertCustomTimer = settings.AlertCustomTimer;
+        CountdownAudioPath = settings.CountdownAudioPath;
+        AlarmAudioPath = settings.AlarmAudioPath;
         loading = false;
         tracker.Load(settings.Timers, DateTime.UtcNow);
         RefreshRows();
@@ -99,6 +113,7 @@ public sealed partial class CustomTimersViewModel(ICustomTimerStore? store,
         double totalMinutes = totalSeconds / 60.0;
         var timer = new ChatCustomTimer(Guid.NewGuid().ToString(), name, ChatCustomTimer.CommandFor(name),
             DateTime.UtcNow.AddSeconds(totalSeconds), OriginChannel: null,
+            EnableCountdownAudio: NewCountdownAudio, EnableAlarmAudio: NewAlarmAudio,
             Notified60: totalMinutes <= 60, Notified30: totalMinutes <= 30,
             Notified10: totalMinutes <= 10, Notified3: totalMinutes <= 3);
         tracker.Add(timer);
@@ -134,8 +149,9 @@ public sealed partial class CustomTimersViewModel(ICustomTimerStore? store,
     }
 
     /// <summary>
-    /// Reference CheckCustomTimers, minus audio: the warnings and the expiry line go back to the timer's origin
-    /// channel, a timer made in the app follows the alert channel, and a timer is dropped a minute after it expired.
+    /// Reference CheckCustomTimers: the warnings and the expiry line go back to the timer's origin channel, a timer
+    /// made in the app follows the alert channel, a timer is dropped a minute after it expired, and the countdown and
+    /// alarm sounds play for the timers whose switch is on.
     /// </summary>
     public void Tick(DateTime now)
     {
@@ -144,16 +160,57 @@ public sealed partial class CustomTimersViewModel(ICustomTimerStore? store,
         var notifications = tracker.Check(now, AlertCustomTimer);
         foreach (var notification in notifications)
         {
-            // The reference plays a sound for the countdown and the alarm; those two show a toast instead, still
-            // gated by the per-timer switches. Everything else is a chat line back to the timer's origin channel.
             if (notification.Kind != ChatTimerNotificationKind.Countdown)
                 sendChat?.Invoke(notification.Channel, notification.Text);
-            if (notification.Audio)
-                showToast?.Invoke(notification.Text, notification.Kind == ChatTimerNotificationKind.Expired);
+            if (!notification.Audio) continue;
+            if (notification.Kind == ChatTimerNotificationKind.Countdown) audio?.PlayCountdown();
+            else audio?.PlayAlarm();
+            showToast?.Invoke(notification.Text, notification.Kind == ChatTimerNotificationKind.Expired);
         }
         RefreshRows();
         IsCritical = Critical(now);
         if (notifications.Count > 0 || tracker.Timers.Count != before) _ = SaveAsync();
+    }
+
+    /// <summary>Reference BtnSnoozeTimerAlarm: an expired timer is pushed out and every notification is armed again.</summary>
+    [RelayCommand]
+    public async Task SnoozeAsync()
+    {
+        if (!tracker.Snooze(DateTime.UtcNow, SnoozeMinutes)) return;
+        audio?.Stop();
+        RefreshRows();
+        await SaveAsync();
+    }
+
+    /// <summary>Reference BtnStopTimerAlarm: the sound stops at once.</summary>
+    [RelayCommand]
+    public void StopAlarm() => audio?.Stop();
+
+    /// <summary>Reference BtnResetTimerAlarmAudio: the sounds go back to the ones the app ships.</summary>
+    [RelayCommand]
+    public async Task ResetSoundsAsync()
+    {
+        CountdownAudioPath = null;
+        AlarmAudioPath = null;
+        await SaveAsync();
+    }
+
+    /// <summary>Reference BtnSelectTimerCountdownAudio: the user picks the countdown sound.</summary>
+    [RelayCommand]
+    public async Task PickCountdownSoundAsync()
+    {
+        if (pickSound is not { } pick) return;
+        string? path = await pick();
+        if (!string.IsNullOrWhiteSpace(path)) CountdownAudioPath = path;
+    }
+
+    /// <summary>Reference BtnSelectTimerAlarmAudio: the user picks the alarm sound.</summary>
+    [RelayCommand]
+    public async Task PickAlarmSoundAsync()
+    {
+        if (pickSound is not { } pick) return;
+        string? path = await pick();
+        if (!string.IsNullOrWhiteSpace(path)) AlarmAudioPath = path;
     }
 
     private bool Critical(DateTime now) => tracker.Timers.Any(timer => timer.EndTimeUtc - now < TimeSpan.FromMinutes(5));
@@ -186,15 +243,30 @@ public sealed partial class CustomTimersViewModel(ICustomTimerStore? store,
         _ = SaveAsync();
     }
 
+    partial void OnCountdownAudioPathChanged(string? value)
+    {
+        if (loading || path.Length == 0) return;
+        _ = SaveAsync();
+    }
+
+    partial void OnAlarmAudioPathChanged(string? value)
+    {
+        if (loading || path.Length == 0) return;
+        _ = SaveAsync();
+    }
+
     /// <summary>Runs a save and remembers it, so <see cref="FlushAsync"/> can wait for the last one.</summary>
     private Task SaveAsync() => pendingSave = PersistAsync();
+
+    /// <summary>Reference SnoozeAlarm: the number of minutes an expired timer is pushed out by.</summary>
+    public const int SnoozeMinutes = 5;
 
     private async Task PersistAsync()
     {
         if (store is null || path.Length == 0) return;
         // The profile is captured before the gate: a save queued for one profile must not land on the next one.
         string target = path, key = profileKey;
-        var settings = new CustomTimerSettings([.. tracker.Timers], AlertCustomTimer);
+        var settings = new CustomTimerSettings([.. tracker.Timers], AlertCustomTimer, CountdownAudioPath, AlarmAudioPath);
         await gate.WaitAsync().ConfigureAwait(false);
         try { await store.SaveAsync(target, key, settings, CancellationToken.None).ConfigureAwait(false); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ProfileChangedException

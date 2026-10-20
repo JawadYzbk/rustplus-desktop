@@ -179,6 +179,110 @@ public sealed class CustomTimerTests
         Assert.IsFalse(snoozed.AlarmPlayed || snoozed.CountdownPlayed || snoozed.Notified3);
     }
 
+    // ---- the sounds ----------------------------------------------------------------------------
+
+    [TestMethod]
+    public void TheTimerSoundsShipBesideTheApp()
+    {
+        string countdown = Path.Combine(AppContext.BaseDirectory, "Assets", "timer-countdown.wav");
+        string alarm = Path.Combine(AppContext.BaseDirectory, "Assets", "timer-alarm.wav");
+        Assert.IsTrue(File.Exists(countdown), "The reference one-minute sound ships with the app.");
+        Assert.IsTrue(File.Exists(alarm), "The reference bell ships with the app.");
+        Assert.AreEqual(countdown, RustPlusDesk.Infrastructure.Shops.TimerAudioPlayer.DefaultCountdownPath);
+        Assert.AreEqual(alarm, RustPlusDesk.Infrastructure.Shops.TimerAudioPlayer.DefaultAlarmPath);
+    }
+
+    [TestMethod]
+    public async Task TheCountdownAndTheAlarm_Play_OnlyWhenTheTimerAsksForThem()
+    {
+        using var fixture = new DeviceProfileEditorTests.Fixture();
+        var server = await fixture.ServerAsync();
+        var audio = new CountingTimerAudio();
+        var model = new CustomTimersViewModel(new LegacyCustomTimerStore(), audio: audio);
+        await model.LoadAsync(fixture.Path, server.ProfileKey);
+
+        model.NewName = "Raid";
+        model.NewMinutes = "1";
+        model.NewCountdownAudio = true;
+        model.NewAlarmAudio = true;
+        await model.AddAsync();
+
+        model.Tick(DateTime.UtcNow.AddSeconds(59));
+        Assert.AreEqual(1, audio.Countdowns, "The countdown plays a minute before the timer ends.");
+        Assert.AreEqual(0, audio.Alarms);
+
+        model.Tick(DateTime.UtcNow.AddSeconds(60));
+        Assert.AreEqual(1, audio.Alarms, "The alarm plays when the timer reaches zero.");
+    }
+
+    [TestMethod]
+    public async Task ATimerWithoutTheCountdownSwitch_StaysQuiet()
+    {
+        using var fixture = new DeviceProfileEditorTests.Fixture();
+        var server = await fixture.ServerAsync();
+        var audio = new CountingTimerAudio();
+        var model = new CustomTimersViewModel(new LegacyCustomTimerStore(), audio: audio);
+        await model.LoadAsync(fixture.Path, server.ProfileKey);
+
+        model.NewName = "Raid";
+        model.NewMinutes = "1";
+        model.NewCountdownAudio = false;
+        await model.AddAsync();
+
+        model.Tick(DateTime.UtcNow.AddSeconds(59));
+        Assert.AreEqual(0, audio.Countdowns, "A timer without the countdown switch stays quiet.");
+    }
+
+    [TestMethod]
+    public async Task TheTimerPanel_SnoozesAnExpiredTimer()
+    {
+        using var fixture = new DeviceProfileEditorTests.Fixture();
+        var server = await fixture.ServerAsync();
+        var audio = new CountingTimerAudio();
+        var model = new CustomTimersViewModel(new LegacyCustomTimerStore(), audio: audio);
+        await model.LoadAsync(fixture.Path, server.ProfileKey);
+
+        model.NewName = "Raid";
+        model.NewSeconds = "1";
+        model.NewAlarmAudio = true;
+        await model.AddAsync();
+
+        await Task.Delay(1200);
+        model.Tick(DateTime.UtcNow);
+        Assert.AreEqual(1, audio.Alarms);
+
+        await model.SnoozeAsync();
+        Assert.AreEqual(1, audio.Stops, "Snoozing stops the alarm.");
+        Assert.AreEqual(1, model.Timers.Count, "The timer comes back with a new end time.");
+    }
+
+    [TestMethod]
+    public async Task TheChosenSounds_RoundTripThroughTheProfileStore()
+    {
+        using var fixture = new DeviceProfileEditorTests.Fixture();
+        var server = await fixture.ServerAsync();
+        var store = new LegacyCustomTimerStore();
+        var settings = new CustomTimerSettings(CustomTimerSettings.NoTimers, true,
+            "/sounds/countdown.wav", "/sounds/alarm.wav");
+        await store.SaveAsync(fixture.Path, server.ProfileKey, settings, default);
+
+        var read = await store.GetAsync(fixture.Path, server.ProfileKey, default);
+        Assert.AreEqual("/sounds/countdown.wav", read.CountdownAudioPath);
+        Assert.AreEqual("/sounds/alarm.wav", read.AlarmAudioPath);
+    }
+
+    private sealed class CountingTimerAudio : RustPlusDesk.Core.Chat.ITimerAudio
+    {
+        public int Countdowns { get; private set; }
+        public int Alarms { get; private set; }
+        public int Stops { get; private set; }
+        public bool IsAvailable => true;
+        public void PlayCountdown() => Countdowns++;
+        public void PlayAlarm() => Alarms++;
+        public void Stop() => Stops++;
+        public void Reset() { Countdowns = 0; Alarms = 0; Stops = 0; }
+    }
+
     // ---- the profile fields -------------------------------------------------------------------
 
     [TestMethod]
@@ -209,7 +313,7 @@ public sealed class CustomTimerTests
         Assert.AreEqual("Raid", profile["CustomTimers"]![0]!["Name"]!.GetValue<string>());
         Assert.AreEqual("Clan", profile["CustomTimers"]![0]!["OriginChannel"]!.GetValue<string>());
         Assert.AreEqual(Now.AddMinutes(30), profile["CustomTimers"]![0]!["EndTimeUtc"]!.GetValue<DateTime>());
-        foreach (string name in new[] { "AlertCustomTimer", "CustomTimers" }) profile.Remove(name);
+        foreach (string name in new[] { "AlertCustomTimer", "CustomTimers", "TimerCountdownAudioPath", "TimerAlarmAudioPath" }) profile.Remove(name);
         Assert.IsTrue(System.Text.Json.Nodes.JsonNode.DeepEquals(before, after), "Only this profile's timer fields change.");
 
         await Assert.ThrowsExceptionAsync<ProfileChangedException>(() =>

@@ -122,7 +122,40 @@
                         <TextBlock Text="{Binding Timers.Validation}" Foreground="{DynamicResource ConnectionDanger}" FontSize="12"
                                    IsVisible="{Binding Timers.Validation, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                         <CheckBox Content="Send timer alerts to chat" IsChecked="{Binding Timers.AlertCustomTimer}" />
-                        <TextBlock Text="Countdown and alarm audio are not available in this build." Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <ToggleButton Classes="subtle" IsChecked="{Binding Timers.NewCountdownAudio}"
+                                        ToolTip.Tip="Play the one-minute countdown sound" AutomationProperties.Name="Countdown sound">
+                            <StackPanel Orientation="Horizontal" Spacing="4"><icons:Icon Symbol="Hourglass24" FontSize="14" /><TextBlock Text="Countdown" /></StackPanel>
+                          </ToggleButton>
+                          <ToggleButton Classes="subtle" IsChecked="{Binding Timers.NewAlarmAudio}"
+                                        ToolTip.Tip="Play the alarm when the timer reaches zero" AutomationProperties.Name="Alarm sound">
+                            <StackPanel Orientation="Horizontal" Spacing="4"><icons:Icon Symbol="Alert24" FontSize="14" /><TextBlock Text="Alarm" /></StackPanel>
+                          </ToggleButton>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <Button Classes="subtle" Command="{Binding Timers.PickCountdownSoundCommand}"
+                                  ToolTip.Tip="Choose the countdown sound" AutomationProperties.Name="Choose countdown sound">
+                            <StackPanel Orientation="Horizontal" Spacing="4"><icons:Icon Symbol="Hourglass24" FontSize="14" /><TextBlock Text="Countdown sound" /></StackPanel>
+                          </Button>
+                          <Button Classes="subtle" Command="{Binding Timers.PickAlarmSoundCommand}"
+                                  ToolTip.Tip="Choose the alarm sound" AutomationProperties.Name="Choose alarm sound">
+                            <StackPanel Orientation="Horizontal" Spacing="4"><icons:Icon Symbol="MusicNote224" FontSize="14" /><TextBlock Text="Alarm sound" /></StackPanel>
+                          </Button>
+                          <Button Classes="subtle" Command="{Binding Timers.ResetSoundsCommand}"
+                                  ToolTip.Tip="Use the sounds the app ships" AutomationProperties.Name="Reset timer sounds">
+                            <icons:Icon Symbol="ArrowReset24" FontSize="14" />
+                          </Button>
+                          <Button Classes="subtle" Command="{Binding Timers.StopAlarmCommand}"
+                                  ToolTip.Tip="Stop the alarm sound" AutomationProperties.Name="Stop timer alarm">
+                            <icons:Icon Symbol="SpeakerMute24" FontSize="14" />
+                          </Button>
+                          <Button Classes="subtle" Command="{Binding Timers.SnoozeCommand}"
+                                  ToolTip.Tip="Push an expired timer out by five minutes" AutomationProperties.Name="Snooze timer alarm">
+                            <StackPanel Orientation="Horizontal" Spacing="4"><icons:Icon Symbol="ClockAlarm24" FontSize="14" /><TextBlock Text="Snooze" /></StackPanel>
+                          </Button>
+                        </StackPanel>
+                        <TextBlock Text="The countdown sound plays a minute before the timer ends; the alarm plays when it does."
+                                   Classes="muted" FontSize="11" TextWrapping="Wrap" />
                         <Button Content="Add timer" Classes="primary" Command="{Binding Timers.AddCommand}" HorizontalAlignment="Right" />
                       </StackPanel>
                     </Border>

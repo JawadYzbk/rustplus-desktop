@@ -81,7 +81,9 @@ public sealed partial class App : Application
                 automationStore: new LegacyDeviceAutomationStore(),
                 achievementStore: new RustPlusDesk.Infrastructure.Achievements.AchievementFileStore(
                     RustPlusDesk.Infrastructure.Achievements.AchievementFileStore.DefaultPath),
-                trafficMonitor: traffic);
+                trafficMonitor: traffic,
+                timerAudio: new RustPlusDesk.Infrastructure.Shops.TimerAudioPlayer(),
+                pickSound: new SoundFilePicker(window).PickAsync);
             desktop.Exit += (_, _) => { accountHttp.Dispose(); cloudHttp.Dispose(); };
             window.DataContext = servers;
             window.Opened += async (_, _) => await servers.InitializeCommand.ExecuteAsync(null);

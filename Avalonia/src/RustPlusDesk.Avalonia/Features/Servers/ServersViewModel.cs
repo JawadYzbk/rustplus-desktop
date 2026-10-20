@@ -39,7 +39,9 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Core.Chat.ICustomTimerStore? customTimerStore = null, RustPlusDesk.Core.Time.IClock? clock = null,
     RustPlusDesk.Core.Devices.IDeviceAutomationStore? automationStore = null,
     RustPlusDesk.Core.Achievements.IAchievementStore? achievementStore = null,
-    RustPlusDesk.Core.Diagnostics.NetworkTrafficMonitor? trafficMonitor = null)
+    RustPlusDesk.Core.Diagnostics.NetworkTrafficMonitor? trafficMonitor = null,
+    RustPlusDesk.Core.Chat.ITimerAudio? timerAudio = null,
+    Func<Task<string?>>? pickSound = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -206,7 +208,9 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         (text, alarm) => Toasts.Show(
             alarm ? RustPlusDesk.Core.Chat.ChatCommandTexts.TimerExpiredTitle : RustPlusDesk.Core.Chat.ChatCommandTexts.CountdownOneMinute,
             text, alarm ? RustPlusDesk.Avalonia.Features.Toasts.ToastKind.Danger : RustPlusDesk.Avalonia.Features.Toasts.ToastKind.Caution),
-        Activity.Append);
+        Activity.Append,
+        timerAudio,
+        pickSound is null ? null : () => pickSound());
 
     /// <summary>
     /// Reference SendTeamChatSafeAsync(forceChannel: timer.OriginChannel): a chat-started timer reports back to the
