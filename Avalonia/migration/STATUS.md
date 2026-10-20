@@ -17,9 +17,9 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
   countdown, or check whether devices are available and run the steps that follow). The rules live in the profile
   (`IsLogicEngineActive`, `LogicRules`) and the settings card edits them. One rule runs at a time, two rules that
   disagree about a switch are not both acted on, and a failed gate stops the rule. The chat commands fire the rules
-  that wait for them, and a device that reaches a watched state fires its rules. **729 tests** on Windows locally
-  (729 pass). The reference's oil-rig countdown step needs the rig marker, which is not ported yet, so a rule that
-  starts a rig countdown is refused rather than started.
+  that wait for them, and a device that reaches a watched state fires its rules. **731 tests** on Windows locally
+  (731 pass). A rule that starts an oil-rig countdown hands it to the rig timer, which already owns the crate
+  marker and the reminder schedule.
 - Timer sounds: the reference's one-minute countdown and its zero-minute alarm now play, gated by the per-timer
   switches (`TglAddTimerCountdown` / `TglAddTimerAlarm` in the add form) and by the profile's alert switch. The
   reference ships them as mp3; the packaging carries wav copies of the same sounds, because Windows' own player
@@ -64,7 +64,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
   `PairedBySteamId`, `PairedLocationCapturedAt`), and the shell evaluates the rules on every team read and drives
   the switch through the device panel. The settings card edits the rules with the reference fields.
   **685 tests** on Windows locally (685 pass). The reference's "capture the device position from a paired
-  teammate" action is not wired to a button yet; the position can be written but not captured from the map.
+  teammate" action is wired to the automation card, where a teammate's live position is captured for the device.
 - The clan workspace and role-gated clan chat commands: `Core/Clans/ClanModels.cs` carries the clan snapshot the
   server reports (id, name, message of the day, roles, members), and `RustPlusTransport.ReadClanAsync` reads it
   through `GetClanInfoAsync`; the connection polls it every fifteen seconds (reference `TeamTimer_Tick`), and the
@@ -337,7 +337,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Pairing/auth/accounts | Native-browser sign-in/status, FCM registration/listener, startup delivery checks, one-shot renewal, server/device pairing and re-pair, private writes, confirmed device/global sign-out | Live Steam/Facepunch/FCM acceptance and ambiguous-match resolution UI |
 | Rust+ connection/reconnect | Authenticated status session, fallback, immediate socket-disconnect handling, cancellation and recovery | Native/live-server acceptance; soft/full modes and remaining feature subscriptions |
 | Live map/markers/overlays | Not ported | Separate coordinate/state logic from rendering; choose portable map/helper hosting |
-| Smart devices/automation/timers | Confirmed switches, nested group commands, alarm/storage state, local organization/icons/delete with rule+command cleanup, own-device sync and guarded shared/local import, the device-automation rules and the logic engine with their settings cards | Live-server acceptance, drag gestures, hotkey/overlay cleanup on delete, transfer, missing icon artwork/direct-click shortcuts, the captured anchor position action, alarm notifications/audio and original layout |
+| Smart devices/automation/timers | Confirmed switches, nested group commands, alarm/storage state, local organization/icons/delete with rule+command cleanup, own-device sync and guarded shared/local import, the device-automation rules and the logic engine with their settings cards | Live-server acceptance, drag gestures, hotkey/overlay cleanup on delete, transfer, missing icon artwork/direct-click shortcuts, alarm notifications/audio and original layout |
 | Cloud identity/consent | Website handoff, scoped permission, local sign-out, fresh quotas, own recovery/automatic sync and import sources | Live authentication/version acceptance, concurrent writers, other consents, team membership/master/chat publication and remaining account/provider/session workflows |
 | Chat/team/clan | Live roster dock, chat history/search/emoji/message menu, automated alert routing, the clan workspace (members, roles, message of the day) and team chat commands (status commands, switches/upkeep/oil rig, base codes and clan switches, custom timers, with per-server command settings and per-clan-role permissions) | Moderation and clan management, chat/clan publication and master coordination, and the remaining chat-command work (AI command, logic-engine rules, the chat-master gate, timer audio) |
 | Cameras | Not ported | Validate camera SDK/runtime, stream decoding and portable rendering |
@@ -395,7 +395,7 @@ themes, and full keyboard/screen-reader acceptance are still pending.
 
 ## Local verification
 
-- Windows: all **729 .NET test cases** pass on the current source, including the clan workspace and its role-gated
+- Windows: all **731 .NET test cases** pass on the current source, including the clan workspace and its role-gated
   commands, the device-automation rules, the achievements list, the traffic monitor, the timer sounds, the
   organization, recycling and socket-teardown work; build and isolated-copy results are recorded in HANDOFF.md at each checkpoint.
 - Native browser crash reproduced using a local callback: Windows threw `Unable to create child window
