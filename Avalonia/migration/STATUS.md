@@ -27,10 +27,11 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
   Steam profile is read from the same public profile XML the avatars come from. The new **Players** tab has the
   reference's two halves: the online one, which says the player activity tracking was removed and where the team
   history is, and the tracked one, with the filter, the groups, the group order and the per-player actions (rename,
-  group, stop tracking). The rail entry follows the reference's order and its opt-in - which the reference's own
-  setter could never turn on, so its Players tab could not be reached at all. **803 tests** on Windows locally
-  (803 pass). The reference's group manager (creating and renaming groups with their colours), the pop-out window,
-  the how-to-track window, the analysis report and the player wipe tracker are not ported yet.
+  group, stop tracking), and the **Manage Groups** dialog, where a group is created or edited, the players that are
+  checked are put in it and the ones that are not and were in it are out of it. The rail entry follows the reference's
+  order and its opt-in - which the reference's own setter could never turn on, so its Players tab could not be
+  reached at all. **815 tests** on Windows locally (815 pass). The pop-out window, the how-to-track window and the
+  analysis report are not ported yet.
 - The whole interface reads the catalogue: every label the reference's catalogue carries is bound to its own key
   (`{DynamicResource ...}`), so the 32 shipped translations cover the port's interface and not only the rail, the
   settings cards and the map toolbar. The catalogue itself is put into the app's resources at start-up and read again
@@ -507,11 +508,11 @@ themes, and full keyboard/screen-reader acceptance are still pending.
   code/web candidates and generated-tree exclusions.
 - Isolation: a source-only copy of the folder **outside** the repository, restored against a fresh, separate
   package cache (including the local protocol package and FluentAvaloniaUI), builds with zero warnings, passes
-  **809 tests** with 4 skipped and none failed, and publishes self-contained builds for win-x64, linux-x64 and
+  **811 tests** with 4 skipped and none failed, and publishes self-contained builds for win-x64, linux-x64 and
   osx-arm64. The published Windows executable was started and stayed up. The four skipped checks are the ones that
   compare the ported chat texts and the catalogue against the reference app's resources, which are not beside the
   copy; they are skipped rather than failed, because the port itself does not need the reference. The isolation copy
-  is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-iso8` (a local path, not part of the repository).
+  is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-iso9` (a local path, not part of the repository).
 - Data continuity: the app reads the shipped app's own `profiles.json` and `tracking_settings.json` from the
   operating system's application-data folder, and writes its own files beside them (the achievements file was
   written there by the published build). A user who switches from the Windows app to this one keeps the servers,

@@ -6,9 +6,9 @@ every finished slice with its commit.
 
 ## Fifteenth run - the players tab and the tracker's file (2026-10-20, local Windows continuation)
 
-- Branch `feat/rust-migration` (the branch this session was working on); slice commits `c65f8c89` (the players tab)
-  and `1eb85021` (the tracker's file; docs follow). Only `Avalonia/` changes.
-- **813 tests** run locally on Windows: 813 pass, none fail. Build zero warnings.
+- Branch `feat/rust-migration` (the branch this session was working on); slice commits `c65f8c89` (the players tab),
+  `1eb85021` (the tracker's file) and `fb717916` (the group manager). Only `Avalonia/` changes.
+- **815 tests** run locally on Windows: 815 pass, none fail. Build zero warnings.
 - Done, the players tab: the reference's Players tab - the players the user keeps an eye on. `Core/Tracking` carries
   the reference's `TrackedPlayer` (the profile id, the name, the server the player was last seen on, the group, the
   colour and the sessions) and its rules: the filter (the name or the server), the grouping by server and then by
@@ -22,7 +22,9 @@ every finished slice with its commit.
   player is added by hand. The tracked half has the filter, the servers, the groups with their colour, the order the
   groups are in (the reference drags them; the port moves them with the two buttons beside the group), and the
   per-player actions: give the player another name, put it in a group (an existing one or a new one), and stop
-  tracking it. The rail entry follows the reference: the players sit between the clan and the notifications, with the
+  tracking it. The **Manage Groups** dialog is there too: a group is created or edited, the players that are checked
+  are put in it and the ones that are not and were in it are out of it, with the colours the reference offers. The
+  rail entry follows the reference: the players sit between the clan and the notifications, with the
   reference's globe and the reference's help text, and the entry only shows once the user turns the Players tab on in
   the settings. The reference's opt-in could never be turned on - its setter always wrote the flag back to false - so
   its Players tab could not be reached at all; the port's switch works, because a switch that cannot be turned on is
@@ -49,9 +51,10 @@ every finished slice with its commit.
   metadata and map, the list of wipes, the deletion and the opt-in).
 - Deviations: the reference's manual track adds nothing - its call leaves out the flag that says "a bookmark", so
   the button does nothing - and the port's adds the bookmark, because a button that does nothing is a button the
-  plan does not allow. The reference's group manager (creating and renaming groups with their colours), the pop-out
-  window, the how-to-track window and the analysis report are not ported yet, and neither are the tracker's live
-  capture, its window and its cloud upload.
+  plan does not allow. The pop-out window, the how-to-track window and the analysis report are not ported yet, and
+  neither are the tracker's live capture, its window and its cloud upload. The analysis report is an HTML document
+  the reference shows in a web view; the port has no web view yet, so it waits for the web-hosting decision the plan
+  defers with the genetics lab.
 - Next slices: the tracker's live capture and its window, then the command dock and the mini-map, the cameras, the
   tutorials and the gallery, the cloud account windows, the LFG and admin surfaces, the AI companion's history
   window and model picker, and the tray, audio and speech adapters.
@@ -957,10 +960,10 @@ The checks never used personal credentials or contacted Steam/Facepunch.
 ## Verified current source
 
 - Debug/Release builds: zero warnings/errors. The current source has **803 passing tests** in the repository.
-- Source-only external copy with separate package cache: **809 tests pass, 4 skipped, none failed**, zero
+- Source-only external copy with separate package cache: **811 tests pass, 4 skipped, none failed**, zero
   warnings, and self-contained publishes for win-x64, linux-x64 and osx-arm64. The skipped checks are the
   reference-text comparisons, which need the reference app beside the copy. The published Windows executable was
-  started and stayed up. The copy is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-iso8`.
+  started and stayed up. The copy is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-iso9`.
 - Self-contained Release publishes on Windows: win-x64, linux-x64, osx-arm64 succeed. The published Windows
   executable was started and stayed up.
 - Native Windows browser callback and cancellation smoke passes. Native Linux/macOS executables untested.
