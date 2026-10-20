@@ -11,6 +11,13 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- The update path: `Core/Updates` carries the app's own version (the informational version of the entry assembly,
+  falling back to the file version of the running program) and the comparison with a published release.
+  `GitHubReleaseClient` reads the newest release of this repository and the installer asset it carries, and the new
+  **Updates** card in the settings shows the running build, says whether a newer release exists and opens the
+  releases page. `installer/build-release.ps1` builds the two assets the card looks for
+  (`RustPlusDesk-Avalonia-Setup.exe` and the portable zip). **753 tests** on Windows locally (753 pass). The app
+  does not replace itself: the user runs the installer, and the data is kept.
 - Drawing on the map: `Core/Map/MapDrawings.cs` ports the reference's shape tools (line, arrow, box, circle) with
   the Shift snap to 45 degrees, the freehand route simplification and the route model (a named, coloured, hideable
   route is a thing of its own, not a stroke). The map surface draws the strokes, the routes, the icons and the texts
@@ -353,7 +360,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Genetics Lab/web tools | Not ported | Decide and verify portable web hosting/bridge rather than copying WebView2 |
 | Settings/localization/backups | Not ported | Portable settings models, resources, storage, lossless schema migration |
 | Tray/hotkeys/audio/speech/capture | Not ported | Platform capability audit and adapters with truthful availability |
-| Installer/updater | Self-contained publishes for Windows, macOS and Linux, an Inno Setup installer, a macOS `.app` bundle and a per-user Linux installation (`installer/`, documented in `installer/PACKAGING.md`) | Signing, automatic updates, native macOS/Linux appearance and the shipped app's extra payloads |
+| Installer/updater | Self-contained publishes for Windows, macOS and Linux, an Inno Setup installer, a macOS `.app` bundle and a per-user Linux installation, plus the update card that finds a newer published release (`installer/`, documented in `installer/PACKAGING.md`) | Signing, replacing the running build from inside the app, native macOS/Linux appearance and the shipped app's extra payloads |
 | Raid calculator | Ported workspace tab: reference engine/tests, 165-target catalogue with artwork, categories/search, per-target methods, curated and smart mixes, comparison modes, cheapest nudge, totals, shared raid-plan.json, Discord summary copy, reference breakpoints | Tutorial targets, localization, entrance animations and native visual acceptance |
 | Recycler calculator | Offline catalog, calculations, quantity shortcuts, filters/paging, comparisons, icons and stateful workspace | Original navigation integration, tutorial targets, localization and native visual/accessibility acceptance |
 | Shop search/trades | Not ported | Preserve filters, vending offers, alerts, shopping/profit workflows and map links |
@@ -404,7 +411,7 @@ themes, and full keyboard/screen-reader acceptance are still pending.
 
 ## Local verification
 
-- Windows: all **745 .NET test cases** pass on the current source, including the clan workspace and its role-gated
+- Windows: all **753 .NET test cases** pass on the current source, including the clan workspace and its role-gated
   commands, the device-automation rules, the achievements list, the traffic monitor, the timer sounds, the
   organization, recycling and socket-teardown work; build and isolated-copy results are recorded in HANDOFF.md at each checkpoint.
 - Native browser crash reproduced using a local callback: Windows threw `Unable to create child window
