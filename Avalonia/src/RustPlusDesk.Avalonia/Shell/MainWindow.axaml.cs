@@ -17,6 +17,7 @@ public sealed partial class MainWindow : Window
             {
                 model.Alarms.OpenRequested += ShowAlarms;
                 model.ConsolePopOutRequested += ShowConsolePopout;
+                model.CameraOpenRequested += ShowCamera;
                 model.Hotkeys.EditRequested += ShowHotkeys;
                 model.TrafficWindowRequested += ShowTraffic;
                 model.CrosshairVisibilityRequested += ShowCrosshair;
@@ -127,6 +128,19 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>Reference popout: one unowned always-on-top window; a second click focuses it.</summary>
+    /// <summary>Reference BtnOpenCamera: the camera the user clicks is shown in a window of its own.</summary>
+    private void ShowCamera(object? sender, Features.Cameras.CameraRow row)
+    {
+        if (sender is not Features.Servers.ServersViewModel model) return;
+        if (model.CameraSessions is not { } sessions || model.SelectedProfile is not { } profile) return;
+        // Reference DrawOverlay: the team players are drawn green, so the window needs their names.
+        var window = new Features.Cameras.CameraWindow(sessions, profile.Path, profile.Key, row.Id, row.Name,
+            () => model.Connection.Team.Members
+                .Select(member => member.Member.Name ?? string.Empty)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase));
+        window.Show(this);
+    }
+
     private void ShowConsolePopout(object? sender, EventArgs e)
     {
         if (consoleWindow is not null) { consoleWindow.Activate(); return; }

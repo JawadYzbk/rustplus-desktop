@@ -49,7 +49,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Core.Ai.IAiSettingsStore? aiStore = null,
     System.Net.Http.HttpClient? aiHttp = null,
     RustPlusDesk.Core.Cameras.ICameraStore? cameraStore = null,
-    RustPlusDesk.Core.Cameras.ICameraSnapshotSource? cameraSnapshots = null)
+    RustPlusDesk.Core.Cameras.ICameraSnapshotSource? cameraSnapshots = null,
+    RustPlusDesk.Core.Cameras.ICameraSessionFactory? cameraSessions = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -765,8 +766,26 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     /// <summary>Reference CamerasTabContent: the cameras the user added for the server.</summary>
     public Cameras.CamerasViewModel? Cameras => cameras ??= cameraStore is null || cameraSnapshots is null
         ? null
-        : new(cameraStore, cameraSnapshots);
+        : CreateCameras();
     private Cameras.CamerasViewModel? cameras;
+
+    private Cameras.CamerasViewModel CreateCameras()
+    {
+        var model = new Cameras.CamerasViewModel(cameraStore!, cameraSnapshots!);
+        // Reference BtnOpenCamera: the shell owns the window the camera is shown in.
+        model.OpenRequested += (_, row) => CameraOpenRequested?.Invoke(this, row);
+        return model;
+    }
+
+    /// <summary>The profile of the selected server, which the cameras live in.</summary>
+    public (string Path, string Key)? SelectedProfile =>
+        SelectedServer is { } server ? (SourcePath, server.ProfileKey) : null;
+
+    /// <summary>The camera sessions are opened by the shell, which owns the window a camera is shown in.</summary>
+    public RustPlusDesk.Core.Cameras.ICameraSessionFactory? CameraSessions => cameraSessions;
+
+    /// <summary>Raised when a camera is opened in a window of its own.</summary>
+    public event EventHandler<Cameras.CameraRow>? CameraOpenRequested;
 
     /// <summary>Reference BtnOpenCamera: the cameras of the selected server are shown.</summary>
     [RelayCommand]

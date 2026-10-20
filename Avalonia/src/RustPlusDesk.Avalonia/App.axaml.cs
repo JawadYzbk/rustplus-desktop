@@ -86,6 +86,9 @@ public sealed partial class App : Application
             var accounts = new CompanionAccountService(accountHttp, new CompanionLoginBrowser(window));
             var pushHealth = new CompanionPushHealth(accountHttp, accounts);
             var syncPreferences = new DeviceSyncPreferences(DeviceSyncPreferences.DefaultPath);
+            // One camera session factory for the whole app: the tiles take a still with it and the camera window
+            // opens a live session with it.
+            var cameraSessions = new RustPlusDesk.Infrastructure.Cameras.CameraSessionFactory();
             var servers = new ServersViewModel(new LegacyServerCatalog(),
                 new ProfileFilePicker(window), LegacyServerCatalog.DefaultPath, sessions, new LegacyServerProfileEditor(), sessions, accounts, new CompanionListener(pushHealth), pushHealth,
                 new LegacyDeviceProfileEditor(), new BundledRecyclerCatalog(),
@@ -130,8 +133,8 @@ public sealed partial class App : Application
                     RustPlusDesk.Infrastructure.Ai.AiSettingsStore.DefaultPath),
                 aiHttp: new HttpClient { Timeout = TimeSpan.FromSeconds(60) },
                 cameraStore: new RustPlusDesk.Infrastructure.Profiles.LegacyCameraStore(),
-                cameraSnapshots: new RustPlusDesk.Infrastructure.Cameras.CameraSnapshotSource(
-                    new RustPlusDesk.Infrastructure.Cameras.CameraSessionFactory()));
+                cameraSnapshots: new RustPlusDesk.Infrastructure.Cameras.CameraSnapshotSource(cameraSessions),
+                cameraSessions: cameraSessions);
             desktop.Exit += (_, _) => { accountHttp.Dispose(); cloudHttp.Dispose(); };
             window.DataContext = servers;
             window.Opened += async (_, _) => await servers.InitializeCommand.ExecuteAsync(null);

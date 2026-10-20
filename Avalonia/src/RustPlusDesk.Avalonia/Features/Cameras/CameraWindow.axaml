@@ -1,0 +1,97 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+        x:Class="RustPlusDesk.Avalonia.Features.Cameras.CameraWindow"
+        Title="Camera" Width="760" Height="580" MinWidth="460" MinHeight="360">
+  <!-- Reference CameraWindow: the live picture of a camera with the controls under it. -->
+  <Grid RowDefinitions="Auto,*">
+    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Margin="16,10">
+      <icons:Icon Symbol="Video24" FontSize="16" Foreground="{DynamicResource TextSubtle}" VerticalAlignment="Center" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+        <TextBlock x:Name="TitleText" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+        <Border x:Name="KindBadge" Padding="10,3" CornerRadius="10"
+                Background="#332F81F7" BorderBrush="#552F81F7" BorderThickness="1" IsVisible="False">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <icons:Icon Symbol="Video24" FontSize="13" Foreground="#8AB4F8" />
+            <TextBlock x:Name="KindText" FontSize="11" FontWeight="SemiBold" Foreground="#8AB4F8" VerticalAlignment="Center" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+        <TextBlock x:Name="StatusText" Classes="muted" FontSize="12" VerticalAlignment="Center" />
+        <TextBlock Text="{DynamicResource FPS}" Classes="muted" FontSize="12" VerticalAlignment="Center" />
+        <ComboBox x:Name="FpsBox" Width="64" SelectedIndex="1">
+          <ComboBoxItem Content="2" />
+          <ComboBoxItem Content="5" />
+          <ComboBoxItem Content="10" />
+          <ComboBoxItem Content="15" />
+        </ComboBox>
+      </StackPanel>
+    </Grid>
+
+    <Border Grid.Row="1" Margin="16,0,16,16" CornerRadius="10" ClipToBounds="True" Background="#0A0A0C"
+            BorderBrush="{DynamicResource CardBorder}" BorderThickness="1">
+      <Grid>
+        <Image x:Name="Picture" Stretch="Uniform" />
+        <Canvas x:Name="Overlay" IsHitTestVisible="False" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+
+        <!-- Reference CrosshairGrid: the camera draws one when it supports it. -->
+        <Grid x:Name="Crosshair" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="False" Width="24" Height="24">
+          <Ellipse Width="16" Height="16" Stroke="#FF4A4A" StrokeThickness="1.5" />
+          <Rectangle Width="10" Height="1.5" Fill="#FF4A4A" HorizontalAlignment="Center" VerticalAlignment="Center" />
+          <Rectangle Width="1.5" Height="10" Fill="#FF4A4A" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Grid>
+
+        <!-- Reference Banner: what went wrong with the stream. -->
+        <Border x:Name="Banner" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,14,0,0" Padding="12,6"
+                CornerRadius="8" Background="#33241B1B" BorderBrush="#55FF4A4A" BorderThickness="1" IsVisible="False">
+          <TextBlock x:Name="BannerText" FontSize="12" Foreground="#FF9A9A" />
+        </Border>
+
+        <!-- Reference ControlBorder: the controls the camera supports. -->
+        <Border x:Name="Controls" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,16" Padding="12"
+                CornerRadius="10" Background="#B01A1A1E" BorderBrush="#33FFFFFF" BorderThickness="1" IsVisible="False">
+          <StackPanel Orientation="Horizontal" Spacing="14">
+            <!-- Reference MovementPad: the stick. -->
+            <Grid x:Name="MovementPad" Width="118" Height="118" Background="Transparent" IsVisible="False"
+                      PointerPressed="OnStickPressed" PointerMoved="OnStickMoved" PointerReleased="OnStickReleased">
+              <Ellipse Width="118" Height="118" Fill="#16FFFFFF" Stroke="#3AFFFFFF" StrokeThickness="1.5" />
+              <Ellipse Width="72" Height="72" Stroke="#22FFFFFF" StrokeThickness="1" />
+              <Canvas x:Name="StickCanvas" Width="118" Height="118">
+                <Border x:Name="StickThumb" Width="48" Height="48" CornerRadius="24" Canvas.Left="35" Canvas.Top="35"
+                        Background="#70FFFFFF" BorderBrush="#C0FFFFFF" BorderThickness="1.5" />
+              </Canvas>
+            </Grid>
+
+            <!-- Reference VerticalPad: the drone goes up and down. -->
+            <StackPanel x:Name="VerticalPad" VerticalAlignment="Center" Spacing="8" IsVisible="False">
+              <Button x:Name="JumpButton" Classes="subtle" PointerPressed="OnJump" PointerReleased="OnHoldReleased" PointerExited="OnHoldExited" AutomationProperties.Name="Jump">
+                <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ArrowUp24" FontSize="14" />
+                  <TextBlock Text="{DynamicResource UiJump}" /></StackPanel>
+              </Button>
+              <Button x:Name="DuckButton" Classes="subtle" PointerPressed="OnDuck" PointerReleased="OnHoldReleased" PointerExited="OnHoldExited" AutomationProperties.Name="Duck">
+                <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ArrowDown24" FontSize="14" />
+                  <TextBlock Text="{DynamicResource UiDuck}" /></StackPanel>
+              </Button>
+            </StackPanel>
+
+            <!-- Reference ActionPad: what the camera can do. -->
+            <StackPanel x:Name="ActionPad" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+              <Button x:Name="ZoomButton" Classes="subtle" IsVisible="False" PointerPressed="OnZoom" AutomationProperties.Name="Zoom">
+                <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ZoomIn24" FontSize="14" />
+                  <TextBlock Text="Zoom" /></StackPanel>
+              </Button>
+              <Button x:Name="FireButton" Classes="danger" IsVisible="False" PointerPressed="OnFire" PointerReleased="OnHoldReleased" PointerExited="OnHoldExited" AutomationProperties.Name="Fire">
+                <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="TargetArrow24" FontSize="14" />
+                  <TextBlock Text="{DynamicResource UiFire}" /></StackPanel>
+              </Button>
+              <Button x:Name="ReloadButton" Classes="subtle" IsVisible="False" PointerPressed="OnReload" AutomationProperties.Name="Reload">
+                <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ArrowReset24" FontSize="14" />
+                  <TextBlock Text="{DynamicResource UiReload}" /></StackPanel>
+              </Button>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

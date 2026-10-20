@@ -243,4 +243,156 @@ public sealed class CameraTests
         finally { window.Close(); }
         return true;
     }, default);
+
+    // ---- the window opens from the tile ---------------------------------------------------------
+
+    private sealed class NoPicker : RustPlusDesk.Avalonia.Services.IProfileFilePicker
+    {
+        public Task<string?> PickAsync() => Task.FromResult<string?>(null);
+    }
+
+    [TestMethod]
+    public void OpeningACameraAsksTheShellForAWindowOfItsOwn()
+    {
+        var model = new RustPlusDesk.Avalonia.Features.Servers.ServersViewModel(
+            new NoServers(), new NoPicker(), "profiles.json", new UnusedSessionFactory(),
+            cameraStore: new LegacyCameraStore(), cameraSnapshots: new Snapshots(), cameraSessions: new FakeSessions());
+
+        CameraRow? asked = null;
+        model.CameraOpenRequested += (_, row) => asked = row;
+
+        var page = model.Cameras!;
+        page.OpenCommand.Execute(new CameraRow(new CameraEntry("cam-1", "Gate camera")));
+
+        Assert.IsNotNull(asked, "The shell is asked for a window of its own.");
+        Assert.AreEqual("cam-1", asked!.Id, "It is the camera the user clicked.");
+        Assert.AreEqual("Gate camera", asked.Name, "It keeps the name the user gave it.");
+        Assert.IsNotNull(model.CameraSessions, "The app has the camera sessions the window needs.");
+    }
+
+    private sealed class NoServers : RustPlusDesk.Core.Servers.IServerCatalog
+    {
+        public Task<IReadOnlyList<RustPlusDesk.Core.Servers.ServerSummary>> LoadAsync(string path, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<RustPlusDesk.Core.Servers.ServerSummary>>([]);
+    }
+
+    // ---- the camera window ----------------------------------------------------------------------
+
+    private sealed class FakeSession : ICameraSession
+    {
+        public string CameraId { get; } = "cam-1";
+        public CameraInfo Info { get; } = new("cam-1", "Gate camera", CameraKind.Ptz, 160, 90,
+            CameraControlFlags.Movement | CameraControlFlags.Mouse | CameraControlFlags.Fire | CameraControlFlags.Reload | CameraControlFlags.Crosshair);
+        public int TargetFps { get; set; }
+        public event Action<byte[]>? FrameRendered;
+        public event Action<IReadOnlyList<CameraEntity>, double>? EntitiesUpdated;
+        public event Action<string>? KeepAliveFailed;
+
+        public Task SendInputAsync(CameraButtons buttons, float mouseDeltaX, float mouseDeltaY, CancellationToken ct) => Task.CompletedTask;
+        public Task LookAsync(float deltaX, float deltaY, CancellationToken ct) => Task.CompletedTask;
+        public Task ShootAsync(CancellationToken ct) => Task.CompletedTask;
+        public Task ReloadAsync(CancellationToken ct) => Task.CompletedTask;
+        public Task ZoomAsync(CancellationToken ct) => Task.CompletedTask;
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+        /// <summary>What the camera sends when it is asked for.</summary>
+        public void Send()
+        {
+            FrameRendered?.Invoke(Snapshots.Picture);
+            EntitiesUpdated?.Invoke([new CameraEntity(CameraEntityKind.Player, "Alice", 0, 0, 10)], 65);
+        }
+
+        /// <summary>What the camera says when it is gone.</summary>
+        public void Fail(string message) => KeepAliveFailed?.Invoke(message);
+    }
+
+    private sealed class FakeSessions : ICameraSessionFactory
+    {
+        public FakeSession Session { get; } = new();
+
+        public Task<ICameraSession> OpenAsync(string profilesPath, string profileKey, string cameraId, CancellationToken ct) =>
+            Task.FromResult<ICameraSession>(Session);
+    }
+
+    [TestMethod]
+    public async Task TheCameraWindowShowsTheLivePictureAndTheControls() => await UiTestSession.Current.Dispatch(async () =>
+    {
+        var sessions = new FakeSessions();
+        var window = new CameraWindow(sessions, "profiles.json", "key", "cam-1", "Gate camera",
+            () => new HashSet<string>(["Alice"], StringComparer.OrdinalIgnoreCase));
+        try
+        {
+            window.Show();
+            window.UpdateLayout();
+            sessions.Session.Send();
+            await Task.Delay(50);
+            window.UpdateLayout();
+
+            var texts = window.GetVisualDescendants().OfType<global::Avalonia.Controls.TextBlock>().Select(text => text.Text).ToList();
+            Assert.IsTrue(texts.Contains("Gate camera"), "The camera's name is in the title.");
+            Assert.IsTrue(window.GetVisualDescendants().OfType<global::Avalonia.Controls.Button>()
+                .Any(button => global::Avalonia.Automation.AutomationProperties.GetName(button) == "Fire"), "The fire button is there.");
+
+            var names = window.GetVisualDescendants().OfType<global::Avalonia.Controls.TextBlock>()
+                .Where(text => text.Text == "Alice").ToList();
+            Assert.IsTrue(names.Count > 0, "The player the camera sees is named in the picture.");
+            var colour = (names[0].Foreground as global::Avalonia.Media.SolidColorBrush)?.Color;
+            Assert.AreEqual(global::Avalonia.Media.Color.FromRgb(50, 205, 50), colour,
+                "The reference draws the team players green.");
+
+            using var frame = window.CaptureRenderedFrame();
+            Assert.IsNotNull(frame);
+            frame.Save(Path.Combine(AppContext.BaseDirectory, "ui-camera-window.png"),
+                global::Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+        }
+        finally { window.Close(); }
+        return true;
+    }, default);
+
+    // ---- the stick and the overlay ---------------------------------------------------------------
+
+    [TestMethod]
+    public void TheStickIsClampedToItsCircle()
+    {
+        var (x, y) = CameraInput.Stick(30, 0, 59);
+        Assert.AreEqual(30.0 / 59.0, x, 0.001, "The stick keeps its place inside the circle.");
+        Assert.AreEqual(0.0, y, 0.001, "Up is positive.");
+
+        var (farX, farY) = CameraInput.Stick(200, 0, 59);
+        Assert.AreEqual(1.0, farX, 0.001, "A drag past the edge is clamped.");
+        Assert.AreEqual(0.0, farY, 0.001);
+    }
+
+    [TestMethod]
+    public void TheStickResponseIsFineNearTheCentreAndFastAtTheEdge()
+    {
+        Assert.AreEqual(0f, CameraInput.Response(0.05, 16), "Below the threshold the camera is not moved.");
+        Assert.AreEqual(16f, CameraInput.Response(1, 16), 0.001, "At the edge the camera moves at the full speed.");
+        Assert.AreEqual(-4f, CameraInput.Response(-0.5, 16), 0.001, "The curve is quadratic.");
+    }
+
+    [TestMethod]
+    public void TheStickSendsTheKeysOfItsDirection()
+    {
+        Assert.AreEqual(CameraButtons.Forward, CameraInput.MovementButtons(0, 1), "Up is forward.");
+        Assert.AreEqual(CameraButtons.Backward, CameraInput.MovementButtons(0, -1), "Down is backward.");
+        Assert.AreEqual(CameraButtons.Right | CameraButtons.Forward, CameraInput.MovementButtons(1, 1), "Both at once.");
+        Assert.AreEqual(CameraButtons.None, CameraInput.MovementButtons(0.2, 0.2), "Inside the dead zone the camera is not moved.");
+    }
+
+    [TestMethod]
+    public void APlayerIsDrawnWhereTheCameraSeesIt()
+    {
+        var ahead = new CameraEntity(CameraEntityKind.Player, "Alice", 0, 0, 10);
+        var place = CameraOverlay.Place(ahead, 65, 160, 90);
+        Assert.IsNotNull(place, "A player in front is drawn.");
+        Assert.AreEqual(80.0, place!.Value.X, 0.001, "Straight ahead is the middle of the picture.");
+        Assert.AreEqual(45.0, place.Value.Y, 0.001, "Straight ahead is the middle of the picture.");
+
+        var behind = new CameraEntity(CameraEntityKind.Player, "Bob", 0, 0, -10);
+        Assert.IsNull(CameraOverlay.Place(behind, 65, 160, 90), "A player behind the camera is not drawn.");
+
+        var aside = new CameraEntity(CameraEntityKind.Player, "Carol", 1000, 0, 10);
+        Assert.IsNull(CameraOverlay.Place(aside, 65, 160, 90), "A player outside the picture is not drawn.");
+    }
 }

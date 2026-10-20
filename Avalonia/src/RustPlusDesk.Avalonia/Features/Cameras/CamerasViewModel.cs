@@ -75,6 +75,13 @@ public sealed partial class CamerasViewModel(ICameraStore store, ICameraSnapshot
     /// <summary>Whether there is nothing to show yet.</summary>
     public bool IsEmpty => rows.Count == 0;
 
+    /// <summary>Reference BtnOpenCamera: the camera is opened in a window of its own. The shell owns that window.</summary>
+    public event EventHandler<CameraRow>? OpenRequested;
+
+    /// <summary>Reference BtnOpenCamera: the camera is opened in a window of its own.</summary>
+    [RelayCommand]
+    private void Open(CameraRow row) => OpenRequested?.Invoke(this, row);
+
     /// <summary>Reference MainWindow.Camera: the cameras are read for the selected server.</summary>
     public async Task LoadAsync(string path, string key, CancellationToken ct = default)
     {

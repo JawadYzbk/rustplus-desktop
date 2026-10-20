@@ -42,7 +42,7 @@
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="vm:CameraRow">
-            <Border Classes="tile" Width="220">
+            <Border Classes="tile" Width="220" PointerPressed="OnTilePressed">
               <StackPanel Spacing="6">
                 <Border Height="120" CornerRadius="6" Background="{DynamicResource Surface}" ClipToBounds="True">
                   <Panel>
