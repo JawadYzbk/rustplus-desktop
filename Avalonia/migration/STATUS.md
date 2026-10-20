@@ -401,10 +401,13 @@ themes, and full keyboard/screen-reader acceptance are still pending.
   Images are emitted under the test output directory. Rendered server values are fixtures, not a live server.
 - Reference-capture tool: **2 Python tests pass**, covering event/command capture, source immutability,
   code/web candidates and generated-tree exclusions.
-- Isolation: a source-only copy outside the repository restored against a fresh, separate package
-  cache, including the local protocol package and FluentAvaloniaUI. The current source passed all
-  **199 .NET tests** there with zero warnings, including pairing, startup/renewal, device organization, recycler and disconnection regressions.
-  That isolation copy predates the clan slice and has not been repeated since.
+- Isolation: a source-only copy of the folder **outside** the repository, restored against a fresh, separate
+  package cache (including the local protocol package and FluentAvaloniaUI), builds with zero warnings, passes
+  **703 tests** with 3 skipped and none failed, and publishes a self-contained win-x64 build. The three skipped
+  checks are the ones that compare the ported chat texts against the reference app's resources, which are not
+  beside the copy; they are skipped rather than failed, because the port itself does not need the reference.
+  The isolation copy is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-isolation` (a local path, not
+  part of the repository).
 - Self-contained Release publishes succeeded for `win-x64`, `linux-x64`, and `osx-arm64` on the Windows host.
   These are compiler/package checks; Linux/macOS executables were **not run**.
 - `git diff --exit-code` confirmed no tracked changes to the reference application or root build/config files.

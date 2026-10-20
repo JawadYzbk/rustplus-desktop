@@ -822,8 +822,10 @@ The checks never used personal credentials or contacted Steam/Facepunch.
 ## Verified current source
 
 - Debug/Release builds: zero warnings/errors. The current source has **706 passing tests** in the repository.
-- Source-only external copy with separate package cache: last verified at 199 tests; it has not been repeated
-  since the clan, automation, packaging, achievements and traffic slices.
+- Source-only external copy with separate package cache: **703 tests pass, 3 skipped, none failed**, zero
+  warnings, and a self-contained win-x64 publish. The skipped checks are the reference-text comparisons, which
+  need the reference app beside the copy. The copy is at
+  `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-isolation`.
 - Self-contained Release publishes on Windows: win-x64, linux-x64, osx-arm64 succeed. The published Windows
   executable was started and stayed up.
 - Native Windows browser callback and cancellation smoke passes. Native Linux/macOS executables untested.

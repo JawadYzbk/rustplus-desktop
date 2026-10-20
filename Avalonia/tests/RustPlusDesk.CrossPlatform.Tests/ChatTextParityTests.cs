@@ -89,8 +89,7 @@ public sealed class ChatTextParityTests
     [TestMethod]
     public void WhoAnswer_IsTheReferenceLiteral()
     {
-        var source = File.ReadAllText(Path.Combine(RepositoryRoot(), "RustPlusDesktop", "Views", "MainWindow", "Map",
-            "MainWindow.Map.ChatCommands.cs"));
+        var source = ReferenceSource("Views", "MainWindow", "Map", "MainWindow.Map.ChatCommands.cs");
         Assert.IsTrue(source.Contains($"\"{ChatCommandTexts.WhoResponse}\"", StringComparison.Ordinal),
             "The who answer is a literal in the reference chat-command handler.");
     }
@@ -98,8 +97,7 @@ public sealed class ChatTextParityTests
     [TestMethod]
     public void OilRigFallbackTexts_AreTheReferenceLiterals()
     {
-        var source = File.ReadAllText(Path.Combine(RepositoryRoot(), "RustPlusDesktop", "Views", "MainWindow",
-            "MainWindow.OilRigTimers.cs"));
+        var source = ReferenceSource("Views", "MainWindow", "MainWindow.OilRigTimers.cs");
         Assert.IsTrue(source.Contains($"\"{ChatCommandTexts.OilRigNoAlarm}\"", StringComparison.Ordinal),
             "The no-alarm answer is a literal in the reference oil rig handler.");
         Assert.IsTrue(source.Contains("GetString(\"CodeUiNone\") ?? \"None\"", StringComparison.Ordinal),
@@ -109,9 +107,26 @@ public sealed class ChatTextParityTests
         Assert.AreEqual("None", ChatCommandTexts.OilRigNone[(ChatCommandTexts.OilRigNone.IndexOf(':') + 2)..]);
     }
 
+    /// <summary>
+    /// The folder can be copied out of the repository, and the reference sources then are not there to compare
+    /// against. The check is skipped in that case rather than failed: the port itself does not need the reference.
+    /// </summary>
+    private static string? RepositoryRoot()
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "RustPlusDesktop", "Properties", "Resources.resx")))
+                return directory.FullName;
+        }
+        return null;
+    }
+
+    /// <summary>The reference resources, or a skip when this copy was taken out of the repository.</summary>
     private static Dictionary<string, string> ReadReferenceResources()
     {
-        var document = XDocument.Load(Path.Combine(RepositoryRoot(), "RustPlusDesktop", "Properties", "Resources.resx"));
+        var root = RepositoryRoot();
+        if (root is null) Assert.Inconclusive("The reference WPF sources are not beside this copy.");
+        var document = XDocument.Load(Path.Combine(root, "RustPlusDesktop", "Properties", "Resources.resx"));
         var values = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var data in document.Root!.Elements("data"))
         {
@@ -123,15 +138,11 @@ public sealed class ChatTextParityTests
         return values;
     }
 
-    /// <summary>The migration keeps the WPF app beside the port, so the reference resources are always in the repo.</summary>
-    private static string RepositoryRoot()
+    /// <summary>The reference source file, or a skip when this copy was taken out of the repository.</summary>
+    private static string ReferenceSource(params string[] parts)
     {
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "RustPlusDesktop", "Properties", "Resources.resx")))
-                return directory.FullName;
-        }
-        Assert.Fail("The reference WPF resources were not found above the test directory.");
-        return "";
+        var root = RepositoryRoot();
+        if (root is null) Assert.Inconclusive("The reference WPF sources are not beside this copy.");
+        return File.ReadAllText(Path.Combine(new[] { root, "RustPlusDesktop" }.Concat(parts).ToArray()));
     }
 }
