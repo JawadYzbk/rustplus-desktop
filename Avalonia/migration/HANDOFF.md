@@ -4,61 +4,30 @@
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
 every finished slice with its commit.
 
-## Fifteenth run - the players tab and the tracker's file (2026-10-20, local Windows continuation)
+## Fifteenth run - the players tab and the tracking are removed (2026-10-20, local Windows continuation)
 
-- Branch `feat/rust-migration` (the branch this session was working on); slice commits `c65f8c89` (the players tab),
-  `1eb85021` (the tracker's file) and `fb717916` (the group manager). Only `Avalonia/` changes.
-- **815 tests** run locally on Windows: 815 pass, none fail. Build zero warnings.
-- Done, the players tab: the reference's Players tab - the players the user keeps an eye on. `Core/Tracking` carries
-  the reference's `TrackedPlayer` (the profile id, the name, the server the player was last seen on, the group, the
-  colour and the sessions) and its rules: the filter (the name or the server), the grouping by server and then by
-  group, the order the user put the groups in (a group that is in the order comes first, the ones that are not come
-  after them and the ungrouped ones come last), the play time as "hh:mm" and the twelve-week cut-off on the
-  sessions. `Infrastructure/Tracking/TrackedPlayerFile` reads and writes the reference's own `tracked_players.json`
-  in the app's data folder, with the reference's shape (a list of the players), so both apps see the same bookmarks;
-  the name of a Steam profile is read from the same public profile XML the avatars come from.
-  The new **Players** workspace has the reference's two halves. The online half says what the reference says - that
-  the player activity tracking was removed and that the team history is in the wipe tracker - and the box where a
-  player is added by hand. The tracked half has the filter, the servers, the groups with their colour, the order the
-  groups are in (the reference drags them; the port moves them with the two buttons beside the group), and the
-  per-player actions: give the player another name, put it in a group (an existing one or a new one), and stop
-  tracking it. The **Manage Groups** dialog is there too: a group is created or edited, the players that are checked
-  are put in it and the ones that are not and were in it are out of it, with the colours the reference offers. The
-  rail entry follows the reference: the players sit between the clan and the notifications, with the
-  reference's globe and the reference's help text, and the entry only shows once the user turns the Players tab on in
-  the settings. The reference's opt-in could never be turned on - its setter always wrote the flag back to false - so
-  its Players tab could not be reached at all; the port's switch works, because a switch that cannot be turned on is
-  a switch that does nothing.
-- Done, the tracker's file: `Core/Tracking` carries the reference's tracker models (the observation, the segment,
-  the monument visit, the summary, the insights and the point) and the compact record file the reference writes:
-  "PWT1", the base timestamp in ticks, and then the observations - the strings that repeat (the player name, the
-  session id, the monument name, the grid) written once and referred to by number afterwards, which is what takes a
-  poll from about 390 bytes to about 30. `Infrastructure/Tracking/PlayerWipeTrackerStore` keeps the observations in
-  the reference's layout (a folder per server, a folder per wipe in it, a file per player), reads and writes the
-  wipe's metadata and its map, converts the history the app wrote as JSON lines when it is read, and cuts a record
-  that a crash tore away so the rest of the file stays readable. The tracker is opt-in and the cloud backup is a
-  separate choice, the way the reference has it.
-- Where: `Core/Tracking/{TrackedPlayers,PlayerWipeTracker,TrackerRecordFile}.cs`,
-  `Infrastructure/Tracking/{TrackedPlayerFile,PlayerWipeTrackerStore}.cs`,
-  `Infrastructure/Steam/SteamCommunityProfileNameSource.cs`, `Features/Players/PlayersViewModel.cs`,
-  `Features/Players/PlayersView.axaml`, `Shell/{MainWindow,NavigationRail}.axaml`,
-  `Features/{Servers,Settings}` (the workspace, the opt-ins).
-- Tests: `TrackedPlayerTests` (16: the filter, the grouping and its order, the play time, the twelve-week cut-off,
-  the Steam profile id, the file's round trip and its reference shape, a file that cannot be read, the workspace's
-  actions, the group's folded-away state, the group order, the rail entry and the rendered view) and
-  `PlayerWipeTrackerTests` (10: the observation round trip, the strings written once, a torn record, bytes that are
-  not this format, the location type, the store's round trip, the conversion of the JSON-lines history, the wipe's
-  metadata and map, the list of wipes, the deletion and the opt-in).
-- Deviations: the reference's manual track adds nothing - its call leaves out the flag that says "a bookmark", so
-  the button does nothing - and the port's adds the bookmark, because a button that does nothing is a button the
-  plan does not allow. The pop-out window, the how-to-track window and the analysis report are not ported yet, and
-  neither are the tracker's live capture, its window and its cloud upload. The analysis report is an HTML document
-  the reference shows in a web view; the port has no web view yet, so it waits for the web-hosting decision the plan
-  defers with the genetics lab.
-- Next slices: the tracker's live capture and its window, then the command dock and the mini-map, the cameras, the
-  tutorials and the gallery, the cloud account windows, the LFG and admin surfaces, the AI companion's history
-  window and model picker, and the tray, audio and speech adapters.
+- Branch `feat/rust-migration` (the branch this session was working on); slice commit `see git log` (docs follow).
+  Only `Avalonia/` changes.
+- **At Jawad's instruction the Players tab and the player tracking are removed from the app.** This reverses the
+  two slices below: the players tab, the players it kept an eye on, their groups, the group manager, the pop-out
+  window, the how-to-track guide and the player wipe tracker's file are gone, and so are the settings that turned
+  them on. Nothing of them is left behind: no rail entry, no workspace, no window, no setting, no file the app
+  writes and no code that reads one.
+- What is left alone, on purpose: the players the game itself shows - the map's player markers, the team dock, the
+  population, the chat alerts about a teammate going online or being AFK - are the game's players and not the
+  tracking feature. The traffic monitor is untouched. The reference's alert-template catalogue keeps its three
+  "Tracking ..." rows and the reference's `AnnounceTracking` flag, because the reference's own alert editor shows
+  them and the port mirrors the reference's catalogue so both apps agree.
+- The reference's own Players tab was already a vestige before this: the live player tracking was removed from it
+  (`IsTracking` is `false`), its manual-track button did nothing, and its opt-in could never be turned on - so its
+  tab could not be reached at all. Removing it costs the app nothing that worked.
+- Tests: the two test files of the removed feature are gone with it (`TrackedPlayerTests`, `PlayerWipeTrackerTests`).
+- Next slices: the remaining PARITY-PLAN ports - the command dock and the mini-map, the cameras, the tutorials and
+  the gallery, the cloud account windows, the LFG and admin surfaces, the AI companion's history window and model
+  picker, and the tray, audio and speech adapters.
 
+The two slices below were built, verified and committed, and were then removed at Jawad's instruction. They are kept
+here so the history is not rewritten: the commits stay in the log, and the removal is the entry above.
 ## Fourteenth run - the whole interface reads the catalogue (2026-10-20, local Windows continuation)
 
 - Branch `codex/avalonia-migration`; slice commit `27ff8863` (docs follow). Only `Avalonia/` changes.
@@ -960,10 +929,10 @@ The checks never used personal credentials or contacted Steam/Facepunch.
 ## Verified current source
 
 - Debug/Release builds: zero warnings/errors. The current source has **803 passing tests** in the repository.
-- Source-only external copy with separate package cache: **811 tests pass, 4 skipped, none failed**, zero
+- Source-only external copy with separate package cache: **783 tests pass, 4 skipped, none failed**, zero
   warnings, and self-contained publishes for win-x64, linux-x64 and osx-arm64. The skipped checks are the
   reference-text comparisons, which need the reference app beside the copy. The published Windows executable was
-  started and stayed up. The copy is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-iso9`.
+  started and stayed up. The copy is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-iso10`.
 - Self-contained Release publishes on Windows: win-x64, linux-x64, osx-arm64 succeed. The published Windows
   executable was started and stayed up.
 - Native Windows browser callback and cancellation smoke passes. Native Linux/macOS executables untested.

@@ -11,27 +11,12 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
-- The player wipe tracker's file: `Core/Tracking` carries the reference's tracker models (the observation, the
-  segment, the monument visit, the summary, the insights and the point) and the compact record file the reference
-  writes - "PWT1", the base timestamp, and then the observations, with the strings that repeat written once and
-  referred to by number afterwards. `Infrastructure/Tracking/PlayerWipeTrackerStore` keeps the observations in the
-  reference's layout (a folder per server, a folder per wipe in it, a file per player), reads and writes the
-  wipe's metadata and its map, converts the history the app wrote as JSON lines, and cuts a record that a crash tore
-  away so the rest of the file stays readable. The tracker is opt-in and the cloud backup is a separate choice, the
-  way the reference has it. **813 tests** on Windows locally (813 pass). The live capture, the tracker's window and
-  the cloud upload are not ported yet.
-- The players tab: `Core/Tracking` carries the reference's tracked players (the profile id, the name, the server the
-  player was last seen on, the group and the sessions) and its rules - the filter, the grouping by server and then
-  by group, the order the user put the groups in, the play time and the twelve-week cut-off; `Infrastructure/Tracking`
-  reads and writes the reference's own `tracked_players.json`, so both apps see the same bookmarks, and the name of a
-  Steam profile is read from the same public profile XML the avatars come from. The new **Players** tab has the
-  reference's two halves: the online one, which says the player activity tracking was removed and where the team
-  history is, and the tracked one, with the filter, the groups, the group order and the per-player actions (rename,
-  group, stop tracking), and the **Manage Groups** dialog, where a group is created or edited, the players that are
-  checked are put in it and the ones that are not and were in it are out of it. The rail entry follows the reference's
-  order and its opt-in - which the reference's own setter could never turn on, so its Players tab could not be
-  reached at all. **815 tests** on Windows locally (815 pass). The pop-out window, the how-to-track window and the
-  analysis report are not ported yet.
+- The players tab and the player tracking are gone: at Jawad's instruction the Players tab, the players it kept an eye
+  on, their groups, the group manager, the pop-out window, the how-to-track guide and the player wipe tracker's file
+  were removed from the app, together with the settings that turned them on. Nothing of them is left in the app - no
+  rail entry, no workspace, no setting, no file the app writes. The players the game itself shows (the map's markers,
+  the team dock, the population, the chat alerts about a teammate) are untouched: they are the game's players, not the
+  tracking feature. The traffic monitor is untouched as well. **787 tests** on Windows locally (787 pass).
 - The whole interface reads the catalogue: every label the reference's catalogue carries is bound to its own key
   (`{DynamicResource ...}`), so the 32 shipped translations cover the port's interface and not only the rail, the
   settings cards and the map toolbar. The catalogue itself is put into the app's resources at start-up and read again
@@ -429,7 +414,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Map drawing/routes/layers/3D | The shape tools, the named routes, the icon and the text tools, drawn on the map and saved per server | The drawing groups, import/export, keycards, no-build zones, monument overlays, the 3D map and the helper integration |
 | Command dock/minimap/popouts | Not ported | Preserve tiles/templates/configuration, overlays, floating windows and appearance settings |
 | Death markers/stats/wipe tracker | Not ported | Preserve history, heatmaps, archives, marker configuration and cloud synchronization |
-| Players tab / player wipe tracker | The players the user keeps an eye on: the reference's own `tracked_players.json`, the filter, the groups by server, the group order, the rename, the group and the stop-tracking actions, and the rail entry in the reference's place. The tracker's own file: the compact record format, the store with its layout, the wipe metadata and map, the conversion of the JSON-lines history and the opt-in | The group manager (creating and renaming groups with their colours), the pop-out window, the how-to-track window, the analysis report, and the tracker's live capture, window and cloud upload |
+| Players tab / player wipe tracker | Removed at Jawad's instruction: the Players tab, the tracked players, their groups, the group manager, the pop-out window, the how-to-track guide and the player wipe tracker's file are not in the app, and nothing of them is left behind | Nothing - the feature was removed, not reduced |
 | AI companion | The companion, the `!ai` chat command, the provider and model choice and the private key file | The spoken answers, the recording, the Anthropic and Gemini providers, the history and the recipe and raid tables |
 | Notifications/custom alerts | In-memory pairing/alarm/chat/death feed while listening, sent-time normalization and duplicate suppression | Durable inbox, unread state, popup paging, sounds, channel settings and integrations |
 | Community/LFG/support/admin | The support card: the user's tickets, the thread, the categories and filing a ticket | The community profiles, moderation and reporting, the attachments in the form, the LFG and the admin panel |
@@ -508,11 +493,11 @@ themes, and full keyboard/screen-reader acceptance are still pending.
   code/web candidates and generated-tree exclusions.
 - Isolation: a source-only copy of the folder **outside** the repository, restored against a fresh, separate
   package cache (including the local protocol package and FluentAvaloniaUI), builds with zero warnings, passes
-  **811 tests** with 4 skipped and none failed, and publishes self-contained builds for win-x64, linux-x64 and
+  **783 tests** with 4 skipped and none failed, and publishes self-contained builds for win-x64, linux-x64 and
   osx-arm64. The published Windows executable was started and stayed up. The four skipped checks are the ones that
   compare the ported chat texts and the catalogue against the reference app's resources, which are not beside the
   copy; they are skipped rather than failed, because the port itself does not need the reference. The isolation copy
-  is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-iso9` (a local path, not part of the repository).
+  is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-iso10` (a local path, not part of the repository).
 - Data continuity: the app reads the shipped app's own `profiles.json` and `tracking_settings.json` from the
   operating system's application-data folder, and writes its own files beside them (the achievements file was
   written there by the published build). A user who switches from the Windows app to this one keeps the servers,
