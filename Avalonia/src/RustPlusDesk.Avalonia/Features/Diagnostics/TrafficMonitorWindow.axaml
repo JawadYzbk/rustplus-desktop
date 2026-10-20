@@ -1,0 +1,10 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:diagnostics="using:RustPlusDesk.Avalonia.Features.Diagnostics"
+        xmlns:vm="using:RustPlusDesk.Avalonia.Features.Diagnostics"
+        x:Class="RustPlusDesk.Avalonia.Features.Diagnostics.TrafficMonitorWindow"
+        x:DataType="vm:TrafficMonitorViewModel"
+        Title="Rust+ Desktop — Network traffic" Width="920" Height="640" MinWidth="640" MinHeight="420"
+        WindowStartupLocation="CenterOwner">
+  <diagnostics:TrafficMonitorView DataContext="{Binding}" />
+</Window>

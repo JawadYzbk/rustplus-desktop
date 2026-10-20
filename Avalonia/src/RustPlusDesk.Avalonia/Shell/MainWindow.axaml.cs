@@ -18,6 +18,7 @@ public sealed partial class MainWindow : Window
                 model.Alarms.OpenRequested += ShowAlarms;
                 model.ConsolePopOutRequested += ShowConsolePopout;
                 model.Hotkeys.EditRequested += ShowHotkeys;
+                model.TrafficWindowRequested += ShowTraffic;
             }
         };
     }
@@ -49,6 +50,17 @@ public sealed partial class MainWindow : Window
     }
 
     private Features.Console.ConsoleHelperWindow? consoleWindow;
+    private Features.Diagnostics.TrafficMonitorWindow? trafficWindow;
+
+    /// <summary>The traffic window is one owned window: a second click focuses it.</summary>
+    private void ShowTraffic(object? sender, EventArgs e)
+    {
+        if (trafficWindow is not null) { trafficWindow.Activate(); return; }
+        if (sender is not Features.Servers.ServersViewModel { Traffic: { } traffic }) return;
+        trafficWindow = new Features.Diagnostics.TrafficMonitorWindow { DataContext = traffic };
+        trafficWindow.Closed += (_, _) => trafficWindow = null;
+        trafficWindow.Show(this);
+    }
 
     /// <summary>Reference popout: one unowned always-on-top window; a second click focuses it.</summary>
     private void ShowConsolePopout(object? sender, EventArgs e)

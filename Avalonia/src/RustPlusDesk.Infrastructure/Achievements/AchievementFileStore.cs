@@ -28,7 +28,7 @@ public sealed class AchievementFileStore(string path) : IAchievementStore
                 {
                     if (entry.Value is not JsonValue value) continue;
                     if (value.TryGetValue(out DateTime when)) earned[entry.Key] = when;
-                    else if (value.TryGetValue(out string text)
+                    else if (value.TryGetValue(out string? text)
                         && DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out DateTime parsed))
                         earned[entry.Key] = parsed;
                 }

@@ -38,7 +38,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     ISteamAvatarSource? avatarSource = null, RustPlusDesk.Core.Chat.IChatCommandSettingsStore? chatCommandStore = null,
     RustPlusDesk.Core.Chat.ICustomTimerStore? customTimerStore = null, RustPlusDesk.Core.Time.IClock? clock = null,
     RustPlusDesk.Core.Devices.IDeviceAutomationStore? automationStore = null,
-    RustPlusDesk.Core.Achievements.IAchievementStore? achievementStore = null)
+    RustPlusDesk.Core.Achievements.IAchievementStore? achievementStore = null,
+    RustPlusDesk.Core.Diagnostics.NetworkTrafficMonitor? trafficMonitor = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -464,6 +465,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     private bool initialized;
     private readonly CancellationTokenSource timerStop = new();
     private Task timerLoop = Task.CompletedTask;
+    private Task trafficLoop = Task.CompletedTask;
     private bool pendingPairingRefresh;
     private readonly Dictionary<string, string> pairedProfileKeys = [];
     public bool HasAccount => accountService is not null || cloudAccountService is not null;
@@ -741,6 +743,45 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     /// <summary>Earns an achievement (reference AchievementService.Unlock).</summary>
     public void UnlockAchievement(string id) => Achievements?.Unlock(id);
 
+    private Diagnostics.TrafficMonitorViewModel? traffic;
+    /// <summary>Reference TrafficMonitorWindow: the app's own network traffic, counted and shown.</summary>
+    public Diagnostics.TrafficMonitorViewModel? Traffic => traffic ??= CreateTraffic();
+
+    private Diagnostics.TrafficMonitorViewModel? CreateTraffic()
+    {
+        if (trafficMonitor is null) return null;
+        var model = new Diagnostics.TrafficMonitorViewModel(trafficMonitor);
+        trafficMonitor.EntryRecorded += _ => model.Refresh();
+        trafficMonitor.TotalsChanged += model.Refresh;
+        model.Refresh();
+        return model;
+    }
+
+    /// <summary>Opens the traffic window (the shell owns it).</summary>
+    [RelayCommand]
+    private void OpenTraffic() => TrafficWindowRequested?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>Raised when the traffic window should be shown (the shell owns the window).</summary>
+    public event EventHandler? TrafficWindowRequested;
+
+    /// <summary>
+    /// Reference SpeedTimer_Tick: the speed readout is a rolling window, so it is refreshed twice a second.
+    /// </summary>
+    private async Task RunTrafficAsync(CancellationToken ct)
+    {
+        if (trafficMonitor is null) return;
+        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(500));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                trafficMonitor.TickSpeed();
+                traffic?.Refresh();
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+    }
+
     /// <summary>
     /// Reference WireAchievements: the achievements are hooked up once during startup, and each thing that happens in
     /// the app earns the one that belongs to it.
@@ -952,6 +993,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             EnsureAccountServices();
             ObserveAchievements();
             timerLoop = Timers.RunAsync(timerStop.Token);
+            trafficLoop = RunTrafficAsync(timerStop.Token);
             if (Cloud is not null) Cloud.CheckCommand.Execute(null);
             if (Account is null || Listener is null) return;
             string initialSource = SourcePath;
@@ -1472,6 +1514,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         shuttingDown = true;
         timerStop.Cancel();
         await timerLoop;
+        await trafficLoop;
         await Timers.FlushAsync();
         InitializeCommand.Cancel();
         RefreshCommand.Cancel();

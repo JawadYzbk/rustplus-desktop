@@ -1,0 +1,77 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RustPlusDesk.Avalonia.Features.Diagnostics"
+             xmlns:core="using:RustPlusDesk.Core.Diagnostics"
+             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+             x:Class="RustPlusDesk.Avalonia.Features.Diagnostics.TrafficMonitorView" x:DataType="vm:TrafficMonitorViewModel">
+  <UserControl.Styles>
+    <Style Selector="TextBlock.colHeader"><Setter Property="FontSize" Value="11" /><Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSubtle}" /></Style>
+    <Style Selector="TextBlock.cell"><Setter Property="FontSize" Value="12" /><Setter Property="TextTrimming" Value="CharacterEllipsis" /></Style>
+    <Style Selector="Border.stat"><Setter Property="Background" Value="{DynamicResource SurfaceAlt}" /><Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="12,10" /><Setter Property="Margin" Value="0,0,8,8" /></Style>
+    <Style Selector="TextBlock.statLabel"><Setter Property="FontSize" Value="11" /><Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSubtle}" /></Style>
+    <Style Selector="TextBlock.statValue"><Setter Property="FontSize" Value="18" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+  </UserControl.Styles>
+  <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="10">
+    <UniformGrid Columns="3" Margin="0,0,-8,-8">
+      <Border Classes="stat"><StackPanel Spacing="2"><StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ArrowDown24" FontSize="13" Foreground="{DynamicResource TextSubtle}" /><TextBlock Classes="statLabel" Text="DOWNLOAD" /></StackPanel>
+        <TextBlock Classes="statValue" Text="{Binding DownloadSpeed}" /></StackPanel></Border>
+      <Border Classes="stat"><StackPanel Spacing="2"><StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ArrowUp24" FontSize="13" Foreground="{DynamicResource TextSubtle}" /><TextBlock Classes="statLabel" Text="UPLOAD" /></StackPanel>
+        <TextBlock Classes="statValue" Text="{Binding UploadSpeed}" /></StackPanel></Border>
+      <Border Classes="stat"><StackPanel Spacing="2"><StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Database24" FontSize="13" Foreground="{DynamicResource TextSubtle}" /><TextBlock Classes="statLabel" Text="TOTAL" /></StackPanel>
+        <TextBlock Classes="statValue" Text="{Binding Total}" /></StackPanel></Border>
+    </UniformGrid>
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+      <TextBlock Text="Everything the app sends and receives. It never leaves this machine." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+        <Button Classes="subtle" Command="{Binding ExportCommand}" ToolTip.Tip="Write the log to a file" AutomationProperties.Name="Export traffic log">
+          <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Save24" FontSize="14" /><TextBlock Text="Export" /></StackPanel>
+        </Button>
+        <Button Classes="subtle" Command="{Binding ClearCommand}" ToolTip.Tip="Clear the counters and the log" AutomationProperties.Name="Clear traffic log">
+          <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Delete24" FontSize="14" /><TextBlock Text="Clear" /></StackPanel>
+        </Button>
+      </StackPanel>
+    </Grid>
+    <StackPanel Grid.Row="2" Spacing="4">
+      <TextBlock Text="BY CATEGORY" Classes="colHeader" />
+      <ItemsControl ItemsSource="{Binding Categories}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="core:CategoryBandwidthStat">
+            <Grid ColumnDefinitions="140,*,Auto,Auto" ColumnSpacing="8" Margin="0,2,0,0">
+              <TextBlock Classes="cell" Text="{Binding Category}" />
+              <TextBlock Grid.Column="1" Classes="cell" Text="{Binding FormattedTotalBytes}" />
+              <TextBlock Grid.Column="2" Classes="cell" Text="{Binding RequestCount}" Width="50" TextAlignment="Right" />
+              <TextBlock Grid.Column="3" Classes="cell" Text="{Binding FormattedPercentage}" Width="60" TextAlignment="Right" />
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+    <Grid Grid.Row="3" RowDefinitions="Auto,*" RowSpacing="6">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+        <TextBlock Classes="colHeader" Text="TIME" Width="90" />
+        <TextBlock Grid.Column="1" Classes="colHeader" Text="ENDPOINT" />
+        <TextBlock Grid.Column="2" Classes="colHeader" Text="SIZE" Width="90" />
+        <TextBlock Grid.Column="3" Classes="colHeader" Text="TIME" Width="70" />
+        <TextBlock Grid.Column="4" Classes="colHeader" Text="STATUS" Width="90" />
+      </Grid>
+      <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+        <ItemsControl ItemsSource="{Binding Entries}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="core:TrafficEntry">
+              <Grid ColumnDefinitions="Auto,90,*,Auto,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,4">
+                <TextBlock Classes="cell" Text="{Binding TimestampFormatted}" />
+                <TextBlock Grid.Column="1" Classes="cell" Text="{Binding Category}" />
+                <TextBlock Grid.Column="2" Classes="cell" Text="{Binding Endpoint}" ToolTip.Tip="{Binding Endpoint}" />
+                <TextBlock Grid.Column="3" Classes="cell" Text="{Binding FormattedSize}" Width="90" />
+                <TextBlock Grid.Column="4" Classes="cell" Text="{Binding DurationMs}" Width="70" />
+                <TextBlock Grid.Column="5" Classes="cell" Text="{Binding Status}" Width="90" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Grid>
+  </Grid>
+</UserControl>

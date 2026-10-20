@@ -45,8 +45,12 @@ public sealed partial class App : Application
         {
             var window = new MainWindow();
             var sessions = new RustPlusSessionFactory();
-            var accountHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
-            var cloudHttp = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false }) { Timeout = TimeSpan.FromSeconds(30) };
+            var traffic = new RustPlusDesk.Core.Diagnostics.NetworkTrafficMonitor();
+            var accountHttp = new HttpClient(new RustPlusDesk.Infrastructure.Diagnostics.TrafficTrackingHttpMessageHandler(
+                new HttpClientHandler(), traffic, "Cloud API")) { Timeout = TimeSpan.FromSeconds(30) };
+            var cloudHttp = new HttpClient(new RustPlusDesk.Infrastructure.Diagnostics.TrafficTrackingHttpMessageHandler(
+                new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false }, traffic, "Cloud API"))
+            { Timeout = TimeSpan.FromSeconds(30) };
             var accounts = new CompanionAccountService(accountHttp, new CompanionLoginBrowser(window));
             var pushHealth = new CompanionPushHealth(accountHttp, accounts);
             var syncPreferences = new DeviceSyncPreferences(DeviceSyncPreferences.DefaultPath);
@@ -76,7 +80,8 @@ public sealed partial class App : Application
                 new RustPlusDesk.Infrastructure.Steam.SteamCommunityAvatarSource(accountHttp), new LegacyChatCommandStore(),
                 automationStore: new LegacyDeviceAutomationStore(),
                 achievementStore: new RustPlusDesk.Infrastructure.Achievements.AchievementFileStore(
-                    RustPlusDesk.Infrastructure.Achievements.AchievementFileStore.DefaultPath));
+                    RustPlusDesk.Infrastructure.Achievements.AchievementFileStore.DefaultPath),
+                trafficMonitor: traffic);
             desktop.Exit += (_, _) => { accountHttp.Dispose(); cloudHttp.Dispose(); };
             window.DataContext = servers;
             window.Opened += async (_, _) => await servers.InitializeCommand.ExecuteAsync(null);
