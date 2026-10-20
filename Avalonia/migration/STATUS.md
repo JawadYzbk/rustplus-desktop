@@ -17,8 +17,9 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
   above the map, the new **Draw** tool on the map toolbar picks the tool, the colour and the thickness, finishes a
   route, undoes the last drawing and clears them. The drawings are saved per server under
   `Overlays/<server>/<steam id>.json` in the app's data folder, exactly where the reference keeps them.
-  **744 tests** on Windows locally (744 pass). The reference's icon picker, its text tool and the cloud upload of
-  the overlay are not ported.
+    The icon and the text tools place the bundled item artwork and a typed label on the map.
+  **745 tests** on Windows locally (745 pass). The reference's drawing groups and the cloud upload of the overlay
+  are not ported.
 - The logic engine: `Core/Logic` ports the reference `LogicRule`/`LogicStep` and the engine that runs them. A
   rule watches for a trigger (a smart alarm, a smart switch, a chat command, another rule starting or another
   rule finishing), checks its condition and then runs its steps (wait, toggle a switch or a whole group, start a
@@ -356,7 +357,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Raid calculator | Ported workspace tab: reference engine/tests, 165-target catalogue with artwork, categories/search, per-target methods, curated and smart mixes, comparison modes, cheapest nudge, totals, shared raid-plan.json, Discord summary copy, reference breakpoints | Tutorial targets, localization, entrance animations and native visual acceptance |
 | Recycler calculator | Offline catalog, calculations, quantity shortcuts, filters/paging, comparisons, icons and stateful workspace | Original navigation integration, tutorial targets, localization and native visual/accessibility acceptance |
 | Shop search/trades | Not ported | Preserve filters, vending offers, alerts, shopping/profit workflows and map links |
-| Map drawing/routes/layers/3D | The shape tools and the named routes, drawn on the map and saved per server | The icon picker, the text tool, the drawing groups, import/export, keycards, no-build zones, monument overlays, the 3D map and the helper integration |
+| Map drawing/routes/layers/3D | The shape tools, the named routes, the icon and the text tools, drawn on the map and saved per server | The drawing groups, import/export, keycards, no-build zones, monument overlays, the 3D map and the helper integration |
 | Command dock/minimap/popouts | Not ported | Preserve tiles/templates/configuration, overlays, floating windows and appearance settings |
 | Death markers/stats/wipe tracker | Not ported | Preserve history, heatmaps, archives, marker configuration and cloud synchronization |
 | AI companion | Not ported | Preserve answers/history, provider/model selection, chat commands and account settings |
@@ -403,7 +404,7 @@ themes, and full keyboard/screen-reader acceptance are still pending.
 
 ## Local verification
 
-- Windows: all **744 .NET test cases** pass on the current source, including the clan workspace and its role-gated
+- Windows: all **745 .NET test cases** pass on the current source, including the clan workspace and its role-gated
   commands, the device-automation rules, the achievements list, the traffic monitor, the timer sounds, the
   organization, recycling and socket-teardown work; build and isolated-copy results are recorded in HANDOFF.md at each checkpoint.
 - Native browser crash reproduced using a local callback: Windows threw `Unable to create child window
