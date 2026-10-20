@@ -1,8 +1,52 @@
-# Avalonia migration handoff — 2026-10-18 (fourth scheduled run)
+# Avalonia migration handoff — 2026-10-20 (thirteenth run)
 
 **Plan of record: [PARITY-PLAN.md](PARITY-PLAN.md).** Bar set by Jawad on 2026-10-18: *same functionality as the WPF
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
 every finished slice with its commit.
+
+## Thirteenth run - a green baseline, the clan, automation, packaging, achievements and traffic (2026-10-20)
+
+- Branch `codex/avalonia-migration`. Only `Avalonia/` changes.
+- **706 tests** run locally on Windows: **706 pass, none fail** - the three known Windows-local failures the
+  earlier runs carried are gone. Build zero warnings.
+- **A green baseline.** The death-stats page read the wall clock directly, so its "last 24 h" filter only passed
+  on the day the fixture was written; it now reads the clock through a new `Core/Time/IClock.cs` seam
+  (`IClock`/`SystemClock`/`FixedClock`) and the test injects a fixed clock. The XDG autostart and macOS
+  LaunchAgent adapters claimed support on the wrong operating system (the macOS one reported support on Linux);
+  they now require their own platform, and their file formats stay covered on every host through the extracted
+  `XdgAutostart.QuoteExecArgument` and `MacLaunchAgent.BuildPlist`.
+- **The clan workspace.** `Core/Clans/ClanModels.cs` carries the clan snapshot, `RustPlusTransport.ReadClanAsync`
+  reads it through `GetClanInfoAsync`, the connection polls it every fifteen seconds (reference `TeamTimer_Tick`)
+  and the new Clan tab shows the members, the roles and the message of the day. The chat gate now follows the
+  reference `IsClanCommandAuthorAllowed`: a clan message is answered only when the profile turned clan answering
+  on and the author's clan role was granted; an author outside the last clan pull is refused with the reference
+  log line; the gate runs before the prefix and the cooldown, so a refused message spends nothing. The settings
+  card edits the three clan switches and one tick per clan role, the rows follow the live clan, and a tick is
+  saved at once so a clan pull cannot undo it. `ClanChatCommandsEnabled`, `ClanCommandsAllowAi` and
+  `ClanRolePermissions` round-trip through the profile writer.
+- **Device automation.** `Core/Devices/DeviceAutomation.cs` ports the reference rule and evaluator (player
+  proximity with the offline modes, and a game-time window that wraps around midnight) and the runner that
+  reads the enabled rules into decisions before anything is written, so two rules that disagree about one switch
+  are refused with the reference log line. The rules live in the profile, the captured anchor position lives on
+  the device row, and the shell evaluates them on every team read. The settings card edits the rules.
+- **Installable builds.** `installer/` publishes a self-contained Windows build with an Inno Setup installer, a
+  macOS `.app` bundle and a per-user Linux installation; `installer/PACKAGING.md` says what the packages do not
+  do (signing, automatic updates, native macOS/Linux appearance). The three self-contained publishes succeed on
+  the Windows host and the published Windows executable starts and stays up.
+- **Achievements.** The reference catalogue (31 achievements), the reference tracking rules, the saved state and
+  the new workspace with the artwork cut from the bundled sprite sheet; the secret one stays "???" until it is
+  earned, and the shell earns the ones the ported features produce.
+- **Network traffic monitor.** The reference monitor (bounded log, rolling speed, per-category breakdown, the
+  reference size formatting), the recording HTTP handler, the window and the title-bar speed readout.
+- Where: `Core/{Time,Chat,Clans,Devices,Achievements,Diagnostics}`, `Infrastructure/{Profiles,Achievements,
+  Diagnostics}`, `Features/{Clans,Devices,Achievements,Diagnostics,Settings}`, `Shell/{MainWindow,NavigationRail}`,
+  `installer/`.
+- Deviations: the reference's "capture the device position from a paired teammate" action is not wired to a
+  button yet; the achievement ticket needs the support API, which is not ported; the traffic window has no
+  per-request details column.
+- Next slices: the remaining PARITY-PLAN ports - the players tab, the map drawing/routes/layers, the command
+  dock and mini-map, the AI companion, the community/LFG/support/admin surfaces, the tutorials, the cameras and
+  the genetics lab - plus the localization of the interface and the native macOS and Linux appearance.
 
 ## Twelfth run - the map timer flyout (2026-10-19, local Windows continuation)
 
@@ -732,15 +776,19 @@ The older sections below describe the prior source checkpoint; retain their beha
 
 ## Workspace and authorization
 
-- Repository: `D:\Development\rustplus-desktop`, branch `beta`; baseline `e1bf6594`.
+- Repository: `D:\Development\rustplus-desktop`, branch `codex/avalonia-migration` (branched from `beta` at
+  `35dee2b2`). The original Windows app is untouched; the migration lives in `Avalonia/`.
 - All migration work is in `Avalonia/`. Do not edit the original WPF application or unrelated `.serena/`.
 - Preserve every shipped feature and nearly the same design. Windows uses FluentAvaloniaUI 3.1.0;
   Avalonia is 12.1.4 on .NET 10. Linux/macOS native appearance remains unfinished.
 - Read `PROMPT.md` and `STATUS.md` before continuing. The migration is a preview, not production ready.
-- Latest verified source checkpoint: **`d4bba03a` on `beta`**. A following documentation-only commit
-  records this handoff. Push target is `origin` (JawadYzbk/rustplus-desktop), never upstream `remote`.
+- Latest verified source checkpoint: **`1a2811e9`** (the documentation commit for the traffic monitor slice; the
+  code commit is `a9185169`). Push target is `origin` (JawadYzbk/rustplus-desktop), never upstream `remote`.
   Check `git log`/remote state before continuation. Only `Avalonia/` is included; unrelated `.serena/`
   and root `rustplus.proto` stay untracked and unchanged.
+- Three helper scripts at the repository root (`build-avalonia.cmd`, `build-avalonia.ps1`, `dev-avalonia.cmd`)
+  are still untracked: they were left by an earlier run and are not part of the migration folder, which
+  carries its own copies in `Avalonia/`.
 
 ## Resumed source checkpoints
 
@@ -751,6 +799,12 @@ The older sections below describe the prior source checkpoint; retain their beha
 | `a8cf2a48` | Local device aliases/groups/movement/order; 188 tests |
 | `61d2eab5` | Offline recycler workspace, 776 inputs and 796 original icons; 195 tests |
 | `d4bba03a` | Immediate socket-loss recovery and local alarm-title edits; 199 tests |
+| `353a5aec` | A green baseline: the death-stats clock seam and the platform-honest autostart adapters |
+| `d5deb349` | The clan workspace and the role-gated clan chat commands; 669 tests |
+| `e75e422b` | Device automation rules with their settings card; 685 tests |
+| `6e580ed0` | Installable builds for Windows, macOS and Linux |
+| `a1dc3ecd` | The achievements list with its sprite sheet and unlock triggers; 695 tests |
+| `a9185169` | The network traffic monitor and its window; 706 tests |
 
 ## Latest resolved bug
 
@@ -767,10 +821,11 @@ The checks never used personal credentials or contacted Steam/Facepunch.
 
 ## Verified current source
 
-- Debug/Release builds: zero warnings/errors. `8e1df49` has 139 tests, `9fd4ee6` has 171,
-  `a8cf2a4` has 188, `61d2eab` has 195. `d4bba03a` has 199 passing cases in the repository and isolation.
-- Source-only external copy with separate package cache: 199 tests pass, zero warnings.
-- Self-contained Release publishes on Windows: win-x64, linux-x64, osx-arm64 succeed.
+- Debug/Release builds: zero warnings/errors. The current source has **706 passing tests** in the repository.
+- Source-only external copy with separate package cache: last verified at 199 tests; it has not been repeated
+  since the clan, automation, packaging, achievements and traffic slices.
+- Self-contained Release publishes on Windows: win-x64, linux-x64, osx-arm64 succeed. The published Windows
+  executable was started and stayed up.
 - Native Windows browser callback and cancellation smoke passes. Native Linux/macOS executables untested.
 - Two Python reference-capture tests passed in the earlier slice; its code has not changed since.
 - External copy location is recorded locally in ignored `artifacts/isolation-path.txt`; its source copy
@@ -827,8 +882,14 @@ also be edited/cleared locally, with device-kind validation and revision-protect
    Do not replace that shipped workflow with invented standalone JSON-file export/import.
    Continue drag gestures, deletion/hotkey/automation cleanup, server menus and the original sidebar/
    workspace layout. The full backlog is in STATUS.md/reference checklist.
-4. Run native Windows/Linux/macOS acceptance, including permissions, browser prerequisites and appearance.
-5. Keep source upload-ready without parent-repo/private-submodule references. Exclude bin/obj/artifacts.
+4. The remaining unported reference surfaces, in the order the parity table lists them: the players tab, the map
+   drawing/routes/layers (the reference `MainWindow.Overlay.*` files), the command dock and mini-map window, the
+   AI companion, the community/LFG/support/admin surfaces, the tutorials, the cameras (a ray-traced renderer
+   over `RustPlusApi.Data.Cameras`) and the genetics lab (an embedded web application).
+5. Localize the interface: the reference ships 32 languages in `RustPlusDesktop/Properties/lang`, and the
+   Avalonia app still has hard-coded English. The resource infrastructure and the language picker come first.
+6. Run native Windows/Linux/macOS acceptance, including permissions, browser prerequisites and appearance.
+7. Keep source upload-ready without parent-repo/private-submodule references. Exclude bin/obj/artifacts.
 
 ## Continuation commands (run from Avalonia)
 
