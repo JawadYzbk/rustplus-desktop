@@ -11,6 +11,11 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- Support: `Core/Support` carries the reference ticket models, and `SupportService` reads and writes them through
+  the cloud API the account already uses - the ticket list, one ticket with its thread, the categories and the
+  current mute, filing a ticket with its attachments and adding a reply. The new **Support** card in the settings
+  shows the tickets, opens a thread and files a new one. **763 tests** on Windows locally (763 pass). The ticket
+  needs the signed-in cloud account; without one the card says so.
 - The crosshair overlay: `Core/Crosshair` ports the reference's nine crosshair styles with their sizes and their
   artwork, and a small transparent window lies over the game showing the chosen one. On Windows the window is
   click-through, so the game keeps the mouse; the other platforms cannot make a click-through window without
@@ -374,7 +379,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Death markers/stats/wipe tracker | Not ported | Preserve history, heatmaps, archives, marker configuration and cloud synchronization |
 | AI companion | Not ported | Preserve answers/history, provider/model selection, chat commands and account settings |
 | Notifications/custom alerts | In-memory pairing/alarm/chat/death feed while listening, sent-time normalization and duplicate suppression | Durable inbox, unread state, popup paging, sounds, channel settings and integrations |
-| Community/LFG/support/admin | Not ported | Preserve profiles, moderation/reporting, tickets/attachments, account/team administration |
+| Community/LFG/support/admin | The support card: the user's tickets, the thread, the categories and filing a ticket | The community profiles, moderation and reporting, the attachments in the form, the LFG and the admin panel |
 | Tutorials/achievements/help | The achievements list with its artwork, the unlock triggers and the saved state | Guided tutorial targets and their progress, patch notes, galleries, the help content and the consent dialogs |
 | Traffic monitor/debug/logs | The network traffic monitor: the app's own requests counted, the speeds, the per-category breakdown, the log and a CSV export, with the title-bar readout | The diagnostic log window, request details and the per-request filter |
 
@@ -416,7 +421,7 @@ themes, and full keyboard/screen-reader acceptance are still pending.
 
 ## Local verification
 
-- Windows: all **756 .NET test cases** pass on the current source, including the clan workspace and its role-gated
+- Windows: all **763 .NET test cases** pass on the current source, including the clan workspace and its role-gated
   commands, the device-automation rules, the achievements list, the traffic monitor, the timer sounds, the
   organization, recycling and socket-teardown work; build and isolated-copy results are recorded in HANDOFF.md at each checkpoint.
 - Native browser crash reproduced using a local callback: Windows threw `Unable to create child window
