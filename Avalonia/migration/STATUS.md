@@ -11,6 +11,17 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- Installable builds: `installer/` now produces what a user installs - a self-contained Windows build with an
+  Inno Setup installer (`installer/Setup.iss` and `installer/build-installer.ps1`, which publishes first and
+  then compiles the script, stopping with a clear message when Inno Setup is not installed), a macOS `.app`
+  bundle with an `Info.plist` (`installer/make-macos-app.sh`), and a per-user Linux installation with a launcher,
+  a desktop entry and the XDG autostart entry the app's own "launch at sign-in" switch writes
+  (`installer/install-linux.sh`). The app carries its own version (0.1.0), the Windows installer uses its own
+  application id so the preview installs beside the shipped Windows app, and the user's data stays in the
+  application-data folder so an upgrade or uninstall keeps it. The three self-contained publishes (win-x64,
+  linux-x64, osx-arm64) succeed on the Windows host, and the published Windows executable starts and stays up.
+  **Signing, automatic updates and the native macOS/Linux appearance are still not part of the packages**;
+  `installer/PACKAGING.md` says so.
 - Device automation: `Core/Devices/DeviceAutomation.cs` ports the reference `DeviceAutomationRule` and
   `DeviceAutomationEvaluator` - a rule drives one paired switch when a condition holds, the conditions being
   "player proximity" (any/all/specific players online or offline, within a distance of a captured anchor) and
@@ -294,7 +305,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Genetics Lab/web tools | Not ported | Decide and verify portable web hosting/bridge rather than copying WebView2 |
 | Settings/localization/backups | Not ported | Portable settings models, resources, storage, lossless schema migration |
 | Tray/hotkeys/audio/speech/capture | Not ported | Platform capability audit and adapters with truthful availability |
-| Installer/updater | Not ported | Native packaging, signing, updater, permissions and upgrade-path validation |
+| Installer/updater | Self-contained publishes for Windows, macOS and Linux, an Inno Setup installer, a macOS `.app` bundle and a per-user Linux installation (`installer/`, documented in `installer/PACKAGING.md`) | Signing, automatic updates, native macOS/Linux appearance and the shipped app's extra payloads |
 | Raid calculator | Ported workspace tab: reference engine/tests, 165-target catalogue with artwork, categories/search, per-target methods, curated and smart mixes, comparison modes, cheapest nudge, totals, shared raid-plan.json, Discord summary copy, reference breakpoints | Tutorial targets, localization, entrance animations and native visual acceptance |
 | Recycler calculator | Offline catalog, calculations, quantity shortcuts, filters/paging, comparisons, icons and stateful workspace | Original navigation integration, tutorial targets, localization and native visual/accessibility acceptance |
 | Shop search/trades | Not ported | Preserve filters, vending offers, alerts, shopping/profit workflows and map links |

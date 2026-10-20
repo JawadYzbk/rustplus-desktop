@@ -46,6 +46,13 @@ dotnet test tests/RustPlusDesk.CrossPlatform.Tests --configuration Release
 dotnet run --project src/RustPlusDesk.Avalonia
 ```
 
+### Installable builds
+
+`installer/` builds what a user installs: a self-contained Windows build with an
+Inno Setup installer, a macOS `.app` bundle, and a per-user Linux installation.
+See `installer/PACKAGING.md` for the commands and what the packages do not do
+(signing, automatic updates, native macOS and Linux appearance).
+
 
 The preview automatically tries the existing `RustPlusDesk/profiles.json` file in the operating system's
 application-data directory. Use **Open profiles…** to choose a copied file from another machine.
