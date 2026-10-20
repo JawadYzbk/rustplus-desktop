@@ -11,6 +11,13 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- Timer sounds: the reference's one-minute countdown and its zero-minute alarm now play, gated by the per-timer
+  switches (`TglAddTimerCountdown` / `TglAddTimerAlarm` in the add form) and by the profile's alert switch. The
+  reference ships them as mp3; the packaging carries wav copies of the same sounds, because Windows' own player
+  has no mp3 support and every platform here plays wav. The flyout also has the reference's **stop the alarm**,
+  **snooze** (an expired timer is pushed out five minutes and every notification is armed again) and
+  **pick / reset the sounds** actions, and the chosen paths round-trip through the profile
+  (`TimerCountdownAudioPath`, `TimerAlarmAudioPath`). **711 tests** on Windows locally (711 pass).
 - Network traffic monitor: `Core/Diagnostics/NetworkTrafficMonitor.cs` ports the reference monitor - every
   request the app makes is counted, the log is bounded at 2500 rows, the speed is a rolling window over the last
   second and a half, the totals and the per-category breakdown are kept, and the sizes are formatted the
@@ -372,9 +379,9 @@ themes, and full keyboard/screen-reader acceptance are still pending.
 
 ## Local verification
 
-- Windows: all **706 .NET test cases** pass on the current source, including the clan workspace and its role-gated
-  commands, the device-automation rules, the achievements list, the traffic monitor, the organization, recycling and socket-teardown
-  work; build and isolated-copy results are recorded in HANDOFF.md at each checkpoint.
+- Windows: all **711 .NET test cases** pass on the current source, including the clan workspace and its role-gated
+  commands, the device-automation rules, the achievements list, the traffic monitor, the timer sounds, the
+  organization, recycling and socket-teardown work; build and isolated-copy results are recorded in HANDOFF.md at each checkpoint.
 - Native browser crash reproduced using a local callback: Windows threw `Unable to create child window
   for native control host` because the executable lacked a supported-OS manifest. Added the official
   Avalonia compatibility declaration to the app host. The same production browser now passes local redirect
