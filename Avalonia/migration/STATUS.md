@@ -507,11 +507,11 @@ themes, and full keyboard/screen-reader acceptance are still pending.
   code/web candidates and generated-tree exclusions.
 - Isolation: a source-only copy of the folder **outside** the repository, restored against a fresh, separate
   package cache (including the local protocol package and FluentAvaloniaUI), builds with zero warnings, passes
-  **799 tests** with 4 skipped and none failed, and publishes self-contained builds for win-x64, linux-x64 and
+  **809 tests** with 4 skipped and none failed, and publishes self-contained builds for win-x64, linux-x64 and
   osx-arm64. The published Windows executable was started and stayed up. The four skipped checks are the ones that
   compare the ported chat texts and the catalogue against the reference app's resources, which are not beside the
   copy; they are skipped rather than failed, because the port itself does not need the reference. The isolation copy
-  is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-iso7` (a local path, not part of the repository).
+  is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-iso8` (a local path, not part of the repository).
 - Data continuity: the app reads the shipped app's own `profiles.json` and `tracking_settings.json` from the
   operating system's application-data folder, and writes its own files beside them (the achievements file was
   written there by the published build). A user who switches from the Windows app to this one keeps the servers,
