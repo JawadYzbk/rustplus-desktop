@@ -70,6 +70,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>The update card: the running version and the newest published release.</summary>
     public UpdateSettingsViewModel? Update { get; init; }
     public bool HasUpdate => Update is not null;
+    /// <summary>The crosshair card: the style shown over the game.</summary>
+    public CrosshairSettingsViewModel? Crosshair { get; init; }
+    public bool HasCrosshair => Crosshair is not null;
     /// <summary>The selected profile's device automation rules (reference DeviceAutomationOverlay).</summary>
     public RustPlusDesk.Avalonia.Features.Devices.DeviceAutomationSettingsViewModel? Automation { get; init; }
     public bool HasAutomation => Automation is not null;

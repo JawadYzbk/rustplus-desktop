@@ -681,6 +681,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
                 () => AutomationTeammates(),
                 CaptureDeviceLocationAsync),
             LogicRules = LogicRules,
+            Crosshair = CreateCrosshairSettings(),
             Update = updateService is null ? null : new Settings.UpdateSettingsViewModel(
                 async () => await updateService.GetLatestAsync(Settings.UpdateSettingsViewModel.InstallerAssetName, CancellationToken.None))
             {
@@ -817,6 +818,20 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
 
     /// <summary>Earns an achievement (reference AchievementService.Unlock).</summary>
     public void UnlockAchievement(string id) => Achievements?.Unlock(id);
+
+    /// <summary>
+    /// Reference the crosshair overlay: the window that lies over the game. The shell raises the event and the
+    /// window owns the crosshair, because only a window can be on top of another program.
+    /// </summary>
+    public event Action<bool>? CrosshairVisibilityRequested;
+
+    private Settings.CrosshairSettingsViewModel? CreateCrosshairSettings()
+    {
+        var model = new Settings.CrosshairSettingsViewModel(appSettings);
+        model.Load();
+        model.VisibilityChanged += visible => CrosshairVisibilityRequested?.Invoke(visible);
+        return model;
+    }
 
     private Map.MapDrawingsViewModel? drawings;
 

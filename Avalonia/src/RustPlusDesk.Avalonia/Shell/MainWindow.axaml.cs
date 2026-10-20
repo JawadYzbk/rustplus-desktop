@@ -19,6 +19,7 @@ public sealed partial class MainWindow : Window
                 model.ConsolePopOutRequested += ShowConsolePopout;
                 model.Hotkeys.EditRequested += ShowHotkeys;
                 model.TrafficWindowRequested += ShowTraffic;
+                model.CrosshairVisibilityRequested += ShowCrosshair;
             }
         };
     }
@@ -51,6 +52,36 @@ public sealed partial class MainWindow : Window
 
     private Features.Console.ConsoleHelperWindow? consoleWindow;
     private Features.Diagnostics.TrafficMonitorWindow? trafficWindow;
+    private Features.Crosshair.CrosshairWindow? crosshairWindow;
+
+    /// <summary>
+    /// Reference the crosshair overlay: a small transparent window over the game. It follows the chosen style, and it
+    /// is closed again when the setting is turned off.
+    /// </summary>
+    private void ShowCrosshair(bool visible)
+    {
+        if (!visible)
+        {
+            crosshairWindow?.Close();
+            crosshairWindow = null;
+            return;
+        }
+        if (DataContext is not Features.Servers.ServersViewModel { SettingsPage.Crosshair: { } settings }) return;
+        crosshairWindow ??= new Features.Crosshair.CrosshairWindow();
+        crosshairWindow.SetStyle(settings.Style, LoadCrosshairImage(settings.CustomImagePath));
+        if (!crosshairWindow.IsVisible) crosshairWindow.Show();
+    }
+
+    private static global::Avalonia.Media.Imaging.Bitmap? LoadCrosshairImage(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return null;
+        try
+        {
+            using var stream = File.OpenRead(path);
+            return global::Avalonia.Media.Imaging.Bitmap.DecodeToWidth(stream, 64);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException) { return null; }
+    }
 
     /// <summary>The traffic window is one owned window: a second click focuses it.</summary>
     private void ShowTraffic(object? sender, EventArgs e)

@@ -2,6 +2,7 @@
              xmlns:vm="using:RustPlusDesk.Avalonia.Features.Settings"
              xmlns:devices="using:RustPlusDesk.Avalonia.Features.Devices"
              xmlns:logic="using:RustPlusDesk.Avalonia.Features.Logic"
+             xmlns:core="using:RustPlusDesk.Core.Crosshair"
              xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
              x:Class="RustPlusDesk.Avalonia.Features.Settings.SettingsView" x:DataType="vm:SettingsViewModel">
   <UserControl.Styles>
@@ -490,6 +491,41 @@
                     AutomationProperties.Name="Apply logic rules" />
             <TextBlock Text="{Binding LogicRules.Status, FallbackValue=''}" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"
                        Classes="muted" Classes.error="{Binding LogicRules.IsError, FallbackValue=False}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0" IsVisible="{Binding HasCrosshair, FallbackValue=False}">
+        <icons:Icon Symbol="Target24" FontSize="18" Foreground="{DynamicResource Accent}" />
+        <StackPanel>
+          <TextBlock Text="Crosshair" Classes="title" />
+          <TextBlock Text="A crosshair over the game" Classes="muted" FontSize="12" />
+        </StackPanel>
+      </StackPanel>
+      <Border Classes="panel" Padding="16" IsVisible="{Binding HasCrosshair, FallbackValue=False}">
+        <StackPanel Spacing="12">
+          <TextBlock Text="CROSSHAIR" Classes="section" />
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Show the crosshair" FontWeight="SemiBold" />
+              <TextBlock Text="A small window that lies over the game. On Windows it does not take the mouse."
+                         Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding Crosshair.Enabled, FallbackValue=False}" OnContent="" OffContent=""
+                          AutomationProperties.Name="Show the crosshair" />
+          </Grid>
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <StackPanel>
+              <TextBlock Text="Style" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding Crosshair.StyleLabel, FallbackValue=''}" Classes="muted" FontSize="12" />
+            </StackPanel>
+            <ComboBox Grid.Column="1" ItemsSource="{Binding Crosshair.Styles}" SelectedItem="{Binding Crosshair.Style, Mode=TwoWay}"
+                      MinWidth="200" AutomationProperties.Name="Crosshair style">
+              <ComboBox.ItemTemplate><DataTemplate x:DataType="core:CrosshairStyle"><TextBlock Text="{Binding}" /></DataTemplate></ComboBox.ItemTemplate>
+            </ComboBox>
+          </Grid>
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <Button Classes="subtle" Content="Choose a custom image" Command="{Binding Crosshair.PickImageCommand}"
+                    AutomationProperties.Name="Choose a custom crosshair image" />
           </StackPanel>
         </StackPanel>
       </Border>
