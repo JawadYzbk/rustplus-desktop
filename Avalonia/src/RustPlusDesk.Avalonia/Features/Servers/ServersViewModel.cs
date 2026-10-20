@@ -42,7 +42,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Core.Diagnostics.NetworkTrafficMonitor? trafficMonitor = null,
     RustPlusDesk.Core.Chat.ITimerAudio? timerAudio = null,
     Func<Task<string?>>? pickSound = null,
-    RustPlusDesk.Core.Logic.ILogicRuleStore? logicRuleStore = null)
+    RustPlusDesk.Core.Logic.ILogicRuleStore? logicRuleStore = null,
+    RustPlusDesk.Infrastructure.Map.MapDrawingStore? drawingStore = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -810,6 +811,26 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     /// <summary>Earns an achievement (reference AchievementService.Unlock).</summary>
     public void UnlockAchievement(string id) => Achievements?.Unlock(id);
 
+    private Map.MapDrawingsViewModel? drawings;
+
+    /// <summary>
+    /// Reference the map's overlay: the strokes, routes, icons and texts the user drew. They belong to the selected
+    /// server, so they are read again whenever the server changes.
+    /// </summary>
+    public Map.MapDrawingsViewModel? Drawings => drawings ??= CreateDrawings();
+
+    private Map.MapDrawingsViewModel? CreateDrawings()
+    {
+        if (drawingStore is null) return null;
+        var model = new Map.MapDrawingsViewModel(drawingStore)
+        {
+            ServerKey = () => SelectedServer is { } server ? Teams.DeathRecorder.KeyFor(server.Host, server.Port) : "",
+            SteamId = () => Account?.Account.SteamId
+        };
+        Connection.Map.Drawings = model;
+        return model;
+    }
+
     // ---- the logic engine ------------------------------------------------------------------------
 
     private RustPlusDesk.Core.Logic.LogicRuleSettings logicRules = RustPlusDesk.Core.Logic.LogicRuleSettings.Defaults;
@@ -1412,6 +1433,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         _ = ReloadChatCommandSettingsAsync();
         _ = ReloadAutomationAsync();
         _ = ReloadLogicRulesAsync();
+        Drawings?.Load();
         _ = settingsPage?.Automation?.LoadAsync();
         _ = LogicRules?.LoadAsync();
         _ = Timers.LoadAsync(SourcePath, value?.ProfileKey ?? "");

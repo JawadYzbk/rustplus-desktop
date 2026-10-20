@@ -163,6 +163,62 @@
                 </Flyout>
               </Button.Flyout>
             </Button>
+            <Button x:Name="DrawButton" Classes="subtle" ToolTip.Tip="Draw on the map" AutomationProperties.Name="Draw on the map">
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Edit24" FontSize="16" /><TextBlock Text="Draw" /></StackPanel>
+              <Button.Flyout>
+                <Flyout Placement="BottomEdgeAlignedLeft">
+                  <StackPanel Width="320" Spacing="10" Margin="4">
+                    <TextBlock Text="Draw on the map" FontWeight="SemiBold" />
+                    <TextBlock Text="Pick a tool, then drag on the map. Shift snaps the drag to 45 degrees."
+                               Classes="muted" FontSize="12" TextWrapping="Wrap" />
+                    <ComboBox ItemsSource="{Binding Drawings.ToolChoices}" SelectedItem="{Binding Drawings.ToolChoice, Mode=TwoWay}"
+                              HorizontalAlignment="Stretch" AutomationProperties.Name="Drawing tool">
+                      <ComboBox.ItemTemplate><DataTemplate x:DataType="map:MapToolChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Grid ColumnDefinitions="*,48"><TextBlock Text="Thickness" Classes="muted" FontSize="12" />
+                      <TextBlock Grid.Column="1" Text="{Binding Drawings.Thickness, FallbackValue=2}" HorizontalAlignment="Right" FontSize="12" /></Grid>
+                    <Slider Minimum="1" Maximum="10" Value="{Binding Drawings.Thickness}" AutomationProperties.Name="Drawing thickness" />
+                    <StackPanel Spacing="6" IsVisible="{Binding Drawings.IsDrawing, FallbackValue=False}">
+                      <TextBlock Text="ROUTE" Classes="colHeader" />
+                      <TextBox Text="{Binding Drawings.RouteName}" PlaceholderText="Route name" AutomationProperties.Name="Route name" />
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Button Classes="primary" Content="Finish route" Command="{Binding Drawings.FinishRouteCommand}" AutomationProperties.Name="Finish route" />
+                        <Button Classes="subtle" Content="Cancel" Command="{Binding Drawings.CancelRouteCommand}" AutomationProperties.Name="Cancel route" />
+                      </StackPanel>
+                    </StackPanel>
+                    <StackPanel Spacing="6" IsVisible="{Binding Drawings.Routes.Count, FallbackValue=0}">
+                      <TextBlock Text="ROUTES" Classes="colHeader" />
+                      <ItemsControl ItemsSource="{Binding Drawings.Routes}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="map:RouteRowViewModel">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6" Margin="0,2,0,0">
+                              <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                              <ToggleButton Grid.Column="1" Classes="subtle" IsChecked="{Binding IsVisible, Mode=TwoWay}"
+                                            ToolTip.Tip="Show or hide this route" AutomationProperties.Name="Route visibility">
+                                <icons:Icon Symbol="Eye24" FontSize="14" />
+                              </ToggleButton>
+                              <Button Grid.Column="2" Classes="icon" Command="{Binding $parent[ItemsControl].DataContext.Drawings.DeleteRouteCommand}"
+                                      CommandParameter="{Binding}" ToolTip.Tip="Delete this route" AutomationProperties.Name="Delete route">
+                                <icons:Icon Symbol="Dismiss24" FontSize="14" Foreground="IndianRed" />
+                              </Button>
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <Button Classes="subtle" Command="{Binding Drawings.UndoCommand}" ToolTip.Tip="Take back the last drawing" AutomationProperties.Name="Undo drawing">
+                        <StackPanel Orientation="Horizontal" Spacing="4"><icons:Icon Symbol="ArrowUndo24" FontSize="14" /><TextBlock Text="Undo" /></StackPanel>
+                      </Button>
+                      <Button Classes="subtle" Command="{Binding Drawings.ClearAllCommand}" ToolTip.Tip="Remove every drawing on this map" AutomationProperties.Name="Clear drawings">
+                        <StackPanel Orientation="Horizontal" Spacing="4"><icons:Icon Symbol="Delete24" FontSize="14" /><TextBlock Text="Clear" /></StackPanel>
+                      </Button>
+                    </StackPanel>
+                    <TextBlock Text="{Binding Drawings.Status, FallbackValue=''}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                  </StackPanel>
+                </Flyout>
+              </Button.Flyout>
+            </Button>
             <Button x:Name="LayersButton" Classes="subtle" ToolTip.Tip="Map layer settings" AutomationProperties.Name="Layers">
               <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Layer24" FontSize="16" /><TextBlock Text="Layers" /></StackPanel>
               <Button.Flyout>
@@ -256,6 +312,10 @@
                         ShowDeathPins="{Binding DeathPins.Show, FallbackValue=False}" DeathPins="{Binding DeathPins.Pins, FallbackValue={x:Null}}"
                         BitmapScalingMode="{Binding Connection.Map.BitmapScalingMode}" UseAliasedEdgeMode="{Binding Connection.Map.UseAliasedEdgeMode}"
                         SceneCache="{Binding Connection.Map.UseCacheMode}" RenderScale="{Binding Connection.Map.RenderScale}"
+                        Tool="{Binding Connection.Map.Drawings.Tool}"
+                        Overlay="{Binding Connection.Map.Drawings.Overlay}"
+                        DrawColor="{Binding Connection.Map.Drawings.Color, FallbackValue='#FFFF3B30'}"
+                        DrawThickness="{Binding Connection.Map.Drawings.Thickness, FallbackValue=2}"
                         IsVisible="{Binding Connection.Map.HasMap}" AutomationProperties.Name="Server map" />
         <ScrollViewer HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding !Connection.Map.HasMap}" Margin="20">
         <Border Classes="card" MaxWidth="360" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center">

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -86,7 +87,7 @@ public sealed class MapSurface : Control
     public bool UseAliasedEdgeMode { get => GetValue(UseAliasedEdgeModeProperty); set => SetValue(UseAliasedEdgeModeProperty, value); }
     /// <summary>Reference MapUseCacheMode: the map scene (image, grid, heatmap) is rasterized once and blitted while panning.</summary>
     public bool SceneCache { get => GetValue(SceneCacheProperty); set => SetValue(SceneCacheProperty, value); }
-    /// <summary>Reference MapRenderScale: the scene cache's resolution factor (50–200 %).</summary>
+    /// <summary>Reference MapRenderScale: the scene cache's resolution factor (50-200 %).</summary>
     public double RenderScale { get => GetValue(RenderScaleProperty); set => SetValue(RenderScaleProperty, value); }
     /// <summary>Changes when avatars arrive, so the map redraws.</summary>
     public int AvatarVersion { get => GetValue(AvatarVersionProperty); set => SetValue(AvatarVersionProperty, value); }
@@ -94,6 +95,23 @@ public sealed class MapSurface : Control
     public Func<ulong, Bitmap?>? Avatars { get => GetValue(AvatarsProperty); set => SetValue(AvatarsProperty, value); }
     /// <summary>A death pin was right-clicked (reference pin context menu: rename, delete).</summary>
     public event Action<DeathPin, Point>? DeathPinRequested;
+    /// <summary>The tool the user is drawing with (reference OverlayToolMode); None pans the map.</summary>
+    public static readonly StyledProperty<MapToolMode> ToolProperty = AvaloniaProperty.Register<MapSurface, MapToolMode>(nameof(Tool));
+    public MapToolMode Tool { get => GetValue(ToolProperty); set => SetValue(ToolProperty, value); }
+    /// <summary>The colour the drawings are made in (reference the overlay's stroke colour).</summary>
+    public static readonly StyledProperty<string> DrawColorProperty = AvaloniaProperty.Register<MapSurface, string>(nameof(DrawColor), "#FFFF3B30");
+    public string DrawColor { get => GetValue(DrawColorProperty); set => SetValue(DrawColorProperty, value); }
+    /// <summary>How thick the drawings are (reference the overlay's stroke thickness).</summary>
+    public static readonly StyledProperty<double> DrawThicknessProperty = AvaloniaProperty.Register<MapSurface, double>(nameof(DrawThickness), 2.0);
+    public double DrawThickness { get => GetValue(DrawThicknessProperty); set => SetValue(DrawThicknessProperty, value); }
+    /// <summary>What the user drew on this map (reference OverlaySaveData).</summary>
+    public static readonly StyledProperty<MapOverlayData?> OverlayProperty = AvaloniaProperty.Register<MapSurface, MapOverlayData?>(nameof(Overlay));
+    public MapOverlayData? Overlay { get => GetValue(OverlayProperty); set => SetValue(OverlayProperty, value); }
+
+    /// <summary>Raised when a shape is dragged out (reference the overlay's shape tools).</summary>
+    public event Action<MapPoint, MapPoint>? ShapeDrawn;
+    /// <summary>Raised when a single point is placed (reference the route, icon and text tools).</summary>
+    public event Action<MapPoint>? PointPlaced;
     /// <summary>Player marker size factor (reference MapPlayerIconScale).</summary>
     public double PlayerScale { get => GetValue(PlayerScaleProperty); set => SetValue(PlayerScaleProperty, value); }
 
@@ -104,6 +122,8 @@ public sealed class MapSurface : Control
     private Vector offset;
     private Point? dragOrigin;
     private Vector dragStartOffset;
+    /// <summary>Where the drawing drag started, in world coordinates.</summary>
+    private MapPoint? drawOrigin;
     private bool needsFit = true;
     private MapMonument? hovered;
     private MapMarker? hoveredMarker;
@@ -293,6 +313,14 @@ public sealed class MapSurface : Control
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
         Focus();
         if (e.ClickCount == 2) { FitToView(); e.Handled = true; return; }
+        if (Tool != MapToolMode.None)
+        {
+            // Reference the drawing tools: a drag draws, and a click places a single point.
+            drawOrigin = ScreenToWorld(e.GetPosition(this));
+            e.Pointer.Capture(this);
+            e.Handled = true;
+            return;
+        }
         dragOrigin = e.GetPosition(this);
         dragStartOffset = offset;
         e.Pointer.Capture(this);
@@ -319,8 +347,30 @@ public sealed class MapSurface : Control
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
+        if (drawOrigin is { } origin && Tool != MapToolMode.None)
+        {
+            var end = ScreenToWorld(e.GetPosition(this));
+            drawOrigin = null;
+            e.Pointer.Capture(null);
+            if (MapShapes.IsShapeTool(Tool)) ShapeDrawn?.Invoke(origin, end);
+            else PointPlaced?.Invoke(end);
+            e.Handled = true;
+            return;
+        }
         dragOrigin = null;
         e.Pointer.Capture(null);
+    }
+
+    /// <summary>The world point under a screen point, the way the drawings are stored.</summary>
+    public MapPoint ScreenToWorld(Point point)
+    {
+        var image = ((point - offset) / scale);
+        if (Geometry is { } geometry)
+        {
+            var (x, y) = geometry.ImageToWorld(image.X, image.Y);
+            return new MapPoint(x, y);
+        }
+        return new MapPoint(image.X, image.Y);
     }
 
     protected override void OnPointerExited(PointerEventArgs e)
@@ -454,14 +504,92 @@ public sealed class MapSurface : Control
         }
         if (ShowMonuments && Geometry is { } world && Monuments is { Count: > 0 } monuments)
             using (context.PushOpacity(MonumentOpacity)) DrawMonuments(context, world, monuments);
+        if (Overlay is { } drawings && (drawings.Strokes.Count > 0 || drawings.Routes.Count > 0
+            || drawings.Icons.Count > 0 || drawings.Texts.Count > 0) && Geometry is { } drawn)
+            DrawOverlay(context, drawn, drawings);
         if (Geometry is { } live && Markers is { Count: > 0 } markers) DrawMarkers(context, live, markers);
         // Reference: pins sit above the live markers (Z 9980).
         if (ShowDeathPins && Geometry is { } pinned && DeathPins is { Count: > 0 } pins) DrawDeathPins(context, pinned, pins);
         if (Geometry is { } labelled) DrawHoverLabel(context, labelled);
     }
 
-    /// <summary>Influence radius of one death in world units; overlapping blobs blend so dense areas glow hotter.</summary>
-    public const double DeathHeatWorldRadius = 90.0;
+    /// <summary>
+    /// Reference the overlay layer: the strokes, the routes, the icons and the texts the user drew, drawn above the
+    /// map and below the monuments.
+    /// </summary>
+    private void DrawOverlay(DrawingContext context, MapGeometry geometry, MapOverlayData drawings)
+    {
+        using (context.PushTransform(Matrix.CreateScale(scale, scale) * Matrix.CreateTranslation(offset)))
+        {
+            foreach (var stroke in drawings.Strokes)
+            {
+                if (stroke.Points.Count < 2) continue;
+                var pen = new Pen(Brush(stroke.Color), (float)Math.Max(1, stroke.Thickness));
+                var geometryPoints = new Point[stroke.Points.Count];
+                for (int i = 0; i < stroke.Points.Count; i++)
+                {
+                    var (x, y) = geometry.WorldToImage(stroke.Points[i].X, stroke.Points[i].Y);
+                    geometryPoints[i] = new Point(x, y);
+                }
+                context.DrawGeometry(null, pen, Polyline(geometryPoints));
+            }
+
+            foreach (var route in drawings.Routes)
+            {
+                if (!route.Visible || route.Points.Count < 2) continue;
+                var pen = new Pen(Brush(route.Color), (float)Math.Max(1, route.Thickness));
+                var routePoints = new Point[route.Points.Count];
+                for (int i = 0; i < route.Points.Count; i++)
+                {
+                    var (x, y) = geometry.WorldToImage(route.Points[i].X, route.Points[i].Y);
+                    routePoints[i] = new Point(x, y);
+                }
+                context.DrawGeometry(null, pen, Polyline(routePoints, route.Closed));
+            }
+
+            foreach (var text in drawings.Texts)
+            {
+                var (x, y) = geometry.WorldToImage(text.X, text.Y);
+                context.DrawText(FormattedTextBody(text.Text, (float)text.Size, Brush(text.Color)), new Point(x, y));
+            }
+        }
+
+        foreach (var icon in drawings.Icons)
+        {
+            var (x, y) = geometry.WorldToImage(icon.X, icon.Y);
+            var point = ImageToScreen(x, y);
+            using (context.PushTransform(Matrix.CreateTranslation(point.X - icon.Size / 2, point.Y - icon.Size / 2)))
+            {
+                context.DrawRectangle(Brush(icon.Label is { Length: > 0 } ? "#FFFFC107" : "#FF3FD7FF"), null,
+                    new Rect(0, 0, icon.Size, icon.Size), 3, 3);
+            }
+        }
+    }
+
+    /// <summary>The line through the given points, optionally closed (a lap).</summary>
+    private static StreamGeometry Polyline(IReadOnlyList<Point> points, bool closed = false)
+    {
+        var geometry = new StreamGeometry();
+        using (var sink = geometry.Open())
+        {
+            sink.BeginFigure(points[0], false);
+            for (int i = 1; i < points.Count; i++) sink.LineTo(points[i]);
+            if (closed) sink.LineTo(points[0]);
+            sink.EndFigure(false);
+        }
+        return geometry;
+    }
+
+    private static IBrush Brush(string color) => color switch    {
+        "#FFFF3B30" => Brushes.IndianRed,
+        _ => Color.TryParse(color, out var parsed) ? new SolidColorBrush(parsed) : Brushes.IndianRed
+    };
+
+    private static readonly Typeface OverlayFace = new(new FontFamily("avares://RustPlusDesk.Avalonia/Assets/Fonts#Permanent Marker"));
+
+    private static FormattedText FormattedTextBody(string text, float size, IBrush brush) => new(text,
+        CultureInfo.CurrentCulture, FlowDirection.LeftToRight, OverlayFace, size, brush);
+
     private static readonly RadialGradientBrush DeathHeatBrush = new()
     {
         GradientStops =
@@ -471,6 +599,9 @@ public sealed class MapSurface : Control
             new GradientStop(Color.FromArgb(0, 255, 170, 0), 1.0),
         }
     };
+
+    /// <summary>Influence radius of one death in world units; overlapping blobs blend so dense areas glow hotter.</summary>
+    public const double DeathHeatWorldRadius = 90.0;
 
     /// <summary>Reference RedrawDeathHeatmap: one radial blob per logged death, drawn in image space so it pans and zooms.</summary>
     private static void DrawDeathHeatmap(DrawingContext context, MapGeometry geometry, IReadOnlyList<Point2> deaths)

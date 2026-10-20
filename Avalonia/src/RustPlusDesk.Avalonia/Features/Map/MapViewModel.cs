@@ -16,6 +16,12 @@ public readonly record struct Point2(double X, double Y);
 /// </summary>
 public sealed partial class MapViewModel : ObservableObject
 {
+    /// <summary>
+    /// Reference the map's overlay: the strokes, routes, icons and texts the user drew on this map. The shell owns it
+    /// because the drawings belong to the selected server, not to the map view.
+    /// </summary>
+    public MapDrawingsViewModel? Drawings { get; set; }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasMap))]
     private Bitmap? image;

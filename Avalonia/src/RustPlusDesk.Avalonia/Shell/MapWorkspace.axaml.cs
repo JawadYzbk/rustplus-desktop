@@ -22,7 +22,13 @@ public sealed partial class MapWorkspace : UserControl
         InitializeComponent();
         DataContextChanged += (_, _) => ObserveActivity((DataContext as ServersViewModel)?.Activity);
         Surface.DeathPinRequested += (pin, _) => ShowPinMenu(pin);
+        // Reference the drawing tools: a drag draws a shape, a click places a point on a route.
+        Surface.ShapeDrawn += (from, to) => Drawings?.DrawShape(from, to);
+        Surface.PointPlaced += point => Drawings?.PlacePoint(point);
     }
+
+    /// <summary>The drawings of the selected server, when the shell has them.</summary>
+    private MapDrawingsViewModel? Drawings => (DataContext as ServersViewModel)?.Connection.Map.Drawings;
 
     /// <summary>The open death-pin menu (reference pin context menu), for tests.</summary>
     internal ContextMenu? PinMenu { get; private set; }
