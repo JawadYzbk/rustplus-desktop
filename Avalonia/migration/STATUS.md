@@ -11,6 +11,15 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- The player wipe tracker's file: `Core/Tracking` carries the reference's tracker models (the observation, the
+  segment, the monument visit, the summary, the insights and the point) and the compact record file the reference
+  writes - "PWT1", the base timestamp, and then the observations, with the strings that repeat written once and
+  referred to by number afterwards. `Infrastructure/Tracking/PlayerWipeTrackerStore` keeps the observations in the
+  reference's layout (a folder per server, a folder per wipe in it, a file per player), reads and writes the
+  wipe's metadata and its map, converts the history the app wrote as JSON lines, and cuts a record that a crash tore
+  away so the rest of the file stays readable. The tracker is opt-in and the cloud backup is a separate choice, the
+  way the reference has it. **813 tests** on Windows locally (813 pass). The live capture, the tracker's window and
+  the cloud upload are not ported yet.
 - The players tab: `Core/Tracking` carries the reference's tracked players (the profile id, the name, the server the
   player was last seen on, the group and the sessions) and its rules - the filter, the grouping by server and then
   by group, the order the user put the groups in, the play time and the twelve-week cut-off; `Infrastructure/Tracking`
@@ -419,7 +428,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Map drawing/routes/layers/3D | The shape tools, the named routes, the icon and the text tools, drawn on the map and saved per server | The drawing groups, import/export, keycards, no-build zones, monument overlays, the 3D map and the helper integration |
 | Command dock/minimap/popouts | Not ported | Preserve tiles/templates/configuration, overlays, floating windows and appearance settings |
 | Death markers/stats/wipe tracker | Not ported | Preserve history, heatmaps, archives, marker configuration and cloud synchronization |
-| Players tab / player wipe tracker | The players the user keeps an eye on: the reference's own `tracked_players.json`, the filter, the groups by server, the group order, the rename, the group and the stop-tracking actions, and the rail entry in the reference's place | The group manager (creating and renaming groups with their colours), the pop-out window, the how-to-track window, the analysis report and the player wipe tracker itself |
+| Players tab / player wipe tracker | The players the user keeps an eye on: the reference's own `tracked_players.json`, the filter, the groups by server, the group order, the rename, the group and the stop-tracking actions, and the rail entry in the reference's place. The tracker's own file: the compact record format, the store with its layout, the wipe metadata and map, the conversion of the JSON-lines history and the opt-in | The group manager (creating and renaming groups with their colours), the pop-out window, the how-to-track window, the analysis report, and the tracker's live capture, window and cloud upload |
 | AI companion | The companion, the `!ai` chat command, the provider and model choice and the private key file | The spoken answers, the recording, the Anthropic and Gemini providers, the history and the recipe and raid tables |
 | Notifications/custom alerts | In-memory pairing/alarm/chat/death feed while listening, sent-time normalization and duplicate suppression | Durable inbox, unread state, popup paging, sounds, channel settings and integrations |
 | Community/LFG/support/admin | The support card: the user's tickets, the thread, the categories and filing a ticket | The community profiles, moderation and reporting, the attachments in the form, the LFG and the admin panel |
