@@ -381,6 +381,70 @@ public sealed class TrackedPlayerTests
         Assert.AreEqual("", (await store.LoadAsync(CancellationToken.None))[0].GroupName, "Nothing was saved.");
     }
 
+    // ---- the windows of the tab -----------------------------------------------------------------
+
+    [TestMethod]
+    public void TheTabAsksForItsOwnWindows()
+    {
+        using var file = new TempFile("tracked_players.json");
+        var model = new PlayersViewModel(new TrackedPlayerFile(file.Path), new ShopNoticeTests.MemorySettings());
+        bool poppedOut = false;
+        bool askedForTheGuide = false;
+        model.PopOutRequested += (_, _) => poppedOut = true;
+        model.HowToTrackRequested += (_, _) => askedForTheGuide = true;
+
+        model.PopOutCommand.Execute(null);
+        model.HowToTrackCommand.Execute(null);
+        Assert.IsTrue(poppedOut, "The tab asks for a window of its own.");
+        Assert.IsTrue(askedForTheGuide, "The tab asks for the guide.");
+    }
+
+    [TestMethod]
+    public async Task ThePopoutWindowShowsThePlayers() => await UiTestSession.Current.Dispatch(async () =>
+    {
+        using var file = new TempFile("tracked_players.json");
+        var store = new TrackedPlayerFile(file.Path);
+        await store.SaveAsync([Player("a", "Alice", "Test Server", "Rivals")], CancellationToken.None);
+        var model = new PlayersViewModel(store, new ShopNoticeTests.MemorySettings());
+        await model.LoadAsync(CancellationToken.None);
+        model.IsTrackedTab = true;
+
+        var window = new PlayersWindow { DataContext = model, Width = 500, Height = 700 };
+        try
+        {
+            window.Show();
+            window.UpdateLayout();
+            var texts = window.GetVisualDescendants().OfType<global::Avalonia.Controls.TextBlock>().Select(text => text.Text).ToList();
+            Assert.IsTrue(texts.Contains("Alice"), "The player is listed in the window too.");
+            using var frame = window.CaptureRenderedFrame();
+            Assert.IsNotNull(frame);
+            frame.Save(Path.Combine(AppContext.BaseDirectory, "ui-players-popout.png"),
+                global::Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+        }
+        finally { window.Close(); }
+        return true;
+    }, default);
+
+    [TestMethod]
+    public async Task TheGuideIsShownInItsOwnWindow() => await UiTestSession.Current.Dispatch(() =>
+    {
+        var window = new HowToTrackWindow { Width = 800, Height = 700 };
+        try
+        {
+            window.Show();
+            window.UpdateLayout();
+            var texts = window.GetVisualDescendants().OfType<global::Avalonia.Controls.TextBlock>().Select(text => text.Text).ToList();
+            Assert.IsTrue(texts.Any(text => text.Contains("How to Track Players")), "The guide says what it is about.");
+            Assert.IsTrue(texts.Any(text => text.Contains("Type the name or the Steam ID")), "The guide says how a player is added.");
+            using var frame = window.CaptureRenderedFrame();
+            Assert.IsNotNull(frame);
+            frame.Save(Path.Combine(AppContext.BaseDirectory, "ui-how-to-track.png"),
+                global::Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+        }
+        finally { window.Close(); }
+        return true;
+    }, default);
+
     /// <summary>The file picker the tests never use.</summary>
     private sealed class Picker : RustPlusDesk.Avalonia.Services.IProfileFilePicker
     {

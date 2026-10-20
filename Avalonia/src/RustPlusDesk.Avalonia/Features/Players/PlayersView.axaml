@@ -12,22 +12,36 @@
   </UserControl.Styles>
   <Grid RowDefinitions="Auto,Auto,*" RowSpacing="10">
     <!-- The reference's Players tab has an Online half and a Tracked half. -->
-    <StackPanel Orientation="Horizontal" Spacing="6">
-      <RadioButton Classes="chip" Content="{DynamicResource OnlineTab}" IsChecked="{Binding !IsTrackedTab}" GroupName="PlayersTab"
-                   AutomationProperties.Name="Online players" />
-      <RadioButton Classes="chip" Content="{DynamicResource TrackedTab}" IsChecked="{Binding IsTrackedTab}" GroupName="PlayersTab"
-                   AutomationProperties.Name="Tracked players" />
-    </StackPanel>
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+      <StackPanel Orientation="Horizontal" Spacing="6">
+        <RadioButton Classes="chip" Content="{DynamicResource OnlineTab}" IsChecked="{Binding !IsTrackedTab}" GroupName="PlayersTab"
+                     AutomationProperties.Name="Online players" />
+        <RadioButton Classes="chip" Content="{DynamicResource TrackedTab}" IsChecked="{Binding IsTrackedTab}" GroupName="PlayersTab"
+                     AutomationProperties.Name="Tracked players" />
+      </StackPanel>
+      <Button Grid.Column="1" Classes="subtle" Command="{Binding HowToTrackCommand}"
+              ToolTip.Tip="{DynamicResource LearnHowTrackingWorks}" AutomationProperties.Name="How to track">
+        <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="QuestionCircle24" FontSize="14" />
+          <TextBlock Text="{DynamicResource HowToTrack}" /></StackPanel>
+      </Button>
+    </Grid>
 
     <!-- The online half: the reference asks Steam for the players of the server and says the tracking was removed. -->
     <StackPanel Grid.Row="1" Spacing="10" IsVisible="{Binding !IsTrackedTab}">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
         <TextBlock Text="{DynamicResource OnlinePlayers}" Classes="title" VerticalAlignment="Center" />
-        <Button Grid.Column="1" Classes="subtle" Command="{Binding RefreshOnlineCommand}"
-                ToolTip.Tip="Read the players of the server again" AutomationProperties.Name="Refresh online players">
-          <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ArrowClockwise24" FontSize="14" />
-            <TextBlock Text="{DynamicResource Refresh}" /></StackPanel>
-        </Button>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+          <Button Classes="subtle" Command="{Binding RefreshOnlineCommand}"
+                  ToolTip.Tip="Read the players of the server again" AutomationProperties.Name="Refresh online players">
+            <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ArrowClockwise24" FontSize="14" />
+              <TextBlock Text="{DynamicResource Refresh}" /></StackPanel>
+          </Button>
+          <Button Classes="subtle" Command="{Binding PopOutCommand}" IsEnabled="{Binding CanPopOut}"
+                  ToolTip.Tip="{DynamicResource OpenPlayersSeparateWindow}" AutomationProperties.Name="Open the players in a window of their own">
+            <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Window24" FontSize="14" />
+              <TextBlock Text="{DynamicResource Popout}" /></StackPanel>
+          </Button>
+        </StackPanel>
       </Grid>
       <Border Classes="card">
         <StackPanel Spacing="4">

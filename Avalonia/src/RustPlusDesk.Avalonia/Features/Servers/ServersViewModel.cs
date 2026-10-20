@@ -774,8 +774,23 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     /// <summary>Reference PlayersTabContent: the players the user keeps an eye on.</summary>
     public Players.PlayersViewModel? Players => players ??= trackedPlayerStore is null
         ? null
-        : new(trackedPlayerStore, appSettings, playerNames);
+        : CreatePlayers();
     private Players.PlayersViewModel? players;
+
+    private Players.PlayersViewModel CreatePlayers()
+    {
+        var model = new Players.PlayersViewModel(trackedPlayerStore!, appSettings, playerNames);
+        // Reference BtnPopoutPlayers_Click: the shell owns the window the tab asks for.
+        model.PopOutRequested += (_, _) => PlayersPopOutRequested?.Invoke(this, EventArgs.Empty);
+        model.HowToTrackRequested += (_, _) => PlayersHowToTrackRequested?.Invoke(this, EventArgs.Empty);
+        return model;
+    }
+
+    /// <summary>Raised when the Players tab asks for a window of its own; the shell owns that window.</summary>
+    public event EventHandler? PlayersPopOutRequested;
+
+    /// <summary>Raised when the Players tab asks for the guide; the shell owns that window.</summary>
+    public event EventHandler? PlayersHowToTrackRequested;
 
     /// <summary>Reference OpenPlayersWorkspace: the workspace opens on the server that is selected.</summary>
     [RelayCommand]

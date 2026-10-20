@@ -336,6 +336,24 @@ public sealed partial class PlayersViewModel : ObservableObject
     public IReadOnlyList<TrackedPlayerRow> GroupPlayers =>
         players.OrderBy(player => player.Name, StringComparer.OrdinalIgnoreCase).Select(Row).ToList();
 
+    /// <summary>
+    /// Reference BtnPopoutPlayers_Click: the players are shown in a window of their own. The shell owns that window, so
+    /// the request is passed on.
+    /// </summary>
+    public event EventHandler? PopOutRequested;
+
+    /// <summary>Reference popout: the window is opened once, and a second click focuses it.</summary>
+    [ObservableProperty] private bool canPopOut = true;
+
+    [RelayCommand]
+    private void PopOut() => PopOutRequested?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>Reference BtnHowToTrack_Click: the guide to the players is opened in a window of its own.</summary>
+    public event EventHandler? HowToTrackRequested;
+
+    [RelayCommand]
+    private void HowToTrack() => HowToTrackRequested?.Invoke(this, EventArgs.Empty);
+
     /// <summary>Reference CreateColorSelector: the colours the reference offers.</summary>
     public static IReadOnlyList<string> GroupColours { get; } =
         ["None", "Red", "Green", "Blue", "Yellow", "Purple", "Cyan", "Orange", "Pink", "White", "Gray"];
