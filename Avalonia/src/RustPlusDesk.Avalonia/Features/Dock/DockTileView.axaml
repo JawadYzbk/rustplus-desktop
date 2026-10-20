@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+             x:Class="RustPlusDesk.Avalonia.Features.Dock.DockTileView">
+  <!-- Reference MiniMapWindow.CommandDock.TileShell: the tile's frame, its content and the handles that arrange it. -->
+  <Border x:Name="Shell" CornerRadius="10" BorderThickness="1" Padding="6">
+    <Grid>
+      <ContentControl x:Name="Body" />
+
+      <!-- Reference the tile's veil: a press has to show somewhere, and the border's colour is rewritten every second. -->
+      <Border x:Name="Veil" Background="#FFFFFFFF" Opacity="0" CornerRadius="10" IsHitTestVisible="False" />
+
+      <!-- Reference AddTileHandles' grip: the corner that changes the tile's cell span. -->
+      <Border x:Name="Grip" Width="12" Height="12" CornerRadius="3" Background="#60CDFF"
+              HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,2,2" IsVisible="False" />
+
+      <!-- Reference AddTileHandles' remove: a button, not a right-click. -->
+      <Button x:Name="RemoveButton" Width="16" Height="16" CornerRadius="8" Background="#E53935" Padding="0"
+              BorderThickness="0" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="4,0,0,4" IsVisible="False"
+              AutomationProperties.Name="Remove tile">
+        <icons:Icon Symbol="Dismiss24" FontSize="9" Foreground="White" />
+      </Button>
+    </Grid>
+  </Border>
+</UserControl>

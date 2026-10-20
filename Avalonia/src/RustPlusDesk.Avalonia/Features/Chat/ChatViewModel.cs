@@ -135,6 +135,15 @@ public sealed partial class ChatViewModel : ObservableObject
     private bool isSending;
 
     public IReadOnlyList<ChatLine> Lines => IsFiltering ? lines[Channel].Where(line => line.Matches(SearchText)).ToList() : lines[Channel];
+
+    /// <summary>
+    /// Reference GetDockChat: the lines of one channel, whatever the chat view is showing.
+    ///
+    /// The command dock reads both the team chat and the clan chat at the same time, and the chat view can only show
+    /// one of them - so it asks for the one it wants instead of switching the view to get it.
+    /// </summary>
+    public IReadOnlyList<ChatLine> LinesFor(ChatChannel channel) => lines[channel];
+
     private bool IsFiltering => !string.IsNullOrWhiteSpace(SearchText);
     public bool HasNoMatches => IsFiltering && Lines.Count == 0;
     /// <summary>Centres the live map on a player's Steam ID; false when they are not on the map.</summary>

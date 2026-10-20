@@ -40,6 +40,17 @@
             <ToggleSwitch Grid.Column="1" IsChecked="{Binding AutoStart}" IsEnabled="{Binding CanAutoStart}" OnContent="" OffContent=""
                           AutomationProperties.Name="{Binding AutoStartLabel}" />
           </Grid>
+          <!--  Reference ChkCloseToTray: closing the window leaves the app in the notification area, where the tray
+                icon is the way back in.  -->
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="{DynamicResource MinimizeToTray}" FontWeight="SemiBold" />
+              <TextBlock Text="Closing the window keeps the app in the notification area, where the tray icon brings it back."
+                         Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding MinimizeToTray}" OnContent="" OffContent=""
+                          AutomationProperties.Name="Minimize to tray" />
+          </Grid>
 
         </StackPanel>
       </Border>
@@ -587,6 +598,15 @@
           <StackPanel Orientation="Horizontal" Spacing="8">
             <Button Classes="primary" Content="{DynamicResource AppSave}" Command="{Binding Ai.SaveCommand, FallbackValue={x:Null}}"
                     AutomationProperties.Name="Save the AI settings" />
+            <!--  Reference BtnAiHistory: the questions that were asked and the answers that came back, kept on this
+                  machine.  -->
+            <Button Classes="subtle" Command="{Binding OpenAiHistoryCommand}"
+                    AutomationProperties.Name="Show recent questions">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <icons:Icon Symbol="History24" FontSize="14" />
+                <TextBlock Text="{DynamicResource AiCompanionHistoryButton}" />
+              </StackPanel>
+            </Button>
             <TextBlock Text="{Binding Ai.Status, FallbackValue=''}" Classes="muted" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap" />
           </StackPanel>
         </StackPanel>

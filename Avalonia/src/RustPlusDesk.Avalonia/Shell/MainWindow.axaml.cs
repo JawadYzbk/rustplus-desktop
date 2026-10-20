@@ -1,14 +1,28 @@
 using Avalonia.Controls;
 using Avalonia.Input;
+using RustPlusDesk.Core.Dock;
 
 namespace RustPlusDesk.Avalonia.Shell;
 
 public sealed partial class MainWindow : Window
 {
     private double sidebarFraction = .31;
+    private readonly ICommandDockStore? dockStore;
+    private Features.Dock.DockWindow? dockWindow;
 
-    public MainWindow()
+    /// <summary>
+    /// Reference the widget overlay: the shell owns the dock's window and the arrangement it is kept in.
+    ///
+    /// The store is optional, so the shell can be built without one - the dock is then simply not offered.
+    /// </summary>
+    public MainWindow() : this(null)
     {
+    }
+
+    /// <summary>Reference the widget overlay: the shell is built with the store the dock's arrangement is kept in.</summary>
+    public MainWindow(ICommandDockStore? dockStore)
+    {
+        this.dockStore = dockStore;
         InitializeComponent();
         SizeChanged += (_, _) => ResizePane();
         DataContextChanged += (_, _) =>
@@ -21,10 +35,36 @@ public sealed partial class MainWindow : Window
                 model.Hotkeys.EditRequested += ShowHotkeys;
                 model.TrafficWindowRequested += ShowTraffic;
                 model.CrosshairVisibilityRequested += ShowCrosshair;
+                model.MiniMapRequested += ShowMiniMap;
+                model.AiHistoryRequested += ShowAiHistory;
                 model.AllAchievementsCompleted += ShowAchievementPrompt;
             }
         };
     }
+
+    /// <summary>
+    /// Reference the widget overlay: the dock is a window of its own, and asking again brings the one that is open
+    /// forward instead of putting a second copy on the screen.
+    ///
+    /// The reference's pop-outs behave the same way, and so do this app's.
+    /// </summary>
+    public async Task ShowDockAsync()
+    {
+        if (dockWindow is not null) { dockWindow.Activate(); return; }
+        if (dockStore is null) return;
+        if (DataContext is not Features.Servers.ServersViewModel { Connection: { } connection }) return;
+
+        var host = new Features.Dock.ConnectionDockHost(connection);
+        var model = new Features.Dock.DockViewModel(host, dockStore);
+        // The arrangement is read before the window is made, so it opens with its tiles rather than with an empty canvas.
+        await model.LoadAsync(CancellationToken.None);
+
+        dockWindow = new Features.Dock.DockWindow { DataContext = model };
+        dockWindow.Closed += (_, _) => { dockWindow = null; host.Dispose(); };
+        dockWindow.Show();
+    }
+
+
 
     private Features.Alarms.AlarmWindow? alarmWindow;
 
@@ -127,6 +167,21 @@ public sealed partial class MainWindow : Window
         trafficWindow.Show(this);
     }
 
+    private Features.Ai.AiHistoryWindow? aiHistoryWindow;
+
+    /// <summary>
+    /// Reference BtnAiHistory_Click: the recent questions are shown in a window of its own, and asking again brings
+    /// the one that is open forward instead of putting a second copy on the screen.
+    /// </summary>
+    private void ShowAiHistory(object? sender, EventArgs e)
+    {
+        if (aiHistoryWindow is not null) { aiHistoryWindow.Activate(); return; }
+        var model = new Features.Ai.AiHistoryViewModel();
+        aiHistoryWindow = new Features.Ai.AiHistoryWindow { DataContext = model };
+        aiHistoryWindow.Closed += (_, _) => { aiHistoryWindow = null; model.Dispose(); };
+        aiHistoryWindow.Show(this);
+    }
+
     /// <summary>Reference popout: one unowned always-on-top window; a second click focuses it.</summary>
     /// <summary>Reference BtnOpenCamera: the camera the user clicks is shown in a window of its own.</summary>
     private void ShowCamera(object? sender, Features.Cameras.CameraRow row)
@@ -151,6 +206,46 @@ public sealed partial class MainWindow : Window
         consoleWindow.Show();
     }
 
+    private Features.MiniMap.MiniMapWindow? miniMapWindow;
+
+    /// <summary>The open mini-map, for tests.</summary>
+    internal Features.MiniMap.MiniMapWindow? MiniMapWindow => miniMapWindow;
+
+    /// <summary>
+    /// Reference BtnToggleMiniMap_Click: the mini-map is opened in a window of its own, and asking again brings the
+    /// one that is open forward instead of putting a second copy on the screen.
+    ///
+    /// The window is not owned by the main window on purpose: an owned window hides when its owner is minimised, and
+    /// the mini-map has to stay up while the app is not.
+    /// </summary>
+    private async void ShowMiniMap(object? sender, EventArgs e)
+    {
+        if (miniMapWindow is not null) { miniMapWindow.BringToFront(); return; }
+        if (sender is not Features.Servers.ServersViewModel { MiniMap: { } model }) return;
+        // The settings and the place are read before the window is made, so it opens at the right size in the right
+        // spot instead of jumping there after it appears.
+        await model.LoadAsync();
+        miniMapWindow = new Features.MiniMap.MiniMapWindow { DataContext = model };
+        miniMapWindow.Closed += (_, _) => miniMapWindow = null;
+        miniMapWindow.Show();
+        // Reference EnsureDeviceOverlayOpen: the widget overlay comes up with the mini-map, because the map is
+        // one tile among the dock's - the user asked for the map, and the dock is where the rest of it lives.
+        await ShowDockAsync();
+    }
+
+
+    /// <summary>
+    /// The mini-map is a window of its own and is not owned by this one, so it is closed by hand.
+    ///
+    /// It has to stay up while the main window is minimised, which is why it is not owned; but an owned window goes
+    /// down with its owner, and this one has to go with it or the app never shuts down.
+    /// </summary>
+    protected override void OnClosed(EventArgs e)
+    {
+        miniMapWindow?.Close();
+        miniMapWindow = null;
+        base.OnClosed(e);
+    }
 
     private void ResizePane() => WorkspaceSplit.OpenPaneLength = Math.Clamp(ClientSize.Width * sidebarFraction, 300, 480);
     private void ResizeSidebar(object? sender, VectorEventArgs e)

@@ -1,0 +1,69 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mm="using:RustPlusDesk.Avalonia.Features.MiniMap"
+             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+             x:Class="RustPlusDesk.Avalonia.Features.MiniMap.MiniMapSettingsPanel" x:DataType="mm:MiniMapViewModel"
+             Width="230">
+  <!--  Reference MiniMapSettingsOverlay: the panel the gear opens. It is a popup of its own rather than
+        part of the mini-map, so the size slider can grow the map without dragging the panel out from
+        under the cursor.  -->
+  <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
+          CornerRadius="12" Padding="14">
+    <StackPanel Spacing="10">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+          <icons:Icon Symbol="Map24" FontSize="16" Foreground="{DynamicResource Accent}" />
+          <TextBlock Text="{DynamicResource MiniMapSettings}" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" />
+        </StackPanel>
+        <Button Grid.Column="1" Classes="icon" Click="OnCloseClicked" AutomationProperties.Name="Close mini-map settings">
+          <icons:Icon Symbol="Dismiss24" FontSize="14" />
+        </Button>
+      </Grid>
+
+      <TextBlock Text="{DynamicResource Shape}" FontSize="11" Foreground="{DynamicResource TextSubtle}" FontWeight="SemiBold" />
+      <ComboBox SelectedIndex="{Binding ShapeIndex, Mode=TwoWay}" HorizontalAlignment="Stretch"
+                AutomationProperties.Name="Mini-map shape">
+        <ComboBoxItem Content="{DynamicResource Circle}" />
+        <ComboBoxItem Content="{DynamicResource Square}" />
+        <ComboBoxItem Content="{DynamicResource Rectangle}" />
+      </ComboBox>
+
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Text="Opacity" FontSize="11" Foreground="{DynamicResource TextSubtle}" FontWeight="SemiBold" />
+        <TextBlock Grid.Column="1" Text="{Binding Opacity, StringFormat='{}{0:0}%'}" FontSize="11" Classes="muted" />
+      </Grid>
+      <Slider Minimum="0.2" Maximum="1" Value="{Binding Opacity}" TickFrequency="0.05" IsSnapToTickEnabled="True"
+              AutomationProperties.Name="Mini-map opacity" />
+
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Text="Size" FontSize="11" Foreground="{DynamicResource TextSubtle}" FontWeight="SemiBold" />
+        <TextBlock Grid.Column="1" Text="{Binding Size, StringFormat='{}{0:0} px'}" FontSize="11" Classes="muted" />
+      </Grid>
+      <Slider Minimum="160" Maximum="800" Value="{Binding Size}" TickFrequency="10" IsSnapToTickEnabled="True"
+              AutomationProperties.Name="Mini-map size" />
+
+      <StackPanel Orientation="Horizontal" Spacing="12">
+        <CheckBox Content="Server time" IsChecked="{Binding ShowTime}" AutomationProperties.Name="Show the server time" />
+        <CheckBox Content="Pop" IsChecked="{Binding ShowPop}" AutomationProperties.Name="Show the population" />
+      </StackPanel>
+
+      <Separator Background="{DynamicResource CardBorder}" />
+      <TextBlock Text="{DynamicResource MiniMapLayers}" FontSize="11" Foreground="{DynamicResource TextSubtle}" FontWeight="SemiBold" />
+      <CheckBox Content="{DynamicResource MiniMapLayerTexture}" IsChecked="{Binding ShowTexture}"
+                AutomationProperties.Name="Map texture" />
+      <CheckBox Content="{DynamicResource MiniMapLayerGrid}" IsChecked="{Binding ShowGrid}"
+                AutomationProperties.Name="Grid" />
+      <CheckBox Content="{DynamicResource MiniMapLayerDrawings}" IsChecked="{Binding ShowDrawings}"
+                AutomationProperties.Name="Overlay" />
+      <CheckBox Content="{DynamicResource MiniMapLayerIcons}" IsChecked="{Binding ShowIcons}"
+                AutomationProperties.Name="Icons" />
+      <CheckBox Content="{DynamicResource MiniMapLayerPlayers}" IsChecked="{Binding ShowPlayers}"
+                AutomationProperties.Name="Players" />
+      <CheckBox Content="{DynamicResource MiniMapLayerDeaths}" IsChecked="{Binding ShowDeaths}"
+                AutomationProperties.Name="Death markers" />
+      <CheckBox Content="{DynamicResource MiniMapLayerHeatmap}" IsChecked="{Binding ShowHeatmap}"
+                AutomationProperties.Name="Heatmap" />
+      <CheckBox Content="{DynamicResource MiniMapLayerNoBuild}" IsChecked="{Binding ShowNoBuild}"
+                AutomationProperties.Name="No-build zones" />
+    </StackPanel>
+  </Border>
+</UserControl>

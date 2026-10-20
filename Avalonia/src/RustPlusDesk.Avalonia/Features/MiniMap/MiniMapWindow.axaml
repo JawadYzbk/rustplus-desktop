@@ -1,0 +1,68 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mm="using:RustPlusDesk.Avalonia.Features.MiniMap"
+        xmlns:map="using:RustPlusDesk.Avalonia.Features.Map"
+        xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+        x:Class="RustPlusDesk.Avalonia.Features.MiniMap.MiniMapWindow" x:DataType="mm:MiniMapViewModel"
+        Title="{DynamicResource MiniMap}" Width="260" Height="260" CanResize="False" ShowInTaskbar="True"
+        WindowStartupLocation="Manual" Background="Transparent">
+  <Panel PointerPressed="OnShapePointerPressed">
+    <!--  Reference MiniMapWindow.MapShapeBorder: the map is a shape on the desktop, and the border is what
+          holds it. The corner radius and the clip are the reference's: a circle, a square with a small
+          radius, or 16:9 - and the content is clipped to it, so the map never shows a straight edge the
+          shape does not have.  -->
+    <Border x:Name="Shape" ClipToBounds="True" CornerRadius="{Binding MapCornerRadius}"
+            Background="{DynamicResource MapBackground}" Opacity="{Binding Opacity}">
+      <!--  Reference MiniMapWindow: the map the workspace shows, mirrored. The port's map draws every
+            layer into one picture, so the mini-map binds the same picture and switches the layers it
+            has a switch for.  -->
+      <map:MapSurface Image="{Binding Map.Image}" Geometry="{Binding Map.Geometry}" Monuments="{Binding Map.Monuments}"
+                      Markers="{Binding Map.DrawnMarkers}" DeathPositions="{Binding Map.DeathPositions}"
+                      DeathPins="{Binding DeathPins.Pins}" Avatars="{Binding Map.Avatars}"
+                      PlayerHeadings="{Binding Map.PlayerHeadings}" AvatarVersion="{Binding Map.AvatarVersion}"
+                      ShowGrid="{Binding ShowGrid}" ShowPlayers="{Binding ShowPlayers}" ShowMonuments="{Binding ShowIcons}"
+                      ShowShops="{Binding Map.ShowShops}" ShowDeathHeatmap="{Binding ShowHeatmap}"
+                      ShowDeathPins="{Binding ShowDeaths}" ShowSteamAvatars="{Binding Map.ShowSteamAvatars}"
+                      ShowPlayerArrows="{Binding Map.ShowPlayerArrows}" MonumentScale="{Binding Map.MonumentScale}"
+                      MonumentOpacity="{Binding Map.MonumentOpacity}" GridOpacity="{Binding Map.GridOpacity}"
+                      MonumentNames="{Binding Map.ShowMonumentNames}" AbbreviateNames="{Binding Map.AbbreviateNames}"
+                      PlayerScale="{Binding Map.PlayerIconScale}" BitmapScalingMode="{Binding Map.BitmapScalingMode}"
+                      UseAliasedEdgeMode="{Binding Map.UseAliasedEdgeMode}" SceneCache="{Binding Map.UseCacheMode}"
+                      RenderScale="{Binding Map.RenderScale}" ResetRequest="{Binding Map.ViewResetRequest}"
+                      FocusRequest="{Binding Map.FocusRequest}" Overlay="{Binding Map.Drawings.Overlay}"
+                      DrawColor="{Binding Map.Drawings.Color}" DrawThickness="{Binding Map.Drawings.Thickness}"
+                      IsHitTestVisible="False" AutomationProperties.Name="Server map" />
+    </Border>
+    <!--  Reference MiniMapWindow: the overlays sit along the bottom edge of the map, over it rather
+          than beside it, and they never take the mouse - they are a reading, not a control. They are
+          outside the shape, so they are not cut off by it and do not fade with it.  -->
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,12"
+                IsHitTestVisible="False">
+      <Border x:Name="TimePill" Background="#AA000000" CornerRadius="6" Padding="6,4" Margin="0,0,4,0"
+              IsVisible="{Binding ShowTime}">
+        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+          <icons:Icon Symbol="Clock24" FontSize="12" Foreground="{DynamicResource TextSubtle}" />
+          <TextBlock x:Name="TimeText" Text="{Binding ServerTime}" FontSize="12" Foreground="White" FontWeight="SemiBold"
+                     VerticalAlignment="Center" />
+        </StackPanel>
+      </Border>
+      <Border x:Name="PopPill" Background="#AA000000" CornerRadius="6" Padding="6,4" IsVisible="{Binding ShowPop}">
+        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+          <icons:Icon Symbol="People24" FontSize="12" Foreground="{DynamicResource TextSubtle}" />
+          <TextBlock x:Name="PopText" Text="{Binding ServerPlayers}" FontSize="12" Foreground="White" FontWeight="SemiBold"
+                     VerticalAlignment="Center" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+    <!--  Reference MiniMapWindow.BtnMapSettings: the gear that opens the settings, over the map.  -->
+    <Button x:Name="SettingsButton" Width="34" Height="34" Margin="0,10,10,0" Padding="4"
+            HorizontalAlignment="Right" VerticalAlignment="Top" Background="#E6101518" BorderBrush="#99FFFFFF"
+            BorderThickness="1" Click="OnSettingsClicked" ToolTip.Tip="{DynamicResource MiniMapSettings}"
+            AutomationProperties.Name="Mini-map settings">
+      <icons:Icon Symbol="Settings24" FontSize="16" Foreground="White" />
+    </Button>
+    <!--  Reference MiniMapWindow.SettingsPopup: the settings live in a popup, not in this window. The size
+          slider resizes the window it would otherwise sit in, which dragged the panel out from under the
+          cursor on every tick; a popup has a window of its own and is never clipped by the map.  -->
+    <Popup x:Name="SettingsPopup" Placement="RightEdgeAlignedTop" IsLightDismissEnabled="False" />
+  </Panel>
+</Window>

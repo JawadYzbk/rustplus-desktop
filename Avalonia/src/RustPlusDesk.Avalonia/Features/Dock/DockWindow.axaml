@@ -1,0 +1,7 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="RustPlusDesk.Avalonia.Features.Dock.DockWindow"
+        Width="240" Height="240" CanResize="False" ShowInTaskbar="False" Topmost="True" Background="Transparent">
+  <!-- Reference the widget overlay: the dock's tiles sit on a canvas, placed on the cell grid. -->
+  <Canvas x:Name="TileCanvas" Background="Transparent" />
+</Window>

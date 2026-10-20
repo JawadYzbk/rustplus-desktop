@@ -36,6 +36,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.launchAtLogin = launchAtLogin;
         autoConnect = settings?.Get(SettingKeys.AutoConnectEnabled, false) ?? false;
         autoStart = settings?.Get(SettingKeys.AutoStartEnabled, false) ?? false;
+        minimizeToTray = settings?.Get(SettingKeys.MinimizeToTray, false) ?? false;
         toastsEnabled = settings?.Get(SettingKeys.NotificationsToastEnabled, true) ?? true;
         retentionDays = Math.Clamp(NotificationInbox.Retention(settings?.Get(SettingKeys.NotificationsRetentionDays, NotificationInbox.DefaultRetentionDays) ?? 30),
             MinRetentionDays, MaxRetentionDays);
@@ -46,6 +47,7 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty] private bool autoConnect;
     [ObservableProperty] private bool autoStart;
+    [ObservableProperty] private bool minimizeToTray;
 
 
     /// <summary>Why the last launch-at-sign-in change did not apply (empty when it did).</summary>
@@ -85,6 +87,13 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>The AI companion's settings: the provider, the model and the key.</summary>
     public AiSettingsViewModel? Ai { get; init; }
     public bool HasAi => Ai is not null;
+    /// <summary>
+    /// Reference BtnAiHistory: the questions that were asked and the answers that came back.
+    ///
+    /// The window belongs to the shell, so the settings page only asks for it - the same way the other pages in here
+    /// ask the shell to do the things that need a window of their own.
+    /// </summary>
+    public Action? ShowAiHistory { get; init; }
     /// <summary>The selected profile's device automation rules (reference DeviceAutomationOverlay).</summary>
     public RustPlusDesk.Avalonia.Features.Devices.DeviceAutomationSettingsViewModel? Automation { get; init; }
     public bool HasAutomation => Automation is not null;
@@ -124,6 +133,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     public event Action<bool>? GenericAlarmPopupChanged;
 
     partial void OnAutoConnectChanged(bool value) => settings?.Set(SettingKeys.AutoConnectEnabled, value);
+
+    /// <summary>Reference TrackingService.CloseToTrayEnabled: closing the window leaves the app in the tray.</summary>
+    partial void OnMinimizeToTrayChanged(bool value) => settings?.Set(SettingKeys.MinimizeToTray, value);
 
     /// <summary>Reference AutoStartEnabled setter: registers or removes the login item, then saves the flag.</summary>
     partial void OnAutoStartChanged(bool value)
@@ -175,4 +187,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         if (names.Remove(row.Key)) settings.Set(SettingKeys.MutedNotificationServerNames, names);
         RefreshMuted();
     }
+
+    /// <summary>Reference BtnAiHistory_Click: the recent questions are asked for.</summary>
+    [RelayCommand]
+    private void OpenAiHistory() => ShowAiHistory?.Invoke();
 }

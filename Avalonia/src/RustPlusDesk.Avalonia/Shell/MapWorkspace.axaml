@@ -295,6 +295,10 @@
                 </Flyout>
               </Button.Flyout>
             </Button>
+            <Button Classes="subtle" Command="{Binding OpenMiniMapCommand}" IsEnabled="{Binding Connection.Map.HasMap}"
+                    ToolTip.Tip="{DynamicResource UiToggleMiniMap}" AutomationProperties.Name="Mini-map">
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Map24" FontSize="16" /><TextBlock Text="{DynamicResource MiniMap}" /></StackPanel>
+            </Button>
             <Button Classes="icon" Command="{Binding Connection.Map.ResetViewCommand}" IsEnabled="{Binding Connection.Map.HasMap}"
                     ToolTip.Tip="Fit the whole map (Home)" AutomationProperties.Name="Fit map">
               <icons:Icon Symbol="Target24" FontSize="16" />

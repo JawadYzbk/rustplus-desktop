@@ -1,0 +1,54 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ai="using:RustPlusDesk.Avalonia.Features.Ai"
+        xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+        x:Class="RustPlusDesk.Avalonia.Features.Ai.AiHistoryWindow" x:DataType="ai:AiHistoryViewModel"
+        Title="{DynamicResource AiHistoryTitle}" Width="600" Height="560" MinWidth="420" MinHeight="320"
+        WindowStartupLocation="CenterOwner">
+  <Window.Styles>
+    <!-- Reference AiHistoryWindow.Card: a failed exchange is drawn in the danger colour, because the reason it
+         failed is the one thing the window is for. -->
+    <Style Selector="Border.card.failed"><Setter Property="BorderBrush" Value="{DynamicResource ConnectionDanger}" /></Style>
+    <Style Selector="TextBlock.answer.failed"><Setter Property="Foreground" Value="{DynamicResource ConnectionDanger}" /></Style>
+  </Window.Styles>
+  <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10" Margin="16">
+    <TextBlock Text="{DynamicResource AiHistoryTitle}" FontSize="18" FontWeight="SemiBold" />
+    <TextBlock Grid.Row="1" Text="{DynamicResource AiHistoryIntro}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+      <StackPanel Spacing="8">
+        <TextBlock Text="{DynamicResource AiHistoryEmpty}" Classes="muted" IsVisible="{Binding IsEmpty}" />
+        <ItemsControl ItemsSource="{Binding Rows}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="ai:AiHistoryRow">
+              <Border Classes="card" Classes.failed="{Binding Failed}" Padding="12,10" Margin="0,0,0,8"
+                      Tag="{Binding CopyText}" PointerPressed="OnCardPressed"
+                      ToolTip.Tip="{DynamicResource AiHistoryCopyHint}">
+                <StackPanel Spacing="4">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="{Binding When}" FontSize="12" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Provider}" FontSize="11" Classes="muted" />
+                    <TextBlock Text="{Binding Model}" FontSize="11" Classes="muted" />
+                    <TextBlock Text="{Binding Badges}" FontSize="11" Foreground="{DynamicResource Accent}"
+                               IsVisible="{Binding Badges, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  </StackPanel>
+                  <TextBlock Text="{Binding Transcript}" FontSize="11" FontStyle="Italic" Classes="muted" TextWrapping="Wrap"
+                             IsVisible="{Binding Transcript, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  <TextBlock Classes="answer" Classes.failed="{Binding Failed}" Text="{Binding Answer}" FontSize="12" TextWrapping="Wrap" />
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </ScrollViewer>
+    <Grid Grid.Row="3" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+      <TextBlock Text="{Binding CountText}" Classes="muted" FontSize="11" VerticalAlignment="Center" />
+      <Button Grid.Column="1" Classes="danger" Command="{Binding ClearCommand}" IsEnabled="{Binding HasEntries}"
+              AutomationProperties.Name="Clear the recent questions">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <icons:Icon Symbol="Delete24" FontSize="14" />
+          <TextBlock Text="{DynamicResource AiHistoryClear}" />
+        </StackPanel>
+      </Button>
+    </Grid>
+  </Grid>
+</Window>

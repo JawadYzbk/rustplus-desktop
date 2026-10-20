@@ -50,7 +50,9 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     System.Net.Http.HttpClient? aiHttp = null,
     RustPlusDesk.Core.Cameras.ICameraStore? cameraStore = null,
     RustPlusDesk.Core.Cameras.ICameraSnapshotSource? cameraSnapshots = null,
-    RustPlusDesk.Core.Cameras.ICameraSessionFactory? cameraSessions = null)
+    RustPlusDesk.Core.Cameras.ICameraSessionFactory? cameraSessions = null,
+    RustPlusDesk.Core.MiniMap.IMiniMapSettingsStore? miniMapSettings = null,
+    RustPlusDesk.Core.MiniMap.IMiniMapPositionStore? miniMapPosition = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -683,6 +685,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
                 () => SelectedServer is { } server ? (SourcePath, server) : null,
                 settings => { if (ChatCommandEngine is { } engine) engine.Settings = settings; },
                 () => Connection.Clan.Roles),
+            ShowAiHistory = () => OpenAiHistoryCommand.Execute(null),
             Automation = automationStore is null ? null : new(automationStore,
                 () => SelectedServer is { } server ? (SourcePath, server) : null,
                 () => SelectedServer?.Devices ?? [],
@@ -806,6 +809,48 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         UnlockAchievement(RustPlusDesk.Core.Achievements.AchievementCatalog.DeathStats);
     }
 
+    /// <summary>
+    /// Reference MiniMapWindow: the mini-map and the settings that decide how it looks.
+    ///
+    /// The settings live in the reference's own cache files, so the WPF app and this one show the same mini-map.
+    /// </summary>
+    public MiniMap.MiniMapViewModel? MiniMap => miniMap ??= CreateMiniMap();
+
+    private MiniMap.MiniMapViewModel? miniMap;
+
+    private MiniMap.MiniMapViewModel? CreateMiniMap()
+    {
+        if (miniMapSettings is null || miniMapPosition is null) return null;
+        var model = new MiniMap.MiniMapViewModel(miniMapSettings, miniMapPosition)
+        {
+            Map = Connection.Map,
+            DeathPins = DeathPins,
+            ServerTime = Connection.ServerTime,
+            ServerPlayers = Connection.Population
+        };
+        // The clock and the population are read from the connection as it goes, so the pills along the bottom edge
+        // of the mini-map keep up with the server without the mini-map having to know about the connection.
+        Connection.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(ConnectionViewModel.ServerTime)) model.ServerTime = Connection.ServerTime;
+            if (args.PropertyName == nameof(ConnectionViewModel.Population)) model.ServerPlayers = Connection.Population;
+        };
+        // The death markers belong to the selected profile and are read later than the mini-map is made, so the
+        // mini-map is told about them when they turn up.
+        PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(DeathPins)) model.DeathPins = DeathPins;
+        };
+        return model;
+    }
+
+    /// <summary>Raised when the mini-map is asked for; the shell owns the window it is shown in.</summary>
+    public event EventHandler? MiniMapRequested;
+
+    /// <summary>Reference BtnToggleMiniMap_Click: the mini-map is opened in a window of its own.</summary>
+    [RelayCommand]
+    private void OpenMiniMap() => MiniMapRequested?.Invoke(this, EventArgs.Empty);
+
     /// <summary>Reference TabClan: the clan of the connected player, with its roles and members.</summary>
     public Clans.ClanViewModel Clan => Connection.Clan;
 
@@ -927,6 +972,13 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         return card;
     }
 
+    /// <summary>Raised when the recent questions are asked for; the shell owns the window they are shown in.</summary>
+    public event EventHandler? AiHistoryRequested;
+
+    /// <summary>Reference BtnAiHistory_Click: the last few questions are shown in a window of their own.</summary>
+    [RelayCommand]
+    private void OpenAiHistory() => AiHistoryRequested?.Invoke(this, EventArgs.Empty);
+
     /// <summary>Asks the companion and returns the text to post in chat.</summary>
     private async Task<string> AskAiAsync(string question, ulong steamId, RustPlusDesk.Core.Chat.ChatChannel channel, CancellationToken ct)
     {
@@ -948,6 +1000,14 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         }
 
         if (aiHttp is null) return "The AI could not answer that.";
+        // The exchange is written down before it is posted in chat: a question that failed leaves nothing behind
+        // but the word "failed", and the reason it failed is the one thing worth keeping.
+        var record = new RustPlusDesk.Core.Ai.AiExchange
+        {
+            Provider = aiSettings.Provider,
+            Model = aiSettings.Model,
+            Transcript = question
+        };
         try
         {
             var provider = RustPlusDesk.Infrastructure.Ai.AiProviderFactory.For(aiSettings.Provider, aiHttp);
@@ -958,12 +1018,16 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
                 Model = aiSettings.Model,
                 Context = AiContext()
             }, aiSettings.ApiKey, null, ct).ConfigureAwait(false);
+            record.Answer = reply.Answer;
+            RustPlusDesk.Core.Ai.AiHistory.Add(record);
             if (string.IsNullOrWhiteSpace(reply.Answer)) return "The AI could not answer that.";
             if (!isOwner) RecordAiAsk(steamId);
             return reply.Answer;
         }
         catch (Exception ex)
         {
+            record.Error = ex.Message;
+            RustPlusDesk.Core.Ai.AiHistory.Add(record);
             Activity.Append($"[ChatCommand] The AI could not answer: {ex.Message}");
             return "The AI could not answer that.";
         }

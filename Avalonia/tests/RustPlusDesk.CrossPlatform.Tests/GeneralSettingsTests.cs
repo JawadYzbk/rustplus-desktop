@@ -28,6 +28,17 @@ public sealed class GeneralSettingsTests
     }
 
     [TestMethod]
+    public void MinimizeToTray_ReadsAndWritesTheReferenceKey()
+    {
+        var settings = new ShopNoticeTests.MemorySettings();
+        var model = new SettingsViewModel(settings);
+        Assert.IsFalse(model.MinimizeToTray, "Closing the window closes the app unless the user asks otherwise.");
+        model.MinimizeToTray = true;
+        Assert.AreEqual(true, settings.Values[SettingKeys.MinimizeToTray]);
+        Assert.IsTrue(new SettingsViewModel(settings).MinimizeToTray, "The choice is remembered.");
+    }
+
+    [TestMethod]
     public void AutoStart_AppliesTheLoginItemBeforeSavingTheFlag()
     {
         var settings = new ShopNoticeTests.MemorySettings();

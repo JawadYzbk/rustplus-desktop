@@ -11,6 +11,7 @@ using RustPlusDesk.Avalonia.Shell;
 using RustPlusDesk.Infrastructure.Profiles;
 using RustPlusDesk.Infrastructure.Connections;
 using RustPlusDesk.Infrastructure.Accounts;
+using RustPlusDesk.Infrastructure.Dock;
 using RustPlusDesk.Infrastructure.Items;
 using RustPlusDesk.Infrastructure.Shops;
 using RustPlusDesk.Infrastructure.Raid;
@@ -70,7 +71,10 @@ public sealed partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            var window = new MainWindow();
+            // The command dock's arrangement lives in the reference's own cache file, so the WPF app and this one read and
+            // write the same one.
+            var dockStore = new LegacyCommandDockStore(LegacyCommandDockStore.DefaultPath);
+            var window = new MainWindow(dockStore);
             var sessions = new RustPlusSessionFactory();
             var traffic = new RustPlusDesk.Core.Diagnostics.NetworkTrafficMonitor();
             var settingsStore = new TrackingSettingsStore(TrackingSettingsStore.DefaultPath);
@@ -89,6 +93,10 @@ public sealed partial class App : Application
             // One camera session factory for the whole app: the tiles take a still with it and the camera window
             // opens a live session with it.
             var cameraSessions = new RustPlusDesk.Infrastructure.Cameras.CameraSessionFactory();
+            // The AI companion's history is kept in the reference's own file, so this app and the WPF one read
+            // each other's questions.
+            RustPlusDesk.Core.Ai.AiHistory.Use(new RustPlusDesk.Infrastructure.Ai.LegacyAiHistoryStore(
+                RustPlusDesk.Infrastructure.Ai.LegacyAiHistoryStore.DefaultPath));
             var servers = new ServersViewModel(new LegacyServerCatalog(),
                 new ProfileFilePicker(window), LegacyServerCatalog.DefaultPath, sessions, new LegacyServerProfileEditor(), sessions, accounts, new CompanionListener(pushHealth), pushHealth,
                 new LegacyDeviceProfileEditor(), new BundledRecyclerCatalog(),
@@ -134,14 +142,26 @@ public sealed partial class App : Application
                 aiHttp: new HttpClient { Timeout = TimeSpan.FromSeconds(60) },
                 cameraStore: new RustPlusDesk.Infrastructure.Profiles.LegacyCameraStore(),
                 cameraSnapshots: new RustPlusDesk.Infrastructure.Cameras.CameraSnapshotSource(cameraSessions),
-                cameraSessions: cameraSessions);
+                cameraSessions: cameraSessions,
+                miniMapSettings: new RustPlusDesk.Infrastructure.MiniMap.LegacyMiniMapSettingsStore(
+                    RustPlusDesk.Infrastructure.MiniMap.LegacyMiniMapSettingsStore.DefaultPath),
+                miniMapPosition: new RustPlusDesk.Infrastructure.MiniMap.LegacyMiniMapPositionStore(
+                    RustPlusDesk.Infrastructure.MiniMap.LegacyMiniMapPositionStore.DefaultPath));
             desktop.Exit += (_, _) => { accountHttp.Dispose(); cloudHttp.Dispose(); };
             window.DataContext = servers;
             window.Opened += async (_, _) => await servers.InitializeCommand.ExecuteAsync(null);
-            bool closing = false, shutdownComplete = false;
+            bool closing = false, shutdownComplete = false, quitting = false;
             window.Closing += async (_, e) =>
             {
                 if (shutdownComplete) return;
+                // Reference TrackingService.CloseToTrayEnabled: closing the window leaves the app in the notification
+                // area, where the tray icon brings it back. The app is only really closed when the tray says so.
+                if (!quitting && settingsStore.Get(RustPlusDesk.Core.Settings.SettingKeys.MinimizeToTray, false))
+                {
+                    e.Cancel = true;
+                    window.Hide();
+                    return;
+                }
                 e.Cancel = true;
                 if (closing) return;
                 closing = true;
@@ -149,6 +169,24 @@ public sealed partial class App : Application
                 finally { shutdownComplete = true; window.Close(); }
             };
             desktop.MainWindow = window;
+            // The system tray: the reference's tray icon, with the same menu, the same tooltip and the same app icon.
+            var tray = new Features.Shell.TrayIconController(
+                new Features.Shell.SystemTrayIcon(this),
+                () => servers.Connection.IsConnected,
+                Features.Shell.TrayIconController.AppIcon());
+            // The reference remembers the time of its last pull; the app hears from the server whenever the number of
+            // players on it changes, which is when the port says it last heard something.
+            servers.Connection.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(Features.Connections.ConnectionViewModel.Population)) tray.NoteServerUpdate();
+            };
+            tray.OpenRequested += (_, _) =>
+            {
+                if (!window.IsVisible) window.Show();
+                if (window.WindowState == WindowState.Minimized) window.WindowState = WindowState.Normal;
+                window.Activate();
+            };
+            tray.ExitRequested += (_, _) => { quitting = true; window.Close(); };
         }
         base.OnFrameworkInitializationCompleted();
     }
