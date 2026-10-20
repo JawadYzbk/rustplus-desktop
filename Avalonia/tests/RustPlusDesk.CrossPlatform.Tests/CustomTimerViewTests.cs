@@ -40,7 +40,7 @@ public sealed class CustomTimerViewTests
                 Assert.IsTrue(flyout.IsOpen);
                 var content = (StackPanel)flyout.Content!;
                 Assert.AreSame(model, content.DataContext, "The popup reads the workspace's selected profile.");
-                Assert.AreEqual("Active timers", ((TextBlock)content.Children[0]).Text);
+                Assert.AreEqual("Active Timers", ((TextBlock)content.Children[0]).Text);
                 Assert.AreEqual("No active timers.", ((TextBlock)content.Children[1]).Text);
                 var list = (ItemsControl)content.Children[2];
                 Assert.AreSame(model.Timers.Timers, list.ItemsSource);
@@ -52,7 +52,7 @@ public sealed class CustomTimerViewTests
                 Assert.IsFalse(model.Timers.AlertCustomTimer, "The popup's alert switch is the profile's AlertCustomTimer.");
 
                 Assert.IsNotNull(content.GetLogicalDescendants().OfType<Button>()
-                    .Single(candidate => Equals(candidate.Content, "Add timer")));
+                    .Single(candidate => Equals(candidate.Content, "Add Timer")));
                 using (var toggled = window.CaptureRenderedFrame()) Assert.IsNotNull(toggled);
             }
             finally { await model.ShutdownAsync(); window.Close(); }

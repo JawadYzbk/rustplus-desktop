@@ -7,16 +7,16 @@
       <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
         <icons:Icon Symbol="Money24" FontSize="18" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
         <StackPanel Grid.Column="1">
-          <TextBlock Text="Profit trades" Classes="title" />
+          <TextBlock Text="{DynamicResource ProfitTrades}" Classes="title" />
           <TextBlock Text="Two-step loops that return more than they cost." Classes="muted" FontSize="11" TextTrimming="CharacterEllipsis" />
         </StackPanel>
-        <Button Grid.Column="2" Classes="icon" Command="{Binding RefreshCommand}" ToolTip.Tip="Refresh"
+        <Button Grid.Column="2" Classes="icon" Command="{Binding RefreshCommand}" ToolTip.Tip="{DynamicResource Refresh}"
                 AutomationProperties.Name="Refresh profit trades"><icons:Icon Symbol="ArrowClockwise24" /></Button>
         <Button Grid.Column="3" Classes="icon" Command="{Binding CloseCommand}" ToolTip.Tip="Close profit trades"
                 AutomationProperties.Name="Close profit trades"><icons:Icon Symbol="Dismiss24" /></Button>
       </Grid>
       <Grid Grid.Row="1" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="6" RowSpacing="6">
-        <TextBox Grid.ColumnSpan="2" Text="{Binding SearchText}" PlaceholderText="Search items (e.g. sulfur)…" AutomationProperties.Name="Search profit trades">
+        <TextBox Grid.ColumnSpan="2" Text="{Binding SearchText}" PlaceholderText="{DynamicResource UiSearchItemsEGSulfur}" AutomationProperties.Name="Search profit trades">
           <TextBox.InnerLeftContent><icons:Icon Symbol="Search24" FontSize="15" Margin="8,0,0,0" Foreground="{DynamicResource TextSubtle}" /></TextBox.InnerLeftContent>
         </TextBox>
         <TextBlock Grid.Row="1" Text="Min profit" Classes="muted" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Right" />

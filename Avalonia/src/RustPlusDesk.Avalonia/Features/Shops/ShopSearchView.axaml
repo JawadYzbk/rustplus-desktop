@@ -7,14 +7,14 @@
     <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*" RowSpacing="8">
       <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="6">
         <icons:Icon Symbol="BuildingShop24" FontSize="18" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
-        <TextBlock Grid.Column="1" Text="Shop search" Classes="title" />
+        <TextBlock Grid.Column="1" Text="{DynamicResource Tutorials.Step.shops.panel.Title}" Classes="title" />
         <ToggleButton Grid.Column="2" Classes="chip" Padding="8,4" IsChecked="{Binding Profit.IsOpen, Mode=OneWay}" Command="{Binding Profit.ToggleCommand}"
-                      ToolTip.Tip="Find profitable shop trades" AutomationProperties.Name="Find profitable shop trades">
-          <StackPanel Orientation="Horizontal" Spacing="5"><icons:Icon Symbol="Money24" FontSize="14" /><TextBlock Text="Profit" /></StackPanel>
+                      ToolTip.Tip="{DynamicResource UiFindProfitableShopTrades}" AutomationProperties.Name="Find profitable shop trades">
+          <StackPanel Orientation="Horizontal" Spacing="5"><icons:Icon Symbol="Money24" FontSize="14" /><TextBlock Text="{DynamicResource UiProfit}" /></StackPanel>
         </ToggleButton>
         <ToggleButton Grid.Column="3" Classes="chip" Padding="8,4" IsChecked="{Binding PathFinder.IsOpen, Mode=OneWay}" Command="{Binding PathFinder.ToggleCommand}"
                       ToolTip.Tip="Buy X for Y: find a trade route" AutomationProperties.Name="Find a trade route">
-          <StackPanel Orientation="Horizontal" Spacing="5"><icons:Icon Symbol="ArrowRouting24" FontSize="14" /><TextBlock Text="Buy X" /></StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="5"><icons:Icon Symbol="ArrowRouting24" FontSize="14" /><TextBlock Text="{DynamicResource UiBuyX}" /></StackPanel>
         </ToggleButton>
         <Button Grid.Column="4" Classes="icon" Command="{Binding ToggleCommand}" ToolTip.Tip="Close shop search"
                 AutomationProperties.Name="Close shop search"><icons:Icon Symbol="Dismiss24" /></Button>
@@ -31,7 +31,7 @@
                   <icons:Icon Symbol="Grid24" FontSize="16" Foreground="{DynamicResource Accent}" IsVisible="{Binding IsCategory}" />
                   <TextBlock Grid.Column="1" Text="{Binding Display}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                   <Border Grid.Column="2" Classes="pill" Padding="6,0" IsVisible="{Binding IsCategory}">
-                    <TextBlock Text="Category" FontSize="10" Classes="muted" />
+                    <TextBlock Text="{DynamicResource SupportCategory}" FontSize="10" Classes="muted" />
                   </Border>
                 </Grid>
               </DataTemplate>
@@ -48,8 +48,8 @@
         </TextBox.InnerRightContent>
       </TextBox>
       <WrapPanel Grid.Row="2" ItemSpacing="6" LineSpacing="6">
-        <ToggleButton Classes="chip" Content="Sells" IsChecked="{Binding Sells}" ToolTip.Tip="Shops selling the item" />
-        <ToggleButton Classes="chip" Content="Buys" IsChecked="{Binding Buys}" ToolTip.Tip="Shops paying with the item" />
+        <ToggleButton Classes="chip" Content="{DynamicResource AlertShopSells}" IsChecked="{Binding Sells}" ToolTip.Tip="Shops selling the item" />
+        <ToggleButton Classes="chip" Content="{DynamicResource AlertShopBuys}" IsChecked="{Binding Buys}" ToolTip.Tip="Shops paying with the item" />
         <ToggleButton Classes="chip" Content="Hide empty" IsChecked="{Binding HideOutOfStock}" ToolTip.Tip="Hide offers that are out of stock" />
         <ToggleButton Classes="chip" Content="Hide monuments" IsChecked="{Binding HideMonumentShops}" ToolTip.Tip="Hide Outpost, Bandit Camp and other NPC shops" />
       </WrapPanel>
@@ -78,7 +78,7 @@
                     AutomationProperties.Name="Show or hide shop alerts">
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <icons:Icon Symbol="Alert24" FontSize="15" />
-                <TextBlock Text="Alerts" FontWeight="SemiBold" />
+                <TextBlock Text="{DynamicResource Alerts}" FontWeight="SemiBold" />
                 <TextBlock Text="{Binding Alerts.Rules.Count}" Classes="muted" />
                 <icons:Icon Symbol="ChevronDown16" FontSize="12" IsVisible="{Binding !Alerts.IsExpanded}" />
                 <icons:Icon Symbol="ChevronUp16" FontSize="12" IsVisible="{Binding Alerts.IsExpanded}" />

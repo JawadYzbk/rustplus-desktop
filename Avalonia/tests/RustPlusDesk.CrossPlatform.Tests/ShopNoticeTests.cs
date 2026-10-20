@@ -263,8 +263,8 @@ public sealed class ShopNoticeTests
                 flyout.ShowAt(menuButton);
                 window.UpdateLayout();
                 var items = flyout.Items.OfType<MenuItem>().ToList();
-                CollectionAssert.AreEqual(new[] { "Select all", "Deselect all", "Edit templates", "Send alerts to", "Events", "Cargo Ship", "Patrol Helicopter", "Chinook (CH47)", "Travelling Vendor", "Oil Rig Crate Status", "Deep Sea Event", "Smart Alerts", "Custom Timer", "Players", "Online Status", "Offline Status", "Player AFK",
-                    "Self Death", "Team Death", "Self Respawn", "Team Respawn", "Shops", "New shops", "Suspicious shops", "Trade alerts", "Discord webhook", "Discord webhook settings…" },
+                CollectionAssert.AreEqual(new[] { "Select All", "Deselect All", "Edit templates", "Send alerts to", "Events", "Cargo Ship", "Patrol Helicopter", "Chinook (CH47)", "Travelling Vendor", "Oil Rig Crate Status", "Deep Sea Event", "Smart Alerts", "Custom Timer", "Players", "Online Status", "Offline Status", "Player AFK",
+                    "Self Death", "Team Death", "Self Respawn", "Team Respawn", "Shops", "New Shops", "Suspicious Shops", "Trade alerts", "Discord Webhook", "Discord webhook settings…" },
                     items.Select(item => (string)item.Header!).ToArray());
                 MenuItem Item(string header) => items.Single(item => (string)item.Header! == header);
                 Assert.IsTrue(items[0].IsEnabled && items[1].IsEnabled, "Select all / Deselect all work whatever the master state.");
@@ -273,17 +273,17 @@ public sealed class ShopNoticeTests
                 Assert.IsTrue(Item("Edit templates").IsEnabled, "Edit templates is always available.");
                 CollectionAssert.AreEqual(new[] { "Spawn", "Harbor Docking", "Departure (5m Warning)", "Arrival Warning (Unlearned)" },
                     Item("Cargo Ship").Items.OfType<MenuItem>().Select(item => (string)item.Header!).ToArray());
-                Assert.IsTrue(Item("New shops").IsChecked);
-                Assert.IsFalse(Item("Suspicious shops").IsChecked);
+                Assert.IsTrue(Item("New Shops").IsChecked);
+                Assert.IsFalse(Item("Suspicious Shops").IsChecked);
                 Assert.IsTrue(Item("Trade alerts").IsEnabled);
-                Item("Suspicious shops").Command!.Execute(null);
+                Item("Suspicious Shops").Command!.Execute(null);
                 Assert.IsTrue(alerts.AnnounceSuspiciousShops);
                 Item("Patrol Helicopter").Command!.Execute(null);
                 Assert.IsTrue(alerts.AnnounceHeli);
                 Item("Oil Rig Crate Status").Command!.Execute(null);
                 Assert.IsTrue(alerts.AnnounceOilRig);
                 window.UpdateLayout();
-                Assert.IsTrue(Item("Suspicious shops").IsChecked);
+                Assert.IsTrue(Item("Suspicious Shops").IsChecked);
                 Assert.IsTrue(Item("Patrol Helicopter").IsChecked);
                 Assert.IsTrue(Item("Oil Rig Crate Status").IsChecked);
                 flyout.Hide();

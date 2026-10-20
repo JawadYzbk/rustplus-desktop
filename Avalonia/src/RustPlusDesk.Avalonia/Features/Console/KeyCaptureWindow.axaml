@@ -18,9 +18,9 @@
         <ComboBox Grid.Column="1" x:Name="Mouse" HorizontalAlignment="Stretch" SelectionChanged="MouseChosen" AutomationProperties.Name="Mouse button or wheel" />
       </Grid>
       <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
-        <Button Classes="subtle" Content="Clear" Click="ClearKey" AutomationProperties.Name="Clear key" />
-        <Button Classes="subtle" Content="Cancel" Click="Cancel" AutomationProperties.Name="Cancel key choice" />
-        <Button Classes="primary" Content="OK" Click="Accept" AutomationProperties.Name="Use this key" />
+        <Button Classes="subtle" Content="{DynamicResource Clear}" Click="ClearKey" AutomationProperties.Name="Clear key" />
+        <Button Classes="subtle" Content="{DynamicResource Cancel}" Click="Cancel" AutomationProperties.Name="Cancel key choice" />
+        <Button Classes="primary" Content="{DynamicResource OK}" Click="Accept" AutomationProperties.Name="Use this key" />
       </StackPanel>
     </StackPanel>
   </Border>

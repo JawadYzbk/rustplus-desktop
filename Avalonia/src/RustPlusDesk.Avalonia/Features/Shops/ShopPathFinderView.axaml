@@ -8,16 +8,16 @@
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
         <icons:Icon Symbol="ArrowRouting24" FontSize="18" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
         <StackPanel Grid.Column="1">
-          <TextBlock Text="Buy X for Y" Classes="title" />
-          <TextBlock Text="Optimal multi-hop trade pathfinder" Classes="muted" FontSize="11" TextTrimming="CharacterEllipsis" />
+          <TextBlock Text="{DynamicResource BuyXForY}" Classes="title" />
+          <TextBlock Text="{DynamicResource UiOptimalMultiHopTradePathfinder}" Classes="muted" FontSize="11" TextTrimming="CharacterEllipsis" />
         </StackPanel>
         <Button Grid.Column="2" Classes="icon" Command="{Binding CloseCommand}" ToolTip.Tip="Close Buy X for Y"
                 AutomationProperties.Name="Close Buy X for Y"><icons:Icon Symbol="Dismiss24" /></Button>
       </Grid>
       <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="6">
-        <TextBox x:Name="WantBox" Text="{Binding WantText}" PlaceholderText="Want item (e.g. blue)…" AutomationProperties.Name="Item you want"
+        <TextBox x:Name="WantBox" Text="{Binding WantText}" PlaceholderText="{DynamicResource UiWantItemEGBlue}" AutomationProperties.Name="Item you want"
                  KeyDown="BoxKeyDown" />
-        <TextBox Grid.Column="1" x:Name="PayBox" Text="{Binding PayText}" PlaceholderText="Pay item (e.g. cloth)…" AutomationProperties.Name="Item you pay with"
+        <TextBox Grid.Column="1" x:Name="PayBox" Text="{Binding PayText}" PlaceholderText="{DynamicResource UiPayItemEGCloth}" AutomationProperties.Name="Item you pay with"
                  KeyDown="BoxKeyDown" />
         <Popup PlacementTarget="{Binding #WantBox}" Placement="BottomEdgeAlignedLeft" IsOpen="{Binding IsWantSuggestionsOpen}"
                IsLightDismissEnabled="True" Width="{Binding #WantBox.Bounds.Width}">
@@ -36,12 +36,12 @@
       </Grid>
       <Button Grid.Row="2" Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Command="{Binding AnalyzeCommand}"
               AutomationProperties.Name="Find trade routes">
-        <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ArrowRouting24" FontSize="14" /><TextBlock Text="Analyze" /></StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ArrowRouting24" FontSize="14" /><TextBlock Text="{DynamicResource Analyze}" /></StackPanel>
       </Button>
       <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="6">
         <Border Classes="preview">
           <DockPanel>
-            <TextBlock DockPanel.Dock="Top" Text="I WANT TO GET" Classes="previewCaption" />
+            <TextBlock DockPanel.Dock="Top" Text="{DynamicResource IWantToGet}" Classes="previewCaption" />
             <TextBlock DockPanel.Dock="Top" Text="{Binding WantPreviewMessage}" Classes="muted" FontSize="11" TextWrapping="Wrap"
                        IsVisible="{Binding WantPreviewMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
             <ScrollViewer HorizontalScrollBarVisibility="Disabled">
@@ -51,7 +51,7 @@
         </Border>
         <Border Grid.Column="1" Classes="preview">
           <DockPanel>
-            <TextBlock DockPanel.Dock="Top" Text="I CAN PAY WITH" Classes="previewCaption" />
+            <TextBlock DockPanel.Dock="Top" Text="{DynamicResource ICanPayWith}" Classes="previewCaption" />
             <TextBlock DockPanel.Dock="Top" Text="{Binding PayPreviewMessage}" Classes="muted" FontSize="11" TextWrapping="Wrap"
                        IsVisible="{Binding PayPreviewMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
             <ScrollViewer HorizontalScrollBarVisibility="Disabled">

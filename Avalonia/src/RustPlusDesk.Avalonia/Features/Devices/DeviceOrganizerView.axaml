@@ -19,7 +19,7 @@
         </TreeView>
         <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Disabled">
           <StackPanel Spacing="10">
-            <TextBlock Text="Display name" />
+            <TextBlock Text="{DynamicResource UiDisplayName}" />
             <TextBox Text="{Binding Alias}" PlaceholderText="Blank restores the original name" AutomationProperties.Name="Device display name" />
             <Button Content="_Rename" Command="{Binding RenameCommand}" />
             <StackPanel IsVisible="{Binding IsAlarm}" Spacing="6">
@@ -50,7 +50,7 @@
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <Button Classes="danger" Content="Delete permanently" Command="{Binding DeleteCommand}"
                             AutomationProperties.Name="Confirm delete" />
-                    <Button Content="Cancel" Command="{Binding CancelDeleteCommand}" AutomationProperties.Name="Cancel delete" />
+                    <Button Content="{DynamicResource Cancel}" Command="{Binding CancelDeleteCommand}" AutomationProperties.Name="Cancel delete" />
                   </StackPanel>
                 </StackPanel>
               </Border>
@@ -70,7 +70,7 @@
                 </ListBox>
                 <WrapPanel>
                   <Button Content="Save _icon" Command="{Binding SaveIconCommand}" Margin="0,0,6,6" />
-                  <Button Content="Reset to _default" Command="{Binding ResetIconCommand}" Margin="0,0,0,6" />
+                  <Button Content="{DynamicResource ResetToDefault}" Command="{Binding ResetIconCommand}" Margin="0,0,0,6" />
                 </WrapPanel>
               </StackPanel>
             </Expander>

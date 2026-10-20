@@ -23,12 +23,12 @@
         </Button>
         <Border Height="1" Margin="6,6" Background="{DynamicResource CardBorder}" />
         <Button Classes="nav" Classes.selected="{Binding !IsToolSelected}" Command="{Binding ShowDevicesCommand}"
-                ToolTip.Tip="Monitor and control paired smart devices" AutomationProperties.Name="Devices">
+                ToolTip.Tip="{DynamicResource UiMonitorAndControlPairedSmartDevices}" AutomationProperties.Name="Devices">
           <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Connector24" />
             <TextBlock Grid.Column="1" Classes="navLabel" Text="{DynamicResource AppDevices}" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
         <Button Classes="nav" Classes.selected="{Binding IsNotificationsSelected}" Command="{Binding OpenNotificationsCommand}"
-                ToolTip.Tip="Alarms, deaths and server events pushed by Rust+" AutomationProperties.Name="Notifications">
+                ToolTip.Tip="{DynamicResource UiReviewAlertsAndRecentServerEvents}" AutomationProperties.Name="Notifications">
           <Grid ColumnDefinitions="28,*,Auto"><Panel><icons:Icon Symbol="Alert24" />
               <Border Classes="railBadge" IsVisible="{Binding Notifications.HasUnread}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-4,0">
                 <TextBlock Text="{Binding Notifications.UnreadText}" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource OnAccent}" />
@@ -48,25 +48,25 @@
               </Border></Panel>
             <TextBlock Grid.Column="1" Classes="navLabel" Text="{DynamicResource AppAchievements}" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
-        <TextBlock Classes="navSection" Text="TOOLS" IsVisible="{Binding IsRailExpanded}" />
+        <TextBlock Classes="navSection" Text="{DynamicResource SidebarToolsFolder}" IsVisible="{Binding IsRailExpanded}" />
         <Border Height="1" Margin="6,6" Background="{DynamicResource CardBorder}" IsVisible="{Binding !IsRailExpanded}" />
         <Button Classes="nav" Classes.selected="{Binding IsDeathStatsSelected}" Command="{Binding OpenDeathStatsCommand}" IsVisible="{Binding HasDeathStats}"
-                ToolTip.Tip="View death statistics for the current server" AutomationProperties.Name="Death Stats">
+                ToolTip.Tip="{DynamicResource RailDeathStatsHelp}" AutomationProperties.Name="Death Stats">
           <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="HeartBroken24" />
             <TextBlock Grid.Column="1" Classes="navLabel" Text="{DynamicResource AppDeathStats}" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
         <Button Classes="nav" Classes.selected="{Binding IsRaidSelected}" Command="{Binding OpenRaidCommand}" IsVisible="{Binding HasRaidTool}"
-                ToolTip.Tip="Calculate raid costs and required materials" AutomationProperties.Name="Raid calculator">
+                ToolTip.Tip="{DynamicResource UiCalculateRaidCostsAndRequiredMaterials}" AutomationProperties.Name="Raid calculator">
           <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Rocket24" />
             <TextBlock Grid.Column="1" Classes="navLabel" Text="{DynamicResource AppRaidCalculator}" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
         <Button Classes="nav" Classes.selected="{Binding IsRecyclerSelected}" Command="{Binding OpenRecyclerCommand}" IsVisible="{Binding HasRecyclerTool}"
-                ToolTip.Tip="Calculate component yields for wild and safe-zone recyclers" AutomationProperties.Name="Recycler">
+                ToolTip.Tip="{DynamicResource UiCalculateComponentYieldsForWildAndSafeZoneRecyclers}" AutomationProperties.Name="Recycler">
           <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Recycle32" />
             <TextBlock Grid.Column="1" Classes="navLabel" Text="{DynamicResource AppRecyclingCalculator}" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
         <Button Classes="nav" Classes.selected="{Binding IsConsoleSelected}" Command="{Binding OpenConsoleCommand}" IsVisible="{Binding HasConsoleTool}"
-                ToolTip.Tip="Useful console commands, ready to copy into the F1 console" AutomationProperties.Name="Console Helper">
+                ToolTip.Tip="{DynamicResource ConsoleHelperSubtitle}" AutomationProperties.Name="Console Helper">
           <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="WindowConsole20" />
             <TextBlock Grid.Column="1" Classes="navLabel" Text="{DynamicResource AppConsoleHelper}" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
@@ -90,7 +90,7 @@
         <Button Classes="nav" Command="{Binding ToggleRailLabelsCommand}" ToolTip.Tip="Show or hide navigation labels"
                 AutomationProperties.Name="Toggle navigation labels">
           <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="PanelLeftExpand20" />
-            <TextBlock Grid.Column="1" Classes="navLabel" Text="Collapse" IsVisible="{Binding IsRailExpanded}" /></Grid>
+            <TextBlock Grid.Column="1" Classes="navLabel" Text="{DynamicResource CodeUiCollapse}" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
       </StackPanel>
     </Grid>

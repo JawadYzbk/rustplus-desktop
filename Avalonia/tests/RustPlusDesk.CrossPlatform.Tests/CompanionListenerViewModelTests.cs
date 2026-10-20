@@ -124,7 +124,15 @@ public sealed class CompanionListenerViewModelTests
     internal static async Task Eventually(Func<bool> condition)
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(4));
-        while (!condition()) await Task.Delay(10, timeout.Token);
+        while (true)
+        {
+            bool done;
+            try { done = condition(); }
+            // A file that is being replaced cannot be read at that moment; the next poll reads it.
+            catch (IOException) { done = false; }
+            if (done) return;
+            await Task.Delay(10, timeout.Token);
+        }
     }
 
     [TestMethod]

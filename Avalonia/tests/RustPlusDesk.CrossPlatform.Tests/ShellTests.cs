@@ -499,6 +499,12 @@ public sealed class ShellTests
 
 public static class TestAppBuilder
 {
-    public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<App>()
-        .UseSkia().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false });
+    public static AppBuilder BuildAvaloniaApp()
+    {
+        // The app reads its strings in the language the user chose; the tests read them in English, so the
+        // expectations do not depend on the language of the machine the suite runs on.
+        RustPlusDesk.Core.Localization.Loc.UseCulture(TestCulture.English);
+        return AppBuilder.Configure<App>()
+            .UseSkia().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false });
+    }
 }

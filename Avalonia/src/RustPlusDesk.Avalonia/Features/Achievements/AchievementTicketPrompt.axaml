@@ -9,7 +9,7 @@
       <StackPanel Orientation="Horizontal" Spacing="10">
         <icons:Icon Symbol="Trophy24" FontSize="24"
                      Foreground="{DynamicResource Accent}" />
-        <TextBlock Text="All achievements unlocked" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+        <TextBlock Text="{DynamicResource AchievementsAllUnlockedTitle}" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
       </StackPanel>
       <TextBlock Text="Well done! Would you like to let the developers know?" TextWrapping="Wrap" />
       <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">

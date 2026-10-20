@@ -32,6 +32,9 @@ public sealed partial class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+        // The app's strings live in the app's resources, so the catalogue is handed to the core here.
+        RustPlusDesk.Core.Localization.Loc.Manager = new System.Resources.ResourceManager(
+            "RustPlusDesk.Avalonia.Properties.Resources", typeof(App).Assembly);
         Styles.Insert(0, OperatingSystem.IsWindows()
             ? new FluentAvaloniaTheme { UseSystemFontOnWindows = true, PreferUserAccentColor = true }
             : new FluentTheme { DensityStyle = DensityStyle.Compact });
@@ -70,11 +73,11 @@ public sealed partial class App : Application
             var window = new MainWindow();
             var sessions = new RustPlusSessionFactory();
             var traffic = new RustPlusDesk.Core.Diagnostics.NetworkTrafficMonitor();
-            // The app's strings live in the app's resources, so the catalogue is handed to the core here.
-            RustPlusDesk.Core.Localization.Loc.Manager = new System.Resources.ResourceManager(
-                "RustPlusDesk.Avalonia.Properties.Resources", typeof(App).Assembly);
             var settingsStore = new TrackingSettingsStore(TrackingSettingsStore.DefaultPath);
             ApplyLanguage(settingsStore);
+            // The labels were read in the operating system's language while the window was created, so they are
+            // read again in the language the user chose.
+            RefreshStrings();
             var accountHttp = new HttpClient(new RustPlusDesk.Infrastructure.Diagnostics.TrafficTrackingHttpMessageHandler(
                 new HttpClientHandler(), traffic, "Cloud API")) { Timeout = TimeSpan.FromSeconds(30) };
             var cloudHttp = new HttpClient(new RustPlusDesk.Infrastructure.Diagnostics.TrafficTrackingHttpMessageHandler(

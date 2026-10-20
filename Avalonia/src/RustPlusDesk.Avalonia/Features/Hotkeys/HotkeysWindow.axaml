@@ -7,10 +7,10 @@
     <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto" RowSpacing="10">
       <StackPanel Orientation="Horizontal" Spacing="10">
         <icons:Icon Symbol="Keyboard24" FontSize="20" Foreground="{DynamicResource Accent}" />
-        <TextBlock Text="Hotkeys" Classes="title" VerticalAlignment="Center" />
+        <TextBlock Text="{DynamicResource Hotkeys}" Classes="title" VerticalAlignment="Center" />
       </StackPanel>
       <TextBlock Grid.Row="1" Classes="muted" TextWrapping="Wrap"
-                 Text="Assign global hotkeys to Smart Switches. Multiple devices can share one hotkey (will toggle sequentially)." />
+                 Text="{DynamicResource AssignGlobalHotkeys}" />
       <Border Grid.Row="2" Classes="note" IsVisible="{Binding HasUnavailableReason}">
         <StackPanel Orientation="Horizontal" Spacing="8">
           <icons:Icon Symbol="Info24" FontSize="16" Foreground="{DynamicResource Highlight}" VerticalAlignment="Center" />
@@ -35,11 +35,11 @@
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                       <icons:Icon Symbol="Warning24" FontSize="14" Foreground="{DynamicResource ConnectionDanger}" IsVisible="{Binding IsRegisteredWarningVisible}"
-                                  ToolTip.Tip="This hotkey is already registered by another application." />
+                                  ToolTip.Tip="{DynamicResource HotkeyWarningInUse}" />
                       <Border Classes="key"><TextBlock Text="{Binding HotkeyDisplay}" FontWeight="SemiBold" FontSize="12" /></Border>
                     </StackPanel>
-                    <Button Grid.Column="2" Classes="subtle" Content="Set" Click="SetHotkey" AutomationProperties.Name="Set hotkey" />
-                    <Button Grid.Column="3" Classes="subtle" Content="Clear" IsEnabled="{Binding HasHotkey}" CommandParameter="{Binding}"
+                    <Button Grid.Column="2" Classes="subtle" Content="{DynamicResource Set}" Click="SetHotkey" AutomationProperties.Name="Set hotkey" />
+                    <Button Grid.Column="3" Classes="subtle" Content="{DynamicResource Clear}" IsEnabled="{Binding HasHotkey}" CommandParameter="{Binding}"
                             Command="{Binding $parent[Window].((vm:HotkeysEditorViewModel)DataContext).ClearCommand}" AutomationProperties.Name="Clear hotkey" />
                   </Grid>
                 </Border>
@@ -49,18 +49,18 @@
         </ScrollViewer>
       </Grid>
       <Grid Grid.Row="4" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="6">
-        <TextBlock Text="Execution mode" Classes="muted" VerticalAlignment="Center" />
+        <TextBlock Text="{DynamicResource HotkeyExecutionMode}" Classes="muted" VerticalAlignment="Center" />
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
-          <RadioButton Classes="chip" Content="Sequential (with delay)" IsChecked="{Binding IsSequential}" GroupName="HotkeyMode" AutomationProperties.Name="Sequential mode" />
-          <RadioButton Classes="chip" Content="Parallel (instant)" IsChecked="{Binding IsParallel}" GroupName="HotkeyMode" AutomationProperties.Name="Parallel mode" />
+          <RadioButton Classes="chip" Content="{DynamicResource HotkeySequential}" IsChecked="{Binding IsSequential}" GroupName="HotkeyMode" AutomationProperties.Name="Sequential mode" />
+          <RadioButton Classes="chip" Content="{DynamicResource HotkeyParallel}" IsChecked="{Binding IsParallel}" GroupName="HotkeyMode" AutomationProperties.Name="Parallel mode" />
         </StackPanel>
         <TextBlock Grid.Row="1" Text="{Binding DelayText}" Classes="muted" VerticalAlignment="Center" IsVisible="{Binding IsSequential}" />
         <Slider Grid.Row="1" Grid.Column="1" Minimum="50" Maximum="1000" TickFrequency="50" IsSnapToTickEnabled="True" Value="{Binding DelayMs}"
                 IsVisible="{Binding IsSequential}" AutomationProperties.Name="Toggle delay" />
       </Grid>
       <StackPanel Grid.Row="5" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
-        <Button Classes="subtle" Content="Close &amp; Deactivate" Command="{Binding CloseDeactivateCommand}" AutomationProperties.Name="Close and deactivate hotkeys" />
-        <Button Classes="primary" Content="Close &amp; Activate" Command="{Binding CloseActivateCommand}" ToolTip.Tip="{Binding UnavailableReason}"
+        <Button Classes="subtle" Content="{DynamicResource CloseDeactivate}" Command="{Binding CloseDeactivateCommand}" AutomationProperties.Name="Close and deactivate hotkeys" />
+        <Button Classes="primary" Content="{DynamicResource CloseActivate}" Command="{Binding CloseActivateCommand}" ToolTip.Tip="{Binding UnavailableReason}"
                 ToolTip.ShowOnDisabled="True" AutomationProperties.Name="Close and activate hotkeys" />
       </StackPanel>
     </Grid>

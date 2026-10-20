@@ -9,7 +9,7 @@
              x:DataType="vm:ServersViewModel">
   <StackPanel Spacing="10">
     <Grid ColumnDefinitions="*,Auto">
-      <TextBlock Text="SERVERS" Classes="section" ToolTip.Tip="{Binding SourcePath}" />
+      <TextBlock Text="{DynamicResource UiSERVERS}" Classes="section" ToolTip.Tip="{Binding SourcePath}" />
       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
         <Button Classes="icon" Command="{Binding RefreshCommand}" ToolTip.Tip="Reload saved servers" AutomationProperties.Name="Refresh servers">
           <icons:Icon Symbol="ArrowClockwise24" /></Button>
@@ -17,7 +17,7 @@
           <icons:Icon Symbol="FolderOpen24" /></Button>
         <Button Classes="icon" Command="{Binding EditCommand}" ToolTip.Tip="Edit the selected server" AutomationProperties.Name="Edit server">
           <icons:Icon Symbol="Edit24" /></Button>
-        <Button Classes="icon" Command="{Binding DeleteServerCommand}" IsVisible="{Binding HasServerDelete}" ToolTip.Tip="Delete server…"
+        <Button Classes="icon" Command="{Binding DeleteServerCommand}" IsVisible="{Binding HasServerDelete}" ToolTip.Tip="{DynamicResource DeleteServer}"
                 AutomationProperties.Name="Delete server">
           <icons:Icon Symbol="Delete24" /></Button>
       </StackPanel>
@@ -38,7 +38,7 @@
         </DataTemplate>
       </ComboBox.ItemTemplate>
     </ComboBox>
-    <TextBlock Text="CONNECTION" Classes="section" Margin="0,6,0,0" IsVisible="{Binding HasServers}" />
+    <TextBlock Text="{DynamicResource SnackbarTitleConnection}" Classes="section" Margin="0,6,0,0" IsVisible="{Binding HasServers}" />
     <connections:ConnectionStatusView DataContext="{Binding Connection}" IsVisible="{Binding $parent[UserControl].((vm:ServersViewModel)DataContext).HasServers}" />
     <Border Classes="panel" Padding="10,6" IsVisible="{Binding HasListener}">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
@@ -48,9 +48,9 @@
           <TextBlock Text="{Binding Listener.Status, FallbackValue=''}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
         </StackPanel>
         <Panel Grid.Column="2" VerticalAlignment="Center">
-          <Button Classes="subtle" Content="Start" Command="{Binding Listener.StartCommand}" IsVisible="{Binding !Listener.IsRunning, FallbackValue=True}"
+          <Button Classes="subtle" Content="{DynamicResource Tutorials.Common.Start}" Command="{Binding Listener.StartCommand}" IsVisible="{Binding !Listener.IsRunning, FallbackValue=True}"
                   AutomationProperties.Name="Start listening for pairing" />
-          <Button Classes="subtle" Content="Stop" Command="{Binding Listener.StopCommand}" IsVisible="{Binding Listener.IsRunning, FallbackValue=False}"
+          <Button Classes="subtle" Content="{DynamicResource Stop}" Command="{Binding Listener.StopCommand}" IsVisible="{Binding Listener.IsRunning, FallbackValue=False}"
                   AutomationProperties.Name="Stop listening for pairing" />
         </Panel>
       </Grid>

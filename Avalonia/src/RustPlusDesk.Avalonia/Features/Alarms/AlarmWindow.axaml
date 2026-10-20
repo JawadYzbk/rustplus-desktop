@@ -11,7 +11,7 @@
           <icons:Icon Symbol="Alert24" FontSize="18" Foreground="{DynamicResource ConnectionDanger}" />
         </Border>
         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-          <TextBlock Text="Smart alarm triggered" Classes="title" />
+          <TextBlock Text="{DynamicResource AlertAlarmTriggeredName}" Classes="title" />
           <TextBlock Text="Newest first" Classes="muted" FontSize="11" />
         </StackPanel>
       </Grid>
@@ -34,8 +34,8 @@
         </ItemsControl>
       </ScrollViewer>
       <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-        <Button Classes="subtle" Content="Clear" Command="{Binding ClearCommand}" AutomationProperties.Name="Clear alarms" />
-        <Button Classes="primary" Content="Close" Command="{Binding CloseCommand}" AutomationProperties.Name="Close alarms" />
+        <Button Classes="subtle" Content="{DynamicResource Clear}" Command="{Binding ClearCommand}" AutomationProperties.Name="Clear alarms" />
+        <Button Classes="primary" Content="{DynamicResource Close}" Command="{Binding CloseCommand}" AutomationProperties.Name="Close alarms" />
       </StackPanel>
     </Grid>
   </Border>

@@ -30,7 +30,7 @@
           <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Save24" FontSize="14" /><TextBlock Text="Export" /></StackPanel>
         </Button>
         <Button Classes="subtle" Command="{Binding ClearCommand}" ToolTip.Tip="Clear the counters and the log" AutomationProperties.Name="Clear traffic log">
-          <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Delete24" FontSize="14" /><TextBlock Text="Clear" /></StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Delete24" FontSize="14" /><TextBlock Text="{DynamicResource Clear}" /></StackPanel>
         </Button>
       </StackPanel>
     </Grid>
@@ -53,7 +53,7 @@
       <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
         <TextBlock Classes="colHeader" Text="TIME" Width="90" />
         <TextBlock Grid.Column="1" Classes="colHeader" Text="ENDPOINT" />
-        <TextBlock Grid.Column="2" Classes="colHeader" Text="SIZE" Width="90" />
+        <TextBlock Grid.Column="2" Classes="colHeader" Text="{DynamicResource UiLayersSize}" Width="90" />
         <TextBlock Grid.Column="3" Classes="colHeader" Text="TIME" Width="70" />
         <TextBlock Grid.Column="4" Classes="colHeader" Text="STATUS" Width="90" />
       </Grid>

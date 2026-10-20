@@ -12,7 +12,7 @@
       <WrapPanel Grid.Row="2">
         <Button Content="_Load shared devices" Command="{Binding LoadCommand}" Margin="0,0,6,0" />
         <Button Content="_Check device status" Command="{Binding CheckCommand}" Margin="0,0,6,0" />
-        <Button Content="Select _all" Command="{Binding SelectAllCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,6,0" />
+        <Button Content="{DynamicResource SelectAll}" Command="{Binding SelectAllCommand}" IsEnabled="{Binding !IsBusy}" Margin="0,0,6,0" />
         <Button Content="C_lear selection" Command="{Binding ClearSelectionCommand}" IsEnabled="{Binding !IsBusy}" />
       </WrapPanel>
       <TextBox Grid.Row="3" Text="{Binding Search, Mode=TwoWay}" PlaceholderText="Search by device, owner, ID or kind" AutomationProperties.Name="Search shared devices" />
@@ -34,7 +34,7 @@
           </DataTemplate>
         </ListBox.ItemTemplate>
       </ListBox>
-      <TextBlock Text="No devices match your search." IsVisible="{Binding HasNoMatches}" HorizontalAlignment="Center" VerticalAlignment="Center" Classes="muted" />
+      <TextBlock Text="{DynamicResource UiNoDevicesMatchYourSearch}" IsVisible="{Binding HasNoMatches}" HorizontalAlignment="Center" VerticalAlignment="Center" Classes="muted" />
       </Grid>
       <StackPanel Grid.Row="5" Spacing="4">
         <TextBlock Text="{Binding SelectionCaption}" />

@@ -21,11 +21,11 @@
         <TextBox.InnerLeftContent><icons:Icon Symbol="Search24" FontSize="15" Margin="8,0,0,0" Foreground="{DynamicResource TextSubtle}" /></TextBox.InnerLeftContent>
       </TextBox>
       <Button Grid.Column="1" Classes="subtle" Command="{Binding ReloadCommand}" ToolTip.Tip="Re-read the death log" AutomationProperties.Name="Refresh death stats">
-        <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ArrowClockwise24" FontSize="14" /><TextBlock Text="Refresh" /></StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ArrowClockwise24" FontSize="14" /><TextBlock Text="{DynamicResource Refresh}" /></StackPanel>
       </Button>
       <Button Grid.Column="2" Classes="subtle" Command="{Binding RequestClearCommand}" IsEnabled="{Binding HasServer}"
               ToolTip.Tip="Clear the local death log for this server" AutomationProperties.Name="Clear death log">
-        <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Delete24" FontSize="14" /><TextBlock Text="Clear log" /></StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Delete24" FontSize="14" /><TextBlock Text="{DynamicResource ClearLog}" /></StackPanel>
       </Button>
     </Grid>
     <StackPanel Grid.Row="1" Spacing="6">
@@ -43,15 +43,15 @@
       <Border Classes="confirm" IsVisible="{Binding IsConfirmingClear}">
         <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
           <TextBlock Text="Clear the local death log for this server? This cannot be undone." VerticalAlignment="Center" TextWrapping="Wrap" />
-          <Button Grid.Column="1" Classes="subtle" Content="Cancel" Command="{Binding CancelClearCommand}" AutomationProperties.Name="Keep death log" />
-          <Button Grid.Column="2" Classes="danger" Content="Clear log" Command="{Binding ConfirmClearCommand}" AutomationProperties.Name="Confirm clear death log" />
+          <Button Grid.Column="1" Classes="subtle" Content="{DynamicResource Cancel}" Command="{Binding CancelClearCommand}" AutomationProperties.Name="Keep death log" />
+          <Button Grid.Column="2" Classes="danger" Content="{DynamicResource ClearLog}" Command="{Binding ConfirmClearCommand}" AutomationProperties.Name="Confirm clear death log" />
         </Grid>
       </Border>
       <Border Classes="confirm" IsVisible="{Binding IsConfirmingClearKillers}">
         <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-          <TextBlock Text="Forget every name recorded for this server? The deaths themselves stay." VerticalAlignment="Center" TextWrapping="Wrap" />
-          <Button Grid.Column="1" Classes="subtle" Content="Cancel" Command="{Binding CancelClearKillersCommand}" AutomationProperties.Name="Keep killer names" />
-          <Button Grid.Column="2" Classes="danger" Content="Clear" Command="{Binding ConfirmClearKillersCommand}" AutomationProperties.Name="Confirm clear killer names" />
+          <TextBlock Text="{DynamicResource DeathStatsKillersClearConfirm}" VerticalAlignment="Center" TextWrapping="Wrap" />
+          <Button Grid.Column="1" Classes="subtle" Content="{DynamicResource Cancel}" Command="{Binding CancelClearKillersCommand}" AutomationProperties.Name="Keep killer names" />
+          <Button Grid.Column="2" Classes="danger" Content="{DynamicResource Clear}" Command="{Binding ConfirmClearKillersCommand}" AutomationProperties.Name="Confirm clear killer names" />
         </Grid>
       </Border>
       <TextBlock Text="{Binding Summary.Headline}" Classes="muted" TextWrapping="Wrap" />
@@ -110,7 +110,7 @@
         <Border Classes="panel" Padding="14">
           <StackPanel Spacing="6">
             <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Location24" FontSize="14" /><TextBlock Text="By location" FontWeight="SemiBold" /></StackPanel>
-            <Grid ColumnDefinitions="*,70"><TextBlock Classes="colHeader" Text="Location" /><TextBlock Grid.Column="1" Classes="colHeader" Text="Deaths" HorizontalAlignment="Right" /></Grid>
+            <Grid ColumnDefinitions="*,70"><TextBlock Classes="colHeader" Text="{DynamicResource ProfileLocation}" /><TextBlock Grid.Column="1" Classes="colHeader" Text="{DynamicResource NotificationsDeaths}" HorizontalAlignment="Right" /></Grid>
             <ItemsControl ItemsSource="{Binding Summary.ByLocation}" AutomationProperties.Name="Deaths by location">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="core:LocationStat">
@@ -124,7 +124,7 @@
         <Border Classes="panel" Padding="14">
           <StackPanel Spacing="6">
             <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="People24" FontSize="14" /><TextBlock Text="By player" FontWeight="SemiBold" /></StackPanel>
-            <Grid ColumnDefinitions="*,70,110"><TextBlock Classes="colHeader" Text="Victim" /><TextBlock Grid.Column="1" Classes="colHeader" Text="Deaths" HorizontalAlignment="Right" />
+            <Grid ColumnDefinitions="*,70,110"><TextBlock Classes="colHeader" Text="Victim" /><TextBlock Grid.Column="1" Classes="colHeader" Text="{DynamicResource NotificationsDeaths}" HorizontalAlignment="Right" />
               <TextBlock Grid.Column="2" Classes="colHeader" Text="Avg survival" HorizontalAlignment="Right" /></Grid>
             <ItemsControl ItemsSource="{Binding Summary.ByVictim}" AutomationProperties.Name="Deaths by player">
               <ItemsControl.ItemTemplate>
@@ -140,11 +140,11 @@
         <Border Classes="panel" Padding="14" IsVisible="{Binding Summary.HasKillers}">
           <StackPanel Spacing="6">
             <Grid ColumnDefinitions="*,Auto">
-              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Target24" FontSize="14" /><TextBlock Text="Killers" FontWeight="SemiBold" /></StackPanel>
-              <Button Grid.Column="1" Classes="subtle" Content="Clear" Command="{Binding RequestClearKillersCommand}" AutomationProperties.Name="Clear killer names" />
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Target24" FontSize="14" /><TextBlock Text="{DynamicResource DeathStatsKillers}" FontWeight="SemiBold" /></StackPanel>
+              <Button Grid.Column="1" Classes="subtle" Content="{DynamicResource Clear}" Command="{Binding RequestClearKillersCommand}" AutomationProperties.Name="Clear killer names" />
             </Grid>
-            <Grid ColumnDefinitions="*,*,60,110,32"><TextBlock Classes="colHeader" Text="Killer" /><TextBlock Grid.Column="1" Classes="colHeader" Text="Weapon" />
-              <TextBlock Grid.Column="2" Classes="colHeader" Text="Kills" HorizontalAlignment="Right" /><TextBlock Grid.Column="3" Classes="colHeader" Text="Last time" HorizontalAlignment="Right" /></Grid>
+            <Grid ColumnDefinitions="*,*,60,110,32"><TextBlock Classes="colHeader" Text="{DynamicResource DeathStatsKiller}" /><TextBlock Grid.Column="1" Classes="colHeader" Text="{DynamicResource DeathStatsWeapon}" />
+              <TextBlock Grid.Column="2" Classes="colHeader" Text="{DynamicResource DeathStatsKills}" HorizontalAlignment="Right" /><TextBlock Grid.Column="3" Classes="colHeader" Text="{DynamicResource DeathStatsLastKill}" HorizontalAlignment="Right" /></Grid>
             <ItemsControl ItemsSource="{Binding Summary.ByKiller}" AutomationProperties.Name="Killers">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="core:KillerStat">
@@ -152,7 +152,7 @@
                     <TextBlock Grid.Column="1" Classes="cell" Text="{Binding LastWeapon}" VerticalAlignment="Center" />
                     <TextBlock Grid.Column="2" Classes="cell" Text="{Binding Kills}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     <TextBlock Grid.Column="3" Classes="cell" Text="{Binding LastAtText}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                    <Button Grid.Column="4" Classes="icon" CommandParameter="{Binding Name}" ToolTip.Tip="Forget this name" AutomationProperties.Name="Forget this name"
+                    <Button Grid.Column="4" Classes="icon" CommandParameter="{Binding Name}" ToolTip.Tip="{DynamicResource DeathStatsKillerForget}" AutomationProperties.Name="Forget this name"
                             Command="{Binding $parent[UserControl].((vm:DeathStatsViewModel)DataContext).ForgetKillerCommand}"><icons:Icon Symbol="Delete24" FontSize="14" /></Button>
                   </Grid>
                 </DataTemplate>
@@ -163,8 +163,8 @@
         <Border Classes="panel" Padding="14">
           <StackPanel Spacing="6">
             <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="History24" FontSize="14" /><TextBlock Text="Recent deaths" FontWeight="SemiBold" /></StackPanel>
-            <Grid ColumnDefinitions="*,*,60,130"><TextBlock Classes="colHeader" Text="Victim" /><TextBlock Grid.Column="1" Classes="colHeader" Text="Location" />
-              <TextBlock Grid.Column="2" Classes="colHeader" Text="Grid" /><TextBlock Grid.Column="3" Classes="colHeader" Text="Died" HorizontalAlignment="Right" /></Grid>
+            <Grid ColumnDefinitions="*,*,60,130"><TextBlock Classes="colHeader" Text="Victim" /><TextBlock Grid.Column="1" Classes="colHeader" Text="{DynamicResource ProfileLocation}" />
+              <TextBlock Grid.Column="2" Classes="colHeader" Text="{DynamicResource Grid}" /><TextBlock Grid.Column="3" Classes="colHeader" Text="Died" HorizontalAlignment="Right" /></Grid>
             <ItemsControl ItemsSource="{Binding Summary.Recent}" AutomationProperties.Name="Recent deaths">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="core:RecentDeath">

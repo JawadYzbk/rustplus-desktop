@@ -4,7 +4,7 @@
              x:Class="RustPlusDesk.Avalonia.Features.Activity.ActivityLogView" x:DataType="vm:ActivityLogViewModel">
   <Grid RowDefinitions="Auto,*" RowSpacing="6">
     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-      <TextBox Text="{Binding Filter}" PlaceholderText="Filter logs…" AutomationProperties.Name="Filter logs">
+      <TextBox Text="{Binding Filter}" PlaceholderText="{DynamicResource UiFilterLogs}" AutomationProperties.Name="Filter logs">
         <TextBox.InnerRightContent>
           <Button Classes="icon" Width="26" Height="26" Command="{Binding ClearFilterCommand}" ToolTip.Tip="Clear filter" AutomationProperties.Name="Clear log filter"
                   IsVisible="{Binding Filter, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"><icons:Icon Symbol="Dismiss24" FontSize="14" /></Button>

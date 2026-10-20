@@ -18,7 +18,7 @@
         </StackPanel>
       </Grid>
       <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8" IsVisible="{Binding IsConnected}">
-        <StackPanel Spacing="2"><TextBlock Text="PLAYERS" Classes="section" FontSize="10" /><TextBlock Text="{Binding Population}" FontSize="16" FontWeight="SemiBold" /></StackPanel>
+        <StackPanel Spacing="2"><TextBlock Text="{DynamicResource PlayersTab}" Classes="section" FontSize="10" /><TextBlock Text="{Binding Population}" FontSize="16" FontWeight="SemiBold" /></StackPanel>
         <StackPanel Grid.Column="1" Spacing="2"><TextBlock Text="QUEUE" Classes="section" FontSize="10" /><TextBlock Text="{Binding Queue}" FontSize="16" FontWeight="SemiBold" /></StackPanel>
         <StackPanel Grid.Column="2" Spacing="2"><TextBlock Text="TIME" Classes="section" FontSize="10" /><TextBlock Text="{Binding ServerTime}" FontSize="16" FontWeight="SemiBold" /><TextBlock Text="{Binding NextPhase}" Classes="muted" FontSize="11" TextWrapping="Wrap" /></StackPanel>
       </Grid>

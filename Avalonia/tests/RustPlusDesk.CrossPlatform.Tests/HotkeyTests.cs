@@ -7,9 +7,13 @@ using Avalonia.VisualTree;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RustPlusDesk.Avalonia.Features.Devices;
 using RustPlusDesk.Avalonia.Features.Hotkeys;
+using RustPlusDesk.Avalonia.Features.Servers;
+using RustPlusDesk.Avalonia.Services;
+using RustPlusDesk.Avalonia.Shell;
 using RustPlusDesk.Core.Devices;
 using RustPlusDesk.Core.Hotkeys;
 using RustPlusDesk.Infrastructure.Hotkeys;
+using RustPlusDesk.Infrastructure.Profiles;
 
 namespace RustPlusDesk.CrossPlatform.Tests;
 
@@ -17,6 +21,11 @@ namespace RustPlusDesk.CrossPlatform.Tests;
 public sealed class HotkeyTests
 {
     private const string Server = "10.0.0.1:28082";
+
+    private sealed class NoPicker : IProfileFilePicker
+    {
+        public Task<string?> PickAsync() => throw new AssertFailedException("The file picker should not run in this test.");
+    }
 
     private sealed class FakeHotkeys(bool supported = true) : IGlobalHotkeys
     {
@@ -320,6 +329,47 @@ public sealed class HotkeyTests
             }
             finally { window.Close(); capture.Close(); }
             await Task.CompletedTask;
+            return true;
+        }, default);
+    }
+
+    /// <summary>
+    /// The devices toolbar is a row of icon buttons, and the hotkeys are one of them: the button that opened the
+    /// editor used to be a bordered pill in the middle of the row, which broke the toolbar's shape.
+    /// </summary>
+    [TestMethod]
+    public async Task TheDevicesToolbar_KeepsOneShape_AndTheHotkeysButtonIsOneOfThem()
+    {
+        await UiTestSession.Current.Dispatch(async () =>
+        {
+            var model = new ServersViewModel(new LegacyServerCatalog(), new NoPicker(), "profiles.json", new UnusedSessionFactory());
+            var window = new MainWindow { DataContext = model, Width = 1000, Height = 700 };
+            try
+            {
+                window.Show();
+                window.UpdateLayout();
+                var view = window.GetVisualDescendants().OfType<DevicesView>().Single();
+                var refresh = view.GetVisualDescendants().OfType<Button>()
+                    .Single(button => AutomationProperties.GetName(button) == "Refresh devices");
+                var toolbar = refresh.GetVisualAncestors().OfType<StackPanel>().First();
+                var buttons = toolbar.GetVisualDescendants().OfType<Button>().Where(button => button.IsEffectivelyVisible).ToList();
+                Assert.IsTrue(buttons.Count >= 2, "The devices toolbar has more than one action.");
+                foreach (var button in buttons)
+                {
+                    Assert.IsTrue(button.Classes.Contains("icon"),
+                        $"'{AutomationProperties.GetName(button)}' keeps the toolbar's icon shape.");
+                    Assert.AreEqual(32, button.Bounds.Width, 0.5, "Every action of the toolbar is the same size.");
+                    Assert.AreEqual(32, button.Bounds.Height, 0.5, "Every action of the toolbar is the same size.");
+                }
+                var hotkeys = buttons.Single(button => AutomationProperties.GetName(button) == "Device hotkeys");
+                Assert.AreEqual("Hotkeys", ToolTip.GetTip(hotkeys) as string, "The button says what it opens.");
+                using (var frame = window.CaptureRenderedFrame())
+                {
+                    Assert.IsNotNull(frame);
+                    frame.Save(Path.Combine(AppContext.BaseDirectory, "ui-devices-toolbar.png"), PngBitmapEncoderOptions.Default);
+                }
+            }
+            finally { await model.ShutdownAsync(); window.Close(); }
             return true;
         }, default);
     }

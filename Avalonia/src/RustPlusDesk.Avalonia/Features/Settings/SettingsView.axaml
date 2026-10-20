@@ -25,8 +25,8 @@
           <TextBlock Text="STARTUP" Classes="section" />
           <Grid ColumnDefinitions="*,Auto">
             <StackPanel>
-              <TextBlock Text="Auto-connect to last server on startup" FontWeight="SemiBold" />
-              <TextBlock Text="Automatically reconnects to the last server and loads the map." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+              <TextBlock Text="{DynamicResource AutoConnectLastServer}" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource AutoConnectToolTip}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
             </StackPanel>
             <ToggleSwitch Grid.Column="1" IsChecked="{Binding AutoConnect}" OnContent="" OffContent="" AutomationProperties.Name="Auto-connect to last server on startup" />
           </Grid>
@@ -44,7 +44,7 @@
       </Border>
       <Border Classes="panel" Padding="16" IsVisible="{Binding HasMap}">
         <StackPanel Spacing="12">
-          <TextBlock Text="BEHAVIOR" Classes="section" />
+          <TextBlock Text="{DynamicResource Behavior}" Classes="section" />
           <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasActivity}">
             <StackPanel>
               <TextBlock Text="Hide system console" FontWeight="SemiBold" />
@@ -55,7 +55,7 @@
           </Grid>
           <Grid ColumnDefinitions="*,Auto">
             <StackPanel>
-              <TextBlock Text="Streamer mode" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource StreamerMode}" FontWeight="SemiBold" />
               <TextBlock Text="Abbreviates Steam names and IDs to protect privacy during streams, hides server names, and hides the console and server list."
                          Classes="muted" FontSize="12" TextWrapping="Wrap" />
             </StackPanel>
@@ -75,21 +75,21 @@
       </Border>
       <Border Classes="panel" Padding="16" IsVisible="{Binding HasMap}">
         <StackPanel Spacing="12">
-          <TextBlock Text="MAP PERFORMANCE" Classes="section" />
+          <TextBlock Text="{DynamicResource Tutorials.Step.settings.map.Title}" Classes="section" />
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
             <StackPanel>
-              <TextBlock Text="Image scaling quality" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource UiImageScalingQuality}" FontWeight="SemiBold" />
               <TextBlock Text="Controls the map image scaling filter." Classes="muted" FontSize="12" TextWrapping="Wrap" />
             </StackPanel>
             <ComboBox Grid.Column="1" Width="210" SelectedIndex="{Binding Map.BitmapScalingMode, FallbackValue=0}" AutomationProperties.Name="Image scaling quality">
-              <ComboBoxItem Content="High quality (bicubic)" />
-              <ComboBoxItem Content="Balanced (linear)" />
-              <ComboBoxItem Content="Performance (nearest neighbour)" />
+              <ComboBoxItem Content="{DynamicResource UiHighQualityBicubic}" />
+              <ComboBoxItem Content="{DynamicResource UiBalancedLinear}" />
+              <ComboBoxItem Content="{DynamicResource UiPerformanceNearestNeighbor}" />
             </ComboBox>
           </Grid>
           <Grid ColumnDefinitions="*,Auto">
             <StackPanel>
-              <TextBlock Text="Enable GPU bitmap caching" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource UiEnableGPUBitmapCaching}" FontWeight="SemiBold" />
               <TextBlock Text="Caches the map scene; extremely improves panning and zooming smoothness." Classes="muted" FontSize="12" TextWrapping="Wrap" />
             </StackPanel>
             <ToggleSwitch Grid.Column="1" IsChecked="{Binding Map.UseCacheMode, FallbackValue=False}" OnContent="" OffContent=""
@@ -97,21 +97,21 @@
           </Grid>
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" IsEnabled="{Binding Map.UseCacheMode, FallbackValue=False}">
             <StackPanel>
-              <TextBlock Text="GPU rendering scale" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource UiGPURenderingScale}" FontWeight="SemiBold" />
               <TextBlock Text="Resolution scale of the cached map scene. Lower scales improve performance." Classes="muted" FontSize="12" TextWrapping="Wrap" />
             </StackPanel>
             <ComboBox Grid.Column="1" Width="210" SelectedIndex="{Binding Map.RenderScaleIndex, FallbackValue=2}" AutomationProperties.Name="GPU rendering scale">
-              <ComboBoxItem Content="50% (fastest)" />
-              <ComboBoxItem Content="75% (performance)" />
-              <ComboBoxItem Content="100% (native)" />
-              <ComboBoxItem Content="125% (sharp)" />
-              <ComboBoxItem Content="150% (high resolution)" />
-              <ComboBoxItem Content="200% (ultra high resolution)" />
+              <ComboBoxItem Content="{DynamicResource UiText50Fastest}" />
+              <ComboBoxItem Content="{DynamicResource UiText75Performance}" />
+              <ComboBoxItem Content="{DynamicResource UiText100Native}" />
+              <ComboBoxItem Content="{DynamicResource UiText125Sharp}" />
+              <ComboBoxItem Content="{DynamicResource UiText150HighResolution}" />
+              <ComboBoxItem Content="{DynamicResource UiText200UltraHighResolution}" />
             </ComboBox>
           </Grid>
           <Grid ColumnDefinitions="*,Auto">
             <StackPanel>
-              <TextBlock Text="Disable grid anti-aliasing (aliased edge mode)" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource UiDisableGridAntiAliasingAliasedEdgeMode}" FontWeight="SemiBold" />
               <TextBlock Text="Disables anti-aliasing on grid lines and markers; improves rendering performance." Classes="muted" FontSize="12" TextWrapping="Wrap" />
             </StackPanel>
             <ToggleSwitch Grid.Column="1" IsChecked="{Binding Map.UseAliasedEdgeMode, FallbackValue=False}" OnContent="" OffContent=""
@@ -121,10 +121,10 @@
       </Border>
       <Border Classes="panel" Padding="16" IsVisible="{Binding HasMap}">
         <StackPanel Spacing="12">
-          <TextBlock Text="TEAM MARKERS" Classes="section" />
+          <TextBlock Text="{DynamicResource Tutorials.Step.team.markers.Title}" Classes="section" />
           <Grid ColumnDefinitions="*,Auto">
             <StackPanel>
-              <TextBlock Text="Profile markers" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource ProfileMarkers}" FontWeight="SemiBold" />
               <TextBlock Text="Show circular team member markers with Steam avatars on the map." Classes="muted" FontSize="12" TextWrapping="Wrap" />
             </StackPanel>
             <ToggleSwitch Grid.Column="1" IsChecked="{Binding Map.ShowSteamAvatars, FallbackValue=True}" OnContent="" OffContent=""
@@ -158,7 +158,7 @@
                      AutomationProperties.Name="Custom map image URL" VerticalContentAlignment="Center" />
             <Button Grid.Column="1" Classes="primary" Content="Apply" Command="{Binding CustomMap.ApplyCommand, FallbackValue={x:Null}}"
                     AutomationProperties.Name="Apply custom map URL" />
-            <Button Grid.Column="2" Classes="subtle" Content="Clear" Command="{Binding CustomMap.ClearCommand, FallbackValue={x:Null}}"
+            <Button Grid.Column="2" Classes="subtle" Content="{DynamicResource Clear}" Command="{Binding CustomMap.ClearCommand, FallbackValue={x:Null}}"
                     AutomationProperties.Name="Clear custom map URL" />
           </Grid>
           <TextBlock Text="{Binding CustomMap.Status, FallbackValue=''}" FontSize="12" TextWrapping="Wrap"
@@ -174,12 +174,12 @@
       </StackPanel>
       <Border Classes="panel" Padding="16" IsVisible="{Binding HasChatCommands}">
         <StackPanel Spacing="8">
-          <TextBlock Text="CHAT COMMANDS" Classes="section" />
+          <TextBlock Text="{DynamicResource ChatCommands}" Classes="section" />
           <TextBlock Text="Commands in team chat are answered while the app is connected. Each server keeps its own prefix and command names."
                      Classes="muted" FontSize="12" TextWrapping="Wrap" />
           <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
             <StackPanel>
-              <TextBlock Text="Enable Chat Commands" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource EnableChatCommands}" FontWeight="SemiBold" />
               <TextBlock Text="Turn this off to stop answering every command on this server." Classes="muted" FontSize="12" TextWrapping="Wrap" />
             </StackPanel>
             <ToggleSwitch Grid.Column="1" IsChecked="{Binding ChatCommands.Enabled, FallbackValue=True}" OnContent="" OffContent=""
@@ -187,41 +187,41 @@
           </Grid>
           <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
             <StackPanel Spacing="4">
-              <TextBlock Text="Prefix:" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource Prefix}" FontWeight="SemiBold" />
               <TextBox Text="{Binding ChatCommands.Prefix, FallbackValue='!'}" MaxLength="1" Width="80" HorizontalAlignment="Left"
                        AutomationProperties.Name="Chat command prefix" />
               <TextBlock Text="One of ! . , or \" Classes="muted" FontSize="12" />
             </StackPanel>
             <StackPanel Grid.Column="1" Spacing="4">
-              <TextBlock Text="Command Delay:" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource CommandDelay}" FontWeight="SemiBold" />
               <TextBox Text="{Binding ChatCommands.ResponseDelay, FallbackValue='0.5'}" Width="80" HorizontalAlignment="Left"
                        AutomationProperties.Name="Chat command response delay" />
               <TextBlock Text="Seconds to wait before an answer is sent (0 - 5)." Classes="muted" FontSize="12" />
             </StackPanel>
           </Grid>
-          <TextBlock Text="STANDARD COMMANDS" Classes="section" Margin="0,8,0,0" />
+          <TextBlock Text="{DynamicResource StandardCommands}" Classes="section" Margin="0,8,0,0" />
           <Grid ColumnDefinitions="160,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="6" ColumnSpacing="8">
-            <TextBlock Text="Population:" VerticalAlignment="Center" />
+            <TextBlock Text="{DynamicResource Population}" VerticalAlignment="Center" />
             <TextBox Grid.Column="1" Text="{Binding ChatCommands.Pop, FallbackValue=''}" AutomationProperties.Name="Population command name" />
-            <TextBlock Grid.Row="1" Text="Time:" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="1" Text="{DynamicResource Time}" VerticalAlignment="Center" />
             <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ChatCommands.Time, FallbackValue=''}" AutomationProperties.Name="Time command name" />
-            <TextBlock Grid.Row="2" Text="Promote:" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="2" Text="{DynamicResource Promote}" VerticalAlignment="Center" />
             <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding ChatCommands.Promote, FallbackValue=''}" AutomationProperties.Name="Promote command name" />
-            <TextBlock Grid.Row="3" Text="Deep Sea:" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="3" Text="{DynamicResource DeepSeaCommand}" VerticalAlignment="Center" />
             <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ChatCommands.DeepSea, FallbackValue=''}" AutomationProperties.Name="Deep Sea command name" />
-            <TextBlock Grid.Row="4" Text="Cargo Ship:" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="4" Text="{DynamicResource CargoShipCommand}" VerticalAlignment="Center" />
             <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding ChatCommands.Cargo, FallbackValue=''}" AutomationProperties.Name="Cargo Ship command name" />
-            <TextBlock Grid.Row="5" Text="Patrol Heli:" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="5" Text="{DynamicResource PatrolHeliCommand}" VerticalAlignment="Center" />
             <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding ChatCommands.Heli, FallbackValue=''}" AutomationProperties.Name="Patrol Heli command name" />
-            <TextBlock Grid.Row="6" Text="Travelling Vendor:" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="6" Text="{DynamicResource TravellingVendorCommand}" VerticalAlignment="Center" />
             <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding ChatCommands.Vendor, FallbackValue=''}" AutomationProperties.Name="Travelling Vendor command name" />
-            <TextBlock Grid.Row="7" Text="AFK Players" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="7" Text="{DynamicResource AfkCommand}" VerticalAlignment="Center" />
             <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding ChatCommands.Afk, FallbackValue=''}" AutomationProperties.Name="AFK command name" />
-            <TextBlock Grid.Row="8" Text="List Chat Commands" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="8" Text="{DynamicResource ListCommandsCommand}" VerticalAlignment="Center" />
             <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding ChatCommands.List, FallbackValue=''}" AutomationProperties.Name="List commands command name" />
-            <TextBlock Grid.Row="9" Text="Oil Rig:" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="9" Text="{DynamicResource OilRigCommand}" VerticalAlignment="Center" />
             <TextBox Grid.Row="9" Grid.Column="1" Text="{Binding ChatCommands.OilRig, FallbackValue=''}" AutomationProperties.Name="Oil rig command name" />
-            <TextBlock Grid.Row="10" Text="Upkeep Detail:" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="10" Text="{DynamicResource UpkeepDetails}" VerticalAlignment="Center" />
             <TextBox Grid.Row="10" Grid.Column="1" Text="{Binding ChatCommands.UpkeepDetail, FallbackValue=''}" AutomationProperties.Name="Upkeep detail command name" />
             <TextBlock Grid.Row="11" Text="Base Codes:" VerticalAlignment="Center" />
             <TextBox Grid.Row="11" Grid.Column="1" Text="{Binding ChatCommands.BaseCodes, FallbackValue=''}" AutomationProperties.Name="Base codes command name" />
@@ -230,7 +230,7 @@
             <TextBlock Grid.Row="13" Text="Ask AI:" VerticalAlignment="Center" />
             <TextBox Grid.Row="13" Grid.Column="1" Text="{Binding ChatCommands.Ai, FallbackValue=''}" AutomationProperties.Name="Ask AI command name" />
           </Grid>
-          <TextBlock Text="BASE CODES" Classes="section" Margin="0,8,0,0" />
+          <TextBlock Text="{DynamicResource BaseCodesCategory}" Classes="section" Margin="0,8,0,0" />
           <TextBlock Text="Labelled door codes answered by the base-code command. Only four-digit codes are sent, and blank rows are ignored."
                      Classes="muted" FontSize="12" TextWrapping="Wrap" />
           <ItemsControl ItemsSource="{Binding ChatCommands.BaseCodeRows, FallbackValue={x:Null}}">
@@ -238,14 +238,14 @@
               <DataTemplate>
                 <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,3,0,0">
                   <TextBox Text="{Binding Code, FallbackValue=''}" Width="90" MaxLength="4"
-                           PlaceholderText="Code" AutomationProperties.Name="Base door code" />
+                           PlaceholderText="{DynamicResource BaseCodesRowLabel}" AutomationProperties.Name="Base door code" />
                   <TextBox Text="{Binding Label, FallbackValue=''}" Width="220"
                            PlaceholderText="Label (Doorcode)" AutomationProperties.Name="Base code label" />
                 </StackPanel>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <TextBlock Text="CLAN CHAT" Classes="section" Margin="0,8,0,0" />
+          <TextBlock Text="{DynamicResource ClanChatTitle}" Classes="section" Margin="0,8,0,0" />
           <TextBlock Text="A clan holds up to a hundred accounts, so commands in clan chat are off unless you turn them on and grant a role."
                      Classes="muted" FontSize="12" TextWrapping="Wrap" />
           <CheckBox IsChecked="{Binding ChatCommands.ClanCommandsEnabled, FallbackValue=False}"
@@ -281,7 +281,7 @@
       </StackPanel>
       <Border Classes="panel" Padding="16" IsVisible="{Binding HasAutomation, FallbackValue=False}">
         <StackPanel Spacing="12">
-          <TextBlock Text="AUTOMATION" Classes="section" />
+          <TextBlock Text="{DynamicResource Tutorials.Category.Automation}" Classes="section" />
           <TextBlock Text="Each server keeps its own rules. A rule reads the team and the game clock and drives one paired switch."
                      Classes="muted" FontSize="12" TextWrapping="Wrap" />
           <Grid ColumnDefinitions="*,Auto">
@@ -299,9 +299,9 @@
                   <StackPanel Spacing="8">
                     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                       <TextBox Text="{Binding Name, FallbackValue=''}" AutomationProperties.Name="Automation rule name" />
-                      <ToggleButton Grid.Column="1" IsChecked="{Binding IsEnabled, FallbackValue=False}" Content="Enabled"
+                      <ToggleButton Grid.Column="1" IsChecked="{Binding IsEnabled, FallbackValue=False}" Content="{DynamicResource CodeUiEnabled}"
                                     AutomationProperties.Name="Automation rule enabled" />
-                      <Button Grid.Column="2" Classes="subtle" Content="Remove" Command="{Binding $parent[ItemsControl].DataContext.Automation.RemoveRuleCommand}"
+                      <Button Grid.Column="2" Classes="subtle" Content="{DynamicResource SupportRemove}" Command="{Binding $parent[ItemsControl].DataContext.Automation.RemoveRuleCommand}"
                               CommandParameter="{Binding}" AutomationProperties.Name="Remove automation rule" />
                     </Grid>
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
@@ -312,14 +312,14 @@
                       </ComboBox>
                     </Grid>
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
-                      <TextBlock Text="Players" VerticalAlignment="Center" />
+                      <TextBlock Text="{DynamicResource PlayersTab}" VerticalAlignment="Center" />
                       <ComboBox Grid.Column="1" ItemsSource="{Binding PlayerMatchModes}" SelectedItem="{Binding PlayerMatchMode}"
                                 AutomationProperties.Name="Automation player match">
                         <ComboBox.ItemTemplate><DataTemplate x:DataType="devices:AutomationChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
                       </ComboBox>
                     </Grid>
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" IsVisible="{Binding IsSpecificMode}">
-                      <TextBlock Text="Steam ID" VerticalAlignment="Center" />
+                      <TextBlock Text="{DynamicResource UiSteamID}" VerticalAlignment="Center" />
                       <TextBox Grid.Column="1" Text="{Binding SpecificPlayerSteamId, FallbackValue=''}" AutomationProperties.Name="Automation player Steam ID" />
                     </Grid>
                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
@@ -332,7 +332,7 @@
                                AutomationProperties.Name="Automation distance in meters" />
                     </Grid>
                     <Grid ColumnDefinitions="Auto,*,Auto,*" ColumnSpacing="6">
-                      <TextBlock Text="From" VerticalAlignment="Center" />
+                      <TextBlock Text="{DynamicResource UiFrom}" VerticalAlignment="Center" />
                       <TextBox Grid.Column="1" Text="{Binding StartTime, FallbackValue='20:00'}" AutomationProperties.Name="Automation start time" />
                       <TextBlock Grid.Column="2" Text="to" VerticalAlignment="Center" />
                       <TextBox Grid.Column="3" Text="{Binding EndTime, FallbackValue='08:00'}" AutomationProperties.Name="Automation end time" />
@@ -346,7 +346,7 @@
                     </Grid>
                     <Grid ColumnDefinitions="Auto,*,Auto,*" ColumnSpacing="6">
                       <TextBlock Text="While matched" VerticalAlignment="Center" />
-                      <ToggleSwitch Grid.Column="1" IsChecked="{Binding MatchedState, FallbackValue=False}" OnContent="On" OffContent="Off"
+                      <ToggleSwitch Grid.Column="1" IsChecked="{Binding MatchedState, FallbackValue=False}" OnContent="{DynamicResource On}" OffContent="{DynamicResource Off}"
                                     AutomationProperties.Name="Automation matched state" />
                       <TextBlock Grid.Column="2" Text="Otherwise" VerticalAlignment="Center" />
                       <ComboBox Grid.Column="3" ItemsSource="{Binding UnmatchedChoices}" SelectedItem="{Binding UnmatchedChoice}"
@@ -393,7 +393,7 @@
       </StackPanel>
       <Border Classes="panel" Padding="16" IsVisible="{Binding HasLogicRules, FallbackValue=False}">
         <StackPanel Spacing="12">
-          <TextBlock Text="LOGIC ENGINE" Classes="section" />
+          <TextBlock Text="{DynamicResource UiLogicEngine}" Classes="section" />
           <TextBlock Text="A rule watches for a trigger, checks its condition and then runs its steps. The rules belong to
                          the selected server and are saved with it."
                      Classes="muted" FontSize="12" TextWrapping="Wrap" />
@@ -412,9 +412,9 @@
                   <StackPanel Spacing="8">
                     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                       <TextBox Text="{Binding Name, FallbackValue=''}" AutomationProperties.Name="Logic rule name" />
-                      <ToggleButton Grid.Column="1" Classes="subtle" IsChecked="{Binding IsEnabled, FallbackValue=False}" Content="Enabled"
+                      <ToggleButton Grid.Column="1" Classes="subtle" IsChecked="{Binding IsEnabled, FallbackValue=False}" Content="{DynamicResource CodeUiEnabled}"
                                     AutomationProperties.Name="Logic rule enabled" />
-                      <Button Grid.Column="2" Classes="subtle" Content="Remove" Command="{Binding RemoveCommand}"
+                      <Button Grid.Column="2" Classes="subtle" Content="{DynamicResource SupportRemove}" Command="{Binding RemoveCommand}"
                               AutomationProperties.Name="Remove logic rule" />
                     </Grid>
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
@@ -425,7 +425,7 @@
                       </ComboBox>
                     </Grid>
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
-                      <TextBlock Text="Device" VerticalAlignment="Center" />
+                      <TextBlock Text="{DynamicResource Device}" VerticalAlignment="Center" />
                       <ComboBox Grid.Column="1" ItemsSource="{Binding $parent[ItemsControl].DataContext.LogicRules.DeviceChoices}"
                                 SelectedItem="{Binding TriggerDevice}" PlaceholderText="Choose a device" AutomationProperties.Name="Logic rule trigger device">
                         <ComboBox.ItemTemplate><DataTemplate x:DataType="devices:AutomationChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
@@ -488,7 +488,7 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
           <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Classes="subtle" Content="Add rule" Command="{Binding LogicRules.AddRuleCommand, FallbackValue={x:Null}}"
+            <Button Classes="subtle" Content="{DynamicResource UiAddRule}" Command="{Binding LogicRules.AddRuleCommand, FallbackValue={x:Null}}"
                     AutomationProperties.Name="Add logic rule" />
             <Button Classes="primary" Content="{DynamicResource AppSave}" Command="{Binding LogicRules.ApplyCommand, FallbackValue={x:Null}}"
                     AutomationProperties.Name="Apply logic rules" />
@@ -506,14 +506,14 @@
       </StackPanel>
       <Border Classes="panel" Padding="16" IsVisible="{Binding HasSupport, FallbackValue=False}">
         <StackPanel Spacing="12">
-          <TextBlock Text="TICKETS" Classes="section" />
+          <TextBlock Text="{DynamicResource SupportTitle}" Classes="section" />
           <TextBlock Text="A ticket needs the signed-in cloud account. The answer arrives as a notification."
                      Classes="muted" FontSize="12" TextWrapping="Wrap" />
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
             <TextBlock Text="{Binding Support.Status, FallbackValue=''}" Classes="muted" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap" />
             <Button Grid.Column="1" Classes="subtle" Command="{Binding Support.LoadCommand, FallbackValue={x:Null}}"
                     ToolTip.Tip="Read the tickets" AutomationProperties.Name="Load the support tickets">
-              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ArrowSync24" FontSize="14" /><TextBlock Text="Refresh" /></StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ArrowSync24" FontSize="14" /><TextBlock Text="{DynamicResource Refresh}" /></StackPanel>
             </Button>
           </Grid>
           <ItemsControl ItemsSource="{Binding Support.Tickets, FallbackValue={x:Null}}">
@@ -544,10 +544,10 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <TextBlock Text="NEW TICKET" Classes="section" Margin="0,4,0,0" />
+          <TextBlock Text="{DynamicResource SupportNewTicket}" Classes="section" Margin="0,4,0,0" />
           <ComboBox ItemsSource="{Binding Support.Categories, FallbackValue={x:Null}}" SelectedItem="{Binding Support.Category}"
-                    PlaceholderText="Category" AutomationProperties.Name="Support ticket category" />
-          <TextBox Text="{Binding Support.Subject}" PlaceholderText="Subject" AutomationProperties.Name="Support ticket subject" />
+                    PlaceholderText="{DynamicResource SupportCategory}" AutomationProperties.Name="Support ticket category" />
+          <TextBox Text="{Binding Support.Subject}" PlaceholderText="{DynamicResource SupportSubject}" AutomationProperties.Name="Support ticket subject" />
           <TextBox Text="{Binding Support.Body}" PlaceholderText="What happened?" AcceptsReturn="True" Height="90"
                    AutomationProperties.Name="Support ticket message" />
           <StackPanel Orientation="Horizontal" Spacing="8">
@@ -561,26 +561,26 @@
       <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0" IsVisible="{Binding HasAi, FallbackValue=False}">
         <icons:Icon Symbol="Sparkle20" FontSize="18" Foreground="{DynamicResource Accent}" />
         <StackPanel>
-          <TextBlock Text="AI Companion" Classes="title" />
+          <TextBlock Text="{DynamicResource AiCompanionTitle}" Classes="title" />
           <TextBlock Text="Ask the companion from inside the game" Classes="muted" FontSize="12" />
         </StackPanel>
       </StackPanel>
       <Border Classes="panel" Padding="16" IsVisible="{Binding HasAi, FallbackValue=False}">
         <StackPanel Spacing="12">
-          <TextBlock Text="AI COMPANION" Classes="section" />
+          <TextBlock Text="{DynamicResource AiCompanionTitle}" Classes="section" />
           <TextBlock Text="The key is kept on this machine, in a file only your account can read, and is sent to nothing but the provider you choose."
                      Classes="muted" FontSize="12" TextWrapping="Wrap" />
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-            <TextBlock Text="Provider" VerticalAlignment="Center" />
+            <TextBlock Text="{DynamicResource AiCompanionProvider}" VerticalAlignment="Center" />
             <ComboBox Grid.Column="1" ItemsSource="{Binding Ai.Providers, FallbackValue={x:Null}}" SelectedItem="{Binding Ai.Provider, Mode=TwoWay}"
                       HorizontalAlignment="Stretch" AutomationProperties.Name="AI provider" />
           </Grid>
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-            <TextBlock Text="Model" VerticalAlignment="Center" />
+            <TextBlock Text="{DynamicResource AiCompanionModel}" VerticalAlignment="Center" />
             <TextBox Grid.Column="1" Text="{Binding Ai.Model, FallbackValue=''}" AutomationProperties.Name="AI model" />
           </Grid>
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-            <TextBlock Text="API key" VerticalAlignment="Center" />
+            <TextBlock Text="{DynamicResource AiCompanionApiKey}" VerticalAlignment="Center" />
             <TextBox Grid.Column="1" Text="{Binding Ai.ApiKey, FallbackValue=''}" PasswordChar="•" AutomationProperties.Name="AI API key" />
           </Grid>
           <StackPanel Orientation="Horizontal" Spacing="8">
@@ -599,7 +599,7 @@
       </StackPanel>
       <Border Classes="panel" Padding="16" IsVisible="{Binding HasLanguage, FallbackValue=False}">
         <StackPanel Spacing="12">
-          <TextBlock Text="LANGUAGE" Classes="section" />
+          <TextBlock Text="{DynamicResource Language}" Classes="section" />
           <TextBlock Text="The app ships 32 languages. Until one is chosen, the language of the operating system is used."
                      Classes="muted" FontSize="12" TextWrapping="Wrap" />
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
@@ -664,7 +664,7 @@
             <Button Grid.Column="1" Classes="subtle" Command="{Binding Update.CheckCommand, FallbackValue={x:Null}}"
                     IsEnabled="{Binding !Update.IsChecking, FallbackValue=True}" ToolTip.Tip="Check for a new release"
                     AutomationProperties.Name="Check for updates">
-              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ArrowSync24" FontSize="14" /><TextBlock Text="Check for updates" /></StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ArrowSync24" FontSize="14" /><TextBlock Text="{DynamicResource CheckForUpdates}" /></StackPanel>
             </Button>
           </Grid>
           <TextBlock Text="{Binding Update.Status, FallbackValue=''}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
@@ -680,22 +680,22 @@
         <icons:Icon Symbol="Alert24" FontSize="18" Foreground="{DynamicResource Accent}" />
         <StackPanel>
           <TextBlock Text="{DynamicResource AppAlerts}" Classes="title" />
-          <TextBlock Text="Notifications, sounds, and offline death" Classes="muted" FontSize="12" />
+          <TextBlock Text="{DynamicResource UiNotificationsSoundsAndOfflineDeath}" Classes="muted" FontSize="12" />
         </StackPanel>
       </StackPanel>
       <Border Classes="panel" Padding="16">
         <StackPanel Spacing="12">
-          <TextBlock Text="NOTIFICATION CENTER" Classes="section" />
+          <TextBlock Text="{DynamicResource NotificationCenterSettings}" Classes="section" />
           <Grid ColumnDefinitions="*,Auto">
             <StackPanel>
-              <TextBlock Text="Show toast notifications" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource ShowToastNotifications}" FontWeight="SemiBold" />
               <TextBlock Text="A short card in the corner for every new alarm, death or pairing." Classes="muted" FontSize="12" TextWrapping="Wrap" />
             </StackPanel>
             <ToggleSwitch Grid.Column="1" IsChecked="{Binding ToastsEnabled}" OnContent="" OffContent="" AutomationProperties.Name="Show toast notifications" />
           </Grid>
           <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="4">
             <StackPanel>
-              <TextBlock Text="Retention period" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource NotificationRetentionPeriod}" FontWeight="SemiBold" />
               <TextBlock Text="Older notifications are removed from the history." Classes="muted" FontSize="12" TextWrapping="Wrap" />
             </StackPanel>
             <TextBlock Grid.Column="1" Text="{Binding RetentionText}" FontWeight="SemiBold" VerticalAlignment="Center" />
@@ -703,8 +703,8 @@
                     AutomationProperties.Name="Notification retention in days" />
           </Grid>
           <StackPanel Spacing="6">
-            <TextBlock Text="Muted servers" FontWeight="SemiBold" />
-            <TextBlock Text="No servers muted" Classes="muted" FontSize="12" FontStyle="Italic" IsVisible="{Binding !HasMutedServers}" />
+            <TextBlock Text="{DynamicResource MutedServers}" FontWeight="SemiBold" />
+            <TextBlock Text="{DynamicResource NoServersMuted}" Classes="muted" FontSize="12" FontStyle="Italic" IsVisible="{Binding !HasMutedServers}" />
             <ItemsControl ItemsSource="{Binding MutedServers}" AutomationProperties.Name="Muted servers">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:MutedServerRow">
@@ -715,7 +715,7 @@
                     </StackPanel>
                     <Button Grid.Column="1" Classes="subtle" CommandParameter="{Binding}" AutomationProperties.Name="Unmute server"
                             Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).UnmuteCommand}">
-                      <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="AlertOn24" FontSize="14" /><TextBlock Text="Unmute" /></StackPanel>
+                      <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="AlertOn24" FontSize="14" /><TextBlock Text="{DynamicResource UnmuteServer}" /></StackPanel>
                     </Button>
                   </Grid>
                 </DataTemplate>
@@ -726,23 +726,23 @@
       </Border>
       <Border Classes="panel" Padding="16" x:Name="WebhookPanel" IsVisible="{Binding HasWebhook}">
         <StackPanel Spacing="10">
-          <TextBlock Text="DISCORD WEBHOOK (CHAT ALERTS)" Classes="section" />
+          <TextBlock Text="{DynamicResource UiDiscordWebhookChatAlerts}" Classes="section" />
           <TextBlock Text="Post this server's chat alerts to a Discord channel too. Paste the channel's webhook URL from Discord (Server Settings > Integrations > Webhooks)."
                      Classes="muted" FontSize="12" TextWrapping="Wrap" />
           <TextBlock Text="{Binding Webhook.SignInNote, FallbackValue=''}" Foreground="{DynamicResource ConnectionPending}" FontSize="12" TextWrapping="Wrap"
                      IsVisible="{Binding !Webhook.IsSignedIn, FallbackValue=False}" />
           <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
             <TextBox Text="{Binding Webhook.UrlDraft, FallbackValue=''}" PlaceholderText="https://discord.com/api/webhooks/…" AutomationProperties.Name="Discord webhook URL" />
-            <Button Grid.Column="1" Classes="primary" Content="Save" Command="{Binding Webhook.SaveUrlCommand, FallbackValue={x:Null}}" AutomationProperties.Name="Save Discord webhook" />
+            <Button Grid.Column="1" Classes="primary" Content="{DynamicResource Save}" Command="{Binding Webhook.SaveUrlCommand, FallbackValue={x:Null}}" AutomationProperties.Name="Save Discord webhook" />
             <Button Grid.Column="2" Classes="subtle" Command="{Binding Webhook.ClearUrlCommand, FallbackValue={x:Null}}" ToolTip.Tip="Remove the webhook"
                     AutomationProperties.Name="Clear Discord webhook"><icons:Icon Symbol="Delete24" FontSize="15" /></Button>
           </Grid>
           <TextBlock Text="{Binding Webhook.Status, FallbackValue=''}" Classes="muted" FontSize="12" TextWrapping="Wrap"
                      IsVisible="{Binding Webhook.Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}, FallbackValue=False}" />
-          <TextBlock Text="Optional pings" FontWeight="SemiBold" />
+          <TextBlock Text="{DynamicResource UiOptionalPings}" FontWeight="SemiBold" />
           <WrapPanel ItemSpacing="16" LineSpacing="6">
-            <CheckBox Content="@everyone" IsChecked="{Binding Webhook.MentionEveryone, FallbackValue=False}" IsEnabled="{Binding Webhook.HasProfile, FallbackValue=False}" />
-            <CheckBox Content="@here" IsChecked="{Binding Webhook.MentionHere, FallbackValue=False}" IsEnabled="{Binding Webhook.HasProfile, FallbackValue=False}" />
+            <CheckBox Content="{DynamicResource UiEveryone}" IsChecked="{Binding Webhook.MentionEveryone, FallbackValue=False}" IsEnabled="{Binding Webhook.HasProfile, FallbackValue=False}" />
+            <CheckBox Content="{DynamicResource UiHere}" IsChecked="{Binding Webhook.MentionHere, FallbackValue=False}" IsEnabled="{Binding Webhook.HasProfile, FallbackValue=False}" />
             <CheckBox Content="Text-to-speech (TTS)" IsChecked="{Binding Webhook.Tts, FallbackValue=False}" IsEnabled="{Binding Webhook.HasProfile, FallbackValue=False}" />
             <CheckBox Content="Discord only (not in-game)" IsChecked="{Binding Webhook.Exclusive, FallbackValue=False}" IsEnabled="{Binding Webhook.HasProfile, FallbackValue=False}"
                       ToolTip.Tip="Alerts go only to Discord and are not posted to the in-game team or clan chat." />
@@ -751,8 +751,8 @@
       </Border>
       <Border Classes="panel" Padding="16" x:Name="TemplatesPanel" IsVisible="{Binding HasTemplates}">
         <StackPanel Spacing="10">
-          <TextBlock Text="CUSTOMIZE CHAT ALERT TEMPLATES" Classes="section" />
-          <TextBlock Text="Here you can edit the templates for automated chat alerts. Variables (like {0}, {1}) will be automatically replaced."
+          <TextBlock Text="{DynamicResource CustomAlertsHeader}" Classes="section" />
+          <TextBlock Text="{DynamicResource CustomAlertsDesc}"
                      Classes="muted" FontSize="12" TextWrapping="Wrap" />
           <ItemsControl ItemsSource="{Binding TemplateRows}" AutomationProperties.Name="Chat alert templates">
             <ItemsControl.ItemTemplate>
@@ -763,9 +763,9 @@
                     <TextBlock Text="{Binding Description}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
                   </StackPanel>
                   <TextBox Grid.Row="1" Text="{Binding Text}" AutomationProperties.Name="{Binding Name}" />
-                  <Button Grid.Row="1" Grid.Column="1" Classes="icon" Command="{Binding SaveCommand}" ToolTip.Tip="Save" AutomationProperties.Name="Save template">
+                  <Button Grid.Row="1" Grid.Column="1" Classes="icon" Command="{Binding SaveCommand}" ToolTip.Tip="{DynamicResource Save}" AutomationProperties.Name="Save template">
                     <icons:Icon Symbol="Save24" FontSize="15" /></Button>
-                  <Button Grid.Row="1" Grid.Column="2" Classes="icon" Command="{Binding ResetCommand}" ToolTip.Tip="Reset" AutomationProperties.Name="Reset template">
+                  <Button Grid.Row="1" Grid.Column="2" Classes="icon" Command="{Binding ResetCommand}" ToolTip.Tip="{DynamicResource Reset}" AutomationProperties.Name="Reset template">
                     <icons:Icon Symbol="ArrowReset24" FontSize="15" /></Button>
                   <Grid Grid.Row="2" Grid.ColumnSpan="3" ColumnDefinitions="*,Auto">
                     <TextBlock Text="{Binding Variables}" Classes="muted" FontSize="11" TextWrapping="Wrap" />

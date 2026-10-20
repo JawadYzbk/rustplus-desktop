@@ -242,6 +242,18 @@ public sealed class DeviceProfileEditorTests
         }
         public async Task<ServerSummary> ServerAsync() => (await new LegacyServerCatalog().LoadAsync(Path))[0];
         public async Task<JsonNode> JsonAsync() => JsonNode.Parse(await File.ReadAllTextAsync(Path))!;
-        public void Dispose() => System.IO.Directory.Delete(Directory, recursive: true);
+
+        /// <summary>
+        /// Removes the folder. The app writes the profile file in the background, so the file can still be held for a
+        /// moment when the test is over; the removal waits for it rather than failing the test over it.
+        /// </summary>
+        public void Dispose()
+        {
+            for (int attempt = 0; ; attempt++)
+            {
+                try { System.IO.Directory.Delete(Directory, recursive: true); return; }
+                catch (IOException) when (attempt < 20) { Thread.Sleep(25); }
+            }
+        }
     }
 }

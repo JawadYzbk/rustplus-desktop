@@ -20,6 +20,17 @@ public sealed class LocalizationTests
     private static ResourceManager AppResources() =>
         new("RustPlusDesk.Avalonia.Properties.Resources", typeof(RustPlusDesk.Avalonia.App).Assembly);
 
+    /// <summary>The app's own source folder, when the suite runs beside it.</summary>
+    private static DirectoryInfo? AppSource()
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            var source = Path.Combine(directory.FullName, "src", "RustPlusDesk.Avalonia");
+            if (Directory.Exists(source)) return new DirectoryInfo(source);
+        }
+        return null;
+    }
+
     [TestMethod]
     public void TheAppCarriesTheReferenceCatalogue()
     {
@@ -53,39 +64,44 @@ public sealed class LocalizationTests
     [TestMethod]
     public void TheAnswersFollowTheChosenLanguage()
     {
+        var manager = Loc.Manager;
         Loc.Manager = AppResources();
+        var before = CultureInfo.CurrentUICulture;
         try
         {
-            Loc.UseCulture(new CultureInfo("en-US"));
+            Loc.UseCulture(new CultureInfo("en-US"), applyToThread: false);
             string english = ChatCommandTexts.PopResponse;
             Assert.AreEqual("{0} players currently online.{1}", english);
 
-            Loc.UseCulture(new CultureInfo("de-DE"));
+            Loc.UseCulture(new CultureInfo("de-DE"), applyToThread: false);
             string german = ChatCommandTexts.PopResponse;
             Assert.AreNotEqual(english, german, "The answer follows the language the user chose.");
             StringAssert.Contains(german, "Spieler");
         }
         finally
         {
-            Loc.UseCulture(null);
-            Loc.Manager = null;
+            // The language the suite runs in is put back, so a test that changes it cannot change the next one.
+            Loc.UseCulture(before, applyToThread: false);
+            Loc.Manager = manager;
         }
     }
 
     [TestMethod]
     public void AMissingTranslationFallsBackToTheEnglishWording()
     {
+        var manager = Loc.Manager;
         Loc.Manager = AppResources();
+        var before = CultureInfo.CurrentUICulture;
         try
         {
-            Loc.UseCulture(new CultureInfo("de-DE"));
+            Loc.UseCulture(new CultureInfo("de-DE"), applyToThread: false);
             // The oil rig answers are literals in the reference, so they are the same in every language.
             Assert.AreEqual(ChatCommandTexts.Fallbacks[nameof(ChatCommandTexts.OilRigNoAlarm)], ChatCommandTexts.OilRigNoAlarm);
         }
         finally
         {
-            Loc.UseCulture(null);
-            Loc.Manager = null;
+            Loc.UseCulture(before, applyToThread: false);
+            Loc.Manager = manager;
         }
     }
 
@@ -103,40 +119,53 @@ public sealed class LocalizationTests
     [TestMethod]
     public void TheLabelsFollowTheChosenLanguage()
     {
+        var manager = Loc.Manager;
         Loc.Manager = AppResources();
+        var before = CultureInfo.CurrentUICulture;
         try
         {
-            Loc.UseCulture(new CultureInfo("en-US"));
+            Loc.UseCulture(new CultureInfo("en-US"), applyToThread: false);
             var english = RustPlusDesk.Avalonia.Shared.AppStrings.Build();
             Assert.AreEqual("Devices", english["AppDevices"]);
 
-            Loc.UseCulture(new CultureInfo("de-DE"));
+            Loc.UseCulture(new CultureInfo("de-DE"), applyToThread: false);
             var german = RustPlusDesk.Avalonia.Shared.AppStrings.Build();
             Assert.AreNotEqual("Devices", german["AppDevices"], "The rail label follows the language the user chose.");
             Assert.IsNotNull(german["AppSettings"]);
         }
         finally
         {
-            Loc.UseCulture(null);
-            Loc.Manager = null;
+            Loc.UseCulture(before, applyToThread: false);
+            Loc.Manager = manager;
         }
     }
 
     [TestMethod]
     public void ThePickerKeepsTheChosenLanguage()
     {
-        var settings = new ShopNoticeTests.MemorySettings();
-        var model = new LanguageSettingsViewModel(settings);
-        model.Load();
-        Assert.AreEqual("", model.SelectedCode, "No language is chosen until the user picks one.");
+        var before = CultureInfo.CurrentUICulture;
+        try
+        {
+            var settings = new ShopNoticeTests.MemorySettings();
+            var model = new LanguageSettingsViewModel(settings);
+            model.Load();
+            Assert.AreEqual("", model.SelectedCode, "No language is chosen until the user picks one.");
 
-        model.SelectedCode = "de-DE";
-        Assert.AreEqual("de-DE", settings.Values[RustPlusDesk.Core.Settings.SettingKeys.SelectedLanguage]);
-        Assert.AreEqual("Deutsch", model.CurrentLanguage);
+            model.SelectedCode = "de-DE";
+            Assert.AreEqual("de-DE", settings.Values[RustPlusDesk.Core.Settings.SettingKeys.SelectedLanguage]);
+            Assert.AreEqual("Deutsch", model.CurrentLanguage);
 
-        var reloaded = new LanguageSettingsViewModel(settings);
-        reloaded.Load();
-        Assert.AreEqual("de-DE", reloaded.SelectedCode);
+            var reloaded = new LanguageSettingsViewModel(settings);
+            reloaded.Load();
+            Assert.AreEqual("de-DE", reloaded.SelectedCode);
+        }
+        finally
+        {
+            // Picking a language puts the whole app in it, so the language the suite runs in is put back: a test that
+            // changed it would change the tests that run after it.
+            Loc.UseCulture(before);
+            RustPlusDesk.Avalonia.App.RefreshStrings();
+        }
     }
 
     [TestMethod]
@@ -170,6 +199,140 @@ public sealed class LocalizationTests
             }
         }
         finally { window.Close(); }
+        return true;
+    }, default);
+
+    /// <summary>
+    /// Every label the app binds to the catalogue is really in the catalogue: a key that is not there renders as an
+    /// empty label, and a key whose value is its own name used to be dropped for exactly that reason.
+    /// </summary>
+    [TestMethod]
+    public async Task EveryBoundLabelIsInTheCatalogue() => await UiTestSession.Current.Dispatch(() =>
+    {
+        var app = global::Avalonia.Application.Current;
+        Assert.IsNotNull(app, "The app is running.");
+
+        var source = AppSource();
+        if (source is null) Assert.Inconclusive("The app's source is not beside this copy.");
+
+        var pattern = new System.Text.RegularExpressions.Regex(
+            "(?:Text|Content|Header|PlaceholderText|ToolTip\\.Tip)=\"\\{DynamicResource ([A-Za-z0-9_.]+)\\}\"");
+        var missing = new List<string>();
+        var empty = new List<string>();
+        foreach (var file in source.GetFiles("*.axaml", SearchOption.AllDirectories))
+        {
+            foreach (System.Text.RegularExpressions.Match match in pattern.Matches(File.ReadAllText(file.FullName)))
+            {
+                string key = match.Groups[1].Value;
+                if (!app.Resources.TryGetResource(key, null, out var found))
+                {
+                    missing.Add($"{file.Name}: {key}");
+                    continue;
+                }
+                if (found is not string text || string.IsNullOrWhiteSpace(text)) empty.Add($"{file.Name}: {key}");
+            }
+        }
+        Assert.AreEqual(0, missing.Count, "Every bound label is in the app's resources: " + string.Join(", ", missing));
+        Assert.AreEqual(0, empty.Count, "Every bound label has a wording: " + string.Join(", ", empty));
+        return true;
+    }, default);
+
+    /// <summary>
+    /// A view model that reads its own strings listens for the language change, and a view model that is thrown away
+    /// must not stay in that list: the app would keep it - and everything it holds - alive for nothing.
+    /// </summary>
+    [TestMethod]
+    public void AThrownAwaySubscriberIsNotKeptAlive()
+    {
+        var before = CultureInfo.CurrentUICulture;
+        try
+        {
+            Loc.UseCulture(new CultureInfo("en-US"), applyToThread: false);
+
+            var live = new Subscriber();
+            Loc.LanguageChanged += live.Changed;
+            Loc.UseCulture(new CultureInfo("de-DE"), applyToThread: false);
+            Assert.AreEqual(1, live.Calls, "A subscriber that is still there is told about the change.");
+            Loc.LanguageChanged -= live.Changed;
+
+            WeakReference? reference = SubscribeAndDrop();
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            Assert.IsNotNull(reference);
+            Assert.IsFalse(reference!.IsAlive, "A subscriber that is thrown away is not kept alive.");
+
+            Loc.UseCulture(new CultureInfo("en-US"), applyToThread: false);
+        }
+        finally
+        {
+            Loc.UseCulture(before, applyToThread: false);
+        }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static WeakReference SubscribeAndDrop()
+    {
+        var subscriber = new Subscriber();
+        var reference = new WeakReference(subscriber);
+        Loc.LanguageChanged += subscriber.Changed;
+        return reference;
+    }
+
+    private sealed class Subscriber
+    {
+        public int Calls { get; private set; }
+
+        public void Changed(object? sender, EventArgs e) => Calls++;
+    }
+
+    /// <summary>A label the app draws follows the language the user chose, not the one the machine is set to.</summary>
+    [TestMethod]
+    public async Task ADrawnLabelFollowsTheChosenLanguage() => await UiTestSession.Current.Dispatch(() =>
+    {
+        var app = global::Avalonia.Application.Current;
+        Assert.IsNotNull(app, "The app is running.");
+        var before = CultureInfo.CurrentUICulture;
+        var manager = Loc.Manager;
+        var window = new global::Avalonia.Controls.Window
+        {
+            Width = 1000,
+            Height = 700,
+            Content = new global::Avalonia.Controls.Border
+            {
+                Padding = new global::Avalonia.Thickness(16),
+                Child = new RustPlusDesk.Avalonia.Features.Notifications.NotificationsView
+                {
+                    DataContext = new RustPlusDesk.Avalonia.Features.Notifications.NotificationsViewModel(null, null, () => DateTime.Now)
+                }
+            }
+        };
+        try
+        {
+            window.Show();
+            window.UpdateLayout();
+            string? english = window.GetVisualDescendants().OfType<global::Avalonia.Controls.TextBlock>()
+                .Select(text => text.Text).FirstOrDefault(text => text == "No notifications here");
+            Assert.IsNotNull(english, "The empty state is drawn.");
+
+            var german = AppResources().GetString("NoNotificationsTitle", new CultureInfo("de-DE"));
+            Assert.IsNotNull(german);
+            Assert.AreNotEqual("No notifications here", german, "The catalogue says it in another language.");
+
+            Loc.UseCulture(new CultureInfo("de-DE"), applyToThread: false);
+            RustPlusDesk.Avalonia.App.RefreshStrings();
+            window.UpdateLayout();
+            string? drawn = window.GetVisualDescendants().OfType<global::Avalonia.Controls.TextBlock>()
+                .Select(text => text.Text).FirstOrDefault(text => text == german);
+            Assert.IsNotNull(drawn, "The empty state is drawn in the language the user chose.");
+        }
+        finally
+        {
+            Loc.UseCulture(before, applyToThread: false);
+            Loc.Manager = manager;
+            RustPlusDesk.Avalonia.App.RefreshStrings();
+            window.Close();
+        }
         return true;
     }, default);
 }

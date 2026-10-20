@@ -68,10 +68,53 @@ public static class AppStrings
         return dictionary;
     }
 
-    /// <summary>Reads the labels again, so a change of language is seen at once.</summary>
+    /// <summary>
+    /// Reads the whole catalogue again, so a change of language is seen at once. Every key in the app's resources is
+    /// put into the dictionary, so any label can be bound to the reference's own key.
+    /// </summary>
     public static void Apply(ResourceDictionary dictionary)
     {
         foreach (var (key, resource, fallback) in Labels)
-            dictionary[key] = Loc.Text(resource, fallback);
+            Put(dictionary, key, Loc.Text(resource, fallback));
+
+        if (Loc.Manager is not { } manager) return;
+        foreach (string key in CatalogueKeys(manager))
+        {
+            string? value;
+            try { value = manager.GetString(key, Loc.Culture); }
+            catch (System.Resources.MissingManifestResourceException) { continue; }
+            // A string whose own wording is its key ("Clear", "Reset", "Save") is a real string: only a missing one
+            // is left out, and the resource manager says so with null.
+            if (string.IsNullOrWhiteSpace(value)) continue;
+            Put(dictionary, key, value);
+        }
+    }
+
+    /// <summary>
+    /// Puts a string into the dictionary when it is not there yet. A string that did not change is left alone, so
+    /// reading the catalogue again does not make every view look it up again.
+    /// </summary>
+    private static void Put(ResourceDictionary dictionary, string key, string value)
+    {
+        if (dictionary.TryGetValue(key, out var current) && current is string existing && existing == value) return;
+        dictionary[key] = value;
+    }
+
+    /// <summary>
+    /// Every key the catalogue holds, read from the catalogue itself rather than from a copy of it, so a key the
+    /// reference adds is in the app without a list to keep in step. The neutral set is the one that holds them all:
+    /// a translated catalogue holds only the keys its translator has reached.
+    /// </summary>
+    private static IEnumerable<string> CatalogueKeys(System.Resources.ResourceManager manager)
+    {
+        System.Resources.ResourceSet? set;
+        try { set = manager.GetResourceSet(System.Globalization.CultureInfo.InvariantCulture, true, false); }
+        catch (System.Resources.MissingManifestResourceException) { yield break; }
+        if (set is null) yield break;
+        System.Collections.IDictionaryEnumerator keys = set.GetEnumerator();
+        while (keys.MoveNext())
+        {
+            if (keys.Key is string key && key.Length > 0) yield return key;
+        }
     }
 }

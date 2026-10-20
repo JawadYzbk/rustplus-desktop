@@ -19,7 +19,7 @@
         <TextBlock Text="{Binding MemberCountText}" Classes="muted" FontSize="12" />
       </StackPanel>
       <Button Grid.Column="1" Classes="subtle" Command="{Binding RefreshCommand}" ToolTip.Tip="Re-read the clan" AutomationProperties.Name="Refresh clan">
-        <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ArrowClockwise24" FontSize="14" /><TextBlock Text="Refresh" /></StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ArrowClockwise24" FontSize="14" /><TextBlock Text="{DynamicResource Refresh}" /></StackPanel>
       </Button>
     </Grid>
     <StackPanel Grid.Row="1" Spacing="8">
@@ -34,7 +34,7 @@
     <UniformGrid Grid.Row="2" Columns="3" Margin="0,0,-8,-8" IsVisible="{Binding HasClan}">
       <Border Classes="stat"><StackPanel Spacing="2"><StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="People24" FontSize="13" Foreground="{DynamicResource TextSubtle}" /><TextBlock Classes="statLabel" Text="MEMBERS" /></StackPanel>
         <TextBlock Classes="statValue" Text="{Binding Clan.MemberCount}" /></StackPanel></Border>
-      <Border Classes="stat"><StackPanel Spacing="2"><StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="PersonAvailable24" FontSize="13" Foreground="{DynamicResource TextSubtle}" /><TextBlock Classes="statLabel" Text="ONLINE" /></StackPanel>
+      <Border Classes="stat"><StackPanel Spacing="2"><StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="PersonAvailable24" FontSize="13" Foreground="{DynamicResource TextSubtle}" /><TextBlock Classes="statLabel" Text="{DynamicResource Online}" /></StackPanel>
         <TextBlock Classes="statValue" Text="{Binding Clan.OnlineCount}" /></StackPanel></Border>
       <Border Classes="stat"><StackPanel Spacing="2"><StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Shield24" FontSize="13" Foreground="{DynamicResource TextSubtle}" /><TextBlock Classes="statLabel" Text="ROLES" /></StackPanel>
         <TextBlock Classes="statValue" Text="{Binding Roles.Count}" /></StackPanel></Border>

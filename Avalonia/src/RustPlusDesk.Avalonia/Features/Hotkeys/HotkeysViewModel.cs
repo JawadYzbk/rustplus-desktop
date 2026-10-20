@@ -132,6 +132,8 @@ public sealed partial class HotkeysViewModel : ObservableObject
     {
         this.store = store;
         this.clock = clock ?? (() => DateTimeOffset.UtcNow);
+        // The button's wording follows the language the user chose.
+        RustPlusDesk.Core.Localization.Loc.LanguageChanged += (_, _) => OnPropertyChanged(nameof(ButtonText));
     }
 
     public HotkeyMap Map { get; private set; } = new();
@@ -139,7 +141,10 @@ public sealed partial class HotkeysViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ButtonText))]
     private bool isActive;
-    public string ButtonText => IsActive ? "Hotkeys active" : "Hotkeys";
+    /// <summary>Reference UpdateHotkeyButtonUi: the button says "Hotkeys" or "Hotkeys active", in the app's language.</summary>
+    public string ButtonText => IsActive
+        ? RustPlusDesk.Core.Localization.Loc.Text("CodeUiHotkeysActive", "Hotkeys active")
+        : RustPlusDesk.Core.Localization.Loc.Text("Hotkeys", "Hotkeys");
     public bool IsSupported => global.IsSupported;
     public string UnavailableReason => global.UnavailableReason;
     public string ServerKey { get; private set; } = HotkeyMap.DefaultServer;

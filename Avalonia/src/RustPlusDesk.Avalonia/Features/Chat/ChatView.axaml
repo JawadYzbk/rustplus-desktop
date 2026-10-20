@@ -8,8 +8,8 @@
   <Grid RowDefinitions="Auto,*,Auto,Auto" RowSpacing="6">
     <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
       <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasClan}" VerticalAlignment="Center">
-        <RadioButton Classes="chip" Content="Team" IsChecked="{Binding !IsClan}" GroupName="ChatChannel" AutomationProperties.Name="Team chat" />
-        <RadioButton Classes="chip" Content="Clan" IsChecked="{Binding IsClan}" GroupName="ChatChannel" AutomationProperties.Name="Clan chat" />
+        <RadioButton Classes="chip" Content="{DynamicResource TeamTab}" IsChecked="{Binding !IsClan}" GroupName="ChatChannel" AutomationProperties.Name="Team chat" />
+        <RadioButton Classes="chip" Content="{DynamicResource ClanTab}" IsChecked="{Binding IsClan}" GroupName="ChatChannel" AutomationProperties.Name="Clan chat" />
       </StackPanel>
       <Grid Grid.Column="1" x:Name="SearchRow" ColumnDefinitions="*,Auto" IsVisible="{Binding IsSearchOpen}">
         <TextBox x:Name="SearchBox" Text="{Binding SearchText}" PlaceholderText="Search messages or names…" AutomationProperties.Name="Search chat" />
@@ -33,10 +33,10 @@
           <icons:Icon Symbol="ChevronDown24" FontSize="14" />
           <Button.Flyout>
             <MenuFlyout Placement="BottomEdgeAlignedRight">
-              <MenuItem Header="Select all" Command="{Binding SelectAllCommand}">
+              <MenuItem Header="{DynamicResource SelectAll}" Command="{Binding SelectAllCommand}">
                 <MenuItem.Icon><icons:Icon Symbol="CheckmarkSquare24" /></MenuItem.Icon>
               </MenuItem>
-              <MenuItem Header="Deselect all" Command="{Binding DeselectAllCommand}">
+              <MenuItem Header="{DynamicResource DeselectAll}" Command="{Binding DeselectAllCommand}">
                 <MenuItem.Icon><icons:Icon Symbol="DismissSquare24" /></MenuItem.Icon>
               </MenuItem>
               <MenuItem Header="Edit templates" Command="{Binding EditTemplatesCommand}" ToolTip.Tip="Customize the chat alert texts">
@@ -45,48 +45,48 @@
               <MenuItem Header="Send alerts to" IsVisible="{Binding HasChannelChoice}" IsEnabled="{Binding ChannelChoiceEnabled}"
                         ToolTip.Tip="Which in-game chat receives the alerts. Unavailable while &quot;Discord only&quot; is on.">
                 <MenuItem.Icon><icons:Icon Symbol="Chat24" /></MenuItem.Icon>
-                <MenuItem Header="Team" ToggleType="Radio" GroupName="AlertChannel" IsChecked="{Binding UseTeamChannel, Mode=OneWay}" Command="{Binding UseTeamCommand}" />
-                <MenuItem Header="Clan" ToggleType="Radio" GroupName="AlertChannel" IsChecked="{Binding UseClanChannel, Mode=OneWay}" Command="{Binding UseClanCommand}" />
+                <MenuItem Header="{DynamicResource TeamTab}" ToggleType="Radio" GroupName="AlertChannel" IsChecked="{Binding UseTeamChannel, Mode=OneWay}" Command="{Binding UseTeamCommand}" />
+                <MenuItem Header="{DynamicResource ClanTab}" ToggleType="Radio" GroupName="AlertChannel" IsChecked="{Binding UseClanChannel, Mode=OneWay}" Command="{Binding UseClanCommand}" />
               </MenuItem>
               <Separator />
-              <MenuItem Header="Events" IsEnabled="False" />
-              <MenuItem Header="Cargo Ship" ToggleType="CheckBox" IsChecked="{Binding AnyCargo, Mode=OneWay}" IsEnabled="{Binding IsMasterOn}">
-                <MenuItem Header="Spawn" ToggleType="CheckBox" IsChecked="{Binding AnnounceCargo, Mode=OneWay}" Command="{Binding ToggleCargoCommand}" />
-                <MenuItem Header="Harbor Docking" ToggleType="CheckBox" IsChecked="{Binding AnnounceCargoDocking, Mode=OneWay}" Command="{Binding ToggleCargoDockingCommand}" />
-                <MenuItem Header="Departure (5m Warning)" ToggleType="CheckBox" IsChecked="{Binding AnnounceCargoEgress, Mode=OneWay}" Command="{Binding ToggleCargoEgressCommand}" />
+              <MenuItem Header="{DynamicResource CommandDockSectionEvents}" IsEnabled="False" />
+              <MenuItem Header="{DynamicResource CargoShip}" ToggleType="CheckBox" IsChecked="{Binding AnyCargo, Mode=OneWay}" IsEnabled="{Binding IsMasterOn}">
+                <MenuItem Header="{DynamicResource CargoSpawn}" ToggleType="CheckBox" IsChecked="{Binding AnnounceCargo, Mode=OneWay}" Command="{Binding ToggleCargoCommand}" />
+                <MenuItem Header="{DynamicResource CargoDock}" ToggleType="CheckBox" IsChecked="{Binding AnnounceCargoDocking, Mode=OneWay}" Command="{Binding ToggleCargoDockingCommand}" />
+                <MenuItem Header="{DynamicResource CargoEgress}" ToggleType="CheckBox" IsChecked="{Binding AnnounceCargoEgress, Mode=OneWay}" Command="{Binding ToggleCargoEgressCommand}" />
                 <MenuItem Header="{Binding CargoArrivalHeader}" ToggleType="CheckBox" IsChecked="{Binding AnnounceCargoArrival, Mode=OneWay}"
                           IsEnabled="{Binding CanToggleCargoArrival}" Command="{Binding ToggleCargoArrivalCommand}"
                           ToolTip.Tip="Learned from a full docking on this server: warns about 5 minutes before the cargo ship docks" />
               </MenuItem>
-              <MenuItem Header="Patrol Helicopter" ToggleType="CheckBox" IsChecked="{Binding AnnounceHeli, Mode=OneWay}"
+              <MenuItem Header="{DynamicResource Heli}" ToggleType="CheckBox" IsChecked="{Binding AnnounceHeli, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleHeliCommand}" />
-              <MenuItem Header="Chinook (CH47)" ToggleType="CheckBox" IsChecked="{Binding AnnounceChinook, Mode=OneWay}"
+              <MenuItem Header="{DynamicResource Chinook}" ToggleType="CheckBox" IsChecked="{Binding AnnounceChinook, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleChinookCommand}" />
-              <MenuItem Header="Travelling Vendor" ToggleType="CheckBox" IsChecked="{Binding AnnounceVendor, Mode=OneWay}"
+              <MenuItem Header="{DynamicResource Vendor}" ToggleType="CheckBox" IsChecked="{Binding AnnounceVendor, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleVendorCommand}" />
-              <MenuItem Header="Oil Rig Crate Status" ToggleType="CheckBox" IsChecked="{Binding AnnounceOilRig, Mode=OneWay}"
+              <MenuItem Header="{DynamicResource OilRigCrateStatus}" ToggleType="CheckBox" IsChecked="{Binding AnnounceOilRig, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleOilRigCommand}"
                         ToolTip.Tip="Announce when an Oil Rig Smart Alarm starts the 15-minute crate timer, plus its 10- and 5-minute reminders" />
-              <MenuItem Header="Deep Sea Event" ToggleType="CheckBox" IsChecked="{Binding AnnounceDeepSea, Mode=OneWay}"
+              <MenuItem Header="{DynamicResource DeepSea}" ToggleType="CheckBox" IsChecked="{Binding AnnounceDeepSea, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleDeepSeaCommand}" />
-              <MenuItem Header="Smart Alerts" ToggleType="CheckBox" IsChecked="{Binding AnnounceSmartAlerts, Mode=OneWay}"
+              <MenuItem Header="{DynamicResource SmartAlerts}" ToggleType="CheckBox" IsChecked="{Binding AnnounceSmartAlerts, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleSmartAlertsCommand}" />
-              <MenuItem Header="Custom Timer" ToggleType="CheckBox" IsChecked="{Binding AnnounceCustomTimer, Mode=OneWay}"
+              <MenuItem Header="{DynamicResource HoverCustomTimer}" ToggleType="CheckBox" IsChecked="{Binding AnnounceCustomTimer, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleCustomTimerCommand}"
                         ToolTip.Tip="Send timer alerts to chat" />
               <Separator />
-              <MenuItem Header="Players" IsEnabled="False" />
-              <MenuItem Header="Online Status" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerOnline, Mode=OneWay}"
+              <MenuItem Header="{DynamicResource PlayersTab}" IsEnabled="False" />
+              <MenuItem Header="{DynamicResource PlayerOnline}" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerOnline, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding TogglePlayerOnlineCommand}" />
-              <MenuItem Header="Offline Status" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerOffline, Mode=OneWay}"
+              <MenuItem Header="{DynamicResource PlayerOffline}" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerOffline, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding TogglePlayerOfflineCommand}" />
-              <MenuItem Header="Player AFK" ToggleType="CheckBox" IsChecked="{Binding AnyPlayerAfk, Mode=OneWay}" IsEnabled="{Binding IsMasterOn}">
-                <MenuItem Header="Enabled" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerAfk, Mode=OneWay}"
+              <MenuItem Header="{DynamicResource AlertPlayerAfkName}" ToggleType="CheckBox" IsChecked="{Binding AnyPlayerAfk, Mode=OneWay}" IsEnabled="{Binding IsMasterOn}">
+                <MenuItem Header="{DynamicResource CodeUiEnabled}" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerAfk, Mode=OneWay}"
                           Command="{Binding TogglePlayerAfkCommand}" ToolTip.Tip="Announce when a team member has not moved for the AFK threshold" />
                 <MenuItem Header="Return from AFK" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerAfkReturn, Mode=OneWay}"
                           Command="{Binding TogglePlayerAfkReturnCommand}" ToolTip.Tip="Announce when an AFK team member moves again" />
                 <Separator />
-                <MenuItem Header="AFK threshold" ItemsSource="{Binding AfkThresholds}">
+                <MenuItem Header="{DynamicResource UiTextAfkThreshold}" ItemsSource="{Binding AfkThresholds}">
                   <MenuItem.ItemContainerTheme>
                     <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="alerts:AfkThresholdMenuItem">
                       <Setter Property="Header" Value="{Binding Header}" />
@@ -97,19 +97,19 @@
                   </MenuItem.ItemContainerTheme>
                 </MenuItem>
               </MenuItem>
-              <MenuItem Header="Self Death" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerDeathSelf, Mode=OneWay}"
+              <MenuItem Header="{DynamicResource PlayerDeathSelf}" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerDeathSelf, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleDeathSelfCommand}" />
-              <MenuItem Header="Team Death" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerDeathTeam, Mode=OneWay}"
+              <MenuItem Header="{DynamicResource PlayerDeathTeam}" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerDeathTeam, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleDeathTeamCommand}" />
-              <MenuItem Header="Self Respawn" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerRespawnSelf, Mode=OneWay}"
+              <MenuItem Header="{DynamicResource PlayerRespawnSelf}" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerRespawnSelf, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleRespawnSelfCommand}" />
-              <MenuItem Header="Team Respawn" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerRespawnTeam, Mode=OneWay}"
+              <MenuItem Header="{DynamicResource PlayerRespawnTeam}" ToggleType="CheckBox" IsChecked="{Binding AnnouncePlayerRespawnTeam, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleRespawnTeamCommand}" />
               <Separator />
-              <MenuItem Header="Shops" IsEnabled="False" />
-              <MenuItem Header="New shops" ToggleType="CheckBox" IsChecked="{Binding AnnounceNewShops, Mode=OneWay}"
+              <MenuItem Header="{DynamicResource Shops}" IsEnabled="False" />
+              <MenuItem Header="{DynamicResource NewShops}" ToggleType="CheckBox" IsChecked="{Binding AnnounceNewShops, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleNewShopsCommand}" />
-              <MenuItem Header="Suspicious shops" ToggleType="CheckBox" IsChecked="{Binding AnnounceSuspiciousShops, Mode=OneWay}"
+              <MenuItem Header="{DynamicResource SuspiciousShops}" ToggleType="CheckBox" IsChecked="{Binding AnnounceSuspiciousShops, Mode=OneWay}"
                         IsEnabled="{Binding IsMasterOn}" Command="{Binding ToggleSuspiciousShopsCommand}" />
               <MenuItem Header="{Binding TradeAlertsHeader}" IsEnabled="{Binding HasTradeAlerts}" ItemsSource="{Binding TradeAlerts}">
                 <MenuItem.ItemContainerTheme>
@@ -122,7 +122,7 @@
                 </MenuItem.ItemContainerTheme>
               </MenuItem>
               <Separator IsVisible="{Binding HasWebhook}" />
-              <MenuItem Header="Discord webhook" ToggleType="CheckBox" IsChecked="{Binding AnnounceWebhook, Mode=OneWay}" IsVisible="{Binding HasWebhook}"
+              <MenuItem Header="{DynamicResource UiDiscordWebhook}" ToggleType="CheckBox" IsChecked="{Binding AnnounceWebhook, Mode=OneWay}" IsVisible="{Binding HasWebhook}"
                         IsEnabled="{Binding CanToggleWebhook}" Command="{Binding Webhook.ToggleEnabledCommand, FallbackValue={x:Null}}"
                         ToolTip.Tip="Also post chat alerts to this server's Discord webhook (needs a cloud sign-in)" />
               <MenuItem Header="Discord webhook settings…" IsVisible="{Binding HasWebhook}" Command="{Binding ConfigureWebhookCommand}">
@@ -149,13 +149,13 @@
                                   Catalog="{Binding $parent[UserControl].((vm:ChatViewModel)DataContext).Emoji}">
                 <vm:ChatMessageText.ContextMenu>
                   <ContextMenu>
-                    <MenuItem Header="Copy text" Click="CopyText"><MenuItem.Icon><icons:Icon Symbol="Copy24" /></MenuItem.Icon></MenuItem>
-                    <MenuItem Header="Copy Steam ID" Click="CopySteamId" IsVisible="{Binding HasSteamId}" />
+                    <MenuItem Header="{DynamicResource ChatCopyText}" Click="CopyText"><MenuItem.Icon><icons:Icon Symbol="Copy24" /></MenuItem.Icon></MenuItem>
+                    <MenuItem Header="{DynamicResource ProfileCopyId}" Click="CopySteamId" IsVisible="{Binding HasSteamId}" />
                     <MenuItem Header="Mention @User" Click="Mention" />
-                    <MenuItem Header="Center on map" IsVisible="{Binding HasSteamId}" CommandParameter="{Binding}"
+                    <MenuItem Header="{DynamicResource CenterOnMap}" IsVisible="{Binding HasSteamId}" CommandParameter="{Binding}"
                               Command="{Binding $parent[UserControl].((vm:ChatViewModel)DataContext).CenterOnAuthorCommand}">
                       <MenuItem.Icon><icons:Icon Symbol="Location24" /></MenuItem.Icon></MenuItem>
-                    <MenuItem Header="Open Steam profile" Click="OpenSteamProfile" IsVisible="{Binding HasSteamId}" />
+                    <MenuItem Header="{DynamicResource OpenSteamProfile}" Click="OpenSteamProfile" IsVisible="{Binding HasSteamId}" />
                   </ContextMenu>
                 </vm:ChatMessageText.ContextMenu>
               </vm:ChatMessageText>
@@ -215,7 +215,7 @@
       <TextBlock Grid.Column="2" Text="{Binding CharacterCount}" VerticalAlignment="Center" FontSize="11"
                  Classes="muted" Classes.limit="{Binding IsAtLimit}" />
       <Button Grid.Column="3" Classes="primary" Command="{Binding SendCommand}" AutomationProperties.Name="Send chat message" ToolTip.Tip="Send (Enter)">
-        <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Send24" FontSize="16" /><TextBlock Text="Send" /></StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Send24" FontSize="16" /><TextBlock Text="{DynamicResource Send}" /></StackPanel>
       </Button>
     </Grid>
   </Grid>

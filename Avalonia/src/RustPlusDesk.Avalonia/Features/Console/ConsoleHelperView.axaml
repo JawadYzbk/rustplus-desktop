@@ -4,22 +4,22 @@
              x:Class="RustPlusDesk.Avalonia.Features.Console.ConsoleHelperView" x:DataType="vm:ConsoleHelperViewModel">
   <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="10">
     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-      <TextBlock Text="Useful console commands, ready to copy into the F1 console." Classes="muted" VerticalAlignment="Center" TextWrapping="Wrap" />
-      <Button Grid.Column="1" Classes="subtle" Command="{Binding CopyAllBindsCommand}" ToolTip.Tip="Copy every bind you have set"
+      <TextBlock Text="{DynamicResource ConsoleHelperSubtitle}" Classes="muted" VerticalAlignment="Center" TextWrapping="Wrap" />
+      <Button Grid.Column="1" Classes="subtle" Command="{Binding CopyAllBindsCommand}" ToolTip.Tip="{DynamicResource ConsoleHelperCopyAllBinds}"
               AutomationProperties.Name="Copy every bind">
         <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="CopySelect24" FontSize="14" /><TextBlock Text="Copy all binds" /></StackPanel>
       </Button>
       <Button Grid.Column="2" Classes="subtle" Command="{Binding PopOutCommand}" IsVisible="{Binding CanPopOut}"
-              ToolTip.Tip="Pop out as an overlay, to sit next to the game" AutomationProperties.Name="Pop out console helper">
-        <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="WindowNew24" FontSize="14" /><TextBlock Text="Pop out" /></StackPanel>
+              ToolTip.Tip="{DynamicResource ConsoleHelperPopout}" AutomationProperties.Name="Pop out console helper">
+        <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="WindowNew24" FontSize="14" /><TextBlock Text="{DynamicResource Popout}" /></StackPanel>
       </Button>
     </Grid>
     <Grid Grid.Row="1" ColumnDefinitions="Auto,*" ColumnSpacing="10">
       <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-        <RadioButton Classes="chip" Content="Client commands" IsChecked="{Binding !IsAdminTab}" GroupName="ConsoleTab" AutomationProperties.Name="Client commands" />
-        <RadioButton Classes="chip" Content="Admin commands" IsChecked="{Binding IsAdminTab}" GroupName="ConsoleTab" AutomationProperties.Name="Admin commands" />
+        <RadioButton Classes="chip" Content="{DynamicResource ConsoleHelperClientTab}" IsChecked="{Binding !IsAdminTab}" GroupName="ConsoleTab" AutomationProperties.Name="Client commands" />
+        <RadioButton Classes="chip" Content="{DynamicResource ConsoleHelperAdminTab}" IsChecked="{Binding IsAdminTab}" GroupName="ConsoleTab" AutomationProperties.Name="Admin commands" />
       </StackPanel>
-      <TextBox Grid.Column="1" Text="{Binding SearchText}" PlaceholderText="Search commands…" AutomationProperties.Name="Search commands">
+      <TextBox Grid.Column="1" Text="{Binding SearchText}" PlaceholderText="{DynamicResource ConsoleHelperSearch}" AutomationProperties.Name="Search commands">
         <TextBox.InnerLeftContent><icons:Icon Symbol="Search24" FontSize="15" Margin="8,0,0,0" Foreground="{DynamicResource TextSubtle}" /></TextBox.InnerLeftContent>
         <TextBox.InnerRightContent>
           <Button Classes="icon" Width="26" Height="26" Command="{Binding ClearSearchCommand}" AutomationProperties.Name="Clear command search"
@@ -31,7 +31,7 @@
       <Border Classes="note" IsVisible="{Binding IsAdminTab}">
         <StackPanel Orientation="Horizontal" Spacing="8">
           <icons:Icon Symbol="ShieldKeyhole24" FontSize="16" Foreground="{DynamicResource Highlight}" VerticalAlignment="Center" />
-          <TextBlock Text="These only work if you are an owner or moderator on the server. Running them elsewhere does nothing." FontSize="12" TextWrapping="Wrap" />
+          <TextBlock Text="{DynamicResource ConsoleHelperAdminNote}" FontSize="12" TextWrapping="Wrap" />
         </StackPanel>
       </Border>
       <TextBlock Text="{Binding Notice}" Classes="muted" FontSize="12" TextWrapping="Wrap"
@@ -41,7 +41,7 @@
       <TextBlock Text="{Binding EmptyMessage}" Classes="muted" HorizontalAlignment="Center" Margin="0,24,0,0" TextWrapping="Wrap" IsVisible="{Binding HasEmptyMessage}" />
       <ScrollViewer HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Console commands">
         <StackPanel Spacing="6">
-          <TextBlock Text="MOST USEFUL" Classes="section" IsVisible="{Binding HasFeatured}" />
+          <TextBlock Text="{DynamicResource ConsoleHelperMostUseful}" Classes="section" IsVisible="{Binding HasFeatured}" />
           <ItemsControl ItemsSource="{Binding Featured}" ItemTemplate="{StaticResource CommandCard}" />
           <ItemsControl ItemsSource="{Binding Groups}">
             <ItemsControl.ItemTemplate>
@@ -76,7 +76,7 @@
                       <shared:ItemIcon ItemId="{Binding ItemId}" Width="18" Height="18" />
                       <TextBlock Text="{Binding ItemDisplay}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
-                    <TextBox Text="{Binding ItemQuery}" PlaceholderText="Search item…" AutomationProperties.Name="Search item" />
+                    <TextBox Text="{Binding ItemQuery}" PlaceholderText="{DynamicResource ConsoleHelperSearchItem}" AutomationProperties.Name="Search item" />
                     <ListBox ItemsSource="{Binding ItemMatches}" IsVisible="{Binding IsItemListOpen}" MaxHeight="160" SelectionChanged="ItemPicked"
                              AutomationProperties.Name="Item matches">
                       <ListBox.ItemTemplate>
@@ -97,19 +97,19 @@
             <Border Classes="code"><SelectableTextBlock Text="{Binding ResolvedCommand}" Classes="code" TextWrapping="Wrap" /></Border>
             <Button Grid.Column="1" Classes="icon" ToolTip.Tip="Reset values" AutomationProperties.Name="Reset command values"
                     Command="{Binding ResetParamsCommand}" IsVisible="{Binding HasChangedParams}"><icons:Icon Symbol="ArrowReset24" FontSize="15" /></Button>
-            <Button Grid.Column="2" Classes="subtle" ToolTip.Tip="Copy command" AutomationProperties.Name="Copy command" CommandParameter="{Binding}"
+            <Button Grid.Column="2" Classes="subtle" ToolTip.Tip="{DynamicResource ConsoleHelperCopy}" AutomationProperties.Name="Copy command" CommandParameter="{Binding}"
                     Command="{Binding $parent[UserControl].((vm:ConsoleHelperViewModel)DataContext).CopyCommandCommand}">
               <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Copy24" FontSize="14" /><TextBlock Text="Copy" /></StackPanel>
             </Button>
           </Grid>
           <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6" IsVisible="{Binding Bindable}">
-            <Button Classes="subtle" Click="CaptureKey" ToolTip.Tip="Click, then press the key you want to bind this to" AutomationProperties.Name="Choose key">
+            <Button Classes="subtle" Click="CaptureKey" ToolTip.Tip="{DynamicResource ConsoleHelperKeyHint}" AutomationProperties.Name="Choose key">
               <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Keyboard24" FontSize="14" /><TextBlock Text="{Binding BindKeyDisplay}" FontWeight="SemiBold" /></StackPanel>
             </Button>
             <Border Grid.Column="1" Classes="code"><SelectableTextBlock Text="{Binding BindLine}" Classes="code" TextWrapping="Wrap" /></Border>
-            <Button Grid.Column="2" Classes="subtle" ToolTip.Tip="Copy bind" AutomationProperties.Name="Copy bind" CommandParameter="{Binding}"
+            <Button Grid.Column="2" Classes="subtle" ToolTip.Tip="{DynamicResource ConsoleHelperCopyBind}" AutomationProperties.Name="Copy bind" CommandParameter="{Binding}"
                     Command="{Binding $parent[UserControl].((vm:ConsoleHelperViewModel)DataContext).CopyBindCommand}">
-              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Copy24" FontSize="14" /><TextBlock Text="Copy bind" /></StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Copy24" FontSize="14" /><TextBlock Text="{DynamicResource ConsoleHelperCopyBind}" /></StackPanel>
             </Button>
           </Grid>
         </StackPanel>

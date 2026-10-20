@@ -6,13 +6,13 @@
     <StackPanel Spacing="12">
       <StackPanel Orientation="Horizontal" Spacing="10">
         <icons:Icon Symbol="Keyboard24" FontSize="20" Foreground="{DynamicResource Accent}" />
-        <TextBlock Text="Press hotkey" Classes="title" VerticalAlignment="Center" />
+        <TextBlock Text="{DynamicResource UiPressHotkey}" Classes="title" VerticalAlignment="Center" />
       </StackPanel>
       <Border Background="{DynamicResource SurfaceHover}" CornerRadius="8" Padding="12">
-        <TextBlock x:Name="GestureText" Text="Press desired key combination…" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center"
+        <TextBlock x:Name="GestureText" Text="{DynamicResource UiPressDesiredKeyCombination}" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center"
                    TextWrapping="Wrap" AutomationProperties.Name="Captured hotkey" />
       </Border>
-      <TextBlock Text="Press ESC to cancel, Enter to save" Classes="muted" FontSize="12" HorizontalAlignment="Center" />
+      <TextBlock Text="{DynamicResource UiPressESCToCancelEnterToSave}" Classes="muted" FontSize="12" HorizontalAlignment="Center" />
     </StackPanel>
   </Border>
 </Window>

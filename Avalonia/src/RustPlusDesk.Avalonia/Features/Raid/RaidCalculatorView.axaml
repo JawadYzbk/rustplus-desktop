@@ -64,17 +64,17 @@
     <Grid ColumnDefinitions="*,Auto" Margin="2,0,2,12">
       <TextBlock Text="{Binding DataCaption}" Classes="muted" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-        <CheckBox Content="Details" IsChecked="{Binding ShowDetails}" ToolTip.Tip="Show damage, overkill and ingredient breakdowns" />
+        <CheckBox Content="{DynamicResource UiDetails}" IsChecked="{Binding ShowDetails}" ToolTip.Tip="{DynamicResource UiShowDamageOverkillAndIngredientBreakdowns}" />
         <Button Classes="subtle" Click="CopySummary" IsEnabled="{Binding HasPlan}"
-                ToolTip.Tip="Copy a Discord-ready summary" AutomationProperties.Name="Copy raid summary">
+                ToolTip.Tip="{DynamicResource UiCopyADiscordReadySummary}" AutomationProperties.Name="Copy raid summary">
           <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Copy24" /><AccessText Text="_Copy summary" /></StackPanel></Button>
         <Button Classes="subtle" Command="{Binding ClearCommand}" IsEnabled="{Binding HasPlan}" IsVisible="{Binding !IsClearConfirming}"
                 AutomationProperties.Name="Clear raid plan">
           <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Delete24" /><AccessText Text="C_lear plan" /></StackPanel></Button>
         <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsClearConfirming}">
-          <TextBlock Text="Clear every target from this raid plan?" VerticalAlignment="Center" />
-          <Button Classes="danger" Content="Clear" Command="{Binding ClearCommand}" AutomationProperties.Name="Confirm clear raid plan" />
-          <Button Classes="subtle" Content="Cancel" Command="{Binding CancelClearCommand}" AutomationProperties.Name="Cancel clear raid plan" />
+          <TextBlock Text="{DynamicResource CodeUiClearEveryTargetFromThisRaidPlan}" VerticalAlignment="Center" />
+          <Button Classes="danger" Content="{DynamicResource Clear}" Command="{Binding ClearCommand}" AutomationProperties.Name="Confirm clear raid plan" />
+          <Button Classes="subtle" Content="{DynamicResource Cancel}" Command="{Binding CancelClearCommand}" AutomationProperties.Name="Cancel clear raid plan" />
         </StackPanel>
       </StackPanel>
     </Grid>
@@ -117,7 +117,7 @@
       <!-- Catalogue -->
       <Border x:Name="CatalogPanel" Classes="raidPanel" Padding="12">
         <Grid RowDefinitions="Auto,Auto,*">
-          <TextBox Text="{Binding SearchText}" PlaceholderText="Search targets…" AutomationProperties.Name="Search raid targets" />
+          <TextBox Text="{Binding SearchText}" PlaceholderText="{DynamicResource UiSearchTargets}" AutomationProperties.Name="Search raid targets" />
           <ListBox Grid.Row="1" Classes="chips" Margin="0,10,0,8" Background="Transparent" ItemsSource="{Binding Categories}"
                    SelectedItem="{Binding SelectedCategory, Mode=TwoWay}" AutomationProperties.Name="Target category"
                    ScrollViewer.HorizontalScrollBarVisibility="Disabled">
@@ -144,8 +144,8 @@
               </ItemsControl>
             </ScrollViewer>
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" IsVisible="{Binding IsCatalogueEmpty}">
-              <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold" Text="No matching targets" />
-              <TextBlock HorizontalAlignment="Center" Classes="muted" Text="Try another search or category." />
+              <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold" Text="{DynamicResource UiNoMatchingTargets}" />
+              <TextBlock HorizontalAlignment="Center" Classes="muted" Text="{DynamicResource UiTryAnotherSearchOrCategory}" />
             </StackPanel>
           </Grid>
         </Grid>
@@ -157,14 +157,14 @@
           <DockPanel Margin="2,0,2,10">
             <WrapPanel DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center">
               <ToggleButton x:Name="SmartMixButton" Margin="8,2,0,2" Content="{Binding SmartMixCaption}" IsChecked="{Binding IsSmartMixOpen, Mode=TwoWay}"
-                            ToolTip.Tip="Select multiple raid items for the smart combination search" AutomationProperties.Name="Select smart mix raid items" />
+                            ToolTip.Tip="{DynamicResource UiSelectMultipleRaidItemsForTheSmartCombinationSearch}" AutomationProperties.Name="Select smart mix raid items" />
               <ComboBox Width="190" Margin="8,2,0,2" ItemsSource="{Binding ComparisonModes}" SelectedItem="{Binding SelectedComparison, Mode=TwoWay}"
                         AutomationProperties.Name="Method comparison mode">
                 <ComboBox.ItemTemplate><DataTemplate x:DataType="vm:RaidComparisonChoice"><TextBlock Text="{Binding DisplayName}" /></DataTemplate></ComboBox.ItemTemplate>
               </ComboBox>
             </WrapPanel>
             <StackPanel VerticalAlignment="Center">
-              <TextBlock FontSize="15" FontWeight="SemiBold" Text="Raid plan" TextTrimming="CharacterEllipsis" />
+              <TextBlock FontSize="15" FontWeight="SemiBold" Text="{DynamicResource UiRaidPlan}" TextTrimming="CharacterEllipsis" />
               <TextBlock FontSize="11" Classes="muted" Text="{Binding PlanCountCaption}" TextTrimming="CharacterEllipsis" />
             </StackPanel>
           </DockPanel>
@@ -190,8 +190,8 @@
           </Popup>
           <Grid Grid.Row="1">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsPlanEmpty}">
-              <TextBlock HorizontalAlignment="Center" FontSize="14" FontWeight="SemiBold" Text="No targets selected" />
-              <TextBlock HorizontalAlignment="Center" Classes="muted" Text="Choose a target from the catalogue." />
+              <TextBlock HorizontalAlignment="Center" FontSize="14" FontWeight="SemiBold" Text="{DynamicResource UiNoTargetsSelected}" />
+              <TextBlock HorizontalAlignment="Center" Classes="muted" Text="{DynamicResource UiChooseATargetFromTheCatalogue}" />
             </StackPanel>
             <ScrollViewer HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding HasPlan}">
               <ItemsControl ItemsSource="{Binding PlanItems}">
@@ -207,14 +207,14 @@
                             <TextBlock FontSize="11" Classes="muted" Text="{Binding Subtitle}" TextTrimming="CharacterEllipsis" />
                           </StackPanel>
                           <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
-                            <Button Classes="iconButton" Content="−" Command="{Binding DecrementCommand}" ToolTip.Tip="Decrease quantity" AutomationProperties.Name="Decrease target quantity" />
+                            <Button Classes="iconButton" Content="−" Command="{Binding DecrementCommand}" ToolTip.Tip="{DynamicResource UiDecreaseQuantity}" AutomationProperties.Name="Decrease target quantity" />
                             <NumericUpDown Value="{Binding Quantity, Mode=TwoWay}" Minimum="1" Maximum="9999" Increment="1" FormatString="0" ShowButtonSpinner="False"
                                            Width="52" MinHeight="30" Height="30" Padding="2" HorizontalContentAlignment="Center" AutomationProperties.Name="Target quantity" />
-                            <Button Classes="iconButton" Content="+" Command="{Binding IncrementCommand}" ToolTip.Tip="Increase quantity" AutomationProperties.Name="Increase target quantity" />
+                            <Button Classes="iconButton" Content="+" Command="{Binding IncrementCommand}" ToolTip.Tip="{DynamicResource UiIncreaseQuantity}" AutomationProperties.Name="Increase target quantity" />
                             <Button Classes="iconButton" Margin="4,0,0,0" Content="⧉" Command="{Binding Owner.DuplicateCommand}" CommandParameter="{Binding}"
-                                    ToolTip.Tip="Duplicate target" AutomationProperties.Name="Duplicate target" />
+                                    ToolTip.Tip="{DynamicResource UiDuplicateTarget}" AutomationProperties.Name="Duplicate target" />
                             <Button Classes="iconButton" Content="✕" Command="{Binding Owner.RemoveCommand}" CommandParameter="{Binding}"
-                                    ToolTip.Tip="Remove target" AutomationProperties.Name="Remove target" />
+                                    ToolTip.Tip="{DynamicResource UiRemoveTarget}" AutomationProperties.Name="Remove target" />
                           </StackPanel>
                         </Grid>
                         <Grid Grid.Row="1" Margin="0,10,0,0" ColumnDefinitions="*,Auto">
@@ -275,16 +275,16 @@
       <!-- Shopping list -->
       <Border x:Name="ShoppingPanel" Grid.Column="4" Classes="raidPanel" Padding="14">
         <Grid RowDefinitions="Auto,Auto,*,Auto">
-          <TextBlock FontSize="15" FontWeight="SemiBold" Text="Raid summary" />
-          <TextBlock Grid.Row="1" Margin="0,4,0,10" FontSize="11" Classes="muted" Text="Raid items and raw crafting ingredients" TextWrapping="Wrap" />
+          <TextBlock FontSize="15" FontWeight="SemiBold" Text="{DynamicResource UiRaidSummary}" />
+          <TextBlock Grid.Row="1" Margin="0,4,0,10" FontSize="11" Classes="muted" Text="{DynamicResource UiRaidItemsAndRawCraftingIngredients}" TextWrapping="Wrap" />
           <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
             <StackPanel>
               <StackPanel Margin="0,28,0,0" HorizontalAlignment="Center" IsVisible="{Binding IsPlanEmpty}">
-                <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold" Text="Nothing to total yet" />
-                <TextBlock HorizontalAlignment="Center" Classes="muted" Text="Add a target to see raid costs." />
+                <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold" Text="{DynamicResource UiNothingToTotalYet}" />
+                <TextBlock HorizontalAlignment="Center" Classes="muted" Text="{DynamicResource UiAddATargetToSeeRaidCosts}" />
               </StackPanel>
               <StackPanel IsVisible="{Binding HasPlan}">
-                <TextBlock Margin="0,0,0,8" Classes="caption" Text="BOOM REQUIRED" />
+                <TextBlock Margin="0,0,0,8" Classes="caption" Text="{DynamicResource UiBOOMREQUIRED}" />
                 <ItemsControl ItemsSource="{Binding BoomTotals}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="core:RaidItemTotal">
@@ -297,7 +297,7 @@
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
                 <Border Height="1" Margin="0,6,0,10" Background="{DynamicResource CardBorder}" />
-                <TextBlock Margin="0,0,0,8" Classes="caption" Text="RAW RESOURCES" />
+                <TextBlock Margin="0,0,0,8" Classes="caption" Text="{DynamicResource UiRAWRESOURCES}" />
                 <ItemsControl ItemsSource="{Binding ResourceTotals}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="core:RaidResourceTotal">
@@ -315,10 +315,10 @@
           <StackPanel Grid.Row="3">
             <Border Margin="0,8,0,0" Padding="8" Background="{DynamicResource RaidSulfurSoft}" CornerRadius="6" IsVisible="{Binding HasUnavailableCosts}">
               <TextBlock FontSize="11" Foreground="{DynamicResource RaidWarning}" TextWrapping="Wrap"
-                         Text="Some selected methods have no crafting cost in the dataset; their resources are excluded." />
+                         Text="{DynamicResource UiSomeSelectedMethodsHaveNoCraftingCostInTheDatasetTheirReso6911DDF87D}" />
             </Border>
             <TextBlock Margin="0,8,0,0" FontSize="11" Classes="muted" TextWrapping="Wrap"
-                       Text="Gunpowder, explosives, timing, and cooked/ore conversions are shown only when supplied by the dataset. Current data is already expanded to raw ingredients." />
+                       Text="{DynamicResource UiGunpowderExplosivesTimingAndCookedOreConversionsAreShownOnF8080FA30D}" />
             <TextBlock Margin="0,8,0,0" FontSize="11" Foreground="{DynamicResource RaidWarning}" Text="{Binding StatusMessage}" TextWrapping="Wrap"
                        AutomationProperties.LiveSetting="Polite" />
           </StackPanel>
