@@ -265,7 +265,7 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
           <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
-            <Button Classes="primary" Content="Apply" Command="{Binding ChatCommands.ApplyCommand, FallbackValue={x:Null}}"
+            <Button Classes="primary" Content="{DynamicResource AppSave}" Command="{Binding ChatCommands.ApplyCommand, FallbackValue={x:Null}}"
                     AutomationProperties.Name="Apply chat commands" />
             <TextBlock Text="{Binding ChatCommands.Status, FallbackValue=''}" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"
                        Classes="muted" Classes.error="{Binding ChatCommands.IsError, FallbackValue=False}" />
@@ -375,9 +375,9 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
           <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
-            <Button Classes="subtle" Content="Add rule" Command="{Binding Automation.AddRuleCommand, FallbackValue={x:Null}}"
+            <Button Classes="subtle" Content="{DynamicResource AppAddRule}" Command="{Binding Automation.AddRuleCommand, FallbackValue={x:Null}}"
                     AutomationProperties.Name="Add automation rule" />
-            <Button Classes="primary" Content="Apply" Command="{Binding Automation.ApplyCommand, FallbackValue={x:Null}}"
+            <Button Classes="primary" Content="{DynamicResource AppSave}" Command="{Binding Automation.ApplyCommand, FallbackValue={x:Null}}"
                     AutomationProperties.Name="Apply device automation" />
             <TextBlock Text="{Binding Automation.Status, FallbackValue=''}" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"
                        Classes="muted" Classes.error="{Binding Automation.IsError, FallbackValue=False}" />
@@ -490,7 +490,7 @@
           <StackPanel Orientation="Horizontal" Spacing="8">
             <Button Classes="subtle" Content="Add rule" Command="{Binding LogicRules.AddRuleCommand, FallbackValue={x:Null}}"
                     AutomationProperties.Name="Add logic rule" />
-            <Button Classes="primary" Content="Apply" Command="{Binding LogicRules.ApplyCommand, FallbackValue={x:Null}}"
+            <Button Classes="primary" Content="{DynamicResource AppSave}" Command="{Binding LogicRules.ApplyCommand, FallbackValue={x:Null}}"
                     AutomationProperties.Name="Apply logic rules" />
             <TextBlock Text="{Binding LogicRules.Status, FallbackValue=''}" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"
                        Classes="muted" Classes.error="{Binding LogicRules.IsError, FallbackValue=False}" />
@@ -551,9 +551,9 @@
           <TextBox Text="{Binding Support.Body}" PlaceholderText="What happened?" AcceptsReturn="True" Height="90"
                    AutomationProperties.Name="Support ticket message" />
           <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Classes="primary" Content="Send ticket" Command="{Binding Support.SendCommand, FallbackValue={x:Null}}"
+            <Button Classes="primary" Content="{DynamicResource AppSend}" Command="{Binding Support.SendCommand, FallbackValue={x:Null}}"
                     AutomationProperties.Name="Send the support ticket" />
-            <Button Classes="subtle" Content="Reply" Command="{Binding Support.ReplyCommand, FallbackValue={x:Null}}"
+            <Button Classes="subtle" Content="{DynamicResource AppReply}" Command="{Binding Support.ReplyCommand, FallbackValue={x:Null}}"
                     AutomationProperties.Name="Reply to the support ticket" />
           </StackPanel>
         </StackPanel>

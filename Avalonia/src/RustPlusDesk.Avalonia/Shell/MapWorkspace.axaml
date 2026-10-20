@@ -64,15 +64,15 @@
             </ToggleButton>
             <ToggleButton Classes="chip" IsChecked="{Binding Connection.Map.ShowDeathHeatmap}" IsEnabled="{Binding Connection.Map.HasMap}" IsVisible="{Binding HasDeathStats}"
                           ToolTip.Tip="Show a heatmap of the deaths logged on this server" AutomationProperties.Name="Deaths">
-              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="HeartBroken24" FontSize="16" /><TextBlock Text="Deaths" /></StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="HeartBroken24" FontSize="16" /><TextBlock Text="{DynamicResource AppDeaths}" /></StackPanel>
             </ToggleButton>
             <ToggleButton Classes="chip" IsChecked="{Binding Connection.Map.AbbreviateNames}"
                           ToolTip.Tip="Streamer mode: abbreviate player names and Steam IDs and hide server names" AutomationProperties.Name="Streamer mode">
-              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Incognito24" FontSize="16" /><TextBlock Text="Streamer" /></StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Incognito24" FontSize="16" /><TextBlock Text="{DynamicResource AppStreamerMode}" /></StackPanel>
             </ToggleButton>
             <ToggleButton Classes="chip" IsChecked="{Binding Shops.IsOpen}" IsEnabled="{Binding Connection.Map.HasMap}"
                           ToolTip.Tip="Search vending machine offers" AutomationProperties.Name="Shop search">
-              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="BuildingShop24" FontSize="16" /><TextBlock Text="Shop search" /></StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="BuildingShop24" FontSize="16" /><TextBlock Text="{DynamicResource AppShopSearch}" /></StackPanel>
             </ToggleButton>
             <Button x:Name="TimersButton" Classes="subtle" ToolTip.Tip="Custom timers" AutomationProperties.Name="Custom timers">
               <StackPanel Orientation="Horizontal" Spacing="6">
@@ -83,7 +83,7 @@
               <Button.Flyout>
                 <Flyout Placement="BottomEdgeAlignedLeft">
                   <StackPanel Width="340" Spacing="8" Margin="4">
-                    <TextBlock Text="Active timers" FontWeight="SemiBold" />
+                    <TextBlock Text="{DynamicResource AppActiveTimers}" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding Timers.CountText}" Classes="muted" FontSize="12" />
                     <ItemsControl ItemsSource="{Binding Timers.Timers}">
                       <ItemsControl.ItemTemplate>

@@ -40,7 +40,24 @@ public static class AppStrings
         ("AppCloud", "CloudAccount", "Cloud"),
         ("AppSupport", "Support", "Support"),
         ("AppCrosshair", "Crosshair", "Crosshair"),
-        ("AppUpdates", "Updates", "Updates")
+        ("AppUpdates", "Updates", "Updates"),
+        ("AppClose", "GenericClose", "Close"),
+        ("AppCancel", "Cancel", "Cancel"),
+        ("AppSave", "Save", "Save"),
+        ("AppDelete", "DeleteAction", "Delete"),
+        ("AppRefresh", "LfgFilterRefresh", "Refresh"),
+        ("AppClear", "ConsoleHelperClearKey", "Clear"),
+        ("AppRemove", "SupportRemove", "Remove"),
+        ("AppSend", "Send", "Send"),
+        ("AppReply", "ChatReply", "Reply"),
+        ("AppAddRule", "UiAddRule", "Add rule"),
+        ("AppAddTimer", "AddTimer", "Add timer"),
+        ("AppActiveTimers", "ActiveTimersCategory", "Active timers"),
+        ("AppShopSearch", "ShopSearchTitle", "Shop search"),
+        ("AppStreamerMode", "StreamerMode", "Streamer mode"),
+        ("AppDeaths", "NotificationsDeaths", "Deaths"),
+        ("AppCheckUpdates", "CheckForUpdates", "Check for updates"),
+        ("AppUndo", "Undo", "Undo")
     ];
 
     /// <summary>Builds the dictionary the views bind to.</summary>
