@@ -350,7 +350,50 @@ public sealed class DeviceAutomationTests
         public Task<IServerSession> ConnectAsync(string path, string key, CancellationToken ct) => Task.FromResult(session);
     }
 
-    // ---- the settings card on screen ----------------------------------------------------------------
+    // ---- the captured anchor position ------------------------------------------------------------
+
+    [TestMethod]
+    public async Task TheCapturedPosition_IsWrittenOnTheDeviceRow()
+    {
+        using var fixture = new DeviceProfileEditorTests.Fixture();
+        var server = await fixture.ServerAsync();
+        var store = new LegacyDeviceAutomationStore();
+        await store.CaptureLocationAsync(fixture.Path, server.ProfileKey, 7, 1500.5, -250.25, 76561198000000001, default);
+
+        var json = await fixture.JsonAsync();
+        var device = json[0]!.AsObject()["Devices"]![0]!["Children"]![0]!.AsObject();
+        Assert.AreEqual(1500.5, device["PairedX"]!.GetValue<double>());
+        Assert.AreEqual(-250.25, device["PairedY"]!.GetValue<double>());
+        Assert.AreEqual(76561198000000001UL, device["PairedBySteamId"]!.GetValue<ulong>());
+        Assert.IsNotNull(device["PairedLocationCapturedAt"]);
+    }
+
+    [TestMethod]
+    public async Task TheCard_CapturesThePositionFromATeammate()
+    {
+        using var fixture = new DeviceProfileEditorTests.Fixture();
+        var server = await fixture.ServerAsync();
+        var store = new LegacyDeviceAutomationStore();
+        var card = new DeviceAutomationSettingsViewModel(store, () => (fixture.Path, server),
+            devices: () => [new PairedDevice(7, "Lamp", DeviceKind.Switch)],
+            teammates: () => [new AutomationChoice("Alice (76561198000000001)", "76561198000000001")],
+            captureLocation: async (entityId, steamId) =>
+            {
+                await store.CaptureLocationAsync(fixture.Path, server.ProfileKey, entityId, 1200, 800, steamId, default);
+                return (1200d, 800d);
+            });
+
+        await card.LoadAsync();
+        Assert.AreEqual(1, card.Anchors.Count);
+        Assert.AreEqual("Not captured", card.Anchors[0].Position);
+
+        card.Anchors[0].Teammate = card.Teammates[0];
+        await card.CapturePositionCommand.ExecuteAsync(card.Anchors[0]);
+
+        Assert.AreEqual("1200, 800", card.Anchors[0].Position);
+        var device = (await fixture.JsonAsync())[0]!.AsObject()["Devices"]![0]!["Children"]![0]!.AsObject();
+        Assert.AreEqual(1200, device["PairedX"]!.GetValue<double>());
+    }
 
     [TestMethod]
     public async Task TheAutomationCard_RendersWithItsRuleEditor() => await UiTestSession.Current.Dispatch(async () =>

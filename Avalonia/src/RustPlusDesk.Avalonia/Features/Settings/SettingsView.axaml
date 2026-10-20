@@ -355,7 +355,22 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <StackPanel Orientation="Horizontal" Spacing="8">
+          <ItemsControl ItemsSource="{Binding Automation.Anchors, FallbackValue={x:Null}}" AutomationProperties.Name="Automation anchor positions">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="devices:AutomationAnchorRow">
+                <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="6" Margin="0,2,0,0">
+                  <TextBlock Text="{Binding Name}" VerticalAlignment="Center" MinWidth="140" />
+                  <TextBlock Grid.Column="1" Text="{Binding Position}" Classes="muted" VerticalAlignment="Center" MinWidth="110" />
+                  <ComboBox Grid.Column="2" ItemsSource="{Binding $parent[ItemsControl].DataContext.Automation.Teammates}"
+                            SelectedItem="{Binding Teammate}" PlaceholderText="Choose a teammate" MinWidth="180"
+                            AutomationProperties.Name="Automation anchor teammate" />
+                  <Button Grid.Column="3" Classes="subtle" Content="Capture" Command="{Binding CaptureNowCommand}"
+                          ToolTip.Tip="Take the device's position from that teammate" AutomationProperties.Name="Capture device position" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
             <Button Classes="subtle" Content="Add rule" Command="{Binding Automation.AddRuleCommand, FallbackValue={x:Null}}"
                     AutomationProperties.Name="Add automation rule" />
             <Button Classes="primary" Content="Apply" Command="{Binding Automation.ApplyCommand, FallbackValue={x:Null}}"

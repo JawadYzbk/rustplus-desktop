@@ -675,8 +675,9 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             Automation = automationStore is null ? null : new(automationStore,
                 () => SelectedServer is { } server ? (SourcePath, server) : null,
                 () => SelectedServer?.Devices ?? [],
-                settings => automation = settings),
-            LogicRules = LogicRules
+                settings => automation = settings,
+                () => AutomationTeammates(),
+                CaptureDeviceLocationAsync)
         };
         _ = model.CustomMap?.LoadAsync();
         _ = model.ChatCommands?.LoadAsync();
@@ -747,6 +748,44 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     /// <summary>Reference TabClan: the clan of the connected player, with its roles and members.</summary>
     public Clans.ClanViewModel Clan => Connection.Clan;
 
+    /// <summary>
+    /// Reference CapturePairedDeviceLocationAsync: the teammates whose live position can be taken. Only a teammate
+    /// who is online has a position to give.
+    /// </summary>
+    private IReadOnlyList<RustPlusDesk.Avalonia.Features.Devices.AutomationChoice> AutomationTeammates()
+    {
+        var choices = new List<RustPlusDesk.Avalonia.Features.Devices.AutomationChoice>();
+        foreach (var row in Connection.Team.Members)
+        {
+            if (!row.IsOnline) continue;
+            choices.Add(new RustPlusDesk.Avalonia.Features.Devices.AutomationChoice(
+                $"{row.Name} ({row.Member.SteamId})", row.Member.SteamId));
+        }
+        return choices;
+    }
+
+    /// <summary>
+    /// Writes the position a teammate was seen at onto a device row, so a proximity rule has an anchor to measure
+    /// from (reference CapturePairedDeviceLocationAsync).
+    /// </summary>
+    private async Task<(double X, double Y)?> CaptureDeviceLocationAsync(uint entityId, ulong steamId)
+    {
+        if (SelectedServer is not { } server || automationStore is null) return null;
+        var member = Connection.Team.Members.FirstOrDefault(row => row.Member.SteamId == steamId.ToString(
+            System.Globalization.CultureInfo.InvariantCulture));
+        if (member is null || member.Member.X is not double x || member.Member.Y is not double y) return null;
+        try
+        {
+            await automationStore.CaptureLocationAsync(SourcePath, server.ProfileKey, entityId, x, y, steamId, CancellationToken.None);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ProfileChangedException
+            or System.Text.Json.JsonException)
+        {
+            return null;
+        }
+        return (x, y);
+    }
+
     /// <summary>Opens the clan workspace.</summary>
     [RelayCommand]
     private void OpenClan() => WorkspaceIndex = 7;
@@ -799,8 +838,16 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             await Connection.Devices.RefreshCommand.ExecuteAsync(null);
         }, async (step, ct) =>
         {
-            // A rule that starts a countdown writes it to the profile, exactly as the reference does.
-            if (step.OilRigName is not null) return false;
+            // Reference ExecuteStartTimerStepAsync: picking an oil rig hands the countdown to the rig timer, which
+            // already owns the crate marker and the reminder schedule; anything else becomes an ordinary countdown.
+            if (step.OilRigName is { } rig)
+            {
+                bool started = OilRigTimers.Trigger(rig, TimeSpan.FromMinutes(step.EffectiveTimerMinutes), DateTime.UtcNow);
+                Activity.Append(started
+                    ? $"[LogicEngine] Started {step.EffectiveTimerMinutes} min hack timer for {rig}."
+                    : $"[LogicEngine] {rig} already has a running timer - left it alone.");
+                return started;
+            }
             string name = string.IsNullOrWhiteSpace(step.TimerName) ? "Timer" : step.TimerName.Trim();
             var timer = new RustPlusDesk.Core.Chat.ChatCustomTimer(Guid.NewGuid().ToString(), name,
                 RustPlusDesk.Core.Chat.ChatCustomTimer.CommandFor(name), DateTime.UtcNow.AddMinutes(step.EffectiveTimerMinutes),

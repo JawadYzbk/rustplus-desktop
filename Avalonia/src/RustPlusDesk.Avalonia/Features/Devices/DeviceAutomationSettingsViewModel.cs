@@ -14,6 +14,30 @@ public sealed record AutomationChoice(string Label, string Tag)
 }
 
 /// <summary>
+/// One paired device with the position a proximity rule anchors to (reference CapturePairedDeviceLocationAsync).
+/// </summary>
+public sealed partial class AutomationAnchorRow : ObservableObject
+{
+    public uint EntityId { get; init; }
+    public string Name { get; init; } = "";
+    public double? X { get; set; }
+    public double? Y { get; set; }
+    public ulong? BySteamId { get; set; }
+
+    /// <summary>Where the device was seen, or that it was never seen.</summary>
+    public string Position => X is { } x && Y is { } y ? $"{x:0}, {y:0}" : "Not captured";
+
+    /// <summary>The teammate whose position is taken.</summary>
+    [ObservableProperty] private AutomationChoice? teammate;
+
+    /// <summary>The panel asks the shell to write the position.</summary>
+    public Action<AutomationAnchorRow>? Capture { get; set; }
+
+    [RelayCommand]
+    private void CaptureNow() => Capture?.Invoke(this);
+}
+
+/// <summary>
 /// Reference DeviceAutomationRule: one rule that puts a paired switch into a state when its condition holds.
 /// </summary>
 public sealed partial class AutomationRuleViewModel : ObservableObject
@@ -111,7 +135,8 @@ public sealed partial class AutomationRuleViewModel : ObservableObject
 /// </summary>
 public sealed partial class DeviceAutomationSettingsViewModel(IDeviceAutomationStore store,
     Func<(string Path, ServerSummary Server)?> selected, Func<IReadOnlyList<PairedDevice>>? devices = null,
-    Action<DeviceAutomationSettings>? applied = null) : ObservableObject
+    Action<DeviceAutomationSettings>? applied = null,     Func<IReadOnlyList<AutomationChoice>>? teammates = null,
+    Func<uint, ulong, Task<(double X, double Y)?>>? captureLocation = null) : ObservableObject
 {
     public const string NoServerStatus = "Select a server to configure its device automation.";
     public const string SavedStatus = "Device automation saved.";
@@ -127,11 +152,19 @@ public sealed partial class DeviceAutomationSettingsViewModel(IDeviceAutomationS
     /// <summary>The paired devices the rules can point at.</summary>
     public IReadOnlyList<AutomationChoice> DeviceChoices { get; private set; } = [];
 
+    /// <summary>The paired devices with the position a proximity rule anchors to.</summary>
+    public ObservableCollection<AutomationAnchorRow> Anchors { get; } = [];
+
+    /// <summary>The teammates whose position can be taken.</summary>
+    public IReadOnlyList<AutomationChoice> Teammates { get; private set; } = [];
+
     /// <summary>Reference LoadAsync: the selected profile's rules.</summary>
     public async Task LoadAsync(CancellationToken ct = default)
     {
         IsError = false;
         DeviceChoices = Choices();
+        Teammates = teammates?.Invoke() ?? [];
+        RefreshAnchors();
         if (selected() is not { } target)
         {
             Enabled = false;
@@ -161,6 +194,52 @@ public sealed partial class DeviceAutomationSettingsViewModel(IDeviceAutomationS
         Rules.Add(new AutomationRuleViewModel());
         Status = "Add the rule's condition and target, then apply.";
     }
+
+    /// <summary>
+    /// Reference CapturePairedDeviceLocationAsync: the device's position is taken from a teammate who is online, and
+    /// written on the device's own row so a proximity rule has an anchor to measure from.
+    /// </summary>
+    [RelayCommand]
+    private async Task CapturePositionAsync(AutomationAnchorRow? row)
+    {
+        if (row is null || captureLocation is not { } capture) return;
+        if (row.Teammate is not { } teammate || !ulong.TryParse(teammate.Tag, out ulong steamId) || steamId == 0)
+        {
+            Status = "Choose the teammate whose position is taken.";
+            return;
+        }
+        var position = await capture(row.EntityId, steamId);
+        Status = position is { } taken ? $"Captured the position of {row.Name}." : "The position could not be captured.";
+        if (position is { } written)
+        {
+            // The position is written on the device's own row; the list shows it right away.
+            capturedPositions[row.EntityId] = (written.X, written.Y, steamId);
+            RefreshAnchors();
+        }
+    }
+
+    private void RefreshAnchors()
+    {
+        Anchors.Clear();
+        foreach (var device in devices?.Invoke() ?? [])
+        {
+            bool known = capturedPositions.TryGetValue(device.EntityId, out var taken);
+            var row = new AutomationAnchorRow
+            {
+                EntityId = device.EntityId,
+                Name = device.Name,
+                X = known ? taken.X : device.PairedX,
+                Y = known ? taken.Y : device.PairedY,
+                BySteamId = known ? taken.SteamId : device.PairedBySteamId
+            };
+            row.Teammate = Teammates.FirstOrDefault(choice => choice.Tag == device.PairedBySteamId?.ToString(
+                System.Globalization.CultureInfo.InvariantCulture));
+            Anchors.Add(row);
+        }
+    }
+
+    /// <summary>The positions captured in this session, so the list shows them before the profile is read again.</summary>
+    private readonly Dictionary<uint, (double X, double Y, ulong SteamId)> capturedPositions = [];
 
     [RelayCommand]
     private void RemoveRule(AutomationRuleViewModel? rule)
