@@ -16,13 +16,36 @@ cloud membership or chat/master preferences. The latest Windows preview is
 
 ## Build and run
 
-Install the .NET 10 SDK. Run these commands **from this folder**:
+Install the .NET 10 SDK.
+
+### Quick scripts (no manual dotnet commands needed)
+
+From the **repository root**:
+```cmd
+build-avalonia.cmd          # Build solution (Debug)
+build-avalonia.cmd release  # Build solution (Release)
+build-avalonia.cmd run      # Build & run Avalonia app
+dev-avalonia.cmd            # Fast dev loop with Hot Reload (dotnet watch)
+.\build-avalonia.ps1        # PowerShell alternative
+```
+
+From **this folder (`Avalonia/`)**:
+```cmd
+build.cmd          # Build solution (Debug)
+build.cmd release  # Build solution (Release)
+run.cmd            # Run Avalonia app
+dev.cmd            # Fast dev loop with Hot Reload
+./build.sh         # Linux / macOS bash helper
+```
+
+### Manual commands
 
 ```sh
 dotnet build RustPlusDesk.CrossPlatform.sln --configuration Release
 dotnet test tests/RustPlusDesk.CrossPlatform.Tests --configuration Release
 dotnet run --project src/RustPlusDesk.Avalonia
 ```
+
 
 The preview automatically tries the existing `RustPlusDesk/profiles.json` file in the operating system's
 application-data directory. Use **Open profiles…** to choose a copied file from another machine.
