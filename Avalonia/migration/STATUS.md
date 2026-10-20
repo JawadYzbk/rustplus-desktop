@@ -11,6 +11,20 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- The cameras tab: `Core/Cameras` carries the reference's camera models (the kind of camera, the buttons, the control
+  flags and what the camera sees), the stick's rules and where a player the camera sees is drawn in the picture, and
+  the session the reference opens - a camera of its own connection, because the server keeps one camera subscription
+  per connection. `Infrastructure/Cameras` drives the protocol's camera controller and its renderer, so the picture
+  the app shows is the picture the server sends, and grabs a still of one camera at a time for the tiles. The cameras
+  the user added live in the profile (`CameraIds` and `CameraNames`), so both apps show the same cameras. The new
+  **Cameras** workspace has the reference's tiles, its empty state and the add, edit and remove actions, and a camera
+  opens in a window of its own with the live picture, the names of the players it sees drawn where they are (the
+  team green, the others red, as the reference draws them), and the controls the camera supports (the stick, the
+  drone's jump and duck, the auto-turret's fire and reload, the PTZ camera's zoom). **802 tests** on Windows locally
+  (802 pass). The cameras need a live server with a camera to be accepted. The protocol's camera package brings
+  ImageSharp, whose image decoders carry known advisories; the app never decodes an untrusted image with it (the
+  protocol renders the camera's own rays) and the reference builds with the same warnings, so that project's audit is
+  silenced rather than left to fail every build.
 - The players tab and the player tracking are gone: at Jawad's instruction the Players tab, the players it kept an eye
   on, their groups, the group manager, the pop-out window, the how-to-track guide and the player wipe tracker's file
   were removed from the app, together with the settings that turned them on. Nothing of them is left in the app - no
@@ -403,7 +417,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Smart devices/automation/timers | Confirmed switches, nested group commands, alarm/storage state, local organization/icons/delete with rule+command cleanup, own-device sync and guarded shared/local import, the device-automation rules and the logic engine with their settings cards | Live-server acceptance, drag gestures, hotkey/overlay cleanup on delete, transfer, missing icon artwork/direct-click shortcuts, alarm notifications/audio and original layout |
 | Cloud identity/consent | Website handoff, scoped permission, local sign-out, fresh quotas, own recovery/automatic sync and import sources | Live authentication/version acceptance, concurrent writers, other consents, team membership/master/chat publication and remaining account/provider/session workflows |
 | Chat/team/clan | Live roster dock, chat history/search/emoji/message menu, automated alert routing, the clan workspace (members, roles, message of the day) and team chat commands (status commands, switches/upkeep/oil rig, base codes and clan switches, custom timers, with per-server command settings and per-clan-role permissions) | Moderation and clan management, chat/clan publication and master coordination, and the remaining chat-command work (AI command, logic-engine rules, the chat-master gate, timer audio) |
-| Cameras | Not ported | Validate camera SDK/runtime, stream decoding and portable rendering |
+| Cameras | The cameras the user added for the server, read from the profile, with the tiles that show what they see, the add, edit and remove actions, and the camera window with its live picture, the names of the players it sees and the controls the camera supports | The live acceptance on a server with a camera |
 | Genetics Lab/web tools | Not ported | Decide and verify portable web hosting/bridge rather than copying WebView2 |
 | Settings/localization/backups | The app settings, the device settings, the chat-command settings and the 32-language catalogue with the language picker; every label the catalogue carries follows the chosen language | The port's own wording (the empty states, the descriptions and the tooltips the reference has no string for), the backup and the reset-data flows |
 | Tray/hotkeys/audio/speech/capture | Not ported | Platform capability audit and adapters with truthful availability |
@@ -459,9 +473,10 @@ themes, and full keyboard/screen-reader acceptance are still pending.
 
 ## Local verification
 
-- Windows: all **787 .NET test cases** pass on the current source, including the clan workspace and its role-gated
+- Windows: all **802 .NET test cases** pass on the current source, including the clan workspace and its role-gated
   commands, the device-automation rules, the achievements list, the traffic monitor, the timer sounds, the
-  organization, recycling and socket-teardown work; build and isolated-copy results are recorded in HANDOFF.md at each checkpoint.
+  cameras tab and its window, the organization, recycling and socket-teardown work; build and isolated-copy results
+  are recorded in HANDOFF.md at each checkpoint.
 - The suite reads its strings in English whatever language the machine it runs on is set to, and the language tests
   put back what they change: a test that renders a label used to change its answer with the machine's language, and
   one test changed the tests that ran after it.

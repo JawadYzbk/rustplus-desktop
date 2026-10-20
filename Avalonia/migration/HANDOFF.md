@@ -1,8 +1,39 @@
-# Avalonia migration handoff — 2026-10-20 (fifteenth run)
+# Avalonia migration handoff — 2026-10-20 (sixteenth run)
 
 **Plan of record: [PARITY-PLAN.md](PARITY-PLAN.md).** Bar set by Jawad on 2026-10-18: *same functionality as the WPF
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
 every finished slice with its commit.
+
+## Sixteenth run - the cameras tab and the camera window (2026-10-20, local Windows continuation)
+
+- Branch `feat/rust-migration` (the branch this session was working on); slice commits `d8c5febc` (the tab) and `34ac56b5` (the window).
+  Only `Avalonia/` changes.
+- **802 tests** run locally on Windows: 802 pass, none fail. Build zero warnings.
+- Done: the reference's Cameras tab and the camera window. `Core/Cameras` carries the reference's
+  camera models (the kind of camera, the buttons, the control flags and what the camera sees), the stick's rules
+  and where a player the camera sees is drawn in the picture, and the session the reference opens: a camera of its own
+  connection, because the server keeps one camera subscription per connection.
+  `Infrastructure/Cameras` drives the protocol's camera controller and its renderer, so the picture the app shows is
+  the picture the server sends, and grabs a still of one camera at a time for the tiles - the reference asks one
+  camera at a time too, so the server is not asked for all of them at once. The cameras the user added live in the
+  profile (`CameraIds` and `CameraNames`), so both apps show the same cameras. The new **Cameras** workspace has the
+  reference's tiles, its empty state and the add, edit and remove actions, and the rail entry sits where the
+  reference's catalogue has it.
+- Where: `Core/Cameras/{CameraModels,CameraInput}.cs`, `Infrastructure/Cameras/{CameraSession,CameraSnapshotSource}.cs`,
+  `Infrastructure/Profiles/LegacyCameraStore.cs`, `Features/Cameras/{CamerasViewModel,CamerasView,CameraWindow}`,
+  `Shell/{MainWindow,NavigationRail}.axaml`, `Features/Servers` (the workspace).
+- Tests: `CameraTests` (15: the cameras read from the profile, written back, a profile that is not there, the
+  workspace's actions, a camera without an identifier, a camera added twice, the tile's picture, the view and the
+  empty state, the stick's clamp and response, the keys of its direction and where a player is drawn).
+- Deviations: the cameras need a live server with a camera to be accepted. The reference's window asks the
+  server for the names of the team players the camera sees; the port reads the team of the connection it already
+  has and draws those names green and the others red, as the reference does. The protocol's camera package brings
+  ImageSharp, whose image decoders carry known advisories; the app never decodes an untrusted image with it (the
+  protocol renders the camera's own rays) and the reference builds with the same warnings, so that project's
+  NuGet audit is silenced rather than left to fail every build.
+- Next slices: the command dock and the mini-map, the genetics lab, the tutorials and the
+  gallery, the cloud account windows, the LFG and admin surfaces, the AI companion's history window and model
+  picker, and the tray, audio and speech adapters.
 
 ## Fifteenth run - the players tab and the tracking are removed (2026-10-20, local Windows continuation)
 
