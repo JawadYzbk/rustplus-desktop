@@ -9,7 +9,7 @@ every finished slice with its commit.
 - Branch `codex/avalonia-migration`. Only `Avalonia/` changes. This run merged the parallel Linux session's
   chat-alert "Custom Timer" item (`86e3cd77`, `66383bbc`) and its wall-clock death-stats sample (`17343db9`);
   the sample now follows the injected `FixedClock` instead, so the fixture is deterministic again.
-- **711 tests** run locally on Windows: **711 pass, none fail** - the three known Windows-local failures the
+- **733 tests** run locally on Windows: **733 pass, none fail** - the three known Windows-local failures the
   earlier runs carried are gone. Build zero warnings.
 - **A green baseline.** The death-stats page read the wall clock directly, so its "last 24 h" filter only passed
   on the day the fixture was written; it now reads the clock through a new `Core/Time/IClock.cs` seam
@@ -44,9 +44,13 @@ every finished slice with its commit.
   per-timer switches; the flyout has the reference's stop, snooze and pick/reset-sound actions, and the chosen
   paths round-trip through the profile. The reference ships mp3; the packaging carries wav copies, because
   Windows' own player has no mp3 support.
-- Where: `Core/{Time,Chat,Clans,Devices,Achievements,Diagnostics}`, `Infrastructure/{Profiles,Achievements,
-  Diagnostics,Shops}`, `Features/{Clans,Devices,Achievements,Diagnostics,Settings,Map}`, `Shell/{MainWindow,
-  NavigationRail,MapWorkspace}`, `installer/`.
+- **The logic engine.** `Core/Logic` ports the reference rules and steps: a rule watches for a trigger (a smart
+  alarm, a smart switch, a chat command, another rule starting or finishing), checks its condition and runs its
+  steps. The rules live in the profile, the settings card edits them, and the chat commands and the device
+  updates fire them.
+- Where: `Core/{Time,Chat,Clans,Devices,Achievements,Diagnostics,Logic}`, `Infrastructure/{Profiles,Achievements,
+  Diagnostics,Shops}`, `Features/{Clans,Devices,Achievements,Diagnostics,Settings,Map,Logic}`,
+  `Shell/{MainWindow,NavigationRail,MapWorkspace}`, `installer/`.
 - Deviations: the reference's "capture the device position from a paired teammate" action is not wired to a
   button yet; the achievement ticket needs the support API, which is not ported; the traffic window has no
   per-request details column.
@@ -858,10 +862,10 @@ The checks never used personal credentials or contacted Steam/Facepunch.
 ## Verified current source
 
 - Debug/Release builds: zero warnings/errors. The current source has **706 passing tests** in the repository.
-- Source-only external copy with separate package cache: **703 tests pass, 3 skipped, none failed**, zero
-  warnings, and a self-contained win-x64 publish. The skipped checks are the reference-text comparisons, which
-  need the reference app beside the copy. The copy is at
-  `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-isolation`.
+- Source-only external copy with separate package cache: **730 tests pass, 3 skipped, none failed**, zero
+  warnings, and self-contained publishes for win-x64, linux-x64 and osx-arm64. The skipped checks are the
+  reference-text comparisons, which need the reference app beside the copy. The published Windows executable was
+  started and stayed up. The copy is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-isolation`.
 - Self-contained Release publishes on Windows: win-x64, linux-x64, osx-arm64 succeed. The published Windows
   executable was started and stayed up.
 - Native Windows browser callback and cancellation smoke passes. Native Linux/macOS executables untested.

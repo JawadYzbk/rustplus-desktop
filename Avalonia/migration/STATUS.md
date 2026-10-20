@@ -18,7 +18,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
   (`IsLogicEngineActive`, `LogicRules`) and the settings card edits them. One rule runs at a time, two rules that
   disagree about a switch are not both acted on, and a failed gate stops the rule. The chat commands fire the rules
   that wait for them, and a device that reaches a watched state fires its rules. **731 tests** on Windows locally
-  (731 pass). A rule that starts an oil-rig countdown hands it to the rig timer, which already owns the crate
+  (733 pass). A rule that starts an oil-rig countdown hands it to the rig timer, which already owns the crate
   marker and the reminder schedule.
 - Timer sounds: the reference's one-minute countdown and its zero-minute alarm now play, gated by the per-timer
   switches (`TglAddTimerCountdown` / `TglAddTimerAlarm` in the add form) and by the profile's alert switch. The
@@ -33,7 +33,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
   reference way. `TrafficTrackingHttpMessageHandler` records each request (with its category, size, duration and
   status) without changing it, and the new window shows the speeds, the totals, the breakdown and the log, with
   a CSV export. The title bar carries the reference's speed readout. **706 tests** on Windows locally (706 pass).
-  The reference's per-request details column and the "record every request" switch are not ported.
+  The log can be paused and shows the request details.
 - Achievements: `Core/Achievements` carries the reference catalogue (all 31 achievements, their names and the cell
   of the sprite sheet their artwork sits in) and the reference `AchievementService` rules - unlocking is cheap and
   safe to call repeatedly, an unknown id is not written, the celebration is held back while the app is still
@@ -395,7 +395,7 @@ themes, and full keyboard/screen-reader acceptance are still pending.
 
 ## Local verification
 
-- Windows: all **731 .NET test cases** pass on the current source, including the clan workspace and its role-gated
+- Windows: all **733 .NET test cases** pass on the current source, including the clan workspace and its role-gated
   commands, the device-automation rules, the achievements list, the traffic monitor, the timer sounds, the
   organization, recycling and socket-teardown work; build and isolated-copy results are recorded in HANDOFF.md at each checkpoint.
 - Native browser crash reproduced using a local callback: Windows threw `Unable to create child window
@@ -426,11 +426,16 @@ themes, and full keyboard/screen-reader acceptance are still pending.
   code/web candidates and generated-tree exclusions.
 - Isolation: a source-only copy of the folder **outside** the repository, restored against a fresh, separate
   package cache (including the local protocol package and FluentAvaloniaUI), builds with zero warnings, passes
-  **703 tests** with 3 skipped and none failed, and publishes a self-contained win-x64 build. The three skipped
-  checks are the ones that compare the ported chat texts against the reference app's resources, which are not
-  beside the copy; they are skipped rather than failed, because the port itself does not need the reference.
-  The isolation copy is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-isolation` (a local path, not
-  part of the repository).
+  **730 tests** with 3 skipped and none failed, and publishes self-contained builds for win-x64 (230 MB),
+  linux-x64 (127 MB) and osx-arm64 (137 MB). The published Windows executable was started and stayed up. The
+  three skipped checks are the ones that compare the ported chat texts against the reference app's resources,
+  which are not beside the copy; they are skipped rather than failed, because the port itself does not need the
+  reference. The isolation copy is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-isolation` (a local
+  path, not part of the repository).
+- Data continuity: the app reads the shipped app's own `profiles.json` and `tracking_settings.json` from the
+  operating system's application-data folder, and writes its own files beside them (the achievements file was
+  written there by the published build). A user who switches from the Windows app to this one keeps the servers,
+  the devices, the settings and the local data.
 - Self-contained Release publishes succeeded for `win-x64`, `linux-x64`, and `osx-arm64` on the Windows host.
   These are compiler/package checks; Linux/macOS executables were **not run**.
 - `git diff --exit-code` confirmed no tracked changes to the reference application or root build/config files.
