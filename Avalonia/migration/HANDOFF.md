@@ -904,11 +904,11 @@ The checks never used personal credentials or contacted Steam/Facepunch.
 
 ## Verified current source
 
-- Debug/Release builds: zero warnings/errors. The current source has **706 passing tests** in the repository.
-- Source-only external copy with separate package cache: **779 tests pass, 4 skipped, none failed**, zero
+- Debug/Release builds: zero warnings/errors. The current source has **787 passing tests** in the repository.
+- Source-only external copy with separate package cache: **783 tests pass, 4 skipped, none failed**, zero
   warnings, and self-contained publishes for win-x64, linux-x64 and osx-arm64. The skipped checks are the
   reference-text comparisons, which need the reference app beside the copy. The published Windows executable was
-  started and stayed up. The copy is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-iso5`.
+  started and stayed up. The copy is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-iso6`.
 - Self-contained Release publishes on Windows: win-x64, linux-x64, osx-arm64 succeed. The published Windows
   executable was started and stayed up.
 - Native Windows browser callback and cancellation smoke passes. Native Linux/macOS executables untested.
