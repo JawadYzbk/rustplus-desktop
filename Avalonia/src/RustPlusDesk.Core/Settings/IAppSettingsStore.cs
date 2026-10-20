@@ -74,4 +74,6 @@ public static class SettingKeys
     public const string ShowPlayersTab = "ShowPlayersTab";                 // default false: the Players tab is opt-in
     public const string GroupStates = "GroupStates";                       // "server|group" → the group is open
     public const string GroupOrder = "GroupOrder";                         // server → the groups in the user's order
+    public const string PlayerWipeTrackerEnabled = "PlayerWipeTrackerEnabled";             // default false: the tracker is opt-in
+    public const string PlayerWipeTrackerCloudBackupEnabled = "PlayerWipeTrackerCloudBackupEnabled"; // default false
 }

@@ -41,6 +41,8 @@ public sealed partial class SettingsViewModel : ObservableObject
             MinRetentionDays, MaxRetentionDays);
         genericAlarmPopup = settings?.Get(SettingKeys.GenericAlarmPopupEnabled, false) ?? false;
         showPlayersTab = settings?.Get(SettingKeys.ShowPlayersTab, false) ?? false;
+        playerWipeTrackerEnabled = settings?.Get(SettingKeys.PlayerWipeTrackerEnabled, false) ?? false;
+        playerWipeTrackerCloudBackup = settings?.Get(SettingKeys.PlayerWipeTrackerCloudBackupEnabled, false) ?? false;
         RefreshMuted();
     }
 
@@ -62,6 +64,21 @@ public sealed partial class SettingsViewModel : ObservableObject
         settings?.Set(SettingKeys.ShowPlayersTab, value);
         ShowPlayersTabChanged?.Invoke(value);
     }
+
+    /// <summary>
+    /// Reference PlayerWipeTrackerEnabled: the player wipe tracker is opt-in, so nothing is recorded until the user
+    /// turns it on.
+    /// </summary>
+    [ObservableProperty] private bool playerWipeTrackerEnabled;
+
+    /// <summary>Reference PlayerWipeTrackerCloudBackupEnabled: the tracker's history is backed up to the cloud.</summary>
+    [ObservableProperty] private bool playerWipeTrackerCloudBackup;
+
+    partial void OnPlayerWipeTrackerEnabledChanged(bool value) =>
+        settings?.Set(SettingKeys.PlayerWipeTrackerEnabled, value);
+
+    partial void OnPlayerWipeTrackerCloudBackupChanged(bool value) =>
+        settings?.Set(SettingKeys.PlayerWipeTrackerCloudBackupEnabled, value);
 
     /// <summary>Why the last launch-at-sign-in change did not apply (empty when it did).</summary>
     [ObservableProperty] private string autoStartError = "";

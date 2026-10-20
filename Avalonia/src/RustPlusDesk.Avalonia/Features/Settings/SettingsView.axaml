@@ -49,6 +49,23 @@
             <ToggleSwitch Grid.Column="1" IsChecked="{Binding ShowPlayersTab}" OnContent="" OffContent=""
                           AutomationProperties.Name="Show the Players tab" />
           </Grid>
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="{DynamicResource CsWipeTrackerTitle}" FontWeight="SemiBold" />
+              <TextBlock Text="{DynamicResource CsWipeTrackerToggle}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding PlayerWipeTrackerEnabled}" OnContent="" OffContent=""
+                          AutomationProperties.Name="Player Wipe Tracker" />
+          </Grid>
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="{DynamicResource CsWipeTrackerBackupToggle}" FontWeight="SemiBold" />
+              <TextBlock Text="Uploads compact daily tracker documents only after you enable this setting."
+                         Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding PlayerWipeTrackerCloudBackup}" OnContent="" OffContent=""
+                          AutomationProperties.Name="Player Wipe Tracker cloud backup" />
+          </Grid>
         </StackPanel>
       </Border>
       <Border Classes="panel" Padding="16" IsVisible="{Binding HasMap}">
