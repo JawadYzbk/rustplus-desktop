@@ -44,7 +44,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     Func<Task<string?>>? pickSound = null,
     RustPlusDesk.Core.Logic.ILogicRuleStore? logicRuleStore = null,
     RustPlusDesk.Infrastructure.Map.MapDrawingStore? drawingStore = null,
-    RustPlusDesk.Infrastructure.Updates.GitHubReleaseClient? updateService = null)
+    RustPlusDesk.Infrastructure.Updates.GitHubReleaseClient? updateService = null,
+    RustPlusDesk.Infrastructure.Support.SupportService? supportService = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -682,6 +683,12 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
                 CaptureDeviceLocationAsync),
             LogicRules = LogicRules,
             Crosshair = CreateCrosshairSettings(),
+            Support = supportService is null ? null : new Support.SupportViewModel(
+                ct => supportService.GetTicketsAsync(ct),
+                ct => supportService.GetMetaAsync(ct),
+                (category, subject, body, ct) => supportService.CreateTicketAsync(category, subject, body, null, null, null, ct),
+                (ticket, answer, ct) => supportService.ReplyAsync(ticket, answer, null, ct),
+                (ticket, ct) => supportService.GetTicketAsync(ticket, ct)),
             Update = updateService is null ? null : new Settings.UpdateSettingsViewModel(
                 async () => await updateService.GetLatestAsync(Settings.UpdateSettingsViewModel.InstallerAssetName, CancellationToken.None))
             {

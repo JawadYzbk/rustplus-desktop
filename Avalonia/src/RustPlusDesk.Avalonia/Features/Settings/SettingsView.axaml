@@ -3,6 +3,8 @@
              xmlns:devices="using:RustPlusDesk.Avalonia.Features.Devices"
              xmlns:logic="using:RustPlusDesk.Avalonia.Features.Logic"
              xmlns:core="using:RustPlusDesk.Core.Crosshair"
+             xmlns:support="using:RustPlusDesk.Avalonia.Features.Support"
+             xmlns:tickets="using:RustPlusDesk.Core.Support"
              xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
              x:Class="RustPlusDesk.Avalonia.Features.Settings.SettingsView" x:DataType="vm:SettingsViewModel">
   <UserControl.Styles>
@@ -491,6 +493,67 @@
                     AutomationProperties.Name="Apply logic rules" />
             <TextBlock Text="{Binding LogicRules.Status, FallbackValue=''}" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"
                        Classes="muted" Classes.error="{Binding LogicRules.IsError, FallbackValue=False}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0" IsVisible="{Binding HasSupport, FallbackValue=False}">
+        <icons:Icon Symbol="Chat24" FontSize="18" Foreground="{DynamicResource Accent}" />
+        <StackPanel>
+          <TextBlock Text="Support" Classes="title" />
+          <TextBlock Text="Your support tickets" Classes="muted" FontSize="12" />
+        </StackPanel>
+      </StackPanel>
+      <Border Classes="panel" Padding="16" IsVisible="{Binding HasSupport, FallbackValue=False}">
+        <StackPanel Spacing="12">
+          <TextBlock Text="TICKETS" Classes="section" />
+          <TextBlock Text="A ticket needs the signed-in cloud account. The answer arrives as a notification."
+                     Classes="muted" FontSize="12" TextWrapping="Wrap" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <TextBlock Text="{Binding Support.Status, FallbackValue=''}" Classes="muted" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap" />
+            <Button Grid.Column="1" Classes="subtle" Command="{Binding Support.LoadCommand, FallbackValue={x:Null}}"
+                    ToolTip.Tip="Read the tickets" AutomationProperties.Name="Load the support tickets">
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ArrowSync24" FontSize="14" /><TextBlock Text="Refresh" /></StackPanel>
+            </Button>
+          </Grid>
+          <ItemsControl ItemsSource="{Binding Support.Tickets, FallbackValue={x:Null}}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="support:TicketRow">
+                <Button Classes="subtle" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                        Command="{Binding $parent[ItemsControl].DataContext.Support.OpenCommand}" CommandParameter="{Binding}"
+                        AutomationProperties.Name="Open the support ticket">
+                  <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                    <StackPanel>
+                      <TextBlock Text="{Binding Subject}" FontSize="13" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Text="{Binding Category}" Classes="muted" FontSize="11" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Text="{Binding Status}" Classes="muted" FontSize="11" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Text="{Binding LastActivity}" Classes="muted" FontSize="11" VerticalAlignment="Center" />
+                  </Grid>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <ItemsControl ItemsSource="{Binding Support.Messages, FallbackValue={x:Null}}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="tickets:TicketMessage">
+                <StackPanel Margin="0,2,0,2">
+                  <TextBlock Text="{Binding AuthorName}" FontSize="11" FontWeight="SemiBold" />
+                  <TextBlock Text="{Binding Body}" FontSize="12" TextWrapping="Wrap" />
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Text="NEW TICKET" Classes="section" Margin="0,4,0,0" />
+          <ComboBox ItemsSource="{Binding Support.Categories, FallbackValue={x:Null}}" SelectedItem="{Binding Support.Category}"
+                    PlaceholderText="Category" AutomationProperties.Name="Support ticket category" />
+          <TextBox Text="{Binding Support.Subject}" PlaceholderText="Subject" AutomationProperties.Name="Support ticket subject" />
+          <TextBox Text="{Binding Support.Body}" PlaceholderText="What happened?" AcceptsReturn="True" Height="90"
+                   AutomationProperties.Name="Support ticket message" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="primary" Content="Send ticket" Command="{Binding Support.SendCommand, FallbackValue={x:Null}}"
+                    AutomationProperties.Name="Send the support ticket" />
+            <Button Classes="subtle" Content="Reply" Command="{Binding Support.ReplyCommand, FallbackValue={x:Null}}"
+                    AutomationProperties.Name="Reply to the support ticket" />
           </StackPanel>
         </StackPanel>
       </Border>

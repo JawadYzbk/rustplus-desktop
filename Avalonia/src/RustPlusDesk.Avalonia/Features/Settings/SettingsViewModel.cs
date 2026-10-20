@@ -73,6 +73,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>The crosshair card: the style shown over the game.</summary>
     public CrosshairSettingsViewModel? Crosshair { get; init; }
     public bool HasCrosshair => Crosshair is not null;
+    /// <summary>The support card: the user's tickets with the cloud account.</summary>
+    public RustPlusDesk.Avalonia.Features.Support.SupportViewModel? Support { get; init; }
+    public bool HasSupport => Support is not null;
     /// <summary>The selected profile's device automation rules (reference DeviceAutomationOverlay).</summary>
     public RustPlusDesk.Avalonia.Features.Devices.DeviceAutomationSettingsViewModel? Automation { get; init; }
     public bool HasAutomation => Automation is not null;
