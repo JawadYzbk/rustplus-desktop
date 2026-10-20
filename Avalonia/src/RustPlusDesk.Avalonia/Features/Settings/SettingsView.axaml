@@ -16,7 +16,7 @@
       <StackPanel Orientation="Horizontal" Spacing="10">
         <icons:Icon Symbol="Settings24" FontSize="18" Foreground="{DynamicResource Accent}" />
         <StackPanel>
-          <TextBlock Text="General" Classes="title" />
+          <TextBlock Text="{DynamicResource AppGeneral}" Classes="title" />
           <TextBlock Text="Startup and app behavior" Classes="muted" FontSize="12" />
         </StackPanel>
       </StackPanel>
@@ -143,7 +143,7 @@
       <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0" IsVisible="{Binding HasCustomMap}">
         <icons:Icon Symbol="Map24" FontSize="18" Foreground="{DynamicResource Accent}" />
         <StackPanel>
-          <TextBlock Text="Map" Classes="title" />
+          <TextBlock Text="{DynamicResource AppMap}" Classes="title" />
           <TextBlock Text="Map image of the selected server" Classes="muted" FontSize="12" />
         </StackPanel>
       </StackPanel>
@@ -168,7 +168,7 @@
       <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0" IsVisible="{Binding HasChatCommands}">
         <icons:Icon Symbol="Chat24" FontSize="18" Foreground="{DynamicResource Accent}" />
         <StackPanel>
-          <TextBlock Text="Chat Commands" Classes="title" />
+          <TextBlock Text="{DynamicResource AppChatCommands}" Classes="title" />
           <TextBlock Text="Answer commands typed in team chat" Classes="muted" FontSize="12" />
         </StackPanel>
       </StackPanel>
@@ -275,7 +275,7 @@
       <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0" IsVisible="{Binding HasAutomation, FallbackValue=False}">
         <icons:Icon Symbol="Play24" FontSize="18" Foreground="{DynamicResource Accent}" />
         <StackPanel>
-          <TextBlock Text="Device Automation" Classes="title" />
+          <TextBlock Text="{DynamicResource AppDeviceAutomation}" Classes="title" />
           <TextBlock Text="Put a paired switch on or off when a condition holds" Classes="muted" FontSize="12" />
         </StackPanel>
       </StackPanel>
@@ -387,7 +387,7 @@
       <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0" IsVisible="{Binding HasLogicRules, FallbackValue=False}">
         <icons:Icon Symbol="Play24" FontSize="18" Foreground="{DynamicResource Accent}" />
         <StackPanel>
-          <TextBlock Text="Logic Rules" Classes="title" />
+          <TextBlock Text="{DynamicResource AppLogicRules}" Classes="title" />
           <TextBlock Text="Let a trigger run a short program of steps" Classes="muted" FontSize="12" />
         </StackPanel>
       </StackPanel>
@@ -500,7 +500,7 @@
       <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0" IsVisible="{Binding HasSupport, FallbackValue=False}">
         <icons:Icon Symbol="Chat24" FontSize="18" Foreground="{DynamicResource Accent}" />
         <StackPanel>
-          <TextBlock Text="Support" Classes="title" />
+          <TextBlock Text="{DynamicResource AppSupport}" Classes="title" />
           <TextBlock Text="Your support tickets" Classes="muted" FontSize="12" />
         </StackPanel>
       </StackPanel>
@@ -561,7 +561,7 @@
       <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0" IsVisible="{Binding HasLanguage, FallbackValue=False}">
         <icons:Icon Symbol="Globe24" FontSize="18" Foreground="{DynamicResource Accent}" />
         <StackPanel>
-          <TextBlock Text="Language" Classes="title" />
+          <TextBlock Text="{DynamicResource AppLanguage}" Classes="title" />
           <TextBlock Text="The language the app reads its strings in" Classes="muted" FontSize="12" />
         </StackPanel>
       </StackPanel>
@@ -582,7 +582,7 @@
       <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0" IsVisible="{Binding HasCrosshair, FallbackValue=False}">
         <icons:Icon Symbol="Target24" FontSize="18" Foreground="{DynamicResource Accent}" />
         <StackPanel>
-          <TextBlock Text="Crosshair" Classes="title" />
+          <TextBlock Text="{DynamicResource AppCrosshair}" Classes="title" />
           <TextBlock Text="A crosshair over the game" Classes="muted" FontSize="12" />
         </StackPanel>
       </StackPanel>
@@ -617,7 +617,7 @@
       <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0" IsVisible="{Binding HasUpdate, FallbackValue=False}">
         <icons:Icon Symbol="ArrowSync24" FontSize="18" Foreground="{DynamicResource Accent}" />
         <StackPanel>
-          <TextBlock Text="Updates" Classes="title" />
+          <TextBlock Text="{DynamicResource AppUpdates}" Classes="title" />
           <TextBlock Text="The running build and the newest published release" Classes="muted" FontSize="12" />
         </StackPanel>
       </StackPanel>
@@ -647,7 +647,7 @@
       <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0">
         <icons:Icon Symbol="Alert24" FontSize="18" Foreground="{DynamicResource Accent}" />
         <StackPanel>
-          <TextBlock Text="Alerts" Classes="title" />
+          <TextBlock Text="{DynamicResource AppAlerts}" Classes="title" />
           <TextBlock Text="Notifications, sounds, and offline death" Classes="muted" FontSize="12" />
         </StackPanel>
       </StackPanel>

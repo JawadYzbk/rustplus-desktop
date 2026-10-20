@@ -45,6 +45,9 @@ public sealed partial class LanguageSettingsViewModel(IAppSettingsStore? setting
 
     private bool loading;
 
+    /// <summary>Called when the language changed, so the labels can be read again.</summary>
+    public Action? LanguageChanged { get; set; }
+
     /// <summary>Puts the app in the chosen language, or in the operating system's when none is chosen.</summary>
     public void Apply()
     {
@@ -54,5 +57,6 @@ public sealed partial class LanguageSettingsViewModel(IAppSettingsStore? setting
         Loc.UseCulture(culture);
         loading = false;
         OnPropertyChanged(nameof(CurrentLanguage));
+        LanguageChanged?.Invoke();
     }
 }

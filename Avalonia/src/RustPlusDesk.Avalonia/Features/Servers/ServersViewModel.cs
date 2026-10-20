@@ -883,6 +883,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     private Settings.LanguageSettingsViewModel? CreateLanguageSettings()
     {
         var model = new Settings.LanguageSettingsViewModel(appSettings);
+        model.LanguageChanged += () => RustPlusDesk.Avalonia.App.RefreshStrings();
         model.Load();
         return model;
     }

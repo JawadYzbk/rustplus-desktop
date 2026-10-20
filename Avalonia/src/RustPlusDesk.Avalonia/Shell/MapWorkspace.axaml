@@ -48,19 +48,19 @@
             <TextBlock Text="Map" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" />
             <ToggleButton Classes="chip" IsChecked="{Binding Connection.Map.ShowGrid}" IsEnabled="{Binding Connection.Map.HasMap}"
                           ToolTip.Tip="Show the map grid" AutomationProperties.Name="Grid">
-              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Grid24" FontSize="16" /><TextBlock Text="Grid" /></StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Grid24" FontSize="16" /><TextBlock Text="{DynamicResource AppGrid}" /></StackPanel>
             </ToggleButton>
             <ToggleButton Classes="chip" IsChecked="{Binding Connection.Map.ShowMonuments}" IsEnabled="{Binding Connection.Map.HasMap}"
                           ToolTip.Tip="Show monuments" AutomationProperties.Name="Monuments">
-              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Location24" FontSize="16" /><TextBlock Text="Monuments" /></StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Location24" FontSize="16" /><TextBlock Text="{DynamicResource AppMonuments}" /></StackPanel>
             </ToggleButton>
             <ToggleButton Classes="chip" IsChecked="{Binding Connection.Map.ShowPlayers}" IsEnabled="{Binding Connection.Map.HasMap}"
                           ToolTip.Tip="Show team players" AutomationProperties.Name="Players">
-              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="People24" FontSize="16" /><TextBlock Text="Players" /></StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="People24" FontSize="16" /><TextBlock Text="{DynamicResource AppPlayers}" /></StackPanel>
             </ToggleButton>
             <ToggleButton Classes="chip" IsChecked="{Binding Connection.Map.ShowShops}" IsEnabled="{Binding Connection.Map.HasMap}"
                           ToolTip.Tip="Show vending machines" AutomationProperties.Name="Shops">
-              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Cart24" FontSize="16" /><TextBlock Text="Shops" /></StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Cart24" FontSize="16" /><TextBlock Text="{DynamicResource AppShops}" /></StackPanel>
             </ToggleButton>
             <ToggleButton Classes="chip" IsChecked="{Binding Connection.Map.ShowDeathHeatmap}" IsEnabled="{Binding Connection.Map.HasMap}" IsVisible="{Binding HasDeathStats}"
                           ToolTip.Tip="Show a heatmap of the deaths logged on this server" AutomationProperties.Name="Deaths">
@@ -231,7 +231,7 @@
               </Button.Flyout>
             </Button>
             <Button x:Name="LayersButton" Classes="subtle" ToolTip.Tip="Map layer settings" AutomationProperties.Name="Layers">
-              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Layer24" FontSize="16" /><TextBlock Text="Layers" /></StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Layer24" FontSize="16" /><TextBlock Text="{DynamicResource AppLayers}" /></StackPanel>
               <Button.Flyout>
                 <Flyout Placement="BottomEdgeAlignedLeft">
                   <StackPanel Width="300" Spacing="10" Margin="4">

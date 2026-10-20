@@ -101,6 +101,28 @@ public sealed class LocalizationTests
     }
 
     [TestMethod]
+    public void TheLabelsFollowTheChosenLanguage()
+    {
+        Loc.Manager = AppResources();
+        try
+        {
+            Loc.UseCulture(new CultureInfo("en-US"));
+            var english = RustPlusDesk.Avalonia.Shared.AppStrings.Build();
+            Assert.AreEqual("Devices", english["AppDevices"]);
+
+            Loc.UseCulture(new CultureInfo("de-DE"));
+            var german = RustPlusDesk.Avalonia.Shared.AppStrings.Build();
+            Assert.AreNotEqual("Devices", german["AppDevices"], "The rail label follows the language the user chose.");
+            Assert.IsNotNull(german["AppSettings"]);
+        }
+        finally
+        {
+            Loc.UseCulture(null);
+            Loc.Manager = null;
+        }
+    }
+
+    [TestMethod]
     public void ThePickerKeepsTheChosenLanguage()
     {
         var settings = new ShopNoticeTests.MemorySettings();

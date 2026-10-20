@@ -21,6 +21,14 @@ namespace RustPlusDesk.Avalonia;
 
 public sealed partial class App : Application
 {
+    private ResourceDictionary? appStrings;
+
+    /// <summary>Reads the app's labels again, so a change of language is seen at once.</summary>
+    public static void RefreshStrings()
+    {
+        if (Current is App app && app.appStrings is { } dictionary) Shared.AppStrings.Apply(dictionary);
+    }
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -32,6 +40,9 @@ public sealed partial class App : Application
         Resources.MergedDictionaries.Add(components.Resources);
         components.Resources = new ResourceDictionary();
         Styles.Add(components);
+        // The app's own labels come from the reference's resource catalogue, in the language the user chose.
+        appStrings = Shared.AppStrings.Build();
+        Resources.MergedDictionaries.Add(appStrings);
         string platform = OperatingSystem.IsWindows() ? "Windows" : OperatingSystem.IsMacOS() ? "MacOS" : "Linux";
         var platformStyles = (Styles)AvaloniaXamlLoader.Load(new Uri($"avares://RustPlusDesk.Avalonia/Styles/Platforms/{platform}.axaml"));
         Resources.MergedDictionaries.Add(platformStyles.Resources);
