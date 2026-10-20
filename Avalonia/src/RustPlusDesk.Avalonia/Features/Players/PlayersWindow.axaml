@@ -1,9 +1,0 @@
-<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:RustPlusDesk.Avalonia.Features.Players" xmlns:players="using:RustPlusDesk.Avalonia.Features.Players"
-        x:Class="RustPlusDesk.Avalonia.Features.Players.PlayersWindow" x:DataType="vm:PlayersViewModel"
-        Title="Players" Width="500" Height="700" MinWidth="380" MinHeight="320">
-  <!-- Reference BtnPopoutPlayers_Click: the players are shown in a window of their own. -->
-  <Border Background="{DynamicResource Surface}" Padding="14">
-    <players:PlayersView />
-  </Border>
-</Window>

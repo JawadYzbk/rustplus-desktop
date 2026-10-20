@@ -47,9 +47,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Infrastructure.Updates.GitHubReleaseClient? updateService = null,
     RustPlusDesk.Infrastructure.Support.SupportService? supportService = null,
     RustPlusDesk.Core.Ai.IAiSettingsStore? aiStore = null,
-    System.Net.Http.HttpClient? aiHttp = null,
-    RustPlusDesk.Core.Tracking.ITrackedPlayerStore? trackedPlayerStore = null,
-    RustPlusDesk.Core.Tracking.IPlayerNameSource? playerNames = null)
+    System.Net.Http.HttpClient? aiHttp = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -714,8 +712,6 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         };
         ObserveStreamerMode();
         model.GenericAlarmPopupChanged += value => Alarms.GenericPopupEnabled = value;
-        // Reference ApplyPlayersTabVisibility: the rail follows the opt-in.
-        model.ShowPlayersTabChanged += value => HasPlayersTab = value && trackedPlayerStore is not null;
         return model;
     }
     private Hotkeys.HotkeysViewModel? hotkeys;
@@ -745,7 +741,6 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [NotifyPropertyChangedFor(nameof(IsSettingsSelected))]
     [NotifyPropertyChangedFor(nameof(IsDeathStatsSelected))]
     [NotifyPropertyChangedFor(nameof(IsClanSelected))]
-    [NotifyPropertyChangedFor(nameof(IsPlayersSelected))]
     [NotifyPropertyChangedFor(nameof(IsAchievementsSelected))]
     [NotifyPropertyChangedFor(nameof(IsToolSelected))]
     [NotifyCanExecuteChangedFor(nameof(CloseToolCommand))]
@@ -757,49 +752,11 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     public bool IsSettingsSelected => WorkspaceIndex == 5;
     public bool IsDeathStatsSelected => WorkspaceIndex == 6;
     public bool IsClanSelected => WorkspaceIndex == 7;
-    public bool IsPlayersSelected => WorkspaceIndex == 9;
     public bool IsAchievementsSelected => WorkspaceIndex == 8;
     public bool HasDeathStats => deathLog is not null;
     private DeathsPage.DeathStatsViewModel? deathStats;
     /// <summary>Reference Death Stats workspace over the selected server's local death log.</summary>
     public DeathsPage.DeathStatsViewModel? DeathStats => deathStats ??= deathLog is null ? null : new(deathLog, clock);
-
-    /// <summary>
-    /// Reference ShowPlayersTab: the Players tab is opt-in, so its rail entry only shows once the user turned it on.
-    /// </summary>
-    [ObservableProperty]
-    private bool hasPlayersTab = trackedPlayerStore is not null
-        && (appSettings?.Get(RustPlusDesk.Core.Settings.SettingKeys.ShowPlayersTab, false) ?? false);
-
-    /// <summary>Reference PlayersTabContent: the players the user keeps an eye on.</summary>
-    public Players.PlayersViewModel? Players => players ??= trackedPlayerStore is null
-        ? null
-        : CreatePlayers();
-    private Players.PlayersViewModel? players;
-
-    private Players.PlayersViewModel CreatePlayers()
-    {
-        var model = new Players.PlayersViewModel(trackedPlayerStore!, appSettings, playerNames);
-        // Reference BtnPopoutPlayers_Click: the shell owns the window the tab asks for.
-        model.PopOutRequested += (_, _) => PlayersPopOutRequested?.Invoke(this, EventArgs.Empty);
-        model.HowToTrackRequested += (_, _) => PlayersHowToTrackRequested?.Invoke(this, EventArgs.Empty);
-        return model;
-    }
-
-    /// <summary>Raised when the Players tab asks for a window of its own; the shell owns that window.</summary>
-    public event EventHandler? PlayersPopOutRequested;
-
-    /// <summary>Raised when the Players tab asks for the guide; the shell owns that window.</summary>
-    public event EventHandler? PlayersHowToTrackRequested;
-
-    /// <summary>Reference OpenPlayersWorkspace: the workspace opens on the server that is selected.</summary>
-    [RelayCommand]
-    private void OpenPlayers()
-    {
-        if (Players is not { } page) return;
-        page.Open(SelectedServer?.Name, Connection.IsConnected);
-        WorkspaceIndex = 9;
-    }
 
     /// <summary>Reference OpenDeathStatsWorkspace: (re)reads the log for the selected server each time it opens.</summary>
     [RelayCommand]

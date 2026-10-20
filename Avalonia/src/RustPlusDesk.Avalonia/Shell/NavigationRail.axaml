@@ -32,12 +32,7 @@
           <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Shield24" />
             <TextBlock Grid.Column="1" Classes="navLabel" Text="{DynamicResource AppClan}" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
-        <!-- The reference's rail order: Devices, Team, Clan, Cameras, Players, Notifications. -->
-        <Button Classes="nav" Classes.selected="{Binding IsPlayersSelected}" Command="{Binding OpenPlayersCommand}" IsVisible="{Binding HasPlayersTab}"
-                ToolTip.Tip="{DynamicResource UiBrowseOnlinePlayersAndTrackedTargets}" AutomationProperties.Name="Players">
-          <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Globe24" />
-            <TextBlock Grid.Column="1" Classes="navLabel" Text="{DynamicResource AppPlayers}" IsVisible="{Binding IsRailExpanded}" /></Grid>
-        </Button>
+
         <Button Classes="nav" Classes.selected="{Binding IsNotificationsSelected}" Command="{Binding OpenNotificationsCommand}"
                 ToolTip.Tip="{DynamicResource UiReviewAlertsAndRecentServerEvents}" AutomationProperties.Name="Notifications">
           <Grid ColumnDefinitions="28,*,Auto"><Panel><icons:Icon Symbol="Alert24" />

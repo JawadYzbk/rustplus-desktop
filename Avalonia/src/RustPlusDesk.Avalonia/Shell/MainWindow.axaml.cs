@@ -17,8 +17,6 @@ public sealed partial class MainWindow : Window
             {
                 model.Alarms.OpenRequested += ShowAlarms;
                 model.ConsolePopOutRequested += ShowConsolePopout;
-                model.PlayersPopOutRequested += ShowPlayersPopout;
-                model.PlayersHowToTrackRequested += ShowHowToTrack;
                 model.Hotkeys.EditRequested += ShowHotkeys;
                 model.TrafficWindowRequested += ShowTraffic;
                 model.CrosshairVisibilityRequested += ShowCrosshair;
@@ -139,29 +137,6 @@ public sealed partial class MainWindow : Window
         consoleWindow.Show();
     }
 
-    /// <summary>Reference BtnPopoutPlayers_Click: the players get a window of their own; a second click focuses it.</summary>
-    private void ShowPlayersPopout(object? sender, EventArgs e)
-    {
-        if (playersWindow is not null) { playersWindow.Activate(); return; }
-        if (sender is not Features.Servers.ServersViewModel { Players: { } players }) return;
-        playersWindow = new Features.Players.PlayersWindow { DataContext = players };
-        players.CanPopOut = false;
-        playersWindow.Closed += (_, _) => { playersWindow = null; players.CanPopOut = true; };
-        playersWindow.Show();
-    }
-
-    private Features.Players.PlayersWindow? playersWindow;
-
-    /// <summary>Reference BtnHowToTrack_Click: the guide to the players is opened in a window of its own.</summary>
-    private void ShowHowToTrack(object? sender, EventArgs e)
-    {
-        if (howToTrackWindow is not null) { howToTrackWindow.Activate(); return; }
-        howToTrackWindow = new Features.Players.HowToTrackWindow();
-        howToTrackWindow.Closed += (_, _) => howToTrackWindow = null;
-        howToTrackWindow.Show(this);
-    }
-
-    private Features.Players.HowToTrackWindow? howToTrackWindow;
 
     private void ResizePane() => WorkspaceSplit.OpenPaneLength = Math.Clamp(ClientSize.Width * sidebarFraction, 300, 480);
     private void ResizeSidebar(object? sender, VectorEventArgs e)
