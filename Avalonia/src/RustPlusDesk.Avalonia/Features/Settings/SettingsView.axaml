@@ -2,6 +2,7 @@
              xmlns:vm="using:RustPlusDesk.Avalonia.Features.Settings"
              xmlns:devices="using:RustPlusDesk.Avalonia.Features.Devices"
              xmlns:logic="using:RustPlusDesk.Avalonia.Features.Logic"
+             xmlns:loc="using:RustPlusDesk.Core.Localization"
              xmlns:core="using:RustPlusDesk.Core.Crosshair"
              xmlns:support="using:RustPlusDesk.Avalonia.Features.Support"
              xmlns:tickets="using:RustPlusDesk.Core.Support"
@@ -555,6 +556,27 @@
             <Button Classes="subtle" Content="Reply" Command="{Binding Support.ReplyCommand, FallbackValue={x:Null}}"
                     AutomationProperties.Name="Reply to the support ticket" />
           </StackPanel>
+        </StackPanel>
+      </Border>
+      <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0" IsVisible="{Binding HasLanguage, FallbackValue=False}">
+        <icons:Icon Symbol="Globe24" FontSize="18" Foreground="{DynamicResource Accent}" />
+        <StackPanel>
+          <TextBlock Text="Language" Classes="title" />
+          <TextBlock Text="The language the app reads its strings in" Classes="muted" FontSize="12" />
+        </StackPanel>
+      </StackPanel>
+      <Border Classes="panel" Padding="16" IsVisible="{Binding HasLanguage, FallbackValue=False}">
+        <StackPanel Spacing="12">
+          <TextBlock Text="LANGUAGE" Classes="section" />
+          <TextBlock Text="The app ships 32 languages. Until one is chosen, the language of the operating system is used."
+                     Classes="muted" FontSize="12" TextWrapping="Wrap" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <ComboBox ItemsSource="{Binding Language.Languages, FallbackValue={x:Null}}" SelectedValue="{Binding Language.SelectedCode, Mode=TwoWay}"
+                      HorizontalAlignment="Stretch" AutomationProperties.Name="App language">
+              <ComboBox.ItemTemplate><DataTemplate x:DataType="loc:AppLanguage"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock Grid.Column="1" Text="{Binding Language.CurrentLanguage, FallbackValue=''}" Classes="muted" FontSize="12" VerticalAlignment="Center" />
+          </Grid>
         </StackPanel>
       </Border>
       <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0" IsVisible="{Binding HasCrosshair, FallbackValue=False}">

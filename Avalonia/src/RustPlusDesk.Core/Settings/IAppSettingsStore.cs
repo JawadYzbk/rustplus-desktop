@@ -61,7 +61,7 @@ public static class SettingKeys
     public const string MapUseCacheMode = "MapUseCacheMode";               // default false: cache the map scene instead of redrawing it per frame
     public const string MapRenderScale = "MapRenderScale";                 // default 1.0: the scene cache's resolution (50–200 %)
     public const string MapUseAliasedEdgeMode = "MapUseAliasedEdgeMode";   // default false: aliased grid lines (1.0 px) and markers
-    public const string SelectedLanguage = "SelectedLanguage";             // "" = installed UI culture (5.2 picker not ported yet)
+    public const string SelectedLanguage = "SelectedLanguage";             // "" = the language of the operating system
     public const string HideConsole = "HideConsole";                       // default false: hide the bottom log/console
     public const string AutoConnectEnabled = "AutoConnectEnabled";         // default false: connect the selected server on startup
     public const string AutoStartEnabled = "AutoStartEnabled";             // default false: launch at sign-in (--background)

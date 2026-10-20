@@ -76,6 +76,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>The support card: the user's tickets with the cloud account.</summary>
     public RustPlusDesk.Avalonia.Features.Support.SupportViewModel? Support { get; init; }
     public bool HasSupport => Support is not null;
+    /// <summary>The language picker: the app reads its strings in the language the user chose.</summary>
+    public LanguageSettingsViewModel? Language { get; init; }
+    public bool HasLanguage => Language is not null;
     /// <summary>The selected profile's device automation rules (reference DeviceAutomationOverlay).</summary>
     public RustPlusDesk.Avalonia.Features.Devices.DeviceAutomationSettingsViewModel? Automation { get; init; }
     public bool HasAutomation => Automation is not null;

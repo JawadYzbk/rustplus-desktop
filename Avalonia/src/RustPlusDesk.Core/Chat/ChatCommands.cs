@@ -1,5 +1,6 @@
 using System.Globalization;
 using RustPlusDesk.Core.Devices;
+using RustPlusDesk.Core.Localization;
 using RustPlusDesk.Core.Map;
 
 namespace RustPlusDesk.Core.Chat;
@@ -100,77 +101,227 @@ public sealed record ChatCommandSettings(
 }
 
 /// <summary>The reference Resources.resx chat-command strings, verbatim.</summary>
+/// <summary>
+/// The reference Resources.resx strings the chat answers use, and the English wording they fall back to.
+///
+/// The answers are read from the app's resource catalogue in the language the user chose, exactly as the
+/// reference does; the fallback is the wording the reference has, so a missing translation still answers in
+/// English and the drift check still has something to compare against.
+/// </summary>
 public static class ChatCommandTexts
 {
-    public const string AgoHoursMinutes = "{0}h {1}m";
-    public const string AgoMinutes = "{0}m";
-    public const string PopResponse = "{0} players currently online.{1}";
-    public const string PopQueue = " Queue: {0} players.";
-    public const string TimeResponse = "Current in-game time: {0}.";
-    public const string PromoteResponse = "{0} was promoted to leader.";
-    public const string WhoResponse = "Controlled by Rust+ Desktop (PC App Active)";
-    public const string DeepSeaActive = "Deep Sea is active! Running for {0}.";
-    public const string DeepSeaActiveMidEvent = "Deep Sea is currently active (connected mid-event – spawn time unknown).";
-    public const string DeepSeaEndedMinutesAgo = "Deep Sea ended {0} minutes ago this session.";
-    public const string DeepSeaStatusUnknown = "Deep Sea event status unknown (not seen this session).";
-    public const string CargoNotActive = "Cargo Ship not active.";
-    public const string CargoDockedDeparts = "Cargo Ship docked at {0}. Departs in approx. {1} minutes.";
-    public const string CargoDockedPreparingDepart = "Cargo Ship docked at {0} and preparing to depart.";
-    public const string CargoDockedUnknown = "Cargo Ship docked at {0} (departure time unknown).";
-    public const string CargoActiveLeaves = "Cargo Ship active. Leaves in approx. {0} minutes.";
-    public const string CargoActivePreparingLeave = "Cargo Ship active and preparing to leave soon.";
-    public const string CargoActiveDurationNotLearned = "Cargo Ship active (route duration not yet learned for this server).";
-    public const string CargoActiveMidRoute = "Cargo Ship active (connected after spawn – remaining time unknown).";
-    public const string CargoDespawnedMinutesAgo = "Cargo Ship not active. Despawned {0} minutes ago this session.";
-    public const string HeliActive = "Patrol Heli is active! Running for {0}.";
-    public const string HeliActiveMidEvent = "Patrol Heli is currently active (connected mid-event – spawn time unknown).";
-    public const string HeliNotActiveAgo = "Patrol Heli not active. It was {0} {1} ago this session.";
-    public const string HeliReasonShotDown = "shot down";
-    public const string HeliReasonLeftMap = "left the map";
-    public const string HeliStatusUnknown = "Patrol Heli event status unknown (not seen this session).";
-    public const string VendorActive = "Travelling Vendor is active! Running for {0}.";
-    public const string VendorActiveMidEvent = "Travelling Vendor is currently active (connected mid-event – spawn time unknown).";
-    public const string VendorDespawnedAgo = "Travelling Vendor not active. Despawned {0} ago this session.";
-    public const string VendorStatusUnknown = "Travelling Vendor event status unknown (not seen this session).";
-    public const string ListHeader = "COMMANDS: {0}";
-    public const string NoOneAfk = "No one is AFK.";
-    public const string AfkTeamScope = "Team";
-    public const string HarborFallback = "harbor";
-    public const string SwitchToggled = "{0} turned {1}.";
-    public const string SwitchStateOn = "ON";
-    public const string SwitchStateOff = "OFF";
-    public const string SwitchNotPaired = "Bound Smart Switch not found or not paired.";
-    public const string UpkeepNoTcMapped = "No Tool Cupboards are mapped for upkeep commands.";
-    public const string UpkeepTcEmptyExpired = "Upkeep in {0} TC: Empty or expired.";
-    public const string UpkeepNeed24h = " Need/24h: {0}.";
-    public const string UpkeepTcTime = "Upkeep in {0} TC: {1}.";
-    public const string UpkeepDays = "{0} days";
-    public const string UpkeepHours = "{0} hours";
-    public const string UpkeepMinutes = "{0} minutes";
-    public const string UpkeepEmptyExpiredShort = "{0}: Empty/expired";
-    public const string UpkeepTimeShort = "{0}: {1}d, {2}h";
-    public const string UpkeepHeader = "Upkeep: {0}";
-    public const string UpkeepNotPaired = "Bound Tool Cupboard monitors not found or not paired.";
-    public const string UpkeepNotPairedSingle = "Bound Tool Cupboard monitor not found or not paired.";
-    public const string MaterialWood = "Wood";
-    public const string MaterialStone = "Stone";
-    public const string MaterialMetal = "Metal";
-    public const string MaterialHQM = "HQM";
-    public const string OilRigHackRunning = "{0}: crate unlocks in {1}m {2}s";
-    public const string OilRigNone = "{0}: None";
-    public const string OilRigNoAlarm = "No Oil Rig Smart Alarm notification received.";
-    public const string OilRigSmallLabel = "Small Oil";
-    public const string OilRigLargeLabel = "Large Oil";
-    public const string OilRigGenericLabel = "Oil Rig";
-    public const string BaseCodeNameDefault = "Doorcode";
-    public const string NoBaseCodes = "No base codes are set.";
-    public const string NoActiveTimers = "No active timers.";
-    public const string TimerMaxReached = "Maximum of 5 timers allowed.";
-    public const string TimerNameMustStartWithLetter = "Timer name must start with a letter.";
-    public const string TimerCreated = "Timer {0} created for {1}h {2}m {3}s";
-    public const string TimerDurationRequired = "Please enter a timer duration (hours, minutes, or seconds).";
-    public const string CountdownOneMinute = "1-minute countdown...";
-    public const string TimerExpiredTitle = "Timer Expired";
+    /// <summary>The resource key for each answer, when the reference has one.</summary>
+    public static IReadOnlyDictionary<string, string> Keys { get; } = new Dictionary<string, string>
+    {
+        ["AgoHoursMinutes"] = "AgoHoursMinutes",
+        ["AgoMinutes"] = "AgoMinutes",
+        ["PopResponse"] = "ChatCmdPopResponse",
+        ["PopQueue"] = "ChatCmdPopQueue",
+        ["TimeResponse"] = "ChatCmdTimeResponse",
+        ["PromoteResponse"] = "ChatCmdPromoteResponse",
+        ["DeepSeaActive"] = "ChatCmdDeepSeaActive",
+        ["DeepSeaActiveMidEvent"] = "ChatCmdDeepSeaActiveMidEvent",
+        ["DeepSeaEndedMinutesAgo"] = "ChatCmdDeepSeaEndedMinutesAgo",
+        ["DeepSeaStatusUnknown"] = "ChatCmdDeepSeaStatusUnknown",
+        ["CargoNotActive"] = "ChatCmdCargoNotActive",
+        ["CargoDockedDeparts"] = "ChatCmdCargoDockedDeparts",
+        ["CargoDockedPreparingDepart"] = "ChatCmdCargoDockedPreparingDepart",
+        ["CargoDockedUnknown"] = "ChatCmdCargoDockedUnknown",
+        ["CargoActiveLeaves"] = "ChatCmdCargoActiveLeaves",
+        ["CargoActivePreparingLeave"] = "ChatCmdCargoActivePreparingLeave",
+        ["CargoActiveDurationNotLearned"] = "ChatCmdCargoActiveDurationNotLearned",
+        ["CargoActiveMidRoute"] = "ChatCmdCargoActiveMidRoute",
+        ["CargoDespawnedMinutesAgo"] = "ChatCmdCargoDespawnedMinutesAgo",
+        ["HeliActive"] = "ChatCmdHeliActive",
+        ["HeliActiveMidEvent"] = "ChatCmdHeliActiveMidEvent",
+        ["HeliNotActiveAgo"] = "ChatCmdHeliNotActiveAgo",
+        ["HeliReasonShotDown"] = "ChatCmdHeliReasonShotDown",
+        ["HeliReasonLeftMap"] = "ChatCmdHeliReasonLeftMap",
+        ["HeliStatusUnknown"] = "ChatCmdHeliStatusUnknown",
+        ["VendorActive"] = "ChatCmdVendorActive",
+        ["VendorActiveMidEvent"] = "ChatCmdVendorActiveMidEvent",
+        ["VendorDespawnedAgo"] = "ChatCmdVendorDespawnedAgo",
+        ["VendorStatusUnknown"] = "ChatCmdVendorStatusUnknown",
+        ["ListHeader"] = "ChatCmdListHeader",
+        ["NoOneAfk"] = "ChatCmdNoOneAfk",
+        ["AfkTeamScope"] = "ChatCmdAfkTeamScope",
+        ["HarborFallback"] = "HarborFallback",
+        ["SwitchToggled"] = "ChatCmdSwitchToggled",
+        ["SwitchStateOn"] = "ChatCmdSwitchStateOn",
+        ["SwitchStateOff"] = "ChatCmdSwitchStateOff",
+        ["SwitchNotPaired"] = "ChatCmdSwitchNotPaired",
+        ["UpkeepNoTcMapped"] = "ChatCmdUpkeepNoTcMapped",
+        ["UpkeepTcEmptyExpired"] = "ChatCmdUpkeepTcEmptyExpired",
+        ["UpkeepNeed24h"] = "ChatCmdUpkeepNeed24h",
+        ["UpkeepTcTime"] = "ChatCmdUpkeepTcTime",
+        ["UpkeepDays"] = "ChatCmdUpkeepDays",
+        ["UpkeepHours"] = "ChatCmdUpkeepHours",
+        ["UpkeepMinutes"] = "ChatCmdUpkeepMinutes",
+        ["UpkeepEmptyExpiredShort"] = "ChatCmdUpkeepEmptyExpiredShort",
+        ["UpkeepTimeShort"] = "ChatCmdUpkeepTimeShort",
+        ["UpkeepHeader"] = "ChatCmdUpkeepHeader",
+        ["UpkeepNotPaired"] = "ChatCmdUpkeepNotPaired",
+        ["UpkeepNotPairedSingle"] = "ChatCmdUpkeepNotPairedSingle",
+        ["MaterialWood"] = "MaterialWood",
+        ["MaterialStone"] = "MaterialStone",
+        ["MaterialMetal"] = "MaterialMetal",
+        ["MaterialHQM"] = "MaterialHQM",
+        ["OilRigHackRunning"] = "ChatCmdOilRigHackRunning",
+        ["OilRigSmallLabel"] = "UiBadgeSmallOil",
+        ["OilRigLargeLabel"] = "UiBadgeLargeOil",
+        ["BaseCodeNameDefault"] = "BaseCodesNameDefault",
+        ["NoBaseCodes"] = "ChatCmdNoBaseCodes",
+        ["TimerMaxReached"] = "ChatCmdTimerMaxReached",
+        ["TimerNameMustStartWithLetter"] = "TimerNameMustStartWithLetter",
+        ["TimerCreated"] = "TimerCreated",
+        ["TimerDurationRequired"] = "TimerDurationRequired",
+        ["CountdownOneMinute"] = "CountdownOneMinute",
+        ["TimerExpiredTitle"] = "TimerExpiredTitle",
+    };
+
+    /// <summary>The English wording of each answer, as the reference has it.</summary>
+    public static IReadOnlyDictionary<string, string> Fallbacks { get; } = new Dictionary<string, string>
+    {
+        ["AgoHoursMinutes"] = "{0}h {1}m",
+        ["AgoMinutes"] = "{0}m",
+        ["PopResponse"] = "{0} players currently online.{1}",
+        ["PopQueue"] = " Queue: {0} players.",
+        ["TimeResponse"] = "Current in-game time: {0}.",
+        ["PromoteResponse"] = "{0} was promoted to leader.",
+        ["WhoResponse"] = "Controlled by Rust+ Desktop (PC App Active)",
+        ["DeepSeaActive"] = "Deep Sea is active! Running for {0}.",
+        ["DeepSeaActiveMidEvent"] = "Deep Sea is currently active (connected mid-event – spawn time unknown).",
+        ["DeepSeaEndedMinutesAgo"] = "Deep Sea ended {0} minutes ago this session.",
+        ["DeepSeaStatusUnknown"] = "Deep Sea event status unknown (not seen this session).",
+        ["CargoNotActive"] = "Cargo Ship not active.",
+        ["CargoDockedDeparts"] = "Cargo Ship docked at {0}. Departs in approx. {1} minutes.",
+        ["CargoDockedPreparingDepart"] = "Cargo Ship docked at {0} and preparing to depart.",
+        ["CargoDockedUnknown"] = "Cargo Ship docked at {0} (departure time unknown).",
+        ["CargoActiveLeaves"] = "Cargo Ship active. Leaves in approx. {0} minutes.",
+        ["CargoActivePreparingLeave"] = "Cargo Ship active and preparing to leave soon.",
+        ["CargoActiveDurationNotLearned"] = "Cargo Ship active (route duration not yet learned for this server).",
+        ["CargoActiveMidRoute"] = "Cargo Ship active (connected after spawn – remaining time unknown).",
+        ["CargoDespawnedMinutesAgo"] = "Cargo Ship not active. Despawned {0} minutes ago this session.",
+        ["HeliActive"] = "Patrol Heli is active! Running for {0}.",
+        ["HeliActiveMidEvent"] = "Patrol Heli is currently active (connected mid-event – spawn time unknown).",
+        ["HeliNotActiveAgo"] = "Patrol Heli not active. It was {0} {1} ago this session.",
+        ["HeliReasonShotDown"] = "shot down",
+        ["HeliReasonLeftMap"] = "left the map",
+        ["HeliStatusUnknown"] = "Patrol Heli event status unknown (not seen this session).",
+        ["VendorActive"] = "Travelling Vendor is active! Running for {0}.",
+        ["VendorActiveMidEvent"] = "Travelling Vendor is currently active (connected mid-event – spawn time unknown).",
+        ["VendorDespawnedAgo"] = "Travelling Vendor not active. Despawned {0} ago this session.",
+        ["VendorStatusUnknown"] = "Travelling Vendor event status unknown (not seen this session).",
+        ["ListHeader"] = "COMMANDS: {0}",
+        ["NoOneAfk"] = "No one is AFK.",
+        ["AfkTeamScope"] = "Team",
+        ["HarborFallback"] = "harbor",
+        ["SwitchToggled"] = "{0} turned {1}.",
+        ["SwitchStateOn"] = "ON",
+        ["SwitchStateOff"] = "OFF",
+        ["SwitchNotPaired"] = "Bound Smart Switch not found or not paired.",
+        ["UpkeepNoTcMapped"] = "No Tool Cupboards are mapped for upkeep commands.",
+        ["UpkeepTcEmptyExpired"] = "Upkeep in {0} TC: Empty or expired.",
+        ["UpkeepNeed24h"] = " Need/24h: {0}.",
+        ["UpkeepTcTime"] = "Upkeep in {0} TC: {1}.",
+        ["UpkeepDays"] = "{0} days",
+        ["UpkeepHours"] = "{0} hours",
+        ["UpkeepMinutes"] = "{0} minutes",
+        ["UpkeepEmptyExpiredShort"] = "{0}: Empty/expired",
+        ["UpkeepTimeShort"] = "{0}: {1}d, {2}h",
+        ["UpkeepHeader"] = "Upkeep: {0}",
+        ["UpkeepNotPaired"] = "Bound Tool Cupboard monitors not found or not paired.",
+        ["UpkeepNotPairedSingle"] = "Bound Tool Cupboard monitor not found or not paired.",
+        ["MaterialWood"] = "Wood",
+        ["MaterialStone"] = "Stone",
+        ["MaterialMetal"] = "Metal",
+        ["MaterialHQM"] = "HQM",
+        ["OilRigHackRunning"] = "{0}: crate unlocks in {1}m {2}s",
+        ["OilRigNone"] = "{0}: None",
+        ["OilRigNoAlarm"] = "No Oil Rig Smart Alarm notification received.",
+        ["OilRigSmallLabel"] = "Small Oil",
+        ["OilRigLargeLabel"] = "Large Oil",
+        ["OilRigGenericLabel"] = "Oil Rig",
+        ["BaseCodeNameDefault"] = "Doorcode",
+        ["NoBaseCodes"] = "No base codes are set.",
+        ["NoActiveTimers"] = "No active timers.",
+        ["TimerMaxReached"] = "Maximum of 5 timers allowed.",
+        ["TimerNameMustStartWithLetter"] = "Timer name must start with a letter.",
+        ["TimerCreated"] = "Timer {0} created for {1}h {2}m {3}s",
+        ["TimerDurationRequired"] = "Please enter a timer duration (hours, minutes, or seconds).",
+        ["CountdownOneMinute"] = "1-minute countdown...",
+        ["TimerExpiredTitle"] = "Timer Expired",
+    };
+
+    public static string AgoHoursMinutes => Keys.TryGetValue(nameof(AgoHoursMinutes), out string? key) ? Loc.Text(key, Fallbacks[nameof(AgoHoursMinutes)]) : Fallbacks[nameof(AgoHoursMinutes)];
+    public static string AgoMinutes => Keys.TryGetValue(nameof(AgoMinutes), out string? key) ? Loc.Text(key, Fallbacks[nameof(AgoMinutes)]) : Fallbacks[nameof(AgoMinutes)];
+    public static string PopResponse => Keys.TryGetValue(nameof(PopResponse), out string? key) ? Loc.Text(key, Fallbacks[nameof(PopResponse)]) : Fallbacks[nameof(PopResponse)];
+    public static string PopQueue => Keys.TryGetValue(nameof(PopQueue), out string? key) ? Loc.Text(key, Fallbacks[nameof(PopQueue)]) : Fallbacks[nameof(PopQueue)];
+    public static string TimeResponse => Keys.TryGetValue(nameof(TimeResponse), out string? key) ? Loc.Text(key, Fallbacks[nameof(TimeResponse)]) : Fallbacks[nameof(TimeResponse)];
+    public static string PromoteResponse => Keys.TryGetValue(nameof(PromoteResponse), out string? key) ? Loc.Text(key, Fallbacks[nameof(PromoteResponse)]) : Fallbacks[nameof(PromoteResponse)];
+    public static string WhoResponse => Keys.TryGetValue(nameof(WhoResponse), out string? key) ? Loc.Text(key, Fallbacks[nameof(WhoResponse)]) : Fallbacks[nameof(WhoResponse)];
+    public static string DeepSeaActive => Keys.TryGetValue(nameof(DeepSeaActive), out string? key) ? Loc.Text(key, Fallbacks[nameof(DeepSeaActive)]) : Fallbacks[nameof(DeepSeaActive)];
+    public static string DeepSeaActiveMidEvent => Keys.TryGetValue(nameof(DeepSeaActiveMidEvent), out string? key) ? Loc.Text(key, Fallbacks[nameof(DeepSeaActiveMidEvent)]) : Fallbacks[nameof(DeepSeaActiveMidEvent)];
+    public static string DeepSeaEndedMinutesAgo => Keys.TryGetValue(nameof(DeepSeaEndedMinutesAgo), out string? key) ? Loc.Text(key, Fallbacks[nameof(DeepSeaEndedMinutesAgo)]) : Fallbacks[nameof(DeepSeaEndedMinutesAgo)];
+    public static string DeepSeaStatusUnknown => Keys.TryGetValue(nameof(DeepSeaStatusUnknown), out string? key) ? Loc.Text(key, Fallbacks[nameof(DeepSeaStatusUnknown)]) : Fallbacks[nameof(DeepSeaStatusUnknown)];
+    public static string CargoNotActive => Keys.TryGetValue(nameof(CargoNotActive), out string? key) ? Loc.Text(key, Fallbacks[nameof(CargoNotActive)]) : Fallbacks[nameof(CargoNotActive)];
+    public static string CargoDockedDeparts => Keys.TryGetValue(nameof(CargoDockedDeparts), out string? key) ? Loc.Text(key, Fallbacks[nameof(CargoDockedDeparts)]) : Fallbacks[nameof(CargoDockedDeparts)];
+    public static string CargoDockedPreparingDepart => Keys.TryGetValue(nameof(CargoDockedPreparingDepart), out string? key) ? Loc.Text(key, Fallbacks[nameof(CargoDockedPreparingDepart)]) : Fallbacks[nameof(CargoDockedPreparingDepart)];
+    public static string CargoDockedUnknown => Keys.TryGetValue(nameof(CargoDockedUnknown), out string? key) ? Loc.Text(key, Fallbacks[nameof(CargoDockedUnknown)]) : Fallbacks[nameof(CargoDockedUnknown)];
+    public static string CargoActiveLeaves => Keys.TryGetValue(nameof(CargoActiveLeaves), out string? key) ? Loc.Text(key, Fallbacks[nameof(CargoActiveLeaves)]) : Fallbacks[nameof(CargoActiveLeaves)];
+    public static string CargoActivePreparingLeave => Keys.TryGetValue(nameof(CargoActivePreparingLeave), out string? key) ? Loc.Text(key, Fallbacks[nameof(CargoActivePreparingLeave)]) : Fallbacks[nameof(CargoActivePreparingLeave)];
+    public static string CargoActiveDurationNotLearned => Keys.TryGetValue(nameof(CargoActiveDurationNotLearned), out string? key) ? Loc.Text(key, Fallbacks[nameof(CargoActiveDurationNotLearned)]) : Fallbacks[nameof(CargoActiveDurationNotLearned)];
+    public static string CargoActiveMidRoute => Keys.TryGetValue(nameof(CargoActiveMidRoute), out string? key) ? Loc.Text(key, Fallbacks[nameof(CargoActiveMidRoute)]) : Fallbacks[nameof(CargoActiveMidRoute)];
+    public static string CargoDespawnedMinutesAgo => Keys.TryGetValue(nameof(CargoDespawnedMinutesAgo), out string? key) ? Loc.Text(key, Fallbacks[nameof(CargoDespawnedMinutesAgo)]) : Fallbacks[nameof(CargoDespawnedMinutesAgo)];
+    public static string HeliActive => Keys.TryGetValue(nameof(HeliActive), out string? key) ? Loc.Text(key, Fallbacks[nameof(HeliActive)]) : Fallbacks[nameof(HeliActive)];
+    public static string HeliActiveMidEvent => Keys.TryGetValue(nameof(HeliActiveMidEvent), out string? key) ? Loc.Text(key, Fallbacks[nameof(HeliActiveMidEvent)]) : Fallbacks[nameof(HeliActiveMidEvent)];
+    public static string HeliNotActiveAgo => Keys.TryGetValue(nameof(HeliNotActiveAgo), out string? key) ? Loc.Text(key, Fallbacks[nameof(HeliNotActiveAgo)]) : Fallbacks[nameof(HeliNotActiveAgo)];
+    public static string HeliReasonShotDown => Keys.TryGetValue(nameof(HeliReasonShotDown), out string? key) ? Loc.Text(key, Fallbacks[nameof(HeliReasonShotDown)]) : Fallbacks[nameof(HeliReasonShotDown)];
+    public static string HeliReasonLeftMap => Keys.TryGetValue(nameof(HeliReasonLeftMap), out string? key) ? Loc.Text(key, Fallbacks[nameof(HeliReasonLeftMap)]) : Fallbacks[nameof(HeliReasonLeftMap)];
+    public static string HeliStatusUnknown => Keys.TryGetValue(nameof(HeliStatusUnknown), out string? key) ? Loc.Text(key, Fallbacks[nameof(HeliStatusUnknown)]) : Fallbacks[nameof(HeliStatusUnknown)];
+    public static string VendorActive => Keys.TryGetValue(nameof(VendorActive), out string? key) ? Loc.Text(key, Fallbacks[nameof(VendorActive)]) : Fallbacks[nameof(VendorActive)];
+    public static string VendorActiveMidEvent => Keys.TryGetValue(nameof(VendorActiveMidEvent), out string? key) ? Loc.Text(key, Fallbacks[nameof(VendorActiveMidEvent)]) : Fallbacks[nameof(VendorActiveMidEvent)];
+    public static string VendorDespawnedAgo => Keys.TryGetValue(nameof(VendorDespawnedAgo), out string? key) ? Loc.Text(key, Fallbacks[nameof(VendorDespawnedAgo)]) : Fallbacks[nameof(VendorDespawnedAgo)];
+    public static string VendorStatusUnknown => Keys.TryGetValue(nameof(VendorStatusUnknown), out string? key) ? Loc.Text(key, Fallbacks[nameof(VendorStatusUnknown)]) : Fallbacks[nameof(VendorStatusUnknown)];
+    public static string ListHeader => Keys.TryGetValue(nameof(ListHeader), out string? key) ? Loc.Text(key, Fallbacks[nameof(ListHeader)]) : Fallbacks[nameof(ListHeader)];
+    public static string NoOneAfk => Keys.TryGetValue(nameof(NoOneAfk), out string? key) ? Loc.Text(key, Fallbacks[nameof(NoOneAfk)]) : Fallbacks[nameof(NoOneAfk)];
+    public static string AfkTeamScope => Keys.TryGetValue(nameof(AfkTeamScope), out string? key) ? Loc.Text(key, Fallbacks[nameof(AfkTeamScope)]) : Fallbacks[nameof(AfkTeamScope)];
+    public static string HarborFallback => Keys.TryGetValue(nameof(HarborFallback), out string? key) ? Loc.Text(key, Fallbacks[nameof(HarborFallback)]) : Fallbacks[nameof(HarborFallback)];
+    public static string SwitchToggled => Keys.TryGetValue(nameof(SwitchToggled), out string? key) ? Loc.Text(key, Fallbacks[nameof(SwitchToggled)]) : Fallbacks[nameof(SwitchToggled)];
+    public static string SwitchStateOn => Keys.TryGetValue(nameof(SwitchStateOn), out string? key) ? Loc.Text(key, Fallbacks[nameof(SwitchStateOn)]) : Fallbacks[nameof(SwitchStateOn)];
+    public static string SwitchStateOff => Keys.TryGetValue(nameof(SwitchStateOff), out string? key) ? Loc.Text(key, Fallbacks[nameof(SwitchStateOff)]) : Fallbacks[nameof(SwitchStateOff)];
+    public static string SwitchNotPaired => Keys.TryGetValue(nameof(SwitchNotPaired), out string? key) ? Loc.Text(key, Fallbacks[nameof(SwitchNotPaired)]) : Fallbacks[nameof(SwitchNotPaired)];
+    public static string UpkeepNoTcMapped => Keys.TryGetValue(nameof(UpkeepNoTcMapped), out string? key) ? Loc.Text(key, Fallbacks[nameof(UpkeepNoTcMapped)]) : Fallbacks[nameof(UpkeepNoTcMapped)];
+    public static string UpkeepTcEmptyExpired => Keys.TryGetValue(nameof(UpkeepTcEmptyExpired), out string? key) ? Loc.Text(key, Fallbacks[nameof(UpkeepTcEmptyExpired)]) : Fallbacks[nameof(UpkeepTcEmptyExpired)];
+    public static string UpkeepNeed24h => Keys.TryGetValue(nameof(UpkeepNeed24h), out string? key) ? Loc.Text(key, Fallbacks[nameof(UpkeepNeed24h)]) : Fallbacks[nameof(UpkeepNeed24h)];
+    public static string UpkeepTcTime => Keys.TryGetValue(nameof(UpkeepTcTime), out string? key) ? Loc.Text(key, Fallbacks[nameof(UpkeepTcTime)]) : Fallbacks[nameof(UpkeepTcTime)];
+    public static string UpkeepDays => Keys.TryGetValue(nameof(UpkeepDays), out string? key) ? Loc.Text(key, Fallbacks[nameof(UpkeepDays)]) : Fallbacks[nameof(UpkeepDays)];
+    public static string UpkeepHours => Keys.TryGetValue(nameof(UpkeepHours), out string? key) ? Loc.Text(key, Fallbacks[nameof(UpkeepHours)]) : Fallbacks[nameof(UpkeepHours)];
+    public static string UpkeepMinutes => Keys.TryGetValue(nameof(UpkeepMinutes), out string? key) ? Loc.Text(key, Fallbacks[nameof(UpkeepMinutes)]) : Fallbacks[nameof(UpkeepMinutes)];
+    public static string UpkeepEmptyExpiredShort => Keys.TryGetValue(nameof(UpkeepEmptyExpiredShort), out string? key) ? Loc.Text(key, Fallbacks[nameof(UpkeepEmptyExpiredShort)]) : Fallbacks[nameof(UpkeepEmptyExpiredShort)];
+    public static string UpkeepTimeShort => Keys.TryGetValue(nameof(UpkeepTimeShort), out string? key) ? Loc.Text(key, Fallbacks[nameof(UpkeepTimeShort)]) : Fallbacks[nameof(UpkeepTimeShort)];
+    public static string UpkeepHeader => Keys.TryGetValue(nameof(UpkeepHeader), out string? key) ? Loc.Text(key, Fallbacks[nameof(UpkeepHeader)]) : Fallbacks[nameof(UpkeepHeader)];
+    public static string UpkeepNotPaired => Keys.TryGetValue(nameof(UpkeepNotPaired), out string? key) ? Loc.Text(key, Fallbacks[nameof(UpkeepNotPaired)]) : Fallbacks[nameof(UpkeepNotPaired)];
+    public static string UpkeepNotPairedSingle => Keys.TryGetValue(nameof(UpkeepNotPairedSingle), out string? key) ? Loc.Text(key, Fallbacks[nameof(UpkeepNotPairedSingle)]) : Fallbacks[nameof(UpkeepNotPairedSingle)];
+    public static string MaterialWood => Keys.TryGetValue(nameof(MaterialWood), out string? key) ? Loc.Text(key, Fallbacks[nameof(MaterialWood)]) : Fallbacks[nameof(MaterialWood)];
+    public static string MaterialStone => Keys.TryGetValue(nameof(MaterialStone), out string? key) ? Loc.Text(key, Fallbacks[nameof(MaterialStone)]) : Fallbacks[nameof(MaterialStone)];
+    public static string MaterialMetal => Keys.TryGetValue(nameof(MaterialMetal), out string? key) ? Loc.Text(key, Fallbacks[nameof(MaterialMetal)]) : Fallbacks[nameof(MaterialMetal)];
+    public static string MaterialHQM => Keys.TryGetValue(nameof(MaterialHQM), out string? key) ? Loc.Text(key, Fallbacks[nameof(MaterialHQM)]) : Fallbacks[nameof(MaterialHQM)];
+    public static string OilRigHackRunning => Keys.TryGetValue(nameof(OilRigHackRunning), out string? key) ? Loc.Text(key, Fallbacks[nameof(OilRigHackRunning)]) : Fallbacks[nameof(OilRigHackRunning)];
+    public static string OilRigNone => Keys.TryGetValue(nameof(OilRigNone), out string? key) ? Loc.Text(key, Fallbacks[nameof(OilRigNone)]) : Fallbacks[nameof(OilRigNone)];
+    public static string OilRigNoAlarm => Keys.TryGetValue(nameof(OilRigNoAlarm), out string? key) ? Loc.Text(key, Fallbacks[nameof(OilRigNoAlarm)]) : Fallbacks[nameof(OilRigNoAlarm)];
+    public static string OilRigSmallLabel => Keys.TryGetValue(nameof(OilRigSmallLabel), out string? key) ? Loc.Text(key, Fallbacks[nameof(OilRigSmallLabel)]) : Fallbacks[nameof(OilRigSmallLabel)];
+    public static string OilRigLargeLabel => Keys.TryGetValue(nameof(OilRigLargeLabel), out string? key) ? Loc.Text(key, Fallbacks[nameof(OilRigLargeLabel)]) : Fallbacks[nameof(OilRigLargeLabel)];
+    public static string OilRigGenericLabel => Keys.TryGetValue(nameof(OilRigGenericLabel), out string? key) ? Loc.Text(key, Fallbacks[nameof(OilRigGenericLabel)]) : Fallbacks[nameof(OilRigGenericLabel)];
+    public static string BaseCodeNameDefault => Keys.TryGetValue(nameof(BaseCodeNameDefault), out string? key) ? Loc.Text(key, Fallbacks[nameof(BaseCodeNameDefault)]) : Fallbacks[nameof(BaseCodeNameDefault)];
+    public static string NoBaseCodes => Keys.TryGetValue(nameof(NoBaseCodes), out string? key) ? Loc.Text(key, Fallbacks[nameof(NoBaseCodes)]) : Fallbacks[nameof(NoBaseCodes)];
+    public static string NoActiveTimers => Keys.TryGetValue(nameof(NoActiveTimers), out string? key) ? Loc.Text(key, Fallbacks[nameof(NoActiveTimers)]) : Fallbacks[nameof(NoActiveTimers)];
+    public static string TimerMaxReached => Keys.TryGetValue(nameof(TimerMaxReached), out string? key) ? Loc.Text(key, Fallbacks[nameof(TimerMaxReached)]) : Fallbacks[nameof(TimerMaxReached)];
+    public static string TimerNameMustStartWithLetter => Keys.TryGetValue(nameof(TimerNameMustStartWithLetter), out string? key) ? Loc.Text(key, Fallbacks[nameof(TimerNameMustStartWithLetter)]) : Fallbacks[nameof(TimerNameMustStartWithLetter)];
+    public static string TimerCreated => Keys.TryGetValue(nameof(TimerCreated), out string? key) ? Loc.Text(key, Fallbacks[nameof(TimerCreated)]) : Fallbacks[nameof(TimerCreated)];
+    public static string TimerDurationRequired => Keys.TryGetValue(nameof(TimerDurationRequired), out string? key) ? Loc.Text(key, Fallbacks[nameof(TimerDurationRequired)]) : Fallbacks[nameof(TimerDurationRequired)];
+    public static string CountdownOneMinute => Keys.TryGetValue(nameof(CountdownOneMinute), out string? key) ? Loc.Text(key, Fallbacks[nameof(CountdownOneMinute)]) : Fallbacks[nameof(CountdownOneMinute)];
+    public static string TimerExpiredTitle => Keys.TryGetValue(nameof(TimerExpiredTitle), out string? key) ? Loc.Text(key, Fallbacks[nameof(TimerExpiredTitle)]) : Fallbacks[nameof(TimerExpiredTitle)];
 }
 
 /// <summary>Reference ChatCommandMapping: one chat command name bound to one paired entity.</summary>

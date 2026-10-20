@@ -39,6 +39,19 @@ public sealed partial class App : Application
         Styles.Add(platformStyles);
     }
 
+    /// <summary>
+    /// Reference the language setting: the app reads its strings in the language the user chose, and follows the
+    /// operating system's language when the setting is empty.
+    /// </summary>
+    private static void ApplyLanguage(TrackingSettingsStore settings)
+    {
+        string chosen = settings.Get(RustPlusDesk.Core.Settings.SettingKeys.SelectedLanguage, "");
+        var culture = RustPlusDesk.Core.Localization.AppLanguages.CultureFor(chosen)
+            ?? RustPlusDesk.Core.Localization.AppLanguages.CultureFor(
+                RustPlusDesk.Core.Localization.AppLanguages.Resolve(System.Globalization.CultureInfo.CurrentUICulture));
+        RustPlusDesk.Core.Localization.Loc.UseCulture(culture);
+    }
+
     public override void OnFrameworkInitializationCompleted()
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
@@ -46,6 +59,11 @@ public sealed partial class App : Application
             var window = new MainWindow();
             var sessions = new RustPlusSessionFactory();
             var traffic = new RustPlusDesk.Core.Diagnostics.NetworkTrafficMonitor();
+            // The app's strings live in the app's resources, so the catalogue is handed to the core here.
+            RustPlusDesk.Core.Localization.Loc.Manager = new System.Resources.ResourceManager(
+                "RustPlusDesk.Avalonia.Properties.Resources", typeof(App).Assembly);
+            var settingsStore = new TrackingSettingsStore(TrackingSettingsStore.DefaultPath);
+            ApplyLanguage(settingsStore);
             var accountHttp = new HttpClient(new RustPlusDesk.Infrastructure.Diagnostics.TrafficTrackingHttpMessageHandler(
                 new HttpClientHandler(), traffic, "Cloud API")) { Timeout = TimeSpan.FromSeconds(30) };
             var cloudHttp = new HttpClient(new RustPlusDesk.Infrastructure.Diagnostics.TrafficTrackingHttpMessageHandler(
@@ -63,8 +81,7 @@ public sealed partial class App : Application
                 new CloudDeviceSynchronizer(cloudHttp, CloudAccountService.DefaultCachePath, typeof(App).Assembly.GetName().Version!.ToString(3), syncPreferences),
                 new DeviceImporter(cloudHttp, CloudAccountService.DefaultCachePath, typeof(App).Assembly.GetName().Version!.ToString(3), syncPreferences, DeviceImporter.DefaultOverlayRoot),
                 new BundledRaidCatalog(), new RaidPlanStore(RaidPlanStore.DefaultPath),
-                new TrackingSettingsStore(TrackingSettingsStore.DefaultPath),
-                new ShopAlertStore(ShopAlertStore.DefaultPath), new SystemAlertSound(SystemAlertSound.DefaultPath),
+                settingsStore,                new ShopAlertStore(ShopAlertStore.DefaultPath), new SystemAlertSound(SystemAlertSound.DefaultPath),
                 new RustPlusDesk.Infrastructure.Console.ConsoleCommandStore(RustPlusDesk.Infrastructure.Console.ConsoleCommandStore.DefaultPath),
                 new RustPlusDesk.Infrastructure.Notifications.NotificationHistoryStore(RustPlusDesk.Infrastructure.Notifications.NotificationHistoryStore.DefaultPath),
                 new RustPlusDesk.Infrastructure.Hotkeys.HotkeyStore(RustPlusDesk.Infrastructure.Hotkeys.HotkeyStore.DefaultFolder),

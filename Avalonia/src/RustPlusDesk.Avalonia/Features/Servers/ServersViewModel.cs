@@ -683,6 +683,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
                 CaptureDeviceLocationAsync),
             LogicRules = LogicRules,
             Crosshair = CreateCrosshairSettings(),
+            Language = CreateLanguageSettings(),
             Support = supportService is null ? null : new Support.SupportViewModel(
                 ct => supportService.GetTicketsAsync(ct),
                 ct => supportService.GetMetaAsync(ct),
@@ -875,6 +876,14 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         var model = new Settings.CrosshairSettingsViewModel(appSettings);
         model.Load();
         model.VisibilityChanged += visible => CrosshairVisibilityRequested?.Invoke(visible);
+        return model;
+    }
+
+    /// <summary>Reference the language picker: the app reads its strings in the language the user chose.</summary>
+    private Settings.LanguageSettingsViewModel? CreateLanguageSettings()
+    {
+        var model = new Settings.LanguageSettingsViewModel(appSettings);
+        model.Load();
         return model;
     }
 

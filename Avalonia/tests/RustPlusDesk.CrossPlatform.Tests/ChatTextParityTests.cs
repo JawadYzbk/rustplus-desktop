@@ -17,72 +17,15 @@ public sealed class ChatTextParityTests
     public void PortedChatTexts_AreVerbatimCopiesOfTheReferenceResources()
     {
         var resources = ReadReferenceResources();
-        var ported = new (string Text, string Key)[]
-        {
-            (ChatCommandTexts.AgoHoursMinutes, "AgoHoursMinutes"),
-            (ChatCommandTexts.AgoMinutes, "AgoMinutes"),
-            (ChatCommandTexts.PopResponse, "ChatCmdPopResponse"),
-            (ChatCommandTexts.PopQueue, "ChatCmdPopQueue"),
-            (ChatCommandTexts.TimeResponse, "ChatCmdTimeResponse"),
-            (ChatCommandTexts.PromoteResponse, "ChatCmdPromoteResponse"),
-            (ChatCommandTexts.DeepSeaActive, "ChatCmdDeepSeaActive"),
-            (ChatCommandTexts.DeepSeaActiveMidEvent, "ChatCmdDeepSeaActiveMidEvent"),
-            (ChatCommandTexts.DeepSeaEndedMinutesAgo, "ChatCmdDeepSeaEndedMinutesAgo"),
-            (ChatCommandTexts.DeepSeaStatusUnknown, "ChatCmdDeepSeaStatusUnknown"),
-            (ChatCommandTexts.CargoNotActive, "ChatCmdCargoNotActive"),
-            (ChatCommandTexts.CargoDockedDeparts, "ChatCmdCargoDockedDeparts"),
-            (ChatCommandTexts.CargoDockedPreparingDepart, "ChatCmdCargoDockedPreparingDepart"),
-            (ChatCommandTexts.CargoDockedUnknown, "ChatCmdCargoDockedUnknown"),
-            (ChatCommandTexts.CargoActiveLeaves, "ChatCmdCargoActiveLeaves"),
-            (ChatCommandTexts.CargoActivePreparingLeave, "ChatCmdCargoActivePreparingLeave"),
-            (ChatCommandTexts.CargoActiveDurationNotLearned, "ChatCmdCargoActiveDurationNotLearned"),
-            (ChatCommandTexts.CargoActiveMidRoute, "ChatCmdCargoActiveMidRoute"),
-            (ChatCommandTexts.CargoDespawnedMinutesAgo, "ChatCmdCargoDespawnedMinutesAgo"),
-            (ChatCommandTexts.HeliActive, "ChatCmdHeliActive"),
-            (ChatCommandTexts.HeliActiveMidEvent, "ChatCmdHeliActiveMidEvent"),
-            (ChatCommandTexts.HeliNotActiveAgo, "ChatCmdHeliNotActiveAgo"),
-            (ChatCommandTexts.HeliReasonShotDown, "ChatCmdHeliReasonShotDown"),
-            (ChatCommandTexts.HeliReasonLeftMap, "ChatCmdHeliReasonLeftMap"),
-            (ChatCommandTexts.HeliStatusUnknown, "ChatCmdHeliStatusUnknown"),
-            (ChatCommandTexts.VendorActive, "ChatCmdVendorActive"),
-            (ChatCommandTexts.VendorActiveMidEvent, "ChatCmdVendorActiveMidEvent"),
-            (ChatCommandTexts.VendorDespawnedAgo, "ChatCmdVendorDespawnedAgo"),
-            (ChatCommandTexts.VendorStatusUnknown, "ChatCmdVendorStatusUnknown"),
-            (ChatCommandTexts.ListHeader, "ChatCmdListHeader"),
-            (ChatCommandTexts.NoOneAfk, "ChatCmdNoOneAfk"),
-            (ChatCommandTexts.AfkTeamScope, "ChatCmdAfkTeamScope"),
-            (ChatCommandTexts.HarborFallback, "HarborFallback"),
-            (ChatCommandTexts.SwitchToggled, "ChatCmdSwitchToggled"),
-            (ChatCommandTexts.SwitchStateOn, "ChatCmdSwitchStateOn"),
-            (ChatCommandTexts.SwitchStateOff, "ChatCmdSwitchStateOff"),
-            (ChatCommandTexts.SwitchNotPaired, "ChatCmdSwitchNotPaired"),
-            (ChatCommandTexts.UpkeepNoTcMapped, "ChatCmdUpkeepNoTcMapped"),
-            (ChatCommandTexts.UpkeepTcEmptyExpired, "ChatCmdUpkeepTcEmptyExpired"),
-            (ChatCommandTexts.UpkeepNeed24h, "ChatCmdUpkeepNeed24h"),
-            (ChatCommandTexts.UpkeepTcTime, "ChatCmdUpkeepTcTime"),
-            (ChatCommandTexts.UpkeepDays, "ChatCmdUpkeepDays"),
-            (ChatCommandTexts.UpkeepHours, "ChatCmdUpkeepHours"),
-            (ChatCommandTexts.UpkeepMinutes, "ChatCmdUpkeepMinutes"),
-            (ChatCommandTexts.UpkeepEmptyExpiredShort, "ChatCmdUpkeepEmptyExpiredShort"),
-            (ChatCommandTexts.UpkeepTimeShort, "ChatCmdUpkeepTimeShort"),
-            (ChatCommandTexts.UpkeepHeader, "ChatCmdUpkeepHeader"),
-            (ChatCommandTexts.UpkeepNotPaired, "ChatCmdUpkeepNotPaired"),
-            (ChatCommandTexts.UpkeepNotPairedSingle, "ChatCmdUpkeepNotPairedSingle"),
-            (ChatCommandTexts.MaterialWood, "MaterialWood"),
-            (ChatCommandTexts.MaterialStone, "MaterialStone"),
-            (ChatCommandTexts.MaterialMetal, "MaterialMetal"),
-            (ChatCommandTexts.MaterialHQM, "MaterialHQM"),
-            (ChatCommandTexts.OilRigHackRunning, "ChatCmdOilRigHackRunning"),
-            (ChatCommandTexts.OilRigSmallLabel, "UiBadgeSmallOil"),
-            (ChatCommandTexts.OilRigLargeLabel, "UiBadgeLargeOil"),
-            (ChatCommandTexts.BaseCodeNameDefault, "BaseCodesNameDefault"),
-            (ChatCommandTexts.NoBaseCodes, "ChatCmdNoBaseCodes"),
-        };
-
-        foreach (var (text, key) in ported)
+        // Every answer the reference reads from its resources keeps that wording, so a drifted character (an
+        // ASCII hyphen where the reference has an en dash, a doubled space) fails the port even though a
+        // normalized comparison would not notice.
+        foreach (var (key, fallback) in ChatCommandTexts.Fallbacks
+            .Where(pair => ChatCommandTexts.Keys.ContainsKey(pair.Key))
+            .Select(pair => (Key: ChatCommandTexts.Keys[pair.Key], Fallback: pair.Value)))
         {
             Assert.IsTrue(resources.ContainsKey(key), $"The reference resources do not define {key}.");
-            Assert.AreEqual(resources[key], text, $"{key} drifted from the reference wording.");
+            Assert.AreEqual(resources[key], fallback, $"{key} drifted from the reference wording.");
         }
     }
 
