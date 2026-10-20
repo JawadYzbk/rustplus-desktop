@@ -45,7 +45,9 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Core.Logic.ILogicRuleStore? logicRuleStore = null,
     RustPlusDesk.Infrastructure.Map.MapDrawingStore? drawingStore = null,
     RustPlusDesk.Infrastructure.Updates.GitHubReleaseClient? updateService = null,
-    RustPlusDesk.Infrastructure.Support.SupportService? supportService = null)
+    RustPlusDesk.Infrastructure.Support.SupportService? supportService = null,
+    RustPlusDesk.Core.Ai.IAiSettingsStore? aiStore = null,
+    System.Net.Http.HttpClient? aiHttp = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -362,6 +364,9 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             },
             Log = Activity.Append
         };
+        // Reference TryHandleAiCommand: the AI command is answered by the companion, not by the game.
+        ChatCommandEngine.AskAi = async (message, question, ct) =>
+            await AskAiAsync(question, message.SteamId, message.Channel, ct);
         // Reference TriggerLogicEngineOnChatCommand: the rules that wait for a chat command are fired by it.
         WireLogicCommand();
         ChatCommandEngine.Attach();
@@ -684,6 +689,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             LogicRules = LogicRules,
             Crosshair = CrosshairSettings,
             Language = CreateLanguageSettings(),
+            Ai = Ai,
             Support = supportService is null ? null : new Support.SupportViewModel(
                 ct => supportService.GetTicketsAsync(ct),
                 ct => supportService.GetMetaAsync(ct),
@@ -861,6 +867,85 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     /// <summary>Opens the achievements workspace.</summary>
     [RelayCommand]
     private void OpenAchievements() => WorkspaceIndex = 8;
+
+    /// <summary>
+    /// Reference the AI chat command: ask the companion from inside the game, and get the answer in chat.
+    ///
+    /// It is the one command that costs money to answer, and the money is the owner's, so it is off until it is set
+    /// up, it is capped per person per hour once it is, and it never spends anything before both have been checked.
+    /// </summary>
+    private readonly Dictionary<ulong, List<DateTime>> aiAsks = [];
+    private RustPlusDesk.Core.Ai.AiSettings aiSettings = new();
+    private Settings.AiSettingsViewModel? aiSettingsCard;
+
+    /// <summary>The AI companion's settings card.</summary>
+    public Settings.AiSettingsViewModel? Ai => aiSettingsCard ??= CreateAiSettings();
+
+    private Settings.AiSettingsViewModel? CreateAiSettings()
+    {
+        if (aiStore is null) return null;
+        var card = new Settings.AiSettingsViewModel(aiStore);
+        _ = card.LoadAsync();
+        return card;
+    }
+
+    /// <summary>Asks the companion and returns the text to post in chat.</summary>
+    private async Task<string> AskAiAsync(string question, ulong steamId, RustPlusDesk.Core.Chat.ChatChannel channel, CancellationToken ct)
+    {
+        if (!aiSettings.IsSetUp) return "No AI is set up on this client.";
+        if (Cloud?.Account.Plan?.IsPremium != true) return "Asking the AI from chat is a supporter feature.";
+
+        bool isOwner = Account?.Account.SteamId == steamId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var settings = ChatCommandEngine?.Settings ?? RustPlusDesk.Core.Chat.ChatCommandSettings.Defaults;
+        if (!isOwner)
+        {
+            bool allowed = channel == RustPlusDesk.Core.Chat.ChatChannel.Clan ? settings.ClanCommandsAllowAi : settings.AiAllowTeammates;
+            if (!allowed)
+            {
+                Activity.Append($"[ChatCommand] AI question from {steamId} ignored: not allowed for {channel}.");
+                return "";
+            }
+            if (!RustPlusDesk.Core.Chat.ChatAiCommand.HasAllowanceLeft(settings.AiPerHour, aiAsks.GetValueOrDefault(steamId) ?? [], DateTime.UtcNow))
+                return $"{steamId} has used their AI questions for this hour.";
+        }
+
+        if (aiHttp is null) return "The AI could not answer that.";
+        try
+        {
+            var provider = RustPlusDesk.Infrastructure.Ai.AiProviderFactory.For(aiSettings.Provider, aiHttp);
+            var reply = await provider.AskAsync(new RustPlusDesk.Core.Ai.AiQuestion
+            {
+                Text = question,
+                MaxWords = RustPlusDesk.Core.Chat.ChatAiCommand.MaxWords,
+                Model = aiSettings.Model,
+                Context = AiContext()
+            }, aiSettings.ApiKey, null, ct).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(reply.Answer)) return "The AI could not answer that.";
+            if (!isOwner) RecordAiAsk(steamId);
+            return reply.Answer;
+        }
+        catch (Exception ex)
+        {
+            Activity.Append($"[ChatCommand] The AI could not answer: {ex.Message}");
+            return "The AI could not answer that.";
+        }
+    }
+
+    /// <summary>What the app knows, for a question asked from chat: the clock and the population.</summary>
+    private string? AiContext()
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(Connection.ServerTime)) parts.Add($"in-game time {Connection.ServerTime}");
+        if (Connection.PlayerCount is { } players) parts.Add($"{players} players on the server");
+        return parts.Count == 0 ? null : string.Join(", ", parts) + ".";
+    }
+
+    /// <summary>Reference RecordAiAsk: the owner's own questions are never counted.</summary>
+    private void RecordAiAsk(ulong steamId)
+    {
+        if (!aiAsks.TryGetValue(steamId, out var asks)) aiAsks[steamId] = asks = [];
+        asks.Add(DateTime.UtcNow);
+    }
 
     /// <summary>Earns an achievement (reference AchievementService.Unlock).</summary>
     public void UnlockAchievement(string id) => Achievements?.Unlock(id);
@@ -1292,6 +1377,11 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             CreateLogicEngine();
             // The crosshair is read at start-up, so one that was left on is shown again.
             _ = CrosshairSettings;
+            if (aiStore is not null)
+            {
+                try { aiSettings = await aiStore.LoadAsync(cancellationToken); }
+                catch (Exception) { aiSettings = new RustPlusDesk.Core.Ai.AiSettings(); }
+            }
             timerLoop = Timers.RunAsync(timerStop.Token);
             trafficLoop = RunTrafficAsync(timerStop.Token);
             if (Cloud is not null) Cloud.CheckCommand.Execute(null);

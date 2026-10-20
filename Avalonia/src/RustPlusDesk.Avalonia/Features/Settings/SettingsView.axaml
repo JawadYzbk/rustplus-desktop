@@ -558,6 +558,38 @@
           </StackPanel>
         </StackPanel>
       </Border>
+      <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0" IsVisible="{Binding HasAi, FallbackValue=False}">
+        <icons:Icon Symbol="Sparkle20" FontSize="18" Foreground="{DynamicResource Accent}" />
+        <StackPanel>
+          <TextBlock Text="AI Companion" Classes="title" />
+          <TextBlock Text="Ask the companion from inside the game" Classes="muted" FontSize="12" />
+        </StackPanel>
+      </StackPanel>
+      <Border Classes="panel" Padding="16" IsVisible="{Binding HasAi, FallbackValue=False}">
+        <StackPanel Spacing="12">
+          <TextBlock Text="AI COMPANION" Classes="section" />
+          <TextBlock Text="The key is kept on this machine, in a file only your account can read, and is sent to nothing but the provider you choose."
+                     Classes="muted" FontSize="12" TextWrapping="Wrap" />
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+            <TextBlock Text="Provider" VerticalAlignment="Center" />
+            <ComboBox Grid.Column="1" ItemsSource="{Binding Ai.Providers, FallbackValue={x:Null}}" SelectedItem="{Binding Ai.Provider, Mode=TwoWay}"
+                      HorizontalAlignment="Stretch" AutomationProperties.Name="AI provider" />
+          </Grid>
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+            <TextBlock Text="Model" VerticalAlignment="Center" />
+            <TextBox Grid.Column="1" Text="{Binding Ai.Model, FallbackValue=''}" AutomationProperties.Name="AI model" />
+          </Grid>
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+            <TextBlock Text="API key" VerticalAlignment="Center" />
+            <TextBox Grid.Column="1" Text="{Binding Ai.ApiKey, FallbackValue=''}" PasswordChar="•" AutomationProperties.Name="AI API key" />
+          </Grid>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="primary" Content="{DynamicResource AppSave}" Command="{Binding Ai.SaveCommand, FallbackValue={x:Null}}"
+                    AutomationProperties.Name="Save the AI settings" />
+            <TextBlock Text="{Binding Ai.Status, FallbackValue=''}" Classes="muted" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
       <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0" IsVisible="{Binding HasLanguage, FallbackValue=False}">
         <icons:Icon Symbol="Globe24" FontSize="18" Foreground="{DynamicResource Accent}" />
         <StackPanel>

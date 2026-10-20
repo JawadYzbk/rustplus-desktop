@@ -32,6 +32,12 @@ public sealed class ChatCommandService(ChatViewModel chat)
     /// </summary>
     public Action<string>? CommandReceived { get; set; }
 
+    /// <summary>
+    /// Reference TryHandleAiCommand: the AI command answers from the companion rather than from the game, so it is
+    /// handled before the engine and works whether or not the socket is up. The delegate returns the text to post.
+    /// </summary>
+    public Func<ChatMessage, string, CancellationToken, Task<string>>? AskAi { get; set; }
+
     /// <summary>Starts answering the live chat feed (history is not offered: only messages that arrive count).</summary>
     public void Attach() => chat.LiveMessage += OnMessage;
 
@@ -45,6 +51,26 @@ public sealed class ChatCommandService(ChatViewModel chat)
     {
         var request = new ChatCommandRequest(message.Channel, message.Name, message.SteamId, message.Text);
         CommandReceived?.Invoke(message.Text);
+
+        // The AI command is answered by the companion, not by the game, so it is handled before the engine.
+        string raw = message.Text.Trim();
+        string command = raw.StartsWith(Settings.EffectivePrefix, StringComparison.Ordinal)
+            ? raw[Settings.EffectivePrefix.Length..].Trim() : raw;
+        if (AskAi is { } ask && ChatAiCommand.Matches(command.ToLowerInvariant(), Settings.Ai))
+        {
+            string question = ChatAiCommand.Question(message.Text, Settings.EffectivePrefix, Settings.Ai);
+            string answer = question.Length == 0
+                ? "Ask a question after the command."
+                : await ask(message, question, ct).ConfigureAwait(false);
+            if (answer.Length > 0)
+            {
+                try { await chat.SendCommandReplyAsync(message.Channel, answer, TimeSpan.FromSeconds(Settings.ResponseDelaySeconds)); }
+                catch (OperationCanceledException) { }
+                catch (Exception) { Log?.Invoke("[ChatCommand] The answer could not be sent to chat."); }
+            }
+            return null;
+        }
+
         var reply = ChatCommands.Process(request, State?.Invoke() ?? new ChatCommandState(),
             Settings, cooldown, Now());
         if (reply.Log is { } line) Log?.Invoke(line);

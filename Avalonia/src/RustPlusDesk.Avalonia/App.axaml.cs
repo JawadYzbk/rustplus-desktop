@@ -122,7 +122,10 @@ public sealed partial class App : Application
                 supportService: new RustPlusDesk.Infrastructure.Support.SupportService(
                     new HttpClient { Timeout = TimeSpan.FromSeconds(30) },
                     CloudAccountService.DefaultCachePath,
-                    typeof(App).Assembly.GetName().Version!.ToString(3)));
+                    typeof(App).Assembly.GetName().Version!.ToString(3)),
+                aiStore: new RustPlusDesk.Infrastructure.Ai.AiSettingsStore(
+                    RustPlusDesk.Infrastructure.Ai.AiSettingsStore.DefaultPath),
+                aiHttp: new HttpClient { Timeout = TimeSpan.FromSeconds(60) });
             desktop.Exit += (_, _) => { accountHttp.Dispose(); cloudHttp.Dispose(); };
             window.DataContext = servers;
             window.Opened += async (_, _) => await servers.InitializeCommand.ExecuteAsync(null);

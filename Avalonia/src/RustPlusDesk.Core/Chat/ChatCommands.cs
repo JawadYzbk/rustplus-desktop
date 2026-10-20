@@ -77,6 +77,14 @@ public sealed record ChatCommandSettings(
     public bool HasAllowedClanRole => ClanRolePermissions.Any(permission => permission.Allowed);
 
     /// <summary>
+    /// Reference ServerProfile.ChatAiPerHour: how many questions a teammate may ask in an hour. Zero means no limit.
+    /// </summary>
+    public int AiPerHour { get; init; } = 5;
+
+    /// <summary>Reference ServerProfile.ChatAiAllowTeammates: teammates may use the AI command.</summary>
+    public bool AiAllowTeammates { get; init; }
+
+    /// <summary>
     /// Reference ServerProfile.IsClanRoleAllowed: an unknown role is refused rather than allowed, so a role the clan
     /// gained since the last pull waits for the owner to grant it instead of inheriting permission nobody gave.
     /// </summary>

@@ -341,7 +341,7 @@ public sealed class ChatCommandTests
                      "CmdList", "CmdTime", "CmdPromote", "CmdDeepSea", "CmdCargo", "CmdAfk", "CmdOilRig", "CmdHeli",
                      "CmdVendor", "CmdUpkeepDetail", "CmdBaseCodes", "CmdAi", "CmdCustomTimer", "BaseCodes",
                      "ClanCommandsAllowBaseCodes", "ClanCommandsAllowSwitches", "ClanChatCommandsEnabled",
-                     "ClanCommandsAllowAi", "ClanRolePermissions" })
+                     "ClanCommandsAllowAi", "ClanRolePermissions", "ChatAiPerHour", "ChatAiAllowTeammates" })
             profile.Remove(name);
         Assert.IsTrue(System.Text.Json.Nodes.JsonNode.DeepEquals(before, after), "Only this profile's fields change.");
 

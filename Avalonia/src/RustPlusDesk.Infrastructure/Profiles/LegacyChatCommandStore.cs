@@ -43,6 +43,8 @@ public sealed class LegacyChatCommandStore : IChatCommandSettingsStore
             node["ClanCommandsAllowSwitches"] = settings.ClanCommandsAllowSwitches;
             node["ClanChatCommandsEnabled"] = settings.ClanCommandsEnabled;
             node["ClanCommandsAllowAi"] = settings.ClanCommandsAllowAi;
+            node["ChatAiPerHour"] = settings.AiPerHour;
+            node["ChatAiAllowTeammates"] = settings.AiAllowTeammates;
             node["ClanRolePermissions"] = new JsonArray(settings.ClanRolePermissions.Select(role => (JsonNode)new JsonObject
             {
                 ["RoleId"] = role.RoleId,
@@ -87,6 +89,8 @@ public sealed class LegacyChatCommandStore : IChatCommandSettingsStore
             ClanCommandsAllowSwitches = Flag(profile, "ClanCommandsAllowSwitches") ?? false,
             ClanCommandsEnabled = Flag(profile, "ClanChatCommandsEnabled") ?? false,
             ClanCommandsAllowAi = Flag(profile, "ClanCommandsAllowAi") ?? false,
+            AiPerHour = (int)(Number(profile, "ChatAiPerHour") ?? 5),
+            AiAllowTeammates = Flag(profile, "ChatAiAllowTeammates") ?? false,
             ClanRolePermissions = RolePermissions(profile)
         };
     }

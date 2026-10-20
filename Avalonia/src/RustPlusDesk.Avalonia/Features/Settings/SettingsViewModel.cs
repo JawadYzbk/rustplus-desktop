@@ -79,6 +79,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>The language picker: the app reads its strings in the language the user chose.</summary>
     public LanguageSettingsViewModel? Language { get; init; }
     public bool HasLanguage => Language is not null;
+    /// <summary>The AI companion's settings: the provider, the model and the key.</summary>
+    public AiSettingsViewModel? Ai { get; init; }
+    public bool HasAi => Ai is not null;
     /// <summary>The selected profile's device automation rules (reference DeviceAutomationOverlay).</summary>
     public RustPlusDesk.Avalonia.Features.Devices.DeviceAutomationSettingsViewModel? Automation { get; init; }
     public bool HasAutomation => Automation is not null;
