@@ -33,6 +33,11 @@
             <TextBlock Grid.Column="1" Classes="navLabel" Text="{DynamicResource AppClan}" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
 
+        <Button Classes="nav" Classes.selected="{Binding IsCamerasSelected}" Command="{Binding OpenCamerasCommand}" IsVisible="{Binding Cameras, FallbackValue=False}"
+                ToolTip.Tip="{DynamicResource UiViewAndControlPairedCCTVCameras}" AutomationProperties.Name="Cameras">
+          <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Video24" />
+            <TextBlock Grid.Column="1" Classes="navLabel" Text="{DynamicResource CamerasTab}" IsVisible="{Binding IsRailExpanded}" /></Grid>
+        </Button>
         <Button Classes="nav" Classes.selected="{Binding IsNotificationsSelected}" Command="{Binding OpenNotificationsCommand}"
                 ToolTip.Tip="{DynamicResource UiReviewAlertsAndRecentServerEvents}" AutomationProperties.Name="Notifications">
           <Grid ColumnDefinitions="28,*,Auto"><Panel><icons:Icon Symbol="Alert24" />

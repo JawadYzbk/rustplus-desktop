@@ -47,7 +47,9 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Infrastructure.Updates.GitHubReleaseClient? updateService = null,
     RustPlusDesk.Infrastructure.Support.SupportService? supportService = null,
     RustPlusDesk.Core.Ai.IAiSettingsStore? aiStore = null,
-    System.Net.Http.HttpClient? aiHttp = null)
+    System.Net.Http.HttpClient? aiHttp = null,
+    RustPlusDesk.Core.Cameras.ICameraStore? cameraStore = null,
+    RustPlusDesk.Core.Cameras.ICameraSnapshotSource? cameraSnapshots = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -741,6 +743,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [NotifyPropertyChangedFor(nameof(IsSettingsSelected))]
     [NotifyPropertyChangedFor(nameof(IsDeathStatsSelected))]
     [NotifyPropertyChangedFor(nameof(IsClanSelected))]
+    [NotifyPropertyChangedFor(nameof(IsCamerasSelected))]
     [NotifyPropertyChangedFor(nameof(IsAchievementsSelected))]
     [NotifyPropertyChangedFor(nameof(IsToolSelected))]
     [NotifyCanExecuteChangedFor(nameof(CloseToolCommand))]
@@ -753,10 +756,26 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     public bool IsDeathStatsSelected => WorkspaceIndex == 6;
     public bool IsClanSelected => WorkspaceIndex == 7;
     public bool IsAchievementsSelected => WorkspaceIndex == 8;
+    public bool IsCamerasSelected => WorkspaceIndex == 10;
     public bool HasDeathStats => deathLog is not null;
     private DeathsPage.DeathStatsViewModel? deathStats;
     /// <summary>Reference Death Stats workspace over the selected server's local death log.</summary>
     public DeathsPage.DeathStatsViewModel? DeathStats => deathStats ??= deathLog is null ? null : new(deathLog, clock);
+
+    /// <summary>Reference CamerasTabContent: the cameras the user added for the server.</summary>
+    public Cameras.CamerasViewModel? Cameras => cameras ??= cameraStore is null || cameraSnapshots is null
+        ? null
+        : new(cameraStore, cameraSnapshots);
+    private Cameras.CamerasViewModel? cameras;
+
+    /// <summary>Reference BtnOpenCamera: the cameras of the selected server are shown.</summary>
+    [RelayCommand]
+    private async Task OpenCamerasAsync()
+    {
+        if (Cameras is not { } page) return;
+        if (SelectedServer is { } server) await page.LoadAsync(SourcePath, server.ProfileKey).ConfigureAwait(false);
+        WorkspaceIndex = 10;
+    }
 
     /// <summary>Reference OpenDeathStatsWorkspace: (re)reads the log for the selected server each time it opens.</summary>
     [RelayCommand]

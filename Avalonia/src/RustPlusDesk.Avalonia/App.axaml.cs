@@ -128,7 +128,10 @@ public sealed partial class App : Application
                     typeof(App).Assembly.GetName().Version!.ToString(3)),
                 aiStore: new RustPlusDesk.Infrastructure.Ai.AiSettingsStore(
                     RustPlusDesk.Infrastructure.Ai.AiSettingsStore.DefaultPath),
-                aiHttp: new HttpClient { Timeout = TimeSpan.FromSeconds(60) });
+                aiHttp: new HttpClient { Timeout = TimeSpan.FromSeconds(60) },
+                cameraStore: new RustPlusDesk.Infrastructure.Profiles.LegacyCameraStore(),
+                cameraSnapshots: new RustPlusDesk.Infrastructure.Cameras.CameraSnapshotSource(
+                    new RustPlusDesk.Infrastructure.Cameras.CameraSessionFactory()));
             desktop.Exit += (_, _) => { accountHttp.Dispose(); cloudHttp.Dispose(); };
             window.DataContext = servers;
             window.Opened += async (_, _) => await servers.InitializeCommand.ExecuteAsync(null);

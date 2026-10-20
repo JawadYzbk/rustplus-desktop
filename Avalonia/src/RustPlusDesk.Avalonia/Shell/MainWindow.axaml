@@ -10,6 +10,7 @@
         xmlns:settings="using:RustPlusDesk.Avalonia.Features.Settings"
         xmlns:deaths="using:RustPlusDesk.Avalonia.Features.Deaths"
         xmlns:clans="using:RustPlusDesk.Avalonia.Features.Clans"
+        xmlns:cameras="using:RustPlusDesk.Avalonia.Features.Cameras"
         xmlns:achievements="using:RustPlusDesk.Avalonia.Features.Achievements"
         xmlns:shell="using:RustPlusDesk.Avalonia.Shell"
         xmlns:cloud="using:RustPlusDesk.Avalonia.Features.Cloud"
@@ -94,6 +95,17 @@
               </Grid>
             </Border>
             <console:ConsoleHelperView Grid.Row="1" Margin="16,12,16,16" DataContext="{Binding ConsoleHelper}" />
+          </Grid>
+          <Grid RowDefinitions="Auto,*" Background="{DynamicResource Surface}" IsVisible="{Binding IsCamerasSelected}">
+            <Border Classes="toolbar">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                <icons:Icon Symbol="Video24" FontSize="20" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="{DynamicResource CamerasTab}" Classes="title" />
+                <Button Grid.Column="2" Classes="icon" Command="{Binding CloseToolCommand}" ToolTip.Tip="Close (Esc)"
+                        AutomationProperties.Name="Close cameras"><icons:Icon Symbol="Dismiss24" /></Button>
+              </Grid>
+            </Border>
+            <cameras:CamerasView Grid.Row="1" Margin="16,12,16,16" DataContext="{Binding Cameras}" />
           </Grid>
           <Grid RowDefinitions="Auto,*" Background="{DynamicResource Surface}" IsVisible="{Binding IsNotificationsSelected}">
             <Border Classes="toolbar">

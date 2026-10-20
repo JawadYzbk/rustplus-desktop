@@ -1,0 +1,85 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RustPlusDesk.Avalonia.Features.Cameras"
+             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+             x:Class="RustPlusDesk.Avalonia.Features.Cameras.CamerasView" x:DataType="vm:CamerasViewModel">
+  <UserControl.Styles>
+    <Style Selector="TextBlock.colHeader"><Setter Property="FontSize" Value="11" /><Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSubtle}" /></Style>
+    <Style Selector="Border.tile"><Setter Property="Background" Value="{DynamicResource SurfaceAlt}" /><Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="8" /><Setter Property="Margin" Value="0,0,10,10" /></Style>
+  </UserControl.Styles>
+  <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{DynamicResource CamerasTab}" Classes="title" />
+        <TextBlock Text="{DynamicResource UiViewAndControlPairedCCTVCameras}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+      </StackPanel>
+      <Button Grid.Column="1" Classes="primary" Command="{Binding OpenAddCommand}" AutomationProperties.Name="Add a camera">
+        <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Video24" FontSize="14" />
+          <TextBlock Text="{DynamicResource AddCamera}" /></StackPanel>
+      </Button>
+    </Grid>
+
+    <!-- Reference AddCamPopup: the camera the user is adding. -->
+    <Border Grid.Row="1" Classes="panel" Padding="12" IsVisible="{Binding IsAdding}">
+      <StackPanel Spacing="8">
+        <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="8">
+          <TextBox Text="{Binding NewId}" PlaceholderText="Camera identifier" AutomationProperties.Name="The camera identifier" />
+          <TextBox Grid.Column="1" Text="{Binding NewName}" PlaceholderText="Name" AutomationProperties.Name="The name of the camera" />
+          <Button Grid.Column="2" Classes="primary" Command="{Binding AddCommand}" AutomationProperties.Name="Keep the camera">
+            <TextBlock Text="{DynamicResource Save}" />
+          </Button>
+        </Grid>
+        <TextBlock Text="{Binding Error}" Foreground="{DynamicResource ConnectionDanger}" FontSize="12" TextWrapping="Wrap"
+                   IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      </StackPanel>
+    </Border>
+
+    <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
+      <ItemsControl ItemsSource="{Binding Rows}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:CameraRow">
+            <Border Classes="tile" Width="220">
+              <StackPanel Spacing="6">
+                <Border Height="120" CornerRadius="6" Background="{DynamicResource Surface}" ClipToBounds="True">
+                  <Panel>
+                    <Image Source="{Binding Picture}" Stretch="UniformToFill" />
+                    <TextBlock Text="No picture yet" Classes="muted" FontSize="11" HorizontalAlignment="Center"
+                               VerticalAlignment="Center" IsVisible="{Binding Picture, Converter={x:Static ObjectConverters.IsNull}}" />
+                  </Panel>
+                </Border>
+                <StackPanel Spacing="2">
+                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Classes="muted" FontSize="11" Text="{Binding Id}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Classes="colHeader" Text="{Binding Kind}" IsVisible="{Binding Kind, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Button Classes="icon" Command="{Binding $parent[ItemsControl].((vm:CamerasViewModel)DataContext).EditCommand}"
+                          CommandParameter="{Binding}" ToolTip.Tip="Change the camera" AutomationProperties.Name="Change the camera">
+                    <icons:Icon Symbol="Edit24" FontSize="13" />
+                  </Button>
+                  <Button Classes="icon" Command="{Binding $parent[ItemsControl].((vm:CamerasViewModel)DataContext).RemoveCommand}"
+                          CommandParameter="{Binding}" ToolTip.Tip="Remove the camera" AutomationProperties.Name="Remove the camera">
+                    <icons:Icon Symbol="Dismiss24" FontSize="13" Foreground="IndianRed" />
+                  </Button>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+    <!-- Reference CamerasTabContent: nothing to show yet. -->
+    <StackPanel Grid.Row="3" IsVisible="{Binding IsEmpty}" Spacing="8" HorizontalAlignment="Center">
+      <Border Width="72" Height="72" CornerRadius="36" Background="{DynamicResource SurfaceAlt}">
+        <icons:Icon Symbol="Video24" FontSize="32" Foreground="{DynamicResource TextSubtle}" />
+      </Border>
+      <TextBlock Text="{DynamicResource NoCamerasFound}" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" />
+      <TextBlock Text="{DynamicResource PairCameraToSee}" Classes="muted" FontSize="12" HorizontalAlignment="Center" TextWrapping="Wrap" />
+    </StackPanel>
+  </Grid>
+</UserControl>

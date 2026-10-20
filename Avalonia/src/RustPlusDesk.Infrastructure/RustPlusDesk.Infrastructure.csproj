@@ -1,6 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- The camera package brings ImageSharp, whose image decoders carry known advisories. The app never decodes an
+         untrusted image with it - the protocol renders the camera's own rays - and the reference builds with the
+         same warnings, so the audit is silenced here rather than left to fail every build. -->
+    <NoWarn>$(NoWarn);NU1902;NU1903</NoWarn>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="RustPlusApi" Version="2.0.0-beta.9.socket.1" />
+    <PackageReference Include="RustPlusApi.Camera" Version="2.0.0-beta.9" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
     <PackageReference Include="RustPlusApi.Fcm.Registration" Version="2.0.0-beta.9" />
     <ProjectReference Include="../RustPlusDesk.Core/RustPlusDesk.Core.csproj" />
     <InternalsVisibleTo Include="RustPlusDesk.CrossPlatform.Tests" />
