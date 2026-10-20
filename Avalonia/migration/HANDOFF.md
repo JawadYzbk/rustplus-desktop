@@ -1,8 +1,51 @@
-# Avalonia migration handoff — 2026-10-20 (thirteenth run)
+# Avalonia migration handoff — 2026-10-20 (fourteenth run)
 
 **Plan of record: [PARITY-PLAN.md](PARITY-PLAN.md).** Bar set by Jawad on 2026-10-18: *same functionality as the WPF
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
 every finished slice with its commit.
+
+## Fourteenth run - the whole interface reads the catalogue (2026-10-20, local Windows continuation)
+
+- Branch `codex/avalonia-migration`; slice commit `27ff8863` (docs follow). Only `Avalonia/` changes.
+- **787 tests** run locally on Windows: 787 pass, none fail. Build zero warnings.
+- Done: the interface reads the reference's catalogue, not only the rail, the settings cards and the map toolbar.
+  Every label the catalogue carries is bound to its own key (`{DynamicResource ...}`), and the catalogue itself is put
+  into the app's resources at start-up and read again when the language changes, so the 32 shipped translations cover
+  the port's whole interface. The catalogue is read from the resource manager rather than from a copy of its key
+  list, so a key the reference adds is in the app without a list to keep in step.
+- Three bugs came out of it and are fixed:
+  1. **A string whose own wording is its key was dropped.** The reference's generated resources hand back the key
+     itself when a string is missing, so the reference compares the two; this port reads the catalogue through the
+     resource manager, which hands back null. The comparison was kept and took 60 real strings with it ("Clear",
+     "Reset", "Save", "Settings", "Refresh", "Cancel", "Send", "Search", "Chat", "Alarms", "Language", ...) out of the
+     app's resources, and every label bound to one of them rendered as an empty label.
+  2. **The suite read its strings in the language of the machine it ran on.** The app follows the operating system's
+     language until the user chooses one, so a test that renders a label changed its answer with the machine's
+     language, and a test that changed the language changed the tests that ran after it - including the user
+     interface thread, which is created once and keeps the language it was born with. The suite now reads English
+     whatever the machine is set to (`TestCulture`), the language tests put back what they change, and `Loc` can read
+     the strings in another language without touching the process's culture (`applyToThread`).
+  3. **The devices toolbar lost its shape.** The hotkeys button was a bordered pill in the middle of a row of icon
+     buttons; it is one of them now, and the toolbar keeps one shape (regression test in `HotkeyTests`).
+- Where: `Shared/AppStrings.cs` (the catalogue in the app's resources), `Core/Localization/Loc.cs` (the language
+  change, held weakly so a thrown-away view model does not stay in the list), `App.axaml.cs` (the catalogue is read
+  again in the language the user chose), the views' `.axaml` files, and the tests.
+- Tests: `LocalizationTests` (the catalogue is in the app's resources; every bound key in the app's own views is
+  really there and has a wording; a drawn label follows the chosen language; a thrown-away subscriber is not kept
+  alive), `HotkeyTests` (the devices toolbar keeps one shape and the hotkeys button is one of them). The user
+  interface session checks that the suite is still in English before every test that draws something, so a test that
+  changes the language and forgets to put it back fails loudly instead of quietly changing the tests after it. Two
+  tests raced the app's own writer and were waiting for a file that was being replaced: the polling helper reads it
+  again instead of failing, and the device editor's folder waits for the write to let go of it.
+- Deviations: the port's own wording - the empty states, the descriptions and the tooltips the reference has no
+  string for - is still English. It cannot be translated without adding keys to the catalogue, and the catalogue is
+  the reference's own file, which a test keeps in step with the reference. Where the catalogue and the port said the
+  same thing in a different case ("Active timers" / "Active Timers", "Add timer" / "Add Timer"), the catalogue's
+  wording is the one that shows: it is the wording the reference ships and the one the translators translated.
+- Next slices: the remaining PARITY-PLAN ports - the players tab and the player wipe tracker, the command dock and
+  the mini-map, the cameras, the genetics lab, the tutorials and the gallery - plus the cloud account windows, the
+  LFG and the admin panel, the AI companion's history window and model picker, and the tray, audio and speech
+  adapters.
 
 ## Thirteenth run - a green baseline, the clan, automation, packaging, achievements and traffic (2026-10-20)
 

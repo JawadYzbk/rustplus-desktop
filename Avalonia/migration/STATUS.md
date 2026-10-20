@@ -11,6 +11,21 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- The whole interface reads the catalogue: every label the reference's catalogue carries is bound to its own key
+  (`{DynamicResource ...}`), so the 32 shipped translations cover the port's interface and not only the rail, the
+  settings cards and the map toolbar. The catalogue itself is put into the app's resources at start-up and read again
+  when the language changes, so a label that has no key of its own still reads the reference's wording. Two things
+  were wrong with that and are fixed: a string whose own wording is its key ("Clear", "Reset", "Save", "Settings")
+  was dropped for exactly that reason and rendered as an empty label - there are 60 such strings in the catalogue -
+  and the suite read its strings in the language of the machine it ran on, so a test that renders a label changed
+  its answer with the machine's language. The suite now reads English whatever the machine is set to, the language
+  tests put back what they change, and the language change is held weakly, so a thrown-away view model does not stay
+  in the list. A new test reads every bound key in the app's own views and fails when one of them is not in the
+  catalogue, so a typo cannot leave an empty label behind. The devices toolbar keeps one shape again - the hotkeys
+  button is one of the icon buttons and not a pill in the middle of them. **787 tests** on Windows locally
+  (787 pass). The port's own wording - the empty states, the descriptions and the tooltips the reference has no
+  string for - is still English: it cannot be translated without adding keys to the catalogue, and the catalogue is
+  the reference's own file.
 - The AI companion: `Core/Ai` carries the reference's question, answer and provider shapes and its standing
   instructions, and `Core/Chat/ChatAiCommand` the reference's command rules - the command matches on its first
   word, the question is taken from the raw message, the answer is cut at a sentence end, and the allowance is a
@@ -384,7 +399,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Chat/team/clan | Live roster dock, chat history/search/emoji/message menu, automated alert routing, the clan workspace (members, roles, message of the day) and team chat commands (status commands, switches/upkeep/oil rig, base codes and clan switches, custom timers, with per-server command settings and per-clan-role permissions) | Moderation and clan management, chat/clan publication and master coordination, and the remaining chat-command work (AI command, logic-engine rules, the chat-master gate, timer audio) |
 | Cameras | Not ported | Validate camera SDK/runtime, stream decoding and portable rendering |
 | Genetics Lab/web tools | Not ported | Decide and verify portable web hosting/bridge rather than copying WebView2 |
-| Settings/localization/backups | The app settings, the device settings, the chat-command settings and the 32-language catalogue with the language picker | The remaining interface labels, the backup and the reset-data flows |
+| Settings/localization/backups | The app settings, the device settings, the chat-command settings and the 32-language catalogue with the language picker; every label the catalogue carries follows the chosen language | The port's own wording (the empty states, the descriptions and the tooltips the reference has no string for), the backup and the reset-data flows |
 | Tray/hotkeys/audio/speech/capture | Not ported | Platform capability audit and adapters with truthful availability |
 | Installer/updater | Self-contained publishes for Windows, macOS and Linux, an Inno Setup installer, a macOS `.app` bundle and a per-user Linux installation, plus the update card that finds a newer published release (`installer/`, documented in `installer/PACKAGING.md`) | Signing, replacing the running build from inside the app, native macOS/Linux appearance and the shipped app's extra payloads |
 | Raid calculator | Ported workspace tab: reference engine/tests, 165-target catalogue with artwork, categories/search, per-target methods, curated and smart mixes, comparison modes, cheapest nudge, totals, shared raid-plan.json, Discord summary copy, reference breakpoints | Tutorial targets, localization, entrance animations and native visual acceptance |
@@ -437,9 +452,12 @@ themes, and full keyboard/screen-reader acceptance are still pending.
 
 ## Local verification
 
-- Windows: all **783 .NET test cases** pass on the current source, including the clan workspace and its role-gated
+- Windows: all **787 .NET test cases** pass on the current source, including the clan workspace and its role-gated
   commands, the device-automation rules, the achievements list, the traffic monitor, the timer sounds, the
   organization, recycling and socket-teardown work; build and isolated-copy results are recorded in HANDOFF.md at each checkpoint.
+- The suite reads its strings in English whatever language the machine it runs on is set to, and the language tests
+  put back what they change: a test that renders a label used to change its answer with the machine's language, and
+  one test changed the tests that ran after it.
 - Native browser crash reproduced using a local callback: Windows threw `Unable to create child window
   for native control host` because the executable lacked a supported-OS manifest. Added the official
   Avalonia compatibility declaration to the app host. The same production browser now passes local redirect
