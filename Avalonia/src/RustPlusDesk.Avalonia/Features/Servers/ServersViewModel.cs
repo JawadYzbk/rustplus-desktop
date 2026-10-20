@@ -41,7 +41,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Core.Achievements.IAchievementStore? achievementStore = null,
     RustPlusDesk.Core.Diagnostics.NetworkTrafficMonitor? trafficMonitor = null,
     RustPlusDesk.Core.Chat.ITimerAudio? timerAudio = null,
-    Func<Task<string?>>? pickSound = null)
+    Func<Task<string?>>? pickSound = null,
+    RustPlusDesk.Core.Logic.ILogicRuleStore? logicRuleStore = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -76,11 +77,29 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     /// </summary>
     public Chat.ChatCommandService? ChatCommandEngine { get; private set; }
 
-    /// <summary>
-    /// Reference EvaluateDeviceAutomationAsync: the rules of the selected profile, read again whenever the profile
-    /// changes. The rules decide what a switch should become; the panel drives it.
+    /// <summary>Reference EvaluateDeviceAutomationAsync: the rules of the selected profile, read again whenever the
+    /// profile changes. The rules decide what a switch should become; the panel drives it.
     /// </summary>
     private RustPlusDesk.Core.Devices.DeviceAutomationSettings automation = RustPlusDesk.Core.Devices.DeviceAutomationSettings.Defaults;
+
+    /// <summary>Reference the logic rules of the selected profile, read again whenever the profile changes.</summary>
+    private async Task ReloadLogicRulesAsync()
+    {
+        if (logicRuleStore is null) return;
+        if (SelectedServer is not { } server)
+        {
+            logicRules = RustPlusDesk.Core.Logic.LogicRuleSettings.Defaults;
+            return;
+        }
+        try
+        {
+            logicRules = await logicRuleStore.GetAsync(SourcePath, server.ProfileKey, CancellationToken.None);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+        {
+            logicRules = RustPlusDesk.Core.Logic.LogicRuleSettings.Defaults;
+        }
+    }
 
     private async Task ReloadAutomationAsync()
     {
@@ -340,6 +359,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             },
             Log = Activity.Append
         };
+        // Reference TriggerLogicEngineOnChatCommand: the rules that wait for a chat command are fired by it.
+        WireLogicCommand();
         ChatCommandEngine.Attach();
         _ = ReloadChatCommandSettingsAsync();
         ShopNotices = new(new RustPlusDesk.Core.Map.ShopNoticeTracker(RustPlusDesk.Infrastructure.Items.BundledItemCatalog.GetName) { Templates = AlertTemplates },
@@ -654,7 +675,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             Automation = automationStore is null ? null : new(automationStore,
                 () => SelectedServer is { } server ? (SourcePath, server) : null,
                 () => SelectedServer?.Devices ?? [],
-                settings => automation = settings)
+                settings => automation = settings),
+            LogicRules = LogicRules
         };
         _ = model.CustomMap?.LoadAsync();
         _ = model.ChatCommands?.LoadAsync();
@@ -748,6 +770,122 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
 
     /// <summary>Earns an achievement (reference AchievementService.Unlock).</summary>
     public void UnlockAchievement(string id) => Achievements?.Unlock(id);
+
+    // ---- the logic engine ------------------------------------------------------------------------
+
+    private RustPlusDesk.Core.Logic.LogicRuleSettings logicRules = RustPlusDesk.Core.Logic.LogicRuleSettings.Defaults;
+    private RustPlusDesk.Core.Logic.LogicEngine? logicEngine;
+    private RustPlusDesk.Core.Logic.ILogicEngineHost? logicEngineHost;
+    private Logic.LogicRulesViewModel? logicRulesCard;
+
+    /// <summary>Reference LogicEngineOverlay: the selected profile's logic rules and the switch that turns them on.</summary>
+    public Logic.LogicRulesViewModel? LogicRules => logicRulesCard ??= CreateLogicRulesCard();
+
+    /// <summary>True while a rule is running (reference LogicEngineRuntimeService.IsRunning).</summary>
+    public bool IsLogicEngineRunning => logicEngine?.IsRunning ?? false;
+
+    /// <summary>The rule that is running, or null.</summary>
+    public string? LogicEngineRuleName => logicEngine?.CurrentRuleName;
+
+    /// <summary>
+    /// The engine is built once, when the app starts: the rules watch for device and chat events whether or not the
+    /// settings page was ever opened.
+    /// </summary>
+    private void CreateLogicEngine()
+    {
+        if (logicRuleStore is null || logicEngine is not null) return;
+        var host = new Logic.LogicEngineHost(Connection.Devices, async () =>
+        {
+            await Connection.Devices.RefreshCommand.ExecuteAsync(null);
+        }, async (step, ct) =>
+        {
+            // A rule that starts a countdown writes it to the profile, exactly as the reference does.
+            if (step.OilRigName is not null) return false;
+            string name = string.IsNullOrWhiteSpace(step.TimerName) ? "Timer" : step.TimerName.Trim();
+            var timer = new RustPlusDesk.Core.Chat.ChatCustomTimer(Guid.NewGuid().ToString(), name,
+                RustPlusDesk.Core.Chat.ChatCustomTimer.CommandFor(name), DateTime.UtcNow.AddMinutes(step.EffectiveTimerMinutes),
+                OriginChannel: null, EnableCountdownAudio: true, EnableAlarmAudio: false,
+                Notified60: step.EffectiveTimerMinutes <= 60, Notified30: step.EffectiveTimerMinutes <= 30,
+                Notified10: step.EffectiveTimerMinutes <= 10, Notified3: step.EffectiveTimerMinutes <= 3);
+            await Timers.AddFromChatAsync(timer);
+            return true;
+        });
+        logicEngineHost = host;
+        logicEngine = new RustPlusDesk.Core.Logic.LogicEngine(host, Activity.Append);
+        Connection.Devices.DeviceStateChanged += OnDeviceStateChanged;
+        WireLogicCommand();
+    }
+
+    private Logic.LogicRulesViewModel? CreateLogicRulesCard()
+    {
+        if (logicRuleStore is null) return null;
+        CreateLogicEngine();
+        return new Logic.LogicRulesViewModel(logicRuleStore,
+            () => SelectedServer is { } server ? (SourcePath, server) : null,
+            () => LogicDeviceChoices(),
+            settings => logicRules = settings);
+    }
+
+    /// <summary>Reference TriggerLogicEngineOnChatCommand: the rules that wait for a command are fired by it.</summary>
+    private void WireLogicCommand()
+    {
+        if (ChatCommandEngine is { } engine) engine.CommandReceived = command => OnChatCommand(command);
+    }
+
+    /// <summary>The paired devices the rule editor points at (reference the overlay's device pickers).</summary>
+    private IReadOnlyList<RustPlusDesk.Avalonia.Features.Devices.AutomationChoice> LogicDeviceChoices()
+    {
+        var choices = new List<RustPlusDesk.Avalonia.Features.Devices.AutomationChoice>();
+        foreach (var device in SelectedServer?.Devices ?? [])
+        {
+            if (device.Kind == RustPlusDesk.Core.Devices.DeviceKind.Group)
+                choices.Add(new RustPlusDesk.Avalonia.Features.Devices.AutomationChoice($"[group] {device.Name}", $"group:{device.Name}"));
+            else
+                choices.Add(new RustPlusDesk.Avalonia.Features.Devices.AutomationChoice(
+                    $"{device.Name} (#{device.EntityId})", device.EntityId.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        }
+        return choices;
+    }
+
+    /// <summary>Reference TriggerLogicEngineOnDeviceEvent: a device that reaches a watched state fires the rules.</summary>
+    private void OnDeviceStateChanged(uint entityId, bool isOn)
+    {
+        if (!logicRules.Enabled || logicEngine is null) return;
+        foreach (var rule in RustPlusDesk.Core.Logic.LogicEngine.MatchDeviceEvent(logicRules.Rules, entityId, isOn))
+        {
+            if (!RustPlusDesk.Core.Logic.LogicEngine.EvaluateTriggerCondition(rule, HostOf())) continue;
+            _ = logicEngine.RunAsync(rule, onCompleted: OnRuleFinished);
+        }
+    }
+
+    /// <summary>Reference TriggerLogicEngineOnChatCommand: a chat command fires the rules that wait for it.</summary>
+    private void OnChatCommand(string command)
+    {
+        if (!logicRules.Enabled || logicEngine is null) return;
+        string prefix = ChatCommandEngine?.Settings.EffectivePrefix ?? "!";
+        foreach (var rule in RustPlusDesk.Core.Logic.LogicEngine.MatchChatCommand(logicRules.Rules, command, prefix))
+        {
+            if (!RustPlusDesk.Core.Logic.LogicEngine.EvaluateTriggerCondition(rule, HostOf())) continue;
+            _ = logicEngine.RunAsync(rule, onCompleted: OnRuleFinished);
+        }
+    }
+
+    /// <summary>Reference TriggerLogicEngineOnRuleCompleted: a finished rule fires the rules that wait for it.</summary>
+    private async Task OnRuleFinished(IReadOnlyList<RustPlusDesk.Core.Logic.LogicRule> completed)
+    {
+        if (logicEngine is null) return;
+        foreach (var rule in completed)
+        {
+            foreach (var next in RustPlusDesk.Core.Logic.LogicEngine.MatchRuleCompleted(logicRules.Rules, rule.Id))
+            {
+                if (!RustPlusDesk.Core.Logic.LogicEngine.EvaluateTriggerCondition(next, HostOf())) continue;
+                await logicEngine.RunAsync(next, onCompleted: OnRuleFinished);
+            }
+        }
+    }
+
+    private RustPlusDesk.Core.Logic.ILogicEngineHost HostOf() => logicEngineHost!;
+
 
     private Diagnostics.TrafficMonitorViewModel? traffic;
     /// <summary>Reference TrafficMonitorWindow: the app's own network traffic, counted and shown.</summary>
@@ -998,6 +1136,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Activity.Append("[notifications] The notification history could not be read."); }
             EnsureAccountServices();
             ObserveAchievements();
+            CreateLogicEngine();
             timerLoop = Timers.RunAsync(timerStop.Token);
             trafficLoop = RunTrafficAsync(timerStop.Token);
             if (Cloud is not null) Cloud.CheckCommand.Execute(null);
@@ -1225,7 +1364,9 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         _ = settingsPage?.CustomMap?.LoadAsync();
         _ = ReloadChatCommandSettingsAsync();
         _ = ReloadAutomationAsync();
+        _ = ReloadLogicRulesAsync();
         _ = settingsPage?.Automation?.LoadAsync();
+        _ = LogicRules?.LoadAsync();
         _ = Timers.LoadAsync(SourcePath, value?.ProfileKey ?? "");
         ObserveAutomation();
         _ = settingsPage?.ChatCommands?.LoadAsync();

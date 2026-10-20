@@ -26,6 +26,12 @@ public sealed class ChatCommandService(ChatViewModel chat)
     public Action<string>? Log { get; set; }
     public Func<DateTime> Now { get; set; } = () => DateTime.UtcNow;
 
+    /// <summary>
+    /// Reference TriggerLogicEngineOnChatCommand: every message that is offered to the engine is passed on, so the
+    /// logic rules that wait for a command see it whether or not the engine answers it.
+    /// </summary>
+    public Action<string>? CommandReceived { get; set; }
+
     /// <summary>Starts answering the live chat feed (history is not offered: only messages that arrive count).</summary>
     public void Attach() => chat.LiveMessage += OnMessage;
 
@@ -38,6 +44,7 @@ public sealed class ChatCommandService(ChatViewModel chat)
     public async Task<ChatCommandReply?> HandleAsync(ChatMessage message, CancellationToken ct)
     {
         var request = new ChatCommandRequest(message.Channel, message.Name, message.SteamId, message.Text);
+        CommandReceived?.Invoke(message.Text);
         var reply = ChatCommands.Process(request, State?.Invoke() ?? new ChatCommandState(),
             Settings, cooldown, Now());
         if (reply.Log is { } line) Log?.Invoke(line);

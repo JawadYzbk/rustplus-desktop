@@ -290,9 +290,16 @@ public sealed partial class DevicesViewModel : ObservableObject
 
     private void Apply(DeviceSnapshot state)
     {
-        if (byId.TryGetValue(state.EntityId, out var rows)) foreach (var row in rows) row.Apply(state);
+        bool? before = byId.TryGetValue(state.EntityId, out var rows) ? rows[0].IsOn : null;
+        if (byId.TryGetValue(state.EntityId, out rows)) foreach (var row in rows) row.Apply(state);
         UpdateGroups();
+        // The logic engine watches for a device that reaches a state it cares about (reference
+        // TriggerLogicEngineOnDeviceEvent), so the change is announced here.
+        if (before != state.IsOn && state.IsOn is not null) DeviceStateChanged?.Invoke(state.EntityId, state.IsOn.Value);
     }
+
+    /// <summary>Raised when a device reaches a new state (reference TriggerLogicEngineOnDeviceEvent).</summary>
+    public event Action<uint, bool>? DeviceStateChanged;
 
     internal void UpdateTime()
     {

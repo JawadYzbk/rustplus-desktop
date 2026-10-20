@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:RustPlusDesk.Avalonia.Features.Settings"
              xmlns:devices="using:RustPlusDesk.Avalonia.Features.Devices"
+             xmlns:logic="using:RustPlusDesk.Avalonia.Features.Logic"
              xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
              x:Class="RustPlusDesk.Avalonia.Features.Settings.SettingsView" x:DataType="vm:SettingsViewModel">
   <UserControl.Styles>
@@ -361,6 +362,119 @@
                     AutomationProperties.Name="Apply device automation" />
             <TextBlock Text="{Binding Automation.Status, FallbackValue=''}" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"
                        Classes="muted" Classes.error="{Binding Automation.IsError, FallbackValue=False}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0" IsVisible="{Binding HasLogicRules, FallbackValue=False}">
+        <icons:Icon Symbol="Play24" FontSize="18" Foreground="{DynamicResource Accent}" />
+        <StackPanel>
+          <TextBlock Text="Logic Rules" Classes="title" />
+          <TextBlock Text="Let a trigger run a short program of steps" Classes="muted" FontSize="12" />
+        </StackPanel>
+      </StackPanel>
+      <Border Classes="panel" Padding="16" IsVisible="{Binding HasLogicRules, FallbackValue=False}">
+        <StackPanel Spacing="12">
+          <TextBlock Text="LOGIC ENGINE" Classes="section" />
+          <TextBlock Text="A rule watches for a trigger, checks its condition and then runs its steps. The rules belong to
+                         the selected server and are saved with it."
+                     Classes="muted" FontSize="12" TextWrapping="Wrap" />
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Enable the logic engine" FontWeight="SemiBold" />
+              <TextBlock Text="Turn this off to stop every rule on this server." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding LogicRules.Enabled, FallbackValue=False}" OnContent="" OffContent=""
+                          AutomationProperties.Name="Enable the logic engine" />
+          </Grid>
+          <ItemsControl ItemsSource="{Binding LogicRules.Rules, FallbackValue={x:Null}}" AutomationProperties.Name="Logic rules">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="logic:LogicRuleRowViewModel">
+                <Border Classes="panel" Padding="12" Margin="0,0,0,8">
+                  <StackPanel Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                      <TextBox Text="{Binding Name, FallbackValue=''}" AutomationProperties.Name="Logic rule name" />
+                      <ToggleButton Grid.Column="1" Classes="subtle" IsChecked="{Binding IsEnabled, FallbackValue=False}" Content="Enabled"
+                                    AutomationProperties.Name="Logic rule enabled" />
+                      <Button Grid.Column="2" Classes="subtle" Content="Remove" Command="{Binding RemoveCommand}"
+                              AutomationProperties.Name="Remove logic rule" />
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                      <TextBlock Text="Trigger" VerticalAlignment="Center" />
+                      <ComboBox Grid.Column="1" ItemsSource="{Binding TriggerTypes}" SelectedItem="{Binding TriggerType}"
+                                AutomationProperties.Name="Logic rule trigger">
+                        <ComboBox.ItemTemplate><DataTemplate x:DataType="devices:AutomationChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                      </ComboBox>
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                      <TextBlock Text="Device" VerticalAlignment="Center" />
+                      <ComboBox Grid.Column="1" ItemsSource="{Binding $parent[ItemsControl].DataContext.LogicRules.DeviceChoices}"
+                                SelectedItem="{Binding TriggerDevice}" PlaceholderText="Choose a device" AutomationProperties.Name="Logic rule trigger device">
+                        <ComboBox.ItemTemplate><DataTemplate x:DataType="devices:AutomationChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                      </ComboBox>
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                      <TextBlock Text="Command" VerticalAlignment="Center" />
+                      <TextBox Grid.Column="1" Text="{Binding TriggerCommand, FallbackValue=''}" AutomationProperties.Name="Logic rule trigger command" />
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
+                      <TextBlock Text="Condition" VerticalAlignment="Center" />
+                      <ComboBox Grid.Column="1" ItemsSource="{Binding ConditionOperators}" SelectedItem="{Binding ConditionOperator}"
+                                AutomationProperties.Name="Logic rule condition">
+                        <ComboBox.ItemTemplate><DataTemplate x:DataType="devices:AutomationChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                      </ComboBox>
+                      <CheckBox Grid.Column="2" IsChecked="{Binding ConditionDeviceState, FallbackValue=True}" Content="Device is on" />
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                      <TextBlock Text="Condition device" VerticalAlignment="Center" />
+                      <ComboBox Grid.Column="1" ItemsSource="{Binding $parent[ItemsControl].DataContext.LogicRules.DeviceChoices}"
+                                SelectedItem="{Binding ConditionDevice}" PlaceholderText="Choose a device" AutomationProperties.Name="Logic rule condition device">
+                        <ComboBox.ItemTemplate><DataTemplate x:DataType="devices:AutomationChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                      </ComboBox>
+                    </Grid>
+                    <StackPanel Spacing="4">
+                      <TextBlock Text="STEPS" Classes="section" />
+                      <ItemsControl ItemsSource="{Binding Steps}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="logic:LogicStepRowViewModel">
+                            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto" ColumnSpacing="6" Margin="0,2,0,0">
+                              <ComboBox ItemsSource="{Binding StepTypes}" SelectedItem="{Binding StepType}" MinWidth="150"
+                                        AutomationProperties.Name="Logic step type">
+                                <ComboBox.ItemTemplate><DataTemplate x:DataType="devices:AutomationChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                              </ComboBox>
+                              <ComboBox Grid.Column="1" ItemsSource="{Binding $parent[ItemsControl].DataContext.DeviceChoices}"
+                                        SelectedItem="{Binding TargetDevice}" PlaceholderText="Choose a switch" MinWidth="150"
+                                        AutomationProperties.Name="Logic step target">
+                                <ComboBox.ItemTemplate><DataTemplate x:DataType="devices:AutomationChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                              </ComboBox>
+                              <ComboBox Grid.Column="2" ItemsSource="{Binding ToggleStates}" SelectedItem="{Binding ToggleState}" MinWidth="90"
+                                        AutomationProperties.Name="Logic step toggle state">
+                                <ComboBox.ItemTemplate><DataTemplate x:DataType="devices:AutomationChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                              </ComboBox>
+                              <TextBox Grid.Column="3" Text="{Binding WaitSeconds, FallbackValue='10'}" Width="56" ToolTip.Tip="Wait seconds"
+                                       AutomationProperties.Name="Logic step wait seconds" />
+                              <TextBox Grid.Column="4" Text="{Binding TimerMinutes, FallbackValue='15'}" Width="56" ToolTip.Tip="Timer minutes"
+                                       AutomationProperties.Name="Logic step timer minutes" />
+                              <Button Grid.Column="5" Classes="icon" Command="{Binding RemoveCommand}" ToolTip.Tip="Remove step"
+                                      AutomationProperties.Name="Remove logic step"><icons:Icon Symbol="Dismiss24" FontSize="14" /></Button>
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                      <Button Classes="subtle" Content="Add step" Command="{Binding AddStepCommand}" HorizontalAlignment="Left"
+                              AutomationProperties.Name="Add logic step" />
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="subtle" Content="Add rule" Command="{Binding LogicRules.AddRuleCommand, FallbackValue={x:Null}}"
+                    AutomationProperties.Name="Add logic rule" />
+            <Button Classes="primary" Content="Apply" Command="{Binding LogicRules.ApplyCommand, FallbackValue={x:Null}}"
+                    AutomationProperties.Name="Apply logic rules" />
+            <TextBlock Text="{Binding LogicRules.Status, FallbackValue=''}" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"
+                       Classes="muted" Classes.error="{Binding LogicRules.IsError, FallbackValue=False}" />
           </StackPanel>
         </StackPanel>
       </Border>
