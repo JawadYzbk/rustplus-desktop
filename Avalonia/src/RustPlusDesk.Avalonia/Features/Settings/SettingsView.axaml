@@ -240,10 +240,24 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
           <TextBlock Text="CLAN CHAT" Classes="section" Margin="0,8,0,0" />
+          <TextBlock Text="A clan holds up to a hundred accounts, so commands in clan chat are off unless you turn them on and grant a role."
+                     Classes="muted" FontSize="12" TextWrapping="Wrap" />
+          <CheckBox IsChecked="{Binding ChatCommands.ClanCommandsEnabled, FallbackValue=False}"
+                    Content="Answer chat commands in clan chat" AutomationProperties.Name="Allow clan chat commands" />
           <CheckBox IsChecked="{Binding ChatCommands.ClanAllowBaseCodes, FallbackValue=False}"
                     Content="Allow clan chat to read the base codes" AutomationProperties.Name="Allow clan base codes" />
           <CheckBox IsChecked="{Binding ChatCommands.ClanAllowSwitches, FallbackValue=False}"
                     Content="Allow clan chat to toggle mapped switches" AutomationProperties.Name="Allow clan switches" />
+          <CheckBox IsChecked="{Binding ChatCommands.ClanAllowAi, FallbackValue=False}"
+                    Content="Allow clan chat to use the AI command" AutomationProperties.Name="Allow clan AI command" />
+          <ItemsControl ItemsSource="{Binding ChatCommands.ClanRoles, FallbackValue={x:Null}}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <CheckBox IsChecked="{Binding Allowed, FallbackValue=False}" Margin="0,3,0,0"
+                          Content="{Binding Name}" AutomationProperties.Name="Clan role permission" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
           <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
             <Button Classes="primary" Content="Apply" Command="{Binding ChatCommands.ApplyCommand, FallbackValue={x:Null}}"
                     AutomationProperties.Name="Apply chat commands" />

@@ -34,6 +34,16 @@ public sealed class ChatCommandTests
 
     private static ChatCommandState Live => new(Connected: true);
 
+    /// <summary>A clan that granted the author the Owner role, so the clan gate lets the command through.</summary>
+    private static ChatCommandSettings ClanAllowed => ChatCommandSettings.Defaults with
+    {
+        ClanCommandsEnabled = true,
+        ClanRolePermissions = [new ChatRolePermission(7, "Owner", 100, true)]
+    };
+
+    /// <summary>The clan pull the gate reads: the author is in the clan with the Owner role.</summary>
+    private static IReadOnlyList<ChatClanMember> ClanAuthor => [new ChatClanMember(AuthorId, 7, "Owner")];
+
     // ---- gate order: enable, prefix, cooldown, connection -------------------------------------------------------
 
     [TestMethod]
@@ -126,9 +136,10 @@ public sealed class ChatCommandTests
         var members = new[] { new ChatAfkMember("Bob", Now.AddSeconds(-90)), new ChatAfkMember("Cara", Now.AddMinutes(-61)) };
         Assert.AreEqual("AFK: Bob - 1:30 | Cara - 61:00", Run("!afk", Live with { Afk = members }).Message);
         Assert.AreEqual("AFK (Team): Bob - 1:30 | Cara - 61:00",
-            Run("!afk", Live with { Afk = members }, channel: ChatChannel.Clan).Message);
+            Run("!afk", Live with { Afk = members, ClanMembers = ClanAuthor }, ClanAllowed, channel: ChatChannel.Clan).Message);
         Assert.AreEqual("No one is AFK.", Run("!afk", Live).Message);
-        Assert.AreEqual("(Team) No one is AFK.", Run("!afk", Live, channel: ChatChannel.Clan).Message);
+        Assert.AreEqual("(Team) No one is AFK.",
+            Run("!afk", Live with { ClanMembers = ClanAuthor }, ClanAllowed, channel: ChatChannel.Clan).Message);
     }
 
     [TestMethod]
@@ -329,7 +340,8 @@ public sealed class ChatCommandTests
         foreach (string name in new[] { "ChatCommandsEnabled", "ChatCommandPrefix", "ChatResponseDelaySeconds", "CmdPop",
                      "CmdList", "CmdTime", "CmdPromote", "CmdDeepSea", "CmdCargo", "CmdAfk", "CmdOilRig", "CmdHeli",
                      "CmdVendor", "CmdUpkeepDetail", "CmdBaseCodes", "CmdAi", "CmdCustomTimer", "BaseCodes",
-                     "ClanCommandsAllowBaseCodes", "ClanCommandsAllowSwitches" })
+                     "ClanCommandsAllowBaseCodes", "ClanCommandsAllowSwitches", "ClanChatCommandsEnabled",
+                     "ClanCommandsAllowAi", "ClanRolePermissions" })
             profile.Remove(name);
         Assert.IsTrue(System.Text.Json.Nodes.JsonNode.DeepEquals(before, after), "Only this profile's fields change.");
 
@@ -384,8 +396,8 @@ public sealed class ChatCommandTests
     public void ClanChat_OnlySeesBaseCodesAndSwitches_WhenTheProfileAllowsIt()
     {
         var device = SwitchDevice(1, "Generator");
-        var state = Live with { Devices = [Switch(device, false)], SetSwitch = (_, _, _) => Task.FromResult(true) };
-        var settings = ChatCommandSettings.Defaults with
+        var state = Live with { Devices = [Switch(device, false)], SetSwitch = (_, _, _) => Task.FromResult(true), ClanMembers = ClanAuthor };
+        var settings = ClanAllowed with
         {
             BaseCodeRows = [new ChatBaseCode("Home", "1234")],
             SwitchMappings = [new ChatCommandMapping(1, "gen")]
@@ -781,8 +793,9 @@ public sealed class ChatCommandTests
         var running = chat.RunAsync(session, cts.Token);
         var service = new ChatCommandService(chat)
         {
-            Settings = ChatCommandSettings.Defaults with { ResponseDelaySeconds = 0 },
-            State = () => Live with { Players = 7 }
+            Settings = ChatCommandSettings.Defaults with { ResponseDelaySeconds = 0, ClanCommandsEnabled = true,
+                ClanRolePermissions = [new ChatRolePermission(7, "Owner", 100, true)] },
+            State = () => Live with { Players = 7, ClanMembers = ClanAuthor }
         };
         service.Attach();
         try
@@ -851,12 +864,15 @@ public sealed class ChatCommandTests
             Settings = ChatCommandSettings.Defaults with
             {
                 ResponseDelaySeconds = 0,
+                ClanCommandsEnabled = true,
                 ClanCommandsAllowSwitches = true,
+                ClanRolePermissions = [new ChatRolePermission(7, "Owner", 100, true)],
                 SwitchMappings = [new ChatCommandMapping(1, "lights")]
             },
             State = () => Live with
             {
                 Devices = [Switch(SwitchDevice(1, "Lamp"), false)],
+                ClanMembers = ClanAuthor,
                 SetSwitch = (id, value, _) => { toggled.Add((id, value)); return Task.FromResult(true); }
             }
         };

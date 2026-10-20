@@ -89,7 +89,21 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             AlertCustomTimer: Timers.AlertCustomTimer,
             Devices: ChatDevices(connection),
             SetSwitch: connection.Devices.SetSwitchStateAsync,
-            OilRigs: ChatOilRigs());
+            OilRigs: ChatOilRigs(),
+            ClanMembers: ChatClanMembers(connection));
+    }
+
+    /// <summary>
+    /// Reference ClanMembers: the clan's members with their roles. The command gate reads it to decide whether a
+    /// clan message may command anything, so it is the last pull the app has.
+    /// </summary>
+    private static IReadOnlyList<RustPlusDesk.Core.Chat.ChatClanMember> ChatClanMembers(ConnectionViewModel connection)
+    {
+        var clan = connection.Clan.Clan;
+        if (clan is null) return [];
+        return clan.Members
+            .Select(member => new RustPlusDesk.Core.Chat.ChatClanMember(member.SteamId, member.RoleId, member.RoleName))
+            .ToArray();
     }
 
     private Map.CustomTimersViewModel? timers;
@@ -537,10 +551,17 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
                 () => SelectedServer is { } server ? (SourcePath, server) : null, ReloadAfterCustomMapChangeAsync),
             ChatCommands = chatCommandStore is null ? null : new(chatCommandStore,
                 () => SelectedServer is { } server ? (SourcePath, server) : null,
-                settings => { if (ChatCommandEngine is { } engine) engine.Settings = settings; })
+                settings => { if (ChatCommandEngine is { } engine) engine.Settings = settings; },
+                () => Connection.Clan.Roles)
         };
         _ = model.CustomMap?.LoadAsync();
         _ = model.ChatCommands?.LoadAsync();
+        // The clan's roles come and go while the app runs, so the card is told about every change.
+        Connection.Clan.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName != nameof(Connection.Clan.Clan)) return;
+            model.ChatCommands?.ReconcileClanRoles(Connection.Clan.Roles);
+        };
         ObserveStreamerMode();
         model.GenericAlarmPopupChanged += value => Alarms.GenericPopupEnabled = value;
         return model;
@@ -571,6 +592,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [NotifyPropertyChangedFor(nameof(IsNotificationsSelected))]
     [NotifyPropertyChangedFor(nameof(IsSettingsSelected))]
     [NotifyPropertyChangedFor(nameof(IsDeathStatsSelected))]
+    [NotifyPropertyChangedFor(nameof(IsClanSelected))]
     [NotifyPropertyChangedFor(nameof(IsToolSelected))]
     [NotifyCanExecuteChangedFor(nameof(CloseToolCommand))]
     private int workspaceIndex;
@@ -580,6 +602,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     public bool IsNotificationsSelected => WorkspaceIndex == 4;
     public bool IsSettingsSelected => WorkspaceIndex == 5;
     public bool IsDeathStatsSelected => WorkspaceIndex == 6;
+    public bool IsClanSelected => WorkspaceIndex == 7;
     public bool HasDeathStats => deathLog is not null;
     private DeathsPage.DeathStatsViewModel? deathStats;
     /// <summary>Reference Death Stats workspace over the selected server's local death log.</summary>
@@ -593,6 +616,13 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         page.Open(SelectedServer is { } server ? Teams.DeathRecorder.KeyFor(server.Host, server.Port) : null);
         WorkspaceIndex = 6;
     }
+
+    /// <summary>Reference TabClan: the clan of the connected player, with its roles and members.</summary>
+    public Clans.ClanViewModel Clan => Connection.Clan;
+
+    /// <summary>Opens the clan workspace.</summary>
+    [RelayCommand]
+    private void OpenClan() => WorkspaceIndex = 7;
     /// <summary>A tool workspace replaces the map; the server sidebar stays available.</summary>
     public bool IsToolSelected => WorkspaceIndex != 0;
     [ObservableProperty] private string toolMessage = "";

@@ -41,6 +41,15 @@ public sealed class LegacyChatCommandStore : IChatCommandSettingsStore
             node["CmdCustomTimer"] = settings.CustomTimer;
             node["ClanCommandsAllowBaseCodes"] = settings.ClanCommandsAllowBaseCodes;
             node["ClanCommandsAllowSwitches"] = settings.ClanCommandsAllowSwitches;
+            node["ClanChatCommandsEnabled"] = settings.ClanCommandsEnabled;
+            node["ClanCommandsAllowAi"] = settings.ClanCommandsAllowAi;
+            node["ClanRolePermissions"] = new JsonArray(settings.ClanRolePermissions.Select(role => (JsonNode)new JsonObject
+            {
+                ["RoleId"] = role.RoleId,
+                ["Name"] = role.Name,
+                ["Rank"] = role.Rank,
+                ["Allowed"] = role.Allowed
+            }).ToArray());
             node["BaseCodes"] = new JsonArray(settings.BaseCodeRows.Select(code => (JsonNode)new JsonObject
             {
                 ["Label"] = code.Label,
@@ -75,8 +84,26 @@ public sealed class LegacyChatCommandStore : IChatCommandSettingsStore
             UpkeepMappings = Mappings(profile, "UpkeepCommandMappings"),
             BaseCodeRows = BaseCodes(profile),
             ClanCommandsAllowBaseCodes = Flag(profile, "ClanCommandsAllowBaseCodes") ?? false,
-            ClanCommandsAllowSwitches = Flag(profile, "ClanCommandsAllowSwitches") ?? false
+            ClanCommandsAllowSwitches = Flag(profile, "ClanCommandsAllowSwitches") ?? false,
+            ClanCommandsEnabled = Flag(profile, "ClanChatCommandsEnabled") ?? false,
+            ClanCommandsAllowAi = Flag(profile, "ClanCommandsAllowAi") ?? false,
+            ClanRolePermissions = RolePermissions(profile)
         };
+    }
+
+    /// <summary>Reference ServerProfile.ClanRolePermissions rows: the role, its name and rank, and whether it may command.</summary>
+    private static IReadOnlyList<ChatRolePermission> RolePermissions(JsonObject profile)
+    {
+        if (profile["ClanRolePermissions"] is not JsonArray rows) return ChatCommandSettings.NoRolePermissions;
+        var permissions = new List<ChatRolePermission>();
+        foreach (var row in rows)
+        {
+            if (row is not JsonObject role) continue;
+            if (role["RoleId"] is not JsonValue id || !id.TryGetValue(out int roleId)) continue;
+            permissions.Add(new ChatRolePermission(roleId, Text(role, "Name") ?? "", (int)(Number(role, "Rank") ?? 0),
+                Flag(role, "Allowed") ?? false));
+        }
+        return permissions.Count == 0 ? ChatCommandSettings.NoRolePermissions : permissions;
     }
 
     /// <summary>Reference ServerProfile.BaseCodes rows; blank rows are spare editor slots and are not carried over.</summary>

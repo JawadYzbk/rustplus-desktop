@@ -3,11 +3,12 @@ using RustPlusDesk.Core.Connections;
 using RustPlusDesk.Core.Devices;
 using RustPlusDesk.Core.Map;
 using RustPlusDesk.Core.Chat;
+using RustPlusDesk.Core.Clans;
 using System.Threading.Channels;
 
 namespace RustPlusDesk.Infrastructure.Connections;
 
-internal sealed class RustPlusTransport : IRustTransport, IServerTeamSession, IServerMarkerSession, IServerChatSession, IServerLeaderSession
+internal sealed class RustPlusTransport : IRustTransport, IServerTeamSession, IServerMarkerSession, IServerChatSession, IServerLeaderSession, IClanSession
 {
     private readonly RustPlus api;
     private readonly bool companionSocket;
@@ -188,6 +189,32 @@ internal sealed class RustPlusTransport : IRustTransport, IServerTeamSession, IS
                 DeathTime = UnixSeconds(member.LastDeathTime)
             }).ToArray();
             return new ServerTeamSnapshot(members, Notes(response.Data.Notes), Notes(response.Data.LeaderNotes));
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception ex) { throw new ServerConnectionException(ConnectionFailureClassifier.Exception(ex, companionSocket)); }
+    }
+
+    /// <summary>
+    /// Reference GetClanInfoAsync: the clan of the connected player with its roles and members. A player who is not
+    /// in a clan gets no snapshot, which is not an error.
+    /// </summary>
+    public async Task<ClanSnapshot?> ReadClanAsync(CancellationToken ct)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromSeconds(8));
+        try
+        {
+            await requests.WaitAsync(timeout.Token).ConfigureAwait(false);
+            var response = await api.GetClanInfoAsync(timeout.Token).WaitAsync(timeout.Token).ConfigureAwait(false);
+            if (!response.IsSuccess || response.Data is null) return null;
+            var clan = response.Data;
+            var roles = (clan.Roles ?? []).Select(role => new ClanRole(role.RoleId, role.Name ?? "", role.Rank)).ToArray();
+            var roleNames = roles.ToDictionary(role => role.RoleId, role => role.Name);
+            // The server reports the members by Steam ID; their display names are not part of the answer.
+            var members = (clan.Members ?? []).Select(member => new ClanMember(member.SteamId, "",
+                member.RoleId, roleNames.GetValueOrDefault(member.RoleId, ""), member.Online == true)).ToArray();
+            return new ClanSnapshot(clan.ClanId.ToString(System.Globalization.CultureInfo.InvariantCulture), clan.Name ?? "",
+                clan.Motd ?? "", roles, members, clan.MaxMemberCount);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception ex) { throw new ServerConnectionException(ConnectionFailureClassifier.Exception(ex, companionSocket)); }

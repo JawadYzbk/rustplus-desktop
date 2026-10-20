@@ -37,6 +37,9 @@ public sealed record ChatCommandSettings(
     /// <summary>Shared empty base-code list, so two settings records with no codes compare equal.</summary>
     public static IReadOnlyList<ChatBaseCode> NoBaseCodes { get; } = [];
 
+    /// <summary>Shared empty role-permission list, so two settings records with no roles compare equal.</summary>
+    public static IReadOnlyList<ChatRolePermission> NoRolePermissions { get; } = [];
+
     public static ChatCommandSettings Defaults { get; } = new();
 
     /// <summary>Reference ServerProfile.SwitchCommandMappings: the switch names the chat can toggle.</summary>
@@ -53,6 +56,30 @@ public sealed record ChatCommandSettings(
 
     /// <summary>Reference ServerProfile.ClanCommandsAllowSwitches: clan chat may toggle mapped switches.</summary>
     public bool ClanCommandsAllowSwitches { get; init; }
+
+    /// <summary>
+    /// Reference ServerProfile.ClanChatCommandsEnabled: commands are also answered when they arrive in clan chat.
+    /// Team chat is always served once commands are on; the clan is an addition to it, never a replacement.
+    /// </summary>
+    public bool ClanCommandsEnabled { get; init; }
+
+    /// <summary>Reference ServerProfile.ClanCommandsAllowAi: clan chat may use the AI command.</summary>
+    public bool ClanCommandsAllowAi { get; init; }
+
+    /// <summary>
+    /// Reference ServerProfile.ClanRolePermissions: one row per clan role, carrying whether that role may use
+    /// commands. Persisted so the choice survives a restart, and reconciled against the live clan on every pull.
+    /// </summary>
+    public IReadOnlyList<ChatRolePermission> ClanRolePermissions { get; init; } = NoRolePermissions;
+
+    /// <summary>Whether any role at all may use commands (reference ServerProfile.HasAllowedClanRole).</summary>
+    public bool HasAllowedClanRole => ClanRolePermissions.Any(permission => permission.Allowed);
+
+    /// <summary>
+    /// Reference ServerProfile.IsClanRoleAllowed: an unknown role is refused rather than allowed, so a role the clan
+    /// gained since the last pull waits for the owner to grant it instead of inheriting permission nobody gave.
+    /// </summary>
+    public bool IsClanRoleAllowed(int roleId) => ClanRolePermissions.Any(permission => permission.RoleId == roleId && permission.Allowed);
 
     /// <summary>Reference ChatCommandPrefix getter: an empty prefix reads as "!".</summary>
     public string EffectivePrefix => string.IsNullOrEmpty(Prefix) ? "!" : Prefix;
@@ -162,6 +189,17 @@ public sealed record ChatBaseCode(string Label, string Code)
 }
 
 /// <summary>
+/// Reference ServerProfile.ClanRolePermission: one clan role and whether its members may use chat commands.
+/// </summary>
+public sealed record ChatRolePermission(int RoleId, string Name, int Rank, bool Allowed);
+
+/// <summary>
+/// One clan member as the command gate sees them: the author of a clan message and the role they hold
+/// (reference ClanMemberVM.SteamId / RoleId / RoleName).
+/// </summary>
+public sealed record ChatClanMember(ulong SteamId, int RoleId, string RoleName);
+
+/// <summary>
 /// One paired device as the switch and upkeep commands see it: the saved definition plus the live snapshot the device
 /// panel last read. <see cref="UpkeepSeconds"/> is the reference ProtectSeconds (time left on the tool cupboard).
 /// </summary>
@@ -253,7 +291,8 @@ public sealed record ChatCommandState(
     bool AlertCustomTimer = true,
     IReadOnlyList<ChatDeviceState>? Devices = null,
     Func<uint, bool, CancellationToken, Task<bool>>? SetSwitch = null,
-    IReadOnlyList<ChatOilRigState>? OilRigs = null);
+    IReadOnlyList<ChatOilRigState>? OilRigs = null,
+    IReadOnlyList<ChatClanMember>? ClanMembers = null);
 
 /// <summary>An incoming chat message as the command engine sees it (reference TeamChatMessage + channel).</summary>
 public sealed record ChatCommandRequest(ChatChannel Channel, string Author, ulong SteamId, string Text);
@@ -323,6 +362,20 @@ public static class ChatCommands
         ChatCommandSettings settings, ChatCommandCooldown cooldown, DateTime now)
     {
         if (!settings.Enabled) return ChatCommandReply.Ignored;
+
+        // Reference IsClanCommandAuthorAllowed, checked before the prefix and the cooldown: a clan message from an
+        // author whose role was never granted is ignored outright, and it does not spend the cooldown either.
+        if (request.Channel == ChatChannel.Clan)
+        {
+            if (!settings.ClanCommandsEnabled) return ChatCommandReply.Ignored;
+            var member = (state.ClanMembers ?? []).FirstOrDefault(clan => clan.SteamId == request.SteamId);
+            if (member is null)
+                return new ChatCommandReply(null,
+                    Log: $"[ChatCommand] Clan command from {request.Author} ignored: author not in the last clan pull.");
+            if (!settings.IsClanRoleAllowed(member.RoleId))
+                return new ChatCommandReply(null,
+                    Log: $"[ChatCommand] Clan command from {request.Author} ignored: role '{member.RoleName}' is not permitted.");
+        }
 
         string prefix = settings.EffectivePrefix;
         string cmd = request.Text.Trim().ToLowerInvariant();

@@ -15,6 +15,7 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
 {
     public DevicesViewModel Devices { get; } = new();
     public TeamViewModel Team { get; } = new();
+    public Clans.ClanViewModel Clan { get; } = new();
     public Map.MapViewModel Map { get; } = new();
     private Chat.ChatViewModel? chat;
     public Chat.ChatViewModel Chat => chat ??= new() { CenterOnMap = Map.CenterOnPlayer };
@@ -132,6 +133,7 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
                     var disconnectWatch = CancelOnDisconnectAsync(session.Disconnected, connectedCancellation);
                     var clockUpdates = UpdateClockAsync(connectedCancellation.Token);
                     var teamUpdates = session is IServerTeamSession team ? Team.RunAsync(team, connectedCancellation.Token) : Task.CompletedTask;
+                    var clanUpdates = session is RustPlusDesk.Core.Clans.IClanSession clanSession ? Clan.RunAsync(clanSession, connectedCancellation.Token) : Task.CompletedTask;
                     var mapUpdates = session is RustPlusDesk.Core.Map.IServerMapSession mapSession ? Map.RunAsync(mapSession, connectedCancellation.Token) : Task.CompletedTask;
                     var chatUpdates = session is RustPlusDesk.Core.Chat.IServerChatSession chatSession ? Chat.RunAsync(chatSession, connectedCancellation.Token) : Task.CompletedTask;
                     var deviceUpdates = target.Devices.Count > 0
@@ -169,6 +171,7 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
                         catch (OperationCanceledException) when (connectedCancellation.IsCancellationRequested) { }
                         await deviceUpdates;
                         await teamUpdates;
+                        await clanUpdates;
                         await mapUpdates;
                         await chatUpdates;
                     }
@@ -294,6 +297,7 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
     private void ResetStatus()
     {
         Team.Reset();
+        Clan.Reset();
         Map.Reset();
         Chat.Reset();
         sampleTime = null;

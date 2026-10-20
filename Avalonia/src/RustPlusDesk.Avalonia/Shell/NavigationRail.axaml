@@ -35,6 +35,11 @@
               </Border></Panel>
             <TextBlock Grid.Column="1" Classes="navLabel" Text="Notifications" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
+        <Button Classes="nav" Classes.selected="{Binding IsClanSelected}" Command="{Binding OpenClanCommand}" IsVisible="{Binding Connection.IsConnected}"
+                ToolTip.Tip="Your clan: members, roles and message of the day" AutomationProperties.Name="Clan">
+          <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Shield24" />
+            <TextBlock Grid.Column="1" Classes="navLabel" Text="Clan" IsVisible="{Binding IsRailExpanded}" /></Grid>
+        </Button>
         <TextBlock Classes="navSection" Text="TOOLS" IsVisible="{Binding IsRailExpanded}" />
         <Border Height="1" Margin="6,6" Background="{DynamicResource CardBorder}" IsVisible="{Binding !IsRailExpanded}" />
         <Button Classes="nav" Classes.selected="{Binding IsDeathStatsSelected}" Command="{Binding OpenDeathStatsCommand}" IsVisible="{Binding HasDeathStats}"

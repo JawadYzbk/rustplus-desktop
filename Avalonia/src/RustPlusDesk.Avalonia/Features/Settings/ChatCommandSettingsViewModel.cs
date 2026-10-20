@@ -14,7 +14,8 @@ namespace RustPlusDesk.Avalonia.Features.Settings;
 /// what the card shows. The enable switch applies immediately, as the reference's checkbox did.
 /// </summary>
 public sealed partial class ChatCommandSettingsViewModel(IChatCommandSettingsStore store,
-    Func<(string Path, ServerSummary Server)?> selected, Action<ChatCommandSettings>? applied = null) : ObservableObject
+    Func<(string Path, ServerSummary Server)?> selected, Action<ChatCommandSettings>? applied = null,
+    Func<IReadOnlyList<RustPlusDesk.Core.Clans.ClanRole>>? clanRoles = null) : ObservableObject
 {
     public const string NoServerStatus = "Select a server to configure its chat commands.";
     public const string SavedStatus = "Chat commands saved.";
@@ -45,11 +46,21 @@ public sealed partial class ChatCommandSettingsViewModel(IChatCommandSettingsSto
     [ObservableProperty] private string customTimer = "";
     [ObservableProperty] private bool clanAllowBaseCodes;
     [ObservableProperty] private bool clanAllowSwitches;
+    /// <summary>Reference ServerProfile.ClanChatCommandsEnabled: commands are also answered in clan chat.</summary>
+    [ObservableProperty] private bool clanCommandsEnabled;
+    /// <summary>Reference ServerProfile.ClanCommandsAllowAi: clan chat may use the AI command.</summary>
+    [ObservableProperty] private bool clanAllowAi;
     [ObservableProperty] private string status = NoServerStatus;
     [ObservableProperty] private bool isError;
 
     /// <summary>Reference Base Codes editor: five labelled four-digit codes, padded with spare rows.</summary>
     public ObservableCollection<BaseCodeRowViewModel> BaseCodeRows { get; } = [];
+
+    /// <summary>
+    /// Reference ServerProfile.ClanRolePermissions: one row per clan role, carrying whether that role may use
+    /// commands. The rows are the clan's, not ours: they are created and renamed while the app is closed.
+    /// </summary>
+    public ObservableCollection<ClanRoleRowViewModel> ClanRoles { get; } = [];
 
     /// <summary>Reference settings load: the selected profile's chat-command settings.</summary>
     public async Task LoadAsync(CancellationToken ct = default)
@@ -65,7 +76,10 @@ public sealed partial class ChatCommandSettingsViewModel(IChatCommandSettingsSto
             Pop = List = Time = Promote = DeepSea = Cargo = Heli = Vendor = Afk = "";
             OilRig = UpkeepDetail = BaseCodes = Ai = CustomTimer = "";
             ClanAllowBaseCodes = ClanAllowSwitches = false;
+            ClanCommandsEnabled = false;
+            ClanAllowAi = false;
             SetBaseCodeRows(ChatCommandSettings.NoBaseCodes);
+            ClanRoles.Clear();
             loading = false;
             Status = NoServerStatus;
             return;
@@ -99,10 +113,57 @@ public sealed partial class ChatCommandSettingsViewModel(IChatCommandSettingsSto
         CustomTimer = settings.CustomTimer;
         ClanAllowBaseCodes = settings.ClanCommandsAllowBaseCodes;
         ClanAllowSwitches = settings.ClanCommandsAllowSwitches;
+        ClanCommandsEnabled = settings.ClanCommandsEnabled;
+        ClanAllowAi = settings.ClanCommandsAllowAi;
         SetBaseCodeRows(settings.BaseCodeRows);
         loading = false;
+        ReconcileClanRoles(clanRoles?.Invoke());
         Status = SavedStatus;
         applied?.Invoke(settings);
+    }
+
+    /// <summary>
+    /// Reference ReconcileClanRolePermissions: the saved list answers "which role ids may use commands", and
+    /// everything else - the names, the order, which roles exist at all - is taken fresh from the server. A role that
+    /// disappeared drops out, and a new one arrives switched off.
+    /// </summary>
+    public void ReconcileClanRoles(IReadOnlyList<RustPlusDesk.Core.Clans.ClanRole>? roles)
+    {
+        if (roles is null || roles.Count == 0) return;
+        var allowed = loaded.ClanRolePermissions.Where(permission => permission.Allowed).Select(permission => permission.RoleId).ToHashSet();
+        var rebuilt = roles
+            .OrderBy(role => role.Rank)
+            .Select(role => new ClanRoleRowViewModel
+            {
+                RoleId = role.RoleId,
+                Name = string.IsNullOrWhiteSpace(role.Name) ? $"Role {role.RoleId}" : role.Name,
+                Rank = role.Rank,
+                Allowed = allowed.Contains(role.RoleId),
+                AllowedChanged = OnRoleAllowedChanged
+            })
+            .ToList();
+
+        // Only touch the rows when something actually differs: they are bound to checkboxes, and rebuilding them on
+        // every clan pull would drop a tick the moment someone set it.
+        bool unchanged = rebuilt.Count == ClanRoles.Count && rebuilt.Zip(ClanRoles).All(pair =>
+            pair.First.RoleId == pair.Second.RoleId &&
+            pair.First.Name == pair.Second.Name &&
+            pair.First.Allowed == pair.Second.Allowed);
+        if (unchanged) return;
+
+        loading = true;
+        ClanRoles.Clear();
+        foreach (var row in rebuilt) ClanRoles.Add(row);
+        loading = false;
+    }
+
+    /// <summary>A role tick is saved at once, so a clan pull cannot undo it (reference the bound profile rows).</summary>
+    private void OnRoleAllowedChanged(ClanRoleRowViewModel row)
+    {
+        if (loading) return;
+        var permissions = ClanRoles.Select(item => new ChatRolePermission(item.RoleId, item.Name, item.Rank, item.Allowed)).ToList();
+        loaded = loaded with { ClanRolePermissions = permissions };
+        _ = PersistAsync(loaded);
     }
 
     /// <summary>Reference EnableChatCommands_Changed: the switch takes effect at once.</summary>
@@ -158,6 +219,11 @@ public sealed partial class ChatCommandSettingsViewModel(IChatCommandSettingsSto
             CustomTimer = ChatCommandSettings.ValidateCommand(CustomTimer, ChatCommandSettings.Defaults.CustomTimer),
             ClanCommandsAllowBaseCodes = ClanAllowBaseCodes,
             ClanCommandsAllowSwitches = ClanAllowSwitches,
+            ClanCommandsEnabled = ClanCommandsEnabled,
+            ClanCommandsAllowAi = ClanAllowAi,
+            ClanRolePermissions = ClanRoles
+                .Select(row => new ChatRolePermission(row.RoleId, row.Name, row.Rank, row.Allowed))
+                .ToList(),
             BaseCodeRows = baseCodes.Count == 0 ? ChatCommandSettings.NoBaseCodes : baseCodes
         };
 
@@ -205,7 +271,10 @@ public sealed partial class ChatCommandSettingsViewModel(IChatCommandSettingsSto
         CustomTimer = settings.CustomTimer;
         ClanAllowBaseCodes = settings.ClanCommandsAllowBaseCodes;
         ClanAllowSwitches = settings.ClanCommandsAllowSwitches;
+        ClanCommandsEnabled = settings.ClanCommandsEnabled;
+        ClanAllowAi = settings.ClanCommandsAllowAi;
         SetBaseCodeRows(settings.BaseCodeRows);
+        ReconcileClanRoles(clanRoles?.Invoke());
         ResponseDelay = DelayText(settings.ResponseDelaySeconds);
         loading = false;
     }
@@ -238,4 +307,21 @@ public sealed partial class BaseCodeRowViewModel : ObservableObject
 
     public static string Sanitize(string? value) =>
         new((value ?? "").Where(char.IsDigit).Take(4).ToArray());
+}
+
+/// <summary>
+/// One clan role row: the role, its name and rank, and whether its members may use chat commands
+/// (reference ServerProfile.ClanRolePermission).
+/// </summary>
+public sealed partial class ClanRoleRowViewModel : ObservableObject
+{
+    public int RoleId { get; init; }
+    public string Name { get; init; } = "";
+    public int Rank { get; init; }
+    [ObservableProperty] private bool allowed;
+
+    /// <summary>Raised when the tick changes, so the card can save it at once.</summary>
+    public Action<ClanRoleRowViewModel>? AllowedChanged { get; init; }
+
+    partial void OnAllowedChanged(bool value) => AllowedChanged?.Invoke(this);
 }

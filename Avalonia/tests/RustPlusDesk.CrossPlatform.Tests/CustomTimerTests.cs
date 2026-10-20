@@ -23,6 +23,16 @@ public sealed class CustomTimerTests
 
     private static ChatCommandState Live => new(Connected: true);
 
+    /// <summary>A clan that granted the author the Owner role, so the clan gate lets the command through.</summary>
+    private static ChatCommandSettings ClanAllowed => ChatCommandSettings.Defaults with
+    {
+        ClanCommandsEnabled = true,
+        ClanRolePermissions = [new ChatRolePermission(7, "Owner", 100, true)]
+    };
+
+    /// <summary>The clan pull the gate reads: the author is in the clan with the Owner role.</summary>
+    private static IReadOnlyList<ChatClanMember> ClanAuthor => [new ChatClanMember(AuthorId, 7, "Owner")];
+
     private static ChatCustomTimer Timer(string name, string command, TimeSpan remaining, ChatChannel? origin = null,
         bool notified60 = false) =>
         new(Guid.NewGuid().ToString(), name, command, Now.Add(remaining), origin, Notified60: notified60);
@@ -88,7 +98,7 @@ public sealed class CustomTimerTests
         Assert.AreEqual("big raid", named.Name, "The name keeps its spaces (lower case, like everything the parser sees).");
         Assert.AreEqual("bigraid", named.Command, "The command drops whitespace.");
 
-        var clan = Run("!timer Raid,10", Live, channel: ChatChannel.Clan).NewCustomTimer!;
+        var clan = Run("!timer Raid,10", Live with { ClanMembers = ClanAuthor }, ClanAllowed, channel: ChatChannel.Clan).NewCustomTimer!;
         Assert.AreEqual(ChatChannel.Clan, clan.OriginChannel);
     }
 

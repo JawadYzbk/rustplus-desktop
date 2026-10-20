@@ -1,0 +1,71 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RustPlusDesk.Avalonia.Features.Clans"
+             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+             x:Class="RustPlusDesk.Avalonia.Features.Clans.ClanView" x:DataType="vm:ClanViewModel">
+  <UserControl.Styles>
+    <Style Selector="TextBlock.colHeader"><Setter Property="FontSize" Value="11" /><Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSubtle}" /></Style>
+    <Style Selector="TextBlock.cell"><Setter Property="FontSize" Value="13" /><Setter Property="TextTrimming" Value="CharacterEllipsis" /></Style>
+    <Style Selector="Border.stat"><Setter Property="Background" Value="{DynamicResource SurfaceAlt}" /><Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="12,10" /><Setter Property="Margin" Value="0,0,8,8" /></Style>
+    <Style Selector="TextBlock.statLabel"><Setter Property="FontSize" Value="11" /><Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource TextSubtle}" /></Style>
+    <Style Selector="TextBlock.statValue"><Setter Property="FontSize" Value="18" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+  </UserControl.Styles>
+  <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="10">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{Binding Name}" Classes="title" TextTrimming="CharacterEllipsis" />
+        <TextBlock Text="{Binding MemberCountText}" Classes="muted" FontSize="12" />
+      </StackPanel>
+      <Button Grid.Column="1" Classes="subtle" Command="{Binding RefreshCommand}" ToolTip.Tip="Re-read the clan" AutomationProperties.Name="Refresh clan">
+        <StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="ArrowClockwise24" FontSize="14" /><TextBlock Text="Refresh" /></StackPanel>
+      </Button>
+    </Grid>
+    <StackPanel Grid.Row="1" Spacing="8">
+      <Border Classes="card" IsVisible="{Binding HasClan}">
+        <StackPanel Spacing="4">
+          <TextBlock Text="CLAN MESSAGE" Classes="colHeader" />
+          <TextBlock Text="{Binding Motd}" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+      <TextBlock Text="{Binding Message}" Classes="muted" TextWrapping="Wrap" />
+    </StackPanel>
+    <UniformGrid Grid.Row="2" Columns="3" Margin="0,0,-8,-8" IsVisible="{Binding HasClan}">
+      <Border Classes="stat"><StackPanel Spacing="2"><StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="People24" FontSize="13" Foreground="{DynamicResource TextSubtle}" /><TextBlock Classes="statLabel" Text="MEMBERS" /></StackPanel>
+        <TextBlock Classes="statValue" Text="{Binding Clan.MemberCount}" /></StackPanel></Border>
+      <Border Classes="stat"><StackPanel Spacing="2"><StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="PersonAvailable24" FontSize="13" Foreground="{DynamicResource TextSubtle}" /><TextBlock Classes="statLabel" Text="ONLINE" /></StackPanel>
+        <TextBlock Classes="statValue" Text="{Binding Clan.OnlineCount}" /></StackPanel></Border>
+      <Border Classes="stat"><StackPanel Spacing="2"><StackPanel Orientation="Horizontal" Spacing="6"><icons:Icon Symbol="Shield24" FontSize="13" Foreground="{DynamicResource TextSubtle}" /><TextBlock Classes="statLabel" Text="ROLES" /></StackPanel>
+        <TextBlock Classes="statValue" Text="{Binding Roles.Count}" /></StackPanel></Border>
+    </UniformGrid>
+    <Grid Grid.Row="3" RowDefinitions="Auto,*" RowSpacing="6" IsVisible="{Binding HasClan}">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <TextBlock Classes="colHeader" Text="MEMBER" Width="200" />
+        <TextBlock Grid.Column="1" Classes="colHeader" Text="ROLE" />
+        <TextBlock Grid.Column="2" Classes="colHeader" Text="STATE" Width="90" />
+      </Grid>
+      <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+        <ItemsControl ItemsSource="{Binding Members}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ClanMemberRow">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" Margin="0,0,0,6">
+                <Border Width="26" Height="26" CornerRadius="13" Background="{DynamicResource SurfaceAlt}" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding Initial}" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <StackPanel Grid.Column="1" Spacing="1">
+                  <TextBlock Classes="cell" Text="{Binding Name}" ToolTip.Tip="{Binding Name}" />
+                  <TextBlock Classes="muted" FontSize="11" Text="{Binding SteamId}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                  <TextBlock Classes="cell" Text="{Binding RoleName}" />
+                  <TextBlock Classes="muted" FontSize="12" Text="{Binding State}" Width="80" TextAlignment="Right" />
+                </StackPanel>
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Grid>
+  </Grid>
+</UserControl>
