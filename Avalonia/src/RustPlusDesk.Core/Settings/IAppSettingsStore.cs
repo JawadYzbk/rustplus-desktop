@@ -71,4 +71,7 @@ public static class SettingKeys
     public const string CrosshairCustomImagePath = "CrosshairCustomImagePath"; // the image the custom style shows
     public const string CrosshairEnabled = "CrosshairEnabled";             // default false: the crosshair is off
     public const string AllAchievementsTicketOffered = "AllAchievementsTicketOffered"; // the prompt is asked once
+    public const string ShowPlayersTab = "ShowPlayersTab";                 // default false: the Players tab is opt-in
+    public const string GroupStates = "GroupStates";                       // "server|group" → the group is open
+    public const string GroupOrder = "GroupOrder";                         // server → the groups in the user's order
 }

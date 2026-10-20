@@ -40,11 +40,29 @@ public sealed partial class SettingsViewModel : ObservableObject
         retentionDays = Math.Clamp(NotificationInbox.Retention(settings?.Get(SettingKeys.NotificationsRetentionDays, NotificationInbox.DefaultRetentionDays) ?? 30),
             MinRetentionDays, MaxRetentionDays);
         genericAlarmPopup = settings?.Get(SettingKeys.GenericAlarmPopupEnabled, false) ?? false;
+        showPlayersTab = settings?.Get(SettingKeys.ShowPlayersTab, false) ?? false;
         RefreshMuted();
     }
 
     [ObservableProperty] private bool autoConnect;
     [ObservableProperty] private bool autoStart;
+
+    /// <summary>
+    /// Reference ShowPlayersTab: the Players tab is opt-in. The reference's setter always wrote the flag back to
+    /// false, so its tab could never be turned on; the port keeps the switch working, because a switch that cannot
+    /// be turned on is a switch that does nothing.
+    /// </summary>
+    [ObservableProperty] private bool showPlayersTab;
+
+    /// <summary>Raised when the Players tab is turned on or off, so the rail follows.</summary>
+    public event Action<bool>? ShowPlayersTabChanged;
+
+    partial void OnShowPlayersTabChanged(bool value)
+    {
+        settings?.Set(SettingKeys.ShowPlayersTab, value);
+        ShowPlayersTabChanged?.Invoke(value);
+    }
+
     /// <summary>Why the last launch-at-sign-in change did not apply (empty when it did).</summary>
     [ObservableProperty] private string autoStartError = "";
     public bool CanAutoStart => launchAtLogin?.IsSupported == true;

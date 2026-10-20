@@ -10,6 +10,7 @@
         xmlns:settings="using:RustPlusDesk.Avalonia.Features.Settings"
         xmlns:deaths="using:RustPlusDesk.Avalonia.Features.Deaths"
         xmlns:clans="using:RustPlusDesk.Avalonia.Features.Clans"
+        xmlns:players="using:RustPlusDesk.Avalonia.Features.Players"
         xmlns:achievements="using:RustPlusDesk.Avalonia.Features.Achievements"
         xmlns:shell="using:RustPlusDesk.Avalonia.Shell"
         xmlns:cloud="using:RustPlusDesk.Avalonia.Features.Cloud"
@@ -138,6 +139,17 @@
               </Grid>
             </Border>
             <clans:ClanView Grid.Row="1" Margin="16,12,16,16" DataContext="{Binding Clan}" />
+          </Grid>
+          <Grid RowDefinitions="Auto,*" Background="{DynamicResource Surface}" IsVisible="{Binding IsPlayersSelected}">
+            <Border Classes="toolbar">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                <icons:Icon Symbol="Globe24" FontSize="20" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="{DynamicResource AppPlayers}" Classes="title" />
+                <Button Grid.Column="2" Classes="icon" Command="{Binding CloseToolCommand}" ToolTip.Tip="Close (Esc)"
+                        AutomationProperties.Name="Close players"><icons:Icon Symbol="Dismiss24" /></Button>
+              </Grid>
+            </Border>
+            <players:PlayersView Grid.Row="1" Margin="16,12,16,16" DataContext="{Binding Players}" />
           </Grid>
           <Grid RowDefinitions="Auto,*" Background="{DynamicResource Surface}" IsVisible="{Binding IsAchievementsSelected}">
             <Border Classes="toolbar">

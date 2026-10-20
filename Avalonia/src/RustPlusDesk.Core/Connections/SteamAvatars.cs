@@ -24,8 +24,20 @@ public static partial class SteamAvatarXml
         return medium.Success && !string.IsNullOrWhiteSpace(medium.Groups[1].Value) ? medium.Groups[1].Value : null;
     }
 
+    /// <summary>
+    /// Reference TrackingService.FetchPlayerNameAsync: the name on the public profile, else null. The profile of a
+    /// private account has none, so the caller keeps the id it was given.
+    /// </summary>
+    public static string? PlayerName(string xml)
+    {
+        var match = SteamId().Match(xml);
+        return match.Success && !string.IsNullOrWhiteSpace(match.Groups[1].Value) ? match.Groups[1].Value.Trim() : null;
+    }
+
     [GeneratedRegex(@"<avatarFull><!\[CDATA\[(.*?)\]\]></avatarFull>", RegexOptions.IgnoreCase)]
     private static partial Regex Full();
     [GeneratedRegex(@"<avatarMedium><!\[CDATA\[(.*?)\]\]></avatarMedium>", RegexOptions.IgnoreCase)]
     private static partial Regex Medium();
+    [GeneratedRegex(@"<steamID><!\[CDATA\[(.*?)\]\]></steamID>", RegexOptions.IgnoreCase)]
+    private static partial Regex SteamId();
 }

@@ -27,6 +27,17 @@
           <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Connector24" />
             <TextBlock Grid.Column="1" Classes="navLabel" Text="{DynamicResource AppDevices}" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
+        <Button Classes="nav" Classes.selected="{Binding IsClanSelected}" Command="{Binding OpenClanCommand}" IsVisible="{Binding Connection.IsConnected}"
+                ToolTip.Tip="Your clan: members, roles and message of the day" AutomationProperties.Name="Clan">
+          <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Shield24" />
+            <TextBlock Grid.Column="1" Classes="navLabel" Text="{DynamicResource AppClan}" IsVisible="{Binding IsRailExpanded}" /></Grid>
+        </Button>
+        <!-- The reference's rail order: Devices, Team, Clan, Cameras, Players, Notifications. -->
+        <Button Classes="nav" Classes.selected="{Binding IsPlayersSelected}" Command="{Binding OpenPlayersCommand}" IsVisible="{Binding HasPlayersTab}"
+                ToolTip.Tip="{DynamicResource UiBrowseOnlinePlayersAndTrackedTargets}" AutomationProperties.Name="Players">
+          <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Globe24" />
+            <TextBlock Grid.Column="1" Classes="navLabel" Text="{DynamicResource AppPlayers}" IsVisible="{Binding IsRailExpanded}" /></Grid>
+        </Button>
         <Button Classes="nav" Classes.selected="{Binding IsNotificationsSelected}" Command="{Binding OpenNotificationsCommand}"
                 ToolTip.Tip="{DynamicResource UiReviewAlertsAndRecentServerEvents}" AutomationProperties.Name="Notifications">
           <Grid ColumnDefinitions="28,*,Auto"><Panel><icons:Icon Symbol="Alert24" />
@@ -34,11 +45,6 @@
                 <TextBlock Text="{Binding Notifications.UnreadText}" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource OnAccent}" />
               </Border></Panel>
             <TextBlock Grid.Column="1" Classes="navLabel" Text="{DynamicResource AppNotifications}" IsVisible="{Binding IsRailExpanded}" /></Grid>
-        </Button>
-        <Button Classes="nav" Classes.selected="{Binding IsClanSelected}" Command="{Binding OpenClanCommand}" IsVisible="{Binding Connection.IsConnected}"
-                ToolTip.Tip="Your clan: members, roles and message of the day" AutomationProperties.Name="Clan">
-          <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Shield24" />
-            <TextBlock Grid.Column="1" Classes="navLabel" Text="{DynamicResource AppClan}" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
         <Button Classes="nav" Classes.selected="{Binding IsAchievementsSelected}" Command="{Binding OpenAchievementsCommand}" IsVisible="{Binding Achievements, FallbackValue=False}"
                 ToolTip.Tip="Every achievement the app knows" AutomationProperties.Name="Achievements">
