@@ -11,6 +11,17 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- Device automation: `Core/Devices/DeviceAutomation.cs` ports the reference `DeviceAutomationRule` and
+  `DeviceAutomationEvaluator` - a rule drives one paired switch when a condition holds, the conditions being
+  "player proximity" (any/all/specific players online or offline, within a distance of a captured anchor) and
+  "game time" (a window that wraps around midnight). `DeviceAutomationRunner` reads the enabled rules into a
+  list of decisions before anything is written, so two rules that disagree about one switch are refused with the
+  reference log line instead of one of them winning. The rules live in the profile (`IsDeviceAutomationActive`
+  and `DeviceAutomationRules`), the captured anchor position lives on the device row (`PairedX`, `PairedY`,
+  `PairedBySteamId`, `PairedLocationCapturedAt`), and the shell evaluates the rules on every team read and drives
+  the switch through the device panel. The settings card edits the rules with the reference fields.
+  **685 tests** on Windows locally (685 pass). The reference's "capture the device position from a paired
+  teammate" action is not wired to a button yet; the position can be written but not captured from the map.
 - The clan workspace and role-gated clan chat commands: `Core/Clans/ClanModels.cs` carries the clan snapshot the
   server reports (id, name, message of the day, roles, members), and `RustPlusTransport.ReadClanAsync` reads it
   through `GetClanInfoAsync`; the connection polls it every fifteen seconds (reference `TeamTimer_Tick`), and the
@@ -276,7 +287,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Pairing/auth/accounts | Native-browser sign-in/status, FCM registration/listener, startup delivery checks, one-shot renewal, server/device pairing and re-pair, private writes, confirmed device/global sign-out | Live Steam/Facepunch/FCM acceptance and ambiguous-match resolution UI |
 | Rust+ connection/reconnect | Authenticated status session, fallback, immediate socket-disconnect handling, cancellation and recovery | Native/live-server acceptance; soft/full modes and remaining feature subscriptions |
 | Live map/markers/overlays | Not ported | Separate coordinate/state logic from rendering; choose portable map/helper hosting |
-| Smart devices/automation/timers | Confirmed switches, nested group commands, alarm/storage state, local organization/icons/delete with rule+command cleanup, own-device sync and guarded shared/local import | Live-server acceptance, drag gestures, hotkey/overlay cleanup on delete, transfer, missing icon artwork/direct-click shortcuts, automation, timers, alarm notifications/audio and original layout |
+| Smart devices/automation/timers | Confirmed switches, nested group commands, alarm/storage state, local organization/icons/delete with rule+command cleanup, own-device sync and guarded shared/local import, and the device-automation rules with their settings card | Live-server acceptance, drag gestures, hotkey/overlay cleanup on delete, transfer, missing icon artwork/direct-click shortcuts, the captured anchor position action, timer audio, alarm notifications/audio and original layout |
 | Cloud identity/consent | Website handoff, scoped permission, local sign-out, fresh quotas, own recovery/automatic sync and import sources | Live authentication/version acceptance, concurrent writers, other consents, team membership/master/chat publication and remaining account/provider/session workflows |
 | Chat/team/clan | Live roster dock, chat history/search/emoji/message menu, automated alert routing, the clan workspace (members, roles, message of the day) and team chat commands (status commands, switches/upkeep/oil rig, base codes and clan switches, custom timers, with per-server command settings and per-clan-role permissions) | Moderation and clan management, chat/clan publication and master coordination, and the remaining chat-command work (AI command, logic-engine rules, the chat-master gate, timer audio) |
 | Cameras | Not ported | Validate camera SDK/runtime, stream decoding and portable rendering |
@@ -334,9 +345,9 @@ themes, and full keyboard/screen-reader acceptance are still pending.
 
 ## Local verification
 
-- Windows: all **669 .NET test cases** pass on the current source, including the clan workspace and its role-gated
-  commands, the organization, recycling and socket-teardown work; build and isolated-copy results are recorded in
-  HANDOFF.md at each checkpoint.
+- Windows: all **685 .NET test cases** pass on the current source, including the clan workspace and its role-gated
+  commands, the device-automation rules, the organization, recycling and socket-teardown work; build and
+  isolated-copy results are recorded in HANDOFF.md at each checkpoint.
 - Native browser crash reproduced using a local callback: Windows threw `Unable to create child window
   for native control host` because the executable lacked a supported-OS manifest. Added the official
   Avalonia compatibility declaration to the app host. The same production browser now passes local redirect
