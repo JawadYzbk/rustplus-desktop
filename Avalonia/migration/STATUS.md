@@ -11,6 +11,15 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- Achievements: `Core/Achievements` carries the reference catalogue (all 31 achievements, their names and the cell
+  of the sprite sheet their artwork sits in) and the reference `AchievementService` rules - unlocking is cheap and
+  safe to call repeatedly, an unknown id is not written, the celebration is held back while the app is still
+  settling at startup while the badge is not, and "mark seen" clears the badge without losing the achievement. The
+  state is saved beside the other local app data and the new Achievements workspace shows the list with the
+  artwork cut from the bundled sheet, the secret achievement staying "???" until it is earned. The shell earns
+  the ones the ported features produce: a teammate, a paired device, the clan, the death stats, the raid
+  calculator and a chat timer. **695 tests** on Windows locally (695 pass). The reference's "tell the developers
+  about a full set" prompt needs the support API, which is not ported yet.
 - Installable builds: `installer/` now produces what a user installs - a self-contained Windows build with an
   Inno Setup installer (`installer/Setup.iss` and `installer/build-installer.ps1`, which publishes first and
   then compiles the script, stopping with a clear message when Inno Setup is not installed), a macOS `.app`
@@ -315,7 +324,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | AI companion | Not ported | Preserve answers/history, provider/model selection, chat commands and account settings |
 | Notifications/custom alerts | In-memory pairing/alarm/chat/death feed while listening, sent-time normalization and duplicate suppression | Durable inbox, unread state, popup paging, sounds, channel settings and integrations |
 | Community/LFG/support/admin | Not ported | Preserve profiles, moderation/reporting, tickets/attachments, account/team administration |
-| Tutorials/achievements/help | Not ported | Preserve guided targets, progress, content, patch notes, galleries and consent dialogs |
+| Tutorials/achievements/help | The achievements list with its artwork, the unlock triggers and the saved state | Guided tutorial targets and their progress, patch notes, galleries, the help content and the consent dialogs |
 | Traffic monitor/debug/logs | Not ported | Preserve statistics, filtering, monitoring and diagnostics without leaking credentials |
 
 ## Evidence and limitations
@@ -356,9 +365,9 @@ themes, and full keyboard/screen-reader acceptance are still pending.
 
 ## Local verification
 
-- Windows: all **685 .NET test cases** pass on the current source, including the clan workspace and its role-gated
-  commands, the device-automation rules, the organization, recycling and socket-teardown work; build and
-  isolated-copy results are recorded in HANDOFF.md at each checkpoint.
+- Windows: all **695 .NET test cases** pass on the current source, including the clan workspace and its role-gated
+  commands, the device-automation rules, the achievements list, the organization, recycling and socket-teardown
+  work; build and isolated-copy results are recorded in HANDOFF.md at each checkpoint.
 - Native browser crash reproduced using a local callback: Windows threw `Unable to create child window
   for native control host` because the executable lacked a supported-OS manifest. Added the official
   Avalonia compatibility declaration to the app host. The same production browser now passes local redirect
