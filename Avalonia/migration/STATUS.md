@@ -11,6 +11,13 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- Network traffic monitor: `Core/Diagnostics/NetworkTrafficMonitor.cs` ports the reference monitor - every
+  request the app makes is counted, the log is bounded at 2500 rows, the speed is a rolling window over the last
+  second and a half, the totals and the per-category breakdown are kept, and the sizes are formatted the
+  reference way. `TrafficTrackingHttpMessageHandler` records each request (with its category, size, duration and
+  status) without changing it, and the new window shows the speeds, the totals, the breakdown and the log, with
+  a CSV export. The title bar carries the reference's speed readout. **706 tests** on Windows locally (706 pass).
+  The reference's per-request details column and the "record every request" switch are not ported.
 - Achievements: `Core/Achievements` carries the reference catalogue (all 31 achievements, their names and the cell
   of the sprite sheet their artwork sits in) and the reference `AchievementService` rules - unlocking is cheap and
   safe to call repeatedly, an unknown id is not written, the celebration is held back while the app is still
@@ -325,7 +332,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Notifications/custom alerts | In-memory pairing/alarm/chat/death feed while listening, sent-time normalization and duplicate suppression | Durable inbox, unread state, popup paging, sounds, channel settings and integrations |
 | Community/LFG/support/admin | Not ported | Preserve profiles, moderation/reporting, tickets/attachments, account/team administration |
 | Tutorials/achievements/help | The achievements list with its artwork, the unlock triggers and the saved state | Guided tutorial targets and their progress, patch notes, galleries, the help content and the consent dialogs |
-| Traffic monitor/debug/logs | Not ported | Preserve statistics, filtering, monitoring and diagnostics without leaking credentials |
+| Traffic monitor/debug/logs | The network traffic monitor: the app's own requests counted, the speeds, the per-category breakdown, the log and a CSV export, with the title-bar readout | The diagnostic log window, request details and the per-request filter |
 
 ## Evidence and limitations
 
@@ -365,8 +372,8 @@ themes, and full keyboard/screen-reader acceptance are still pending.
 
 ## Local verification
 
-- Windows: all **695 .NET test cases** pass on the current source, including the clan workspace and its role-gated
-  commands, the device-automation rules, the achievements list, the organization, recycling and socket-teardown
+- Windows: all **706 .NET test cases** pass on the current source, including the clan workspace and its role-gated
+  commands, the device-automation rules, the achievements list, the traffic monitor, the organization, recycling and socket-teardown
   work; build and isolated-copy results are recorded in HANDOFF.md at each checkpoint.
 - Native browser crash reproduced using a local callback: Windows threw `Unable to create child window
   for native control host` because the executable lacked a supported-OS manifest. Added the official
