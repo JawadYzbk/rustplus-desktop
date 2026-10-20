@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:RustPlusDesk.Avalonia.Features.Settings"
+             xmlns:devices="using:RustPlusDesk.Avalonia.Features.Devices"
              xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
              x:Class="RustPlusDesk.Avalonia.Features.Settings.SettingsView" x:DataType="vm:SettingsViewModel">
   <UserControl.Styles>
@@ -263,6 +264,103 @@
                     AutomationProperties.Name="Apply chat commands" />
             <TextBlock Text="{Binding ChatCommands.Status, FallbackValue=''}" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"
                        Classes="muted" Classes.error="{Binding ChatCommands.IsError, FallbackValue=False}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0" IsVisible="{Binding HasAutomation, FallbackValue=False}">
+        <icons:Icon Symbol="Play24" FontSize="18" Foreground="{DynamicResource Accent}" />
+        <StackPanel>
+          <TextBlock Text="Device Automation" Classes="title" />
+          <TextBlock Text="Put a paired switch on or off when a condition holds" Classes="muted" FontSize="12" />
+        </StackPanel>
+      </StackPanel>
+      <Border Classes="panel" Padding="16" IsVisible="{Binding HasAutomation, FallbackValue=False}">
+        <StackPanel Spacing="12">
+          <TextBlock Text="AUTOMATION" Classes="section" />
+          <TextBlock Text="Each server keeps its own rules. A rule reads the team and the game clock and drives one paired switch."
+                     Classes="muted" FontSize="12" TextWrapping="Wrap" />
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Enable device automation" FontWeight="SemiBold" />
+              <TextBlock Text="Turn this off to stop every rule on this server." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding Automation.Enabled, FallbackValue=False}" OnContent="" OffContent=""
+                          AutomationProperties.Name="Enable device automation" />
+          </Grid>
+          <ItemsControl ItemsSource="{Binding Automation.Rules, FallbackValue={x:Null}}" AutomationProperties.Name="Device automation rules">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Border Classes="panel" Padding="12" Margin="0,0,0,8">
+                  <StackPanel Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                      <TextBox Text="{Binding Name, FallbackValue=''}" AutomationProperties.Name="Automation rule name" />
+                      <ToggleButton Grid.Column="1" IsChecked="{Binding IsEnabled, FallbackValue=False}" Content="Enabled"
+                                    AutomationProperties.Name="Automation rule enabled" />
+                      <Button Grid.Column="2" Classes="subtle" Content="Remove" Command="{Binding $parent[ItemsControl].DataContext.Automation.RemoveRuleCommand}"
+                              CommandParameter="{Binding}" AutomationProperties.Name="Remove automation rule" />
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                      <TextBlock Text="Condition" VerticalAlignment="Center" />
+                      <ComboBox Grid.Column="1" ItemsSource="{Binding ConditionTypes}" SelectedItem="{Binding ConditionType}"
+                                AutomationProperties.Name="Automation condition">
+                        <ComboBox.ItemTemplate><DataTemplate x:DataType="devices:AutomationChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                      </ComboBox>
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                      <TextBlock Text="Players" VerticalAlignment="Center" />
+                      <ComboBox Grid.Column="1" ItemsSource="{Binding PlayerMatchModes}" SelectedItem="{Binding PlayerMatchMode}"
+                                AutomationProperties.Name="Automation player match">
+                        <ComboBox.ItemTemplate><DataTemplate x:DataType="devices:AutomationChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                      </ComboBox>
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" IsVisible="{Binding IsSpecificMode}">
+                      <TextBlock Text="Steam ID" VerticalAlignment="Center" />
+                      <TextBox Grid.Column="1" Text="{Binding SpecificPlayerSteamId, FallbackValue=''}" AutomationProperties.Name="Automation player Steam ID" />
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
+                      <TextBlock Text="Anchor device" VerticalAlignment="Center" />
+                      <ComboBox Grid.Column="1" ItemsSource="{Binding $parent[ItemsControl].DataContext.Automation.DeviceChoices}"
+                                SelectedItem="{Binding LocationDevice}" PlaceholderText="Choose a device" AutomationProperties.Name="Automation anchor device">
+                        <ComboBox.ItemTemplate><DataTemplate x:DataType="devices:AutomationChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                      </ComboBox>
+                      <TextBox Grid.Column="2" Text="{Binding DistanceMeters, FallbackValue='250'}" Width="70" Margin="6,0,0,0"
+                               AutomationProperties.Name="Automation distance in meters" />
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*,Auto,*" ColumnSpacing="6">
+                      <TextBlock Text="From" VerticalAlignment="Center" />
+                      <TextBox Grid.Column="1" Text="{Binding StartTime, FallbackValue='20:00'}" AutomationProperties.Name="Automation start time" />
+                      <TextBlock Grid.Column="2" Text="to" VerticalAlignment="Center" />
+                      <TextBox Grid.Column="3" Text="{Binding EndTime, FallbackValue='08:00'}" AutomationProperties.Name="Automation end time" />
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                      <TextBlock Text="Target switch" VerticalAlignment="Center" />
+                      <ComboBox Grid.Column="1" ItemsSource="{Binding $parent[ItemsControl].DataContext.Automation.DeviceChoices}"
+                                SelectedItem="{Binding TargetDevice}" PlaceholderText="Choose a switch" AutomationProperties.Name="Automation target switch">
+                        <ComboBox.ItemTemplate><DataTemplate x:DataType="devices:AutomationChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                      </ComboBox>
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*,Auto,*" ColumnSpacing="6">
+                      <TextBlock Text="While matched" VerticalAlignment="Center" />
+                      <ToggleSwitch Grid.Column="1" IsChecked="{Binding MatchedState, FallbackValue=False}" OnContent="On" OffContent="Off"
+                                    AutomationProperties.Name="Automation matched state" />
+                      <TextBlock Grid.Column="2" Text="Otherwise" VerticalAlignment="Center" />
+                      <ComboBox Grid.Column="3" ItemsSource="{Binding UnmatchedChoices}" SelectedItem="{Binding UnmatchedChoice}"
+                                AutomationProperties.Name="Automation unmatched state">
+                        <ComboBox.ItemTemplate><DataTemplate x:DataType="devices:AutomationChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                      </ComboBox>
+                    </Grid>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="subtle" Content="Add rule" Command="{Binding Automation.AddRuleCommand, FallbackValue={x:Null}}"
+                    AutomationProperties.Name="Add automation rule" />
+            <Button Classes="primary" Content="Apply" Command="{Binding Automation.ApplyCommand, FallbackValue={x:Null}}"
+                    AutomationProperties.Name="Apply device automation" />
+            <TextBlock Text="{Binding Automation.Status, FallbackValue=''}" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"
+                       Classes="muted" Classes.error="{Binding Automation.IsError, FallbackValue=False}" />
           </StackPanel>
         </StackPanel>
       </Border>

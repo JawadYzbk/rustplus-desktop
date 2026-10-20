@@ -65,6 +65,10 @@ public sealed class LegacyServerCatalog : IServerCatalog
                 InGameAlarmTitle = device.InGameAlarmTitle,
                 CustomIconId = device.CustomIconId,
                 CustomIconShortName = device.CustomIconShortName,
+                PairedX = device.PairedX,
+                PairedY = device.PairedY,
+                PairedBySteamId = device.PairedBySteamId,
+                PairedLocationCapturedAt = device.PairedLocationCapturedAt,
                 Children = MapDevices(device.Children, key + "/")
             };
         }).ToArray();
@@ -88,6 +92,14 @@ public sealed class LegacyServerCatalog : IServerCatalog
         public string? InGameAlarmTitle { get; init; }
         public int? CustomIconId { get; init; }
         public string? CustomIconShortName { get; init; }
+        /// <summary>Reference SmartDevice.PairedX: the position a proximity rule anchors to.</summary>
+        public double? PairedX { get; init; }
+        /// <summary>Reference SmartDevice.PairedY: the position a proximity rule anchors to.</summary>
+        public double? PairedY { get; init; }
+        /// <summary>Reference SmartDevice.PairedBySteamId: the teammate the position was taken from.</summary>
+        public ulong? PairedBySteamId { get; init; }
+        /// <summary>Reference SmartDevice.PairedLocationCapturedAt: when the position was taken.</summary>
+        public DateTimeOffset? PairedLocationCapturedAt { get; init; }
         public string? Kind { get; init; }
         public bool IsGroup { get; init; }
         public List<LegacyDevice?>? Children { get; init; }

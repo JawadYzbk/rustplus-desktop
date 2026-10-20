@@ -36,7 +36,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Core.Alerts.IDiscordWebhookStore? webhookStore = null, RustPlusDesk.Core.Alerts.IDiscordWebhookSender? webhookSender = null,
     RustPlusDesk.Core.Alerts.ICloudSignInState? cloudSignIn = null, IProfileWipeTimeStore? wipeTimes = null,
     ISteamAvatarSource? avatarSource = null, RustPlusDesk.Core.Chat.IChatCommandSettingsStore? chatCommandStore = null,
-    RustPlusDesk.Core.Chat.ICustomTimerStore? customTimerStore = null, RustPlusDesk.Core.Time.IClock? clock = null)
+    RustPlusDesk.Core.Chat.ICustomTimerStore? customTimerStore = null, RustPlusDesk.Core.Time.IClock? clock = null,
+    RustPlusDesk.Core.Devices.IDeviceAutomationStore? automationStore = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -70,6 +71,90 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     /// the event announcer because the event answers read the dock, the cargo tracker and the learned cargo data.
     /// </summary>
     public Chat.ChatCommandService? ChatCommandEngine { get; private set; }
+
+    /// <summary>
+    /// Reference EvaluateDeviceAutomationAsync: the rules of the selected profile, read again whenever the profile
+    /// changes. The rules decide what a switch should become; the panel drives it.
+    /// </summary>
+    private RustPlusDesk.Core.Devices.DeviceAutomationSettings automation = RustPlusDesk.Core.Devices.DeviceAutomationSettings.Defaults;
+
+    private async Task ReloadAutomationAsync()
+    {
+        if (automationStore is null) return;
+        if (SelectedServer is not { } server)
+        {
+            automation = RustPlusDesk.Core.Devices.DeviceAutomationSettings.Defaults;
+            return;
+        }
+        try
+        {
+            automation = await automationStore.GetAsync(SourcePath, server.ProfileKey, CancellationToken.None);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+        {
+            automation = RustPlusDesk.Core.Devices.DeviceAutomationSettings.Defaults;
+        }
+    }
+
+    /// <summary>
+    /// Reference EvaluateDeviceAutomationAsync: on every team read the enabled rules are turned into decisions, and
+    /// a switch that is not already in the wanted state is driven to it.
+    /// </summary>
+    private bool automationObserved;
+
+    /// <summary>
+    /// Reference TeamTimer_Tick: the rules are read on every team read. The subscription is made once, when the first
+    /// server is selected, so a rule runs whether or not the settings page was ever opened.
+    /// </summary>
+    private void ObserveAutomation()
+    {
+        if (automationObserved || automationStore is null) return;
+        automationObserved = true;
+        Connection.Team.SnapshotRead += snapshot => EvaluateAutomation(snapshot.Members);
+    }
+
+    /// <summary>
+    /// Reference EvaluateDeviceAutomationAsync: the rules are read against the current team and the switches they ask
+    /// for are driven. The team poll calls this on every read; it is public so the rules can also be checked on demand.
+    /// </summary>
+    public void EvaluateDeviceAutomation() => EvaluateAutomation(Connection.Team.Members.Select(row => row.Member).ToArray());
+
+    private void EvaluateAutomation(IReadOnlyList<RustPlusDesk.Core.Connections.ServerTeamMember> members)
+    {
+        if (!automation.Enabled || automation.Rules.Count == 0 || SelectedServer is not { } server) return;
+        var players = members
+            .Where(member => ulong.TryParse(member.SteamId, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out _))
+            .Select(member => new RustPlusDesk.Core.Devices.DeviceAutomationEvaluator.PlayerSnapshot(
+                ulong.Parse(member.SteamId, System.Globalization.CultureInfo.InvariantCulture),
+                member.IsOnline == true && member.IsAlive != false, member.X, member.Y))
+            .ToList();
+
+        var (decisions, conflicts) = RustPlusDesk.Core.Devices.DeviceAutomationRunner.Decide(
+            automation.Rules, server.Devices, players, Connection.ServerTime);
+        foreach (uint conflict in conflicts)
+            Activity.Append($"[DeviceAutomation] Conflicting rules for device #{conflict}; no action taken.");
+
+        foreach (var decision in decisions)
+        {
+            var row = Connection.Devices.Devices.SelectMany(item => item.DescendantsAndSelf())
+                .FirstOrDefault(item => item.Definition.EntityId == decision.TargetEntityId);
+            if (row is null || row.IsOn == decision.State) continue;
+            _ = ApplyAutomationAsync(decision);
+        }
+    }
+
+    /// <summary>Reference the switch write: the switch is driven, then the panel is left to show the new state.</summary>
+    private async Task ApplyAutomationAsync(RustPlusDesk.Core.Devices.AutomationDecision decision)
+    {
+        try
+        {
+            bool done = await Connection.Devices.SetSwitchStateAsync(decision.TargetEntityId, decision.State);
+            Activity.Append(done
+                ? $"[DeviceAutomation] '{decision.Rule.Name}' set device #{decision.TargetEntityId} {(decision.State ? "ON" : "OFF")}."
+                : $"[DeviceAutomation] '{decision.Rule.Name}' could not set device #{decision.TargetEntityId}.");
+        }
+        catch (Exception ex) { Activity.Append($"[DeviceAutomation] '{decision.Rule.Name}' failed: {ex.Message}"); }
+    }
 
     /// <summary>Everything the command answers read off the reference MainWindow (_vm, _dynStates, _cargo*).</summary>
     private RustPlusDesk.Core.Chat.ChatCommandState BuildChatCommandState()
@@ -552,7 +637,11 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             ChatCommands = chatCommandStore is null ? null : new(chatCommandStore,
                 () => SelectedServer is { } server ? (SourcePath, server) : null,
                 settings => { if (ChatCommandEngine is { } engine) engine.Settings = settings; },
-                () => Connection.Clan.Roles)
+                () => Connection.Clan.Roles),
+            Automation = automationStore is null ? null : new(automationStore,
+                () => SelectedServer is { } server ? (SourcePath, server) : null,
+                () => SelectedServer?.Devices ?? [],
+                settings => automation = settings)
         };
         _ = model.CustomMap?.LoadAsync();
         _ = model.ChatCommands?.LoadAsync();
@@ -1035,7 +1124,10 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         recentOilRigAlarms.Clear();
         _ = settingsPage?.CustomMap?.LoadAsync();
         _ = ReloadChatCommandSettingsAsync();
+        _ = ReloadAutomationAsync();
+        _ = settingsPage?.Automation?.LoadAsync();
         _ = Timers.LoadAsync(SourcePath, value?.ProfileKey ?? "");
+        ObserveAutomation();
         _ = settingsPage?.ChatCommands?.LoadAsync();
         _ = deathPins?.ReloadAsync();
         _ = chatAlerts?.LoadChannelAsync();
