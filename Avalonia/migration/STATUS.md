@@ -11,6 +11,11 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- The crosshair overlay: `Core/Crosshair` ports the reference's nine crosshair styles with their sizes and their
+  artwork, and a small transparent window lies over the game showing the chosen one. On Windows the window is
+  click-through, so the game keeps the mouse; the other platforms cannot make a click-through window without
+  platform code, so the crosshair is drawn and the mouse belongs to it there. The settings card chooses the style
+  and the custom image, and the choice is kept in the app's settings. **756 tests** on Windows locally (756 pass).
 - The update path: `Core/Updates` carries the app's own version (the informational version of the entry assembly,
   falling back to the file version of the running program) and the comparison with a published release.
   `GitHubReleaseClient` reads the newest release of this repository and the installer asset it carries, and the new
@@ -411,7 +416,7 @@ themes, and full keyboard/screen-reader acceptance are still pending.
 
 ## Local verification
 
-- Windows: all **753 .NET test cases** pass on the current source, including the clan workspace and its role-gated
+- Windows: all **756 .NET test cases** pass on the current source, including the clan workspace and its role-gated
   commands, the device-automation rules, the achievements list, the traffic monitor, the timer sounds, the
   organization, recycling and socket-teardown work; build and isolated-copy results are recorded in HANDOFF.md at each checkpoint.
 - Native browser crash reproduced using a local callback: Windows threw `Unable to create child window
