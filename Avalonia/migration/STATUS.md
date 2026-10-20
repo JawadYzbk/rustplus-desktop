@@ -11,6 +11,12 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- Localization: the app carries the reference's own resource catalogue (its `Resources.resx` and all 32 satellite
+  catalogues), so the translations the reference ships apply here. `Core/Localization` has the reference's `Loc`
+  (a string is read in the language the user chose, not in the operating system's language) and its
+  `AppLanguages` list, the new **Language** card in the settings picks one of the 32, and the rail, the settings
+  cards, the map toolbar and the chat answers follow it. **772 tests** on Windows locally (772 pass). The rest of
+  the port's labels are still English; the catalogue they can use is in place.
 - Support: `Core/Support` carries the reference ticket models, and `SupportService` reads and writes them through
   the cloud API the account already uses - the ticket list, one ticket with its thread, the categories and the
   current mute, filing a ticket with its attachments and adding a reply. The new **Support** card in the settings
@@ -368,7 +374,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Chat/team/clan | Live roster dock, chat history/search/emoji/message menu, automated alert routing, the clan workspace (members, roles, message of the day) and team chat commands (status commands, switches/upkeep/oil rig, base codes and clan switches, custom timers, with per-server command settings and per-clan-role permissions) | Moderation and clan management, chat/clan publication and master coordination, and the remaining chat-command work (AI command, logic-engine rules, the chat-master gate, timer audio) |
 | Cameras | Not ported | Validate camera SDK/runtime, stream decoding and portable rendering |
 | Genetics Lab/web tools | Not ported | Decide and verify portable web hosting/bridge rather than copying WebView2 |
-| Settings/localization/backups | Not ported | Portable settings models, resources, storage, lossless schema migration |
+| Settings/localization/backups | The app settings, the device settings, the chat-command settings and the 32-language catalogue with the language picker | The remaining interface labels, the backup and the reset-data flows |
 | Tray/hotkeys/audio/speech/capture | Not ported | Platform capability audit and adapters with truthful availability |
 | Installer/updater | Self-contained publishes for Windows, macOS and Linux, an Inno Setup installer, a macOS `.app` bundle and a per-user Linux installation, plus the update card that finds a newer published release (`installer/`, documented in `installer/PACKAGING.md`) | Signing, replacing the running build from inside the app, native macOS/Linux appearance and the shipped app's extra payloads |
 | Raid calculator | Ported workspace tab: reference engine/tests, 165-target catalogue with artwork, categories/search, per-target methods, curated and smart mixes, comparison modes, cheapest nudge, totals, shared raid-plan.json, Discord summary copy, reference breakpoints | Tutorial targets, localization, entrance animations and native visual acceptance |
@@ -421,7 +427,7 @@ themes, and full keyboard/screen-reader acceptance are still pending.
 
 ## Local verification
 
-- Windows: all **764 .NET test cases** pass on the current source, including the clan workspace and its role-gated
+- Windows: all **772 .NET test cases** pass on the current source, including the clan workspace and its role-gated
   commands, the device-automation rules, the achievements list, the traffic monitor, the timer sounds, the
   organization, recycling and socket-teardown work; build and isolated-copy results are recorded in HANDOFF.md at each checkpoint.
 - Native browser crash reproduced using a local callback: Windows threw `Unable to create child window
