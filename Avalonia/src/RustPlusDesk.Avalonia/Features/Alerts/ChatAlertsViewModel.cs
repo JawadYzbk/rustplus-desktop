@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using RustPlusDesk.Avalonia.Features.Map;
 using RustPlusDesk.Avalonia.Features.Shops;
 using RustPlusDesk.Core.Alerts;
 using RustPlusDesk.Core.Chat;
@@ -14,9 +15,10 @@ namespace RustPlusDesk.Avalonia.Features.Alerts;
 
 /// <summary>
 /// The reference chat-alert switch and menu (ChatAnnounce + ChatAlertsConfigureButton): a master toggle, a badge with
-/// the number of enabled alerts, and the alert flags of ported features. Flags live in tracking_settings.json under
-/// the reference names. Items are disabled while the master is off, and turning the last flag off turns the master
-/// off (reference CheckIfAllOff). Trade alerts list the shop alert rules with their chat flag.
+/// the number of enabled alerts, and the alert flags of ported features. Most flags live in tracking_settings.json
+/// under the reference names; the per-server custom-timer and Discord-webhook switches live on the profile. Items are
+/// disabled while the master is off, and turning the last flag off turns the master off (reference CheckIfAllOff).
+/// Trade alerts list the shop alert rules with their chat flag.
 /// </summary>
 public sealed partial class ChatAlertsViewModel : ObservableObject
 {
@@ -107,6 +109,46 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
         if (e.PropertyName is nameof(DiscordWebhookViewModel.IsSignedIn)) OnPropertyChanged(nameof(CanToggleWebhook));
     }
 
+    private CustomTimersViewModel? customTimers;
+    /// <summary>
+    /// The selected profile's timers (reference _vm.Selected.AlertCustomTimer). The timer view model owns the
+    /// AlertCustomTimer field, so the menu only reads and flips that instance: profiles.json stays single-writer.
+    /// </summary>
+    public CustomTimersViewModel? CustomTimers
+    {
+        get => customTimers;
+        set
+        {
+            if (customTimers is not null) customTimers.PropertyChanged -= TimerChanged;
+            customTimers = value;
+            if (customTimers is not null) customTimers.PropertyChanged += TimerChanged;
+            OnPropertyChanged();
+            Refresh();
+        }
+    }
+
+    /// <summary>Reference _vm.Selected?.AlertCustomTimer == true: off without a selected profile or the switch.</summary>
+    private bool CustomTimerFlag => customTimers is { HasProfile: true, AlertCustomTimer: true };
+    /// <summary>Reference menu item "CustomTimer": checked only while the master is on.</summary>
+    public bool AnnounceCustomTimer => master && CustomTimerFlag;
+
+    private void TimerChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(CustomTimersViewModel.AlertCustomTimer) or nameof(CustomTimersViewModel.HasProfile))
+            Refresh();
+    }
+
+    /// <summary>
+    /// Reference Alert_MenuItem_Click "CustomTimer": flips the same profile switch the timer panel writes, then the
+    /// master follows CheckIfAllOff. Without a selected profile the write is skipped, like the reference.
+    /// </summary>
+    [RelayCommand]
+    private void ToggleCustomTimer()
+    {
+        if (customTimers is { HasProfile: true } timers) timers.AlertCustomTimer = !timers.AlertCustomTimer;
+        AfterFlagChanged();
+    }
+
     /// <summary>Reads the selected profile's alert channel (server selection).</summary>
     public async Task LoadChannelAsync()
     {
@@ -194,7 +236,9 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     public PresenceAlertFlags PresenceFlags => new(AnnouncePlayerOnline, AnnouncePlayerOffline, AnnouncePlayerDeathSelf, AnnouncePlayerDeathTeam,
         AnnouncePlayerRespawnSelf, AnnouncePlayerRespawnTeam);
 
-    public int EnabledCount => (settings is null ? Local() : ChatAlertSettings.EnabledCount(settings)) + (webhook?.Enabled == true ? 1 : 0);
+    /// <summary>The reference badge count: every global flag, plus the profile's timer switch and webhook.</summary>
+    public int EnabledCount => (settings is null ? Local() : ChatAlertSettings.EnabledCount(settings))
+        + (CustomTimerFlag ? 1 : 0) + (webhook?.Enabled == true ? 1 : 0);
     public bool ShowCountBadge => master && EnabledCount > 0;
     public bool ShowEmptyDot => master && EnabledCount == 0;
     public string CountText => EnabledCount > 99 ? "99+" : EnabledCount.ToString(CultureInfo.InvariantCulture);
@@ -265,6 +309,7 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     private void SelectAll()
     {
         SetAll(true);
+        SetCustomTimer(true);
         _ = webhook?.SetEnabledAsync(true);
         SetMaster(true);
     }
@@ -274,8 +319,15 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
     private void DeselectAll()
     {
         SetAll(false);
+        SetCustomTimer(false);
         _ = webhook?.SetEnabledAsync(false);
         AfterFlagChanged();
+    }
+
+    /// <summary>Reference SetAllAlerts: select/deselect all also flip the profile's custom-timer switch.</summary>
+    private void SetCustomTimer(bool value)
+    {
+        if (customTimers is { HasProfile: true } timers) timers.AlertCustomTimer = value;
     }
 
     private void SetAll(bool value)
@@ -331,7 +383,7 @@ public sealed partial class ChatAlertsViewModel : ObservableObject
         foreach (string name in new[] { nameof(IsMasterOn), nameof(AnnounceNewShops), nameof(AnnounceSuspiciousShops), nameof(AnnounceHeli), nameof(AnnounceChinook),
                      nameof(AnnounceVendor), nameof(AnnounceOilRig), nameof(AnnounceDeepSea), nameof(AnnounceCargo), nameof(AnnounceCargoDocking), nameof(AnnounceCargoEgress),
                      nameof(AnnounceCargoArrival), nameof(AnyCargo), nameof(CanToggleCargoArrival), nameof(CargoArrivalHeader), nameof(AnnouncePlayerOnline), nameof(AnnouncePlayerOffline), nameof(AnnouncePlayerAfk), nameof(AnnouncePlayerAfkReturn), nameof(AnyPlayerAfk), nameof(AnnouncePlayerDeathSelf),
-                     nameof(AnnouncePlayerDeathTeam), nameof(AnnouncePlayerRespawnSelf), nameof(AnnouncePlayerRespawnTeam), nameof(AnnounceSmartAlerts), nameof(AnnounceWebhook), nameof(CanToggleWebhook), nameof(EnabledCount),
+                     nameof(AnnouncePlayerDeathTeam), nameof(AnnouncePlayerRespawnSelf), nameof(AnnouncePlayerRespawnTeam), nameof(AnnounceSmartAlerts), nameof(AnnounceCustomTimer), nameof(AnnounceWebhook), nameof(CanToggleWebhook), nameof(EnabledCount),
                      nameof(ShowCountBadge), nameof(ShowEmptyDot), nameof(CountText), nameof(MasterTip) })
             OnPropertyChanged(name);
     }

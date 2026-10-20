@@ -71,8 +71,15 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
   "last 24 h" filter no longer depends on the day the fixture was written; the XDG autostart and macOS LaunchAgent
   adapters now claim support only on their own operating system (the macOS adapter used to report support on Linux
   and the XDG one on macOS), and their file formats stay covered on every host through the extracted
-  `XdgAutostart.QuoteExecArgument` and `MacLaunchAgent.BuildPlist`. **669 tests** on Windows locally (669 pass; the
+  `XdgAutostart.QuoteExecArgument` and `MacLaunchAgent.BuildPlist`. **711 tests** on Windows locally (711 pass; the
   three failures the earlier slices carried are gone).
+- Chat-alert menu "Custom Timer": the reference `Alert_MenuItem_Click` item joins the Events section after
+  Smart Alerts and reads/flips the selected profile's `AlertCustomTimer` through `CustomTimersViewModel` -
+  the same switch the map timer flyout writes - so the menu, the flyout and profiles.json share one writer.
+  The alert badge counts the switch, Select all / Deselect all write it, and the master follows the
+  reference CheckIfAllOff; without a selected profile the click is skipped. **711 tests** pass on this
+  Windows host. The AI command, the logic-engine chat rules, the chat-master gate, the team feature master,
+  chinook-at-a-rig timer learning and heli crash sites remain.
 - Map custom-timer flyout: the reference BtnCustomTimer_Click/PopupCustomTimer pair - the map toolbar's
   `TimersButton` (Timer32, an orange dot while a timer is under five minutes) opens a flyout with the
   "Active timers" list (name and `(prefixcommand)`, remaining time, per-row delete) and the add form

@@ -16,6 +16,8 @@ namespace RustPlusDesk.CrossPlatform.Tests;
 [TestClass]
 public sealed class DeathStatsTests
 {
+    // The page filters its ranges against the clock it is given, and the test gives it this one, so the sample
+    // timestamps stay inside the 24 h/7 d windows whatever day the test runs on.
     private static readonly DateTimeOffset Now = new(2026, 10, 18, 12, 0, 0, TimeSpan.Zero);
     private static long Ago(double hours) => Now.AddHours(-hours).ToUnixTimeSeconds();
 

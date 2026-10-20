@@ -6,8 +6,10 @@ every finished slice with its commit.
 
 ## Thirteenth run - a green baseline, the clan, automation, packaging, achievements and traffic (2026-10-20)
 
-- Branch `codex/avalonia-migration`. Only `Avalonia/` changes.
-- **706 tests** run locally on Windows: **706 pass, none fail** - the three known Windows-local failures the
+- Branch `codex/avalonia-migration`. Only `Avalonia/` changes. This run merged the parallel Linux session's
+  chat-alert "Custom Timer" item (`86e3cd77`, `66383bbc`) and its wall-clock death-stats sample (`17343db9`);
+  the sample now follows the injected `FixedClock` instead, so the fixture is deterministic again.
+- **711 tests** run locally on Windows: **711 pass, none fail** - the three known Windows-local failures the
   earlier runs carried are gone. Build zero warnings.
 - **A green baseline.** The death-stats page read the wall clock directly, so its "last 24 h" filter only passed
   on the day the fixture was written; it now reads the clock through a new `Core/Time/IClock.cs` seam
@@ -38,9 +40,13 @@ every finished slice with its commit.
   earned, and the shell earns the ones the ported features produce.
 - **Network traffic monitor.** The reference monitor (bounded log, rolling speed, per-category breakdown, the
   reference size formatting), the recording HTTP handler, the window and the title-bar speed readout.
+- **Timer sounds.** The reference's one-minute countdown and its zero-minute alarm now play, gated by the
+  per-timer switches; the flyout has the reference's stop, snooze and pick/reset-sound actions, and the chosen
+  paths round-trip through the profile. The reference ships mp3; the packaging carries wav copies, because
+  Windows' own player has no mp3 support.
 - Where: `Core/{Time,Chat,Clans,Devices,Achievements,Diagnostics}`, `Infrastructure/{Profiles,Achievements,
-  Diagnostics}`, `Features/{Clans,Devices,Achievements,Diagnostics,Settings}`, `Shell/{MainWindow,NavigationRail}`,
-  `installer/`.
+  Diagnostics,Shops}`, `Features/{Clans,Devices,Achievements,Diagnostics,Settings,Map}`, `Shell/{MainWindow,
+  NavigationRail,MapWorkspace}`, `installer/`.
 - Deviations: the reference's "capture the device position from a paired teammate" action is not wired to a
   button yet; the achievement ticket needs the support API, which is not ported; the traffic window has no
   per-request details column.
@@ -48,6 +54,36 @@ every finished slice with its commit.
   dock and mini-map, the AI companion, the community/LFG/support/admin surfaces, the tutorials, the cameras and
   the genetics lab - plus the localization of the interface and the native macOS and Linux appearance.
 
+## Thirteenth run - the chat-alert Custom Timer item (2026-10-19, Linux follow-up)
+
+- Branch `codex/avalonia-migration`; slice commits `17343db9` (wall-clock death stats sample) and
+  `86e3cd77` (the menu item; docs follow). Only `Avalonia/` changes.
+- **659 tests** in this Linux worktree: all pass. The parallel Windows session's 657 (654 pass) listed
+  `DeathStatsTests.Page_OpensForTheSelectedServer_FiltersForgetsAndClears` as a known failure because its
+  sample log was pinned to 2026-10-18; the sample now follows `DateTimeOffset.Now`, the clock the page
+  filters against, so the 24 h/7 d windows no longer expire. The two `GeneralSettingsTests` XDG/macOS
+  autostart cases stay Windows-local. Build zero warnings.
+- Done: the reference chat-alert menu's "Custom Timer" item (`Alert_MenuItem_Click`, Tag="CustomTimer"):
+  the last entry of the Events section after Smart Alerts, checked while the master is on and the selected
+  profile's `AlertCustomTimer` is on, and enabled only while the master is on. It flips the same
+  `CustomTimersViewModel.AlertCustomTimer` the map timer flyout writes, so profiles.json still has one
+  writer; the flyout switch and the menu item follow each other. The badge count now includes the profile
+  switch, Select all / Deselect all write it, and turning it off as the last alert turns the master off
+  (reference CheckIfAllOff). Without a selected profile the click leaves the switch alone, matching the
+  reference's `_vm.Selected != null` guard.
+- Where: `Features/Alerts/ChatAlertsViewModel.cs` (`CustomTimers` bridge, `AnnounceCustomTimer`,
+  `ToggleCustomTimer`, the badge count and Select/Deselect all), `Features/Chat/ChatView.axaml` (the menu
+  item), `Features/Map/CustomTimersViewModel.cs` (`HasProfile` and its change notification) and
+  `Features/Servers/ServersViewModel.cs` (`CreateChatAlerts` hands the timer panel to the menu).
+- Tests: `CustomTimerTests` (2: the menu switch is the profile's own - badge, persistence, CheckIfAllOff,
+  Select/Deselect all and the flyout feedback - and the click without a profile), `ShopNoticeTests` (the
+  menu list carries Custom Timer) and `DeathStatsTests` (the wall-clock sample).
+- Deviations: the switch stays reachable from both the reference alerts menu and the port's timer flyout
+  (the WPF popup had no such switch). A flip on the flyout refreshes the menu and the badge but does not
+  run CheckIfAllOff; the reference only re-checks after a menu click. Timer audio/snooze and the per-timer
+  audio switches still wait for the audio pipeline.
+- Next slices: as the twelfth run - clan/master author gating with the team feature master (phase 5), the
+  AI command with the companion port, then the remaining PARITY-PLAN ports.
 ## Twelfth run - the map timer flyout (2026-10-19, local Windows continuation)
 
 - Branch `codex/avalonia-migration`; slice commit `9a3e7582` (docs follow). Only `Avalonia/` changes.

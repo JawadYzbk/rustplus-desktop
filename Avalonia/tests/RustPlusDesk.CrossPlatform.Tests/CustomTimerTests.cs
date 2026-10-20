@@ -1,6 +1,9 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using RustPlusDesk.Avalonia.Features.Alerts;
 using RustPlusDesk.Avalonia.Features.Map;
+using RustPlusDesk.Avalonia.Features.Shops;
 using RustPlusDesk.Core.Chat;
+using RustPlusDesk.Core.Map;
 using RustPlusDesk.Core.Servers;
 using RustPlusDesk.Infrastructure.Profiles;
 
@@ -452,5 +455,77 @@ public sealed class CustomTimerTests
         Assert.AreEqual("Alarm: 00:00", chat.Last().Text);
         Assert.AreEqual(ChatChannel.Clan, chat.Last().Channel);
         await panel.FlushAsync();
+    }
+
+    // ---- the chat-alert menu item -------------------------------------------------------------
+
+    [TestMethod]
+    public async Task ChatAlertMenu_TimerSwitchIsTheProfilesOwn_AndCountsInTheBadge()
+    {
+        using var fixture = new DeviceProfileEditorTests.Fixture();
+        var server = await fixture.ServerAsync();
+        var store = new LegacyCustomTimerStore();
+        var panel = new CustomTimersViewModel(store, null, null);
+        await panel.LoadAsync(fixture.Path, server.ProfileKey);
+        Assert.IsTrue(panel.HasProfile, "A selected profile's timers are loaded.");
+        Assert.IsTrue(panel.AlertCustomTimer, "A profile without the field reads the reference default (on).");
+
+        var settings = new ShopNoticeTests.MemorySettings();
+        var alerts = new ChatAlertsViewModel(settings, new ShopAlertsViewModel(new ShopAlertMonitor(_ => ""), new MapViewModel(), null, null))
+        {
+            CustomTimers = panel
+        };
+        Assert.IsFalse(alerts.AnnounceCustomTimer, "The master gates the menu item.");
+        alerts.ToggleMasterCommand.Execute(null);
+        Assert.IsTrue(alerts.AnnounceCustomTimer, "With the master on, the profile switch shows as checked.");
+        Assert.AreEqual(1, alerts.EnabledCount, "The reference badge counts the profile's timer switch.");
+
+        alerts.ToggleCustomTimerCommand.Execute(null);
+        Assert.IsFalse(panel.AlertCustomTimer, "The menu flips the timer panel's own switch.");
+        Assert.IsFalse(alerts.IsMasterOn, "The last flag going off turns the master off (reference CheckIfAllOff).");
+        Assert.IsFalse(alerts.AnnounceCustomTimer);
+        Assert.AreEqual(0, alerts.EnabledCount);
+        await panel.FlushAsync();
+        Assert.IsFalse((await store.GetAsync(fixture.Path, server.ProfileKey, default)).AlertCustomTimer,
+            "The timer panel's store stays the single writer of the profile field.");
+
+        alerts.SelectAllCommand.Execute(null);
+        Assert.IsTrue(panel.AlertCustomTimer, "Select all turns the profile switch on (reference SetAllAlerts).");
+        Assert.IsTrue(alerts.IsMasterOn);
+        Assert.AreEqual(21, alerts.EnabledCount, "Twenty global flags plus the profile's timer switch.");
+        alerts.DeselectAllCommand.Execute(null);
+        Assert.IsFalse(panel.AlertCustomTimer, "Deselect all turns the profile switch off.");
+        Assert.IsFalse(alerts.IsMasterOn);
+
+        // The timer panel's own switch feeds back into the menu while it is closed.
+        alerts.SelectAllCommand.Execute(null);
+        Assert.IsTrue(alerts.AnnounceCustomTimer);
+        var changed = new List<string>();
+        alerts.PropertyChanged += (_, e) => { if (e.PropertyName is not null) changed.Add(e.PropertyName); };
+        panel.AlertCustomTimer = false;
+        Assert.IsFalse(alerts.AnnounceCustomTimer, "The flyout switch and the menu item share the one profile flag.");
+        Assert.IsTrue(changed.Contains(nameof(ChatAlertsViewModel.AnnounceCustomTimer)));
+        Assert.AreEqual(20, alerts.EnabledCount, "The badge follows the flyout switch down.");
+        // The switch writes the profile in the background; wait for it before the fixture is removed.
+        await panel.FlushAsync();
+    }
+
+    [TestMethod]
+    public void ChatAlertMenu_WithoutAProfile_SkipsTheWrite()
+    {
+        var panel = new CustomTimersViewModel(null, null, null);
+        var settings = new ShopNoticeTests.MemorySettings();
+        var alerts = new ChatAlertsViewModel(settings, new ShopAlertsViewModel(new ShopAlertMonitor(_ => ""), new MapViewModel(), null, null))
+        {
+            CustomTimers = panel
+        };
+        alerts.ToggleMasterCommand.Execute(null);
+        Assert.IsFalse(panel.HasProfile, "No LoadAsync yet: no profile is selected.");
+        Assert.IsFalse(alerts.AnnounceCustomTimer, "Reference: without a selected profile the item reads as off.");
+        Assert.AreEqual(0, alerts.EnabledCount);
+
+        alerts.ToggleCustomTimerCommand.Execute(null);
+        Assert.IsTrue(panel.AlertCustomTimer, "No profile: the menu click leaves the switch alone, like the reference.");
+        Assert.IsFalse(alerts.IsMasterOn, "Nothing is left on, so the reference turns the master off.");
     }
 }
