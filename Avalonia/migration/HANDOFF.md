@@ -9,7 +9,7 @@ every finished slice with its commit.
 - Branch `codex/avalonia-migration`. Only `Avalonia/` changes. This run merged the parallel Linux session's
   chat-alert "Custom Timer" item (`86e3cd77`, `66383bbc`) and its wall-clock death-stats sample (`17343db9`);
   the sample now follows the injected `FixedClock` instead, so the fixture is deterministic again.
-- **745 tests** run locally on Windows: **745 pass, none fail** - the three known Windows-local failures the
+- **756 tests** run locally on Windows: **756 pass, none fail** - the three known Windows-local failures the
   earlier runs carried are gone. Build zero warnings.
 - **A green baseline.** The death-stats page read the wall clock directly, so its "last 24 h" filter only passed
   on the day the fixture was written; it now reads the clock through a new `Core/Time/IClock.cs` seam
@@ -862,10 +862,10 @@ The checks never used personal credentials or contacted Steam/Facepunch.
 ## Verified current source
 
 - Debug/Release builds: zero warnings/errors. The current source has **706 passing tests** in the repository.
-- Source-only external copy with separate package cache: **742 tests pass, 3 skipped, none failed**, zero
+- Source-only external copy with separate package cache: **753 tests pass, 3 skipped, none failed**, zero
   warnings, and self-contained publishes for win-x64, linux-x64 and osx-arm64. The skipped checks are the
   reference-text comparisons, which need the reference app beside the copy. The published Windows executable was
-  started and stayed up. The copy is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-isolation2`.
+  started and stayed up. The copy is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-iso3`.
 - Self-contained Release publishes on Windows: win-x64, linux-x64, osx-arm64 succeed. The published Windows
   executable was started and stayed up.
 - Native Windows browser callback and cancellation smoke passes. Native Linux/macOS executables untested.
