@@ -472,7 +472,7 @@ themes, and full keyboard/screen-reader acceptance are still pending.
   linux-x64 (128 MB) and osx-arm64 (137 MB). The published Windows executable was started and stayed up. The
   three skipped checks are the ones that compare the ported chat texts against the reference app's resources,
   which are not beside the copy; they are skipped rather than failed, because the port itself does not need the
-  reference. The isolation copy is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-iso4` (a local
+  reference. The isolation copy is at `C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-iso5` (a local
   path, not part of the repository).
 - Data continuity: the app reads the shipped app's own `profiles.json` and `tracking_settings.json` from the
   operating system's application-data folder, and writes its own files beside them (the achievements file was
