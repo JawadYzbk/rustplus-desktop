@@ -11,6 +11,23 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- The clan workspace and role-gated clan chat commands: `Core/Clans/ClanModels.cs` carries the clan snapshot the
+  server reports (id, name, message of the day, roles, members), and `RustPlusTransport.ReadClanAsync` reads it
+  through `GetClanInfoAsync`; the connection polls it every fifteen seconds (reference `TeamTimer_Tick`), and the
+  new Clan workspace shows the clan's members, roles and message. The chat gate now follows the reference
+  `IsClanCommandAuthorAllowed`: a clan message is answered only when the profile turned clan answering on and the
+  author's clan role was granted, an author outside the last clan pull is refused with the reference log line, and
+  the gate runs before the prefix and the cooldown so a refused message spends nothing. The settings card edits the
+  three clan switches and one tick per clan role; the rows follow the live clan (a role that disappeared drops out,
+  a new one arrives switched off) and a tick is saved at once so a clan pull cannot undo it. The profile writer
+  round-trips `ClanChatCommandsEnabled`, `ClanCommandsAllowAi` and `ClanRolePermissions`. **669 tests** on Windows
+  locally (669 pass). The team feature master, chinook-at-a-rig timer learning and heli crash sites remain.
+- A green baseline: the death-stats page now reads the clock through a new `Core/Time/IClock.cs` seam, so its
+  "last 24 h" filter no longer depends on the day the fixture was written; the XDG autostart and macOS LaunchAgent
+  adapters now claim support only on their own operating system (the macOS adapter used to report support on Linux
+  and the XDG one on macOS), and their file formats stay covered on every host through the extracted
+  `XdgAutostart.QuoteExecArgument` and `MacLaunchAgent.BuildPlist`. **669 tests** on Windows locally (669 pass; the
+  three failures the earlier slices carried are gone).
 - Map custom-timer flyout: the reference BtnCustomTimer_Click/PopupCustomTimer pair - the map toolbar's
   `TimersButton` (Timer32, an orange dot while a timer is under five minutes) opens a flyout with the
   "Active timers" list (name and `(prefixcommand)`, remaining time, per-row delete) and the add form
@@ -261,7 +278,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Live map/markers/overlays | Not ported | Separate coordinate/state logic from rendering; choose portable map/helper hosting |
 | Smart devices/automation/timers | Confirmed switches, nested group commands, alarm/storage state, local organization/icons/delete with rule+command cleanup, own-device sync and guarded shared/local import | Live-server acceptance, drag gestures, hotkey/overlay cleanup on delete, transfer, missing icon artwork/direct-click shortcuts, automation, timers, alarm notifications/audio and original layout |
 | Cloud identity/consent | Website handoff, scoped permission, local sign-out, fresh quotas, own recovery/automatic sync and import sources | Live authentication/version acceptance, concurrent writers, other consents, team membership/master/chat publication and remaining account/provider/session workflows |
-| Chat/team/clan | Live roster dock, chat history/search/emoji/message menu, automated alert routing and team chat commands (status commands, switches/upkeep/oil rig, base codes and clan switches, custom timers, with per-server command settings) | Moderation and clan management, chat/clan publication and master coordination, and the remaining chat-command work (AI command, logic-engine rules, clan/master author gating, timer flyout/audio) |
+| Chat/team/clan | Live roster dock, chat history/search/emoji/message menu, automated alert routing, the clan workspace (members, roles, message of the day) and team chat commands (status commands, switches/upkeep/oil rig, base codes and clan switches, custom timers, with per-server command settings and per-clan-role permissions) | Moderation and clan management, chat/clan publication and master coordination, and the remaining chat-command work (AI command, logic-engine rules, the chat-master gate, timer audio) |
 | Cameras | Not ported | Validate camera SDK/runtime, stream decoding and portable rendering |
 | Genetics Lab/web tools | Not ported | Decide and verify portable web hosting/bridge rather than copying WebView2 |
 | Settings/localization/backups | Not ported | Portable settings models, resources, storage, lossless schema migration |
@@ -310,11 +327,16 @@ themes, and full keyboard/screen-reader acceptance are still pending.
    order and density instead of adding placeholder buttons for unported features.
 5. Validate actual server communication and the implemented socket-disconnect handling on Windows/Linux/macOS.
 6. Continue every candidate in the parity checklist, including tools, dialogs and embedded web features.
+7. The remaining team-chat work depends on features that are not ported yet, so each lands with its feature: the
+   chat-master (team feature master) gate needs the cloud presence election, the logic-engine chat rules need the
+   logic engine, the AI command needs the AI companion, and the timer audio/snooze and per-timer audio switches,
+   the chinook-at-a-rig timer learning and the heli crash sites belong to the timer and event work.
 
 ## Local verification
 
-- Windows: all **199 .NET test cases** cover the current source, including organization, recycling and socket teardown;
-  build and isolated-copy results are recorded in HANDOFF.md at each checkpoint.
+- Windows: all **669 .NET test cases** pass on the current source, including the clan workspace and its role-gated
+  commands, the organization, recycling and socket-teardown work; build and isolated-copy results are recorded in
+  HANDOFF.md at each checkpoint.
 - Native browser crash reproduced using a local callback: Windows threw `Unable to create child window
   for native control host` because the executable lacked a supported-OS manifest. Added the official
   Avalonia compatibility declaration to the app host. The same production browser now passes local redirect
@@ -344,6 +366,7 @@ themes, and full keyboard/screen-reader acceptance are still pending.
 - Isolation: a source-only copy outside the repository restored against a fresh, separate package
   cache, including the local protocol package and FluentAvaloniaUI. The current source passed all
   **199 .NET tests** there with zero warnings, including pairing, startup/renewal, device organization, recycler and disconnection regressions.
+  That isolation copy predates the clan slice and has not been repeated since.
 - Self-contained Release publishes succeeded for `win-x64`, `linux-x64`, and `osx-arm64` on the Windows host.
   These are compiler/package checks; Linux/macOS executables were **not run**.
 - `git diff --exit-code` confirmed no tracked changes to the reference application or root build/config files.
