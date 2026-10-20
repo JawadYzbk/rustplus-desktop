@@ -186,6 +186,17 @@
                         <Button Classes="subtle" Content="Cancel" Command="{Binding Drawings.CancelRouteCommand}" AutomationProperties.Name="Cancel route" />
                       </StackPanel>
                     </StackPanel>
+                    <StackPanel Spacing="6" IsVisible="{Binding Drawings.ToolChoice.Tool, FallbackValue=None, Converter={x:Static map:MapToolConverters.IsIcon}}">
+                      <TextBlock Text="ICON" Classes="colHeader" />
+                      <ComboBox ItemsSource="{Binding Drawings.Icons}" SelectedItem="{Binding Drawings.IconChoice, Mode=TwoWay}"
+                                HorizontalAlignment="Stretch" PlaceholderText="Choose an icon" AutomationProperties.Name="Map icon">
+                        <ComboBox.ItemTemplate><DataTemplate x:DataType="map:MapIconChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                      </ComboBox>
+                    </StackPanel>
+                    <StackPanel Spacing="6" IsVisible="{Binding Drawings.ToolChoice.Tool, FallbackValue=None, Converter={x:Static map:MapToolConverters.IsText}}">
+                      <TextBlock Text="TEXT" Classes="colHeader" />
+                      <TextBox Text="{Binding Drawings.TextValue}" PlaceholderText="Text to place" AutomationProperties.Name="Map text" />
+                    </StackPanel>
                     <StackPanel Spacing="6" IsVisible="{Binding Drawings.Routes.Count, FallbackValue=0}">
                       <TextBlock Text="ROUTES" Classes="colHeader" />
                       <ItemsControl ItemsSource="{Binding Drawings.Routes}">

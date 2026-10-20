@@ -194,6 +194,36 @@ public sealed class MapDrawingTests
         finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
     }
     [TestMethod]
+    public void TheIconAndTextTools_PlaceTheirThing()
+    {
+        string folder = Path.Combine(Path.GetTempPath(), "rpd-drawings-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var model = new MapDrawingsViewModel(new MapDrawingStore(folder))
+            {
+                ServerKey = () => "server.test_28082",
+                SteamId = () => "76561198000000001"
+            };
+            model.Load();
+
+            model.ToolChoice = MapDrawingsViewModel.ToolChoices.First(choice => choice.Tool == MapToolMode.Icon);
+            model.PlacePoint(new MapPoint(10, 20));
+            Assert.AreEqual(0, model.Overlay.Icons.Count, "No icon is picked yet.");
+            model.IconChoice = model.Icons.First();
+            model.PlacePoint(new MapPoint(10, 20));
+            Assert.AreEqual(1, model.Overlay.Icons.Count);
+            Assert.AreEqual(10, model.Overlay.Icons[0].X);
+
+            model.ToolChoice = MapDrawingsViewModel.ToolChoices.First(choice => choice.Tool == MapToolMode.Text);
+            model.TextValue = "Base camp";
+            model.PlacePoint(new MapPoint(30, 40));
+            Assert.AreEqual(1, model.Overlay.Texts.Count);
+            Assert.AreEqual("Base camp", model.Overlay.Texts[0].Text);
+        }
+        finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
+    }
+
+    [TestMethod]
     public async Task TheDrawPanel_RendersWithItsTools() => await UiTestSession.Current.Dispatch(async () =>
     {
         string folder = Path.Combine(Path.GetTempPath(), "rpd-drawings-" + Guid.NewGuid().ToString("N"));

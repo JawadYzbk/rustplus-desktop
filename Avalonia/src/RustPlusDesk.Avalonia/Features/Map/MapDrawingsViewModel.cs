@@ -23,6 +23,9 @@ public sealed partial class RouteRowViewModel(SavedRoute route) : ObservableObje
 /// <summary>One drawing tool, as the tool picker shows it.</summary>
 public sealed record MapToolChoice(string Label, MapToolMode Tool);
 
+/// <summary>One icon the map can place (the bundled item artwork).</summary>
+public sealed record MapIconChoice(string Label, string ShortName);
+
 /// <summary>
 /// Reference the map's overlay: the strokes, the routes, the icons and the texts the user drew, saved per server.
 ///
@@ -39,8 +42,16 @@ public sealed partial class MapDrawingsViewModel(MapDrawingStore store) : Observ
         new("Arrow", MapToolMode.Arrow),
         new("Box", MapToolMode.Box),
         new("Circle", MapToolMode.Circle),
-        new("Route", MapToolMode.Route)
+        new("Route", MapToolMode.Route),
+        new("Icon", MapToolMode.Icon),
+        new("Text", MapToolMode.Text)
     ];
+
+    /// <summary>The icons the map can place (the bundled item artwork).</summary>
+    public IReadOnlyList<MapIconChoice> Icons { get; } = RustPlusDesk.Infrastructure.Items.BundledItemCatalog.Icons.Values
+        .Select(icon => new MapIconChoice(icon.Name, icon.ShortName))
+        .OrderBy(icon => icon.Label, StringComparer.OrdinalIgnoreCase)
+        .ToArray();
 
     /// <summary>The server the drawings belong to (the reference's server key).</summary>
     public Func<string>? ServerKey { get; set; }
@@ -61,6 +72,12 @@ public sealed partial class MapDrawingsViewModel(MapDrawingStore store) : Observ
     [ObservableProperty] private string routeName = "";
     [ObservableProperty] private string status = "";
     [ObservableProperty] private bool isDrawing;
+
+    /// <summary>The icon the Icon tool places (the bundled item artwork).</summary>
+    [ObservableProperty] private MapIconChoice? iconChoice;
+
+    /// <summary>The text the Text tool places.</summary>
+    [ObservableProperty] private string textValue = "";
 
     public ObservableCollection<RouteRowViewModel> Routes { get; } = [];
 
@@ -98,9 +115,25 @@ public sealed partial class MapDrawingsViewModel(MapDrawingStore store) : Observ
     /// <summary>Reference the route tool: a click adds a point to the route being drawn.</summary>
     public void PlacePoint(MapPoint point)
     {
-        if (Tool != MapToolMode.Route) return;
-        pending.Add(point);
-        IsDrawing = pending.Count > 0;
+        if (Tool == MapToolMode.Route)
+        {
+            pending.Add(point);
+            IsDrawing = pending.Count > 0;
+            return;
+        }
+        if (Tool == MapToolMode.Icon)
+        {
+            if (IconChoice is not { } icon) { Status = "Choose the icon to place."; return; }
+            Overlay = Overlay with { Icons = [.. Overlay.Icons, new SavedIcon(icon.ShortName, point.X, point.Y, 24)] };
+            Save();
+            return;
+        }
+        if (Tool == MapToolMode.Text)
+        {
+            if (string.IsNullOrWhiteSpace(TextValue)) { Status = "Type the text to place."; return; }
+            Overlay = Overlay with { Texts = [.. Overlay.Texts, new SavedText(point.X, point.Y, TextValue.Trim(), "#FFFFFFFF", 14)] };
+            Save();
+        }
     }
 
     /// <summary>Reference the route list: the route is named and kept.</summary>
@@ -147,7 +180,6 @@ public sealed partial class MapDrawingsViewModel(MapDrawingStore store) : Observ
         RefreshRoutes();
         Save();
     }
-
     /// <summary>Reference the route list: a hidden route stays in the list and off the map.</summary>
     [RelayCommand]
     public void ToggleVisibility(RouteRowViewModel? row)
