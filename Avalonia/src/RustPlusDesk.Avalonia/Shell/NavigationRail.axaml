@@ -40,6 +40,14 @@
           <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Shield24" />
             <TextBlock Grid.Column="1" Classes="navLabel" Text="Clan" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
+        <Button Classes="nav" Classes.selected="{Binding IsAchievementsSelected}" Command="{Binding OpenAchievementsCommand}" IsVisible="{Binding Achievements, FallbackValue=False}"
+                ToolTip.Tip="Every achievement the app knows" AutomationProperties.Name="Achievements">
+          <Grid ColumnDefinitions="28,*,Auto"><Panel><icons:Icon Symbol="Trophy24" />
+              <Border Classes="railBadge" IsVisible="{Binding Achievements.UnseenCount, FallbackValue=0}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-4,0">
+                <TextBlock Text="{Binding Achievements.UnseenCount, FallbackValue=0}" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource OnAccent}" />
+              </Border></Panel>
+            <TextBlock Grid.Column="1" Classes="navLabel" Text="Achievements" IsVisible="{Binding IsRailExpanded}" /></Grid>
+        </Button>
         <TextBlock Classes="navSection" Text="TOOLS" IsVisible="{Binding IsRailExpanded}" />
         <Border Height="1" Margin="6,6" Background="{DynamicResource CardBorder}" IsVisible="{Binding !IsRailExpanded}" />
         <Button Classes="nav" Classes.selected="{Binding IsDeathStatsSelected}" Command="{Binding OpenDeathStatsCommand}" IsVisible="{Binding HasDeathStats}"

@@ -37,7 +37,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Core.Alerts.ICloudSignInState? cloudSignIn = null, IProfileWipeTimeStore? wipeTimes = null,
     ISteamAvatarSource? avatarSource = null, RustPlusDesk.Core.Chat.IChatCommandSettingsStore? chatCommandStore = null,
     RustPlusDesk.Core.Chat.ICustomTimerStore? customTimerStore = null, RustPlusDesk.Core.Time.IClock? clock = null,
-    RustPlusDesk.Core.Devices.IDeviceAutomationStore? automationStore = null)
+    RustPlusDesk.Core.Devices.IDeviceAutomationStore? automationStore = null,
+    RustPlusDesk.Core.Achievements.IAchievementStore? achievementStore = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -325,7 +326,11 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         {
             State = BuildChatCommandState,
             PromoteToLeader = Connection.PromoteToLeaderAsync,
-            StartTimer = timer => Timers.AddFromChatAsync(timer),
+            StartTimer = async timer =>
+            {
+                await Timers.AddFromChatAsync(timer);
+                UnlockAchievement(RustPlusDesk.Core.Achievements.AchievementCatalog.Timer);
+            },
             Log = Activity.Append
         };
         ChatCommandEngine.Attach();
@@ -559,7 +564,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [RelayCommand] private void ShowDevices() { WorkspaceIndex = 0; IsSidebarOpen = true; }
     [RelayCommand] private void OpenRecycler() { if (HasRecyclerTool) WorkspaceIndex = 1; }
     public bool HasRaidTool => raidCatalog is not null && raidPlanStore is not null;
-    [RelayCommand] private void OpenRaid() { if (HasRaidTool) WorkspaceIndex = 2; }
+    [RelayCommand] private void OpenRaid() { if (HasRaidTool) { WorkspaceIndex = 2; UnlockAchievement(RustPlusDesk.Core.Achievements.AchievementCatalog.RaidCalculator); } }
     private Notifications.NotificationsViewModel? notifications;
     /// <summary>Reference notification centre, fed by Rust+ pushes from the pairing listener.</summary>
     public Notifications.NotificationsViewModel Notifications => notifications ??= CreateNotifications();
@@ -682,6 +687,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [NotifyPropertyChangedFor(nameof(IsSettingsSelected))]
     [NotifyPropertyChangedFor(nameof(IsDeathStatsSelected))]
     [NotifyPropertyChangedFor(nameof(IsClanSelected))]
+    [NotifyPropertyChangedFor(nameof(IsAchievementsSelected))]
     [NotifyPropertyChangedFor(nameof(IsToolSelected))]
     [NotifyCanExecuteChangedFor(nameof(CloseToolCommand))]
     private int workspaceIndex;
@@ -692,6 +698,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     public bool IsSettingsSelected => WorkspaceIndex == 5;
     public bool IsDeathStatsSelected => WorkspaceIndex == 6;
     public bool IsClanSelected => WorkspaceIndex == 7;
+    public bool IsAchievementsSelected => WorkspaceIndex == 8;
     public bool HasDeathStats => deathLog is not null;
     private DeathsPage.DeathStatsViewModel? deathStats;
     /// <summary>Reference Death Stats workspace over the selected server's local death log.</summary>
@@ -704,6 +711,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         if (DeathStats is not { } page) return;
         page.Open(SelectedServer is { } server ? Teams.DeathRecorder.KeyFor(server.Host, server.Port) : null);
         WorkspaceIndex = 6;
+        UnlockAchievement(RustPlusDesk.Core.Achievements.AchievementCatalog.DeathStats);
     }
 
     /// <summary>Reference TabClan: the clan of the connected player, with its roles and members.</summary>
@@ -712,6 +720,49 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     /// <summary>Opens the clan workspace.</summary>
     [RelayCommand]
     private void OpenClan() => WorkspaceIndex = 7;
+
+    private Achievements.AchievementsViewModel? achievements;
+    /// <summary>Reference AchievementsWindow: the list of every achievement the app knows.</summary>
+    public Achievements.AchievementsViewModel? Achievements => achievements ??= CreateAchievements();
+
+    private Achievements.AchievementsViewModel? CreateAchievements()
+    {
+        if (achievementStore is null) return null;
+        var model = new Achievements.AchievementsViewModel(new RustPlusDesk.Core.Achievements.AchievementTracker(achievementStore));
+        model.Load();
+        model.Unlocked += definition => Toasts.Show("Achievement unlocked", definition.Name,
+            RustPlusDesk.Avalonia.Features.Toasts.ToastKind.Success);        return model;
+    }
+
+    /// <summary>Opens the achievements workspace.</summary>
+    [RelayCommand]
+    private void OpenAchievements() => WorkspaceIndex = 8;
+
+    /// <summary>Earns an achievement (reference AchievementService.Unlock).</summary>
+    public void UnlockAchievement(string id) => Achievements?.Unlock(id);
+
+    /// <summary>
+    /// Reference WireAchievements: the achievements are hooked up once during startup, and each thing that happens in
+    /// the app earns the one that belongs to it.
+    /// </summary>
+    private void ObserveAchievements()
+    {
+        if (Achievements is not { } model) return;
+        Connection.Team.SnapshotRead += snapshot =>
+        {
+            if (snapshot.Members.Count > 0) model.Unlock(RustPlusDesk.Core.Achievements.AchievementCatalog.TeamMate);
+        };
+        Connection.Devices.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(Connections.ConnectionViewModel.Devices) && Connection.Devices.Devices.Count > 0)
+                model.Unlock(RustPlusDesk.Core.Achievements.AchievementCatalog.SmartDevicePaired);
+        };
+        Connection.Clan.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(Connections.ConnectionViewModel.Clan) && Connection.Clan.HasClan)
+                model.Unlock(RustPlusDesk.Core.Achievements.AchievementCatalog.Clan);
+        };
+    }
     /// <summary>A tool workspace replaces the map; the server sidebar stays available.</summary>
     public bool IsToolSelected => WorkspaceIndex != 0;
     [ObservableProperty] private string toolMessage = "";
@@ -899,6 +950,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             try { await Notifications.LoadAsync(cancellationToken); }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Activity.Append("[notifications] The notification history could not be read."); }
             EnsureAccountServices();
+            ObserveAchievements();
             timerLoop = Timers.RunAsync(timerStop.Token);
             if (Cloud is not null) Cloud.CheckCommand.Execute(null);
             if (Account is null || Listener is null) return;
