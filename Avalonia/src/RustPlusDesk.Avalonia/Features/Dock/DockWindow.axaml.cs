@@ -84,6 +84,7 @@ public sealed partial class DockWindow : Window
         {
             view.Pressed += OnTilePressed;
             view.GripPressed += OnGripPressed;
+            view.SettingsRequested += OnTileSettings;
             TileCanvas.Children.Add(view);
         }
 
@@ -154,6 +155,15 @@ public sealed partial class DockWindow : Window
 
     /// <summary>Reference BtnLockDock_Click: the lock decides whether the tiles can be arranged.</summary>
     private void OnLock(object? sender, RoutedEventArgs e) => model?.ToggleLocked();
+
+    /// <summary>Reference AddTileHandles' settings: the gear opens the tile's own settings.</summary>
+    private void OnTileSettings(object? sender, EventArgs e)
+    {
+        if (model is null || sender is not DockTileView view) return;
+
+        var window = new DockTileSettingsWindow { DataContext = new DockTileSettingsViewModel(model, view.Tile) };
+        window.Show(this);
+    }
 
     /// <summary>Reference AttachTileInteraction: the press is swallowed and the tile may be dragged from here.</summary>
     private void OnTilePressed(object? sender, PointerPressedEventArgs e)

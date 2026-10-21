@@ -1,0 +1,99 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:dock="using:RustPlusDesk.Avalonia.Features.Dock"
+        xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+        x:Class="RustPlusDesk.Avalonia.Features.Dock.DockTileSettingsWindow" x:DataType="dock:DockTileSettingsViewModel"
+        Title="Tile settings" Width="330" SizeToContent="Height" CanResize="False" WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource AppBackground}">
+  <StackPanel Margin="16" Spacing="12">
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <icons:Icon Symbol="Settings24" FontSize="16" Foreground="{DynamicResource Accent}" />
+      <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+    </StackPanel>
+
+    <!--  Reference the tile settings' appearance: how see-through the tile is, how big its text and its icon are, and
+          the colour its text is drawn in.  -->
+    <TextBlock Text="Appearance" Classes="section" />
+    <Grid ColumnDefinitions="*,Auto" RowSpacing="2">
+      <TextBlock Text="Opacity" VerticalAlignment="Center" />
+      <TextBlock Grid.Column="1" Text="{Binding Opacity, StringFormat='{}{0:0%}'}" Classes="muted" VerticalAlignment="Center" />
+      <Slider Grid.Row="1" Grid.ColumnSpan="2" Minimum="0.2" Maximum="1" Value="{Binding Opacity}"
+              AutomationProperties.Name="The tile's opacity" />
+    </Grid>
+    <Grid ColumnDefinitions="*,Auto" RowSpacing="2">
+      <TextBlock Text="Text size" VerticalAlignment="Center" />
+      <TextBlock Grid.Column="1" Text="{Binding FontScale, StringFormat='{}{0:0.0}x'}" Classes="muted" VerticalAlignment="Center" />
+      <Slider Grid.Row="1" Grid.ColumnSpan="2" Minimum="0.7" Maximum="2" Value="{Binding FontScale}"
+              AutomationProperties.Name="The tile's text size" />
+    </Grid>
+    <Grid ColumnDefinitions="*,Auto" RowSpacing="2">
+      <TextBlock Text="Icon size" VerticalAlignment="Center" />
+      <TextBlock Grid.Column="1" Text="{Binding IconScale, StringFormat='{}{0:0.0}x'}" Classes="muted" VerticalAlignment="Center" />
+      <Slider Grid.Row="1" Grid.ColumnSpan="2" Minimum="0.6" Maximum="3" Value="{Binding IconScale}"
+              AutomationProperties.Name="The tile's icon size" />
+    </Grid>
+    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+      <TextBlock Text="Text colour" VerticalAlignment="Center" />
+      <ComboBox Grid.Column="1" ItemsSource="{Binding TextColors, FallbackValue={x:Null}}" SelectedValue="{Binding TextColorKey, Mode=TwoWay}"
+                SelectedValueBinding="{Binding Key}" HorizontalAlignment="Stretch" AutomationProperties.Name="The tile's text colour">
+        <ComboBox.ItemTemplate>
+          <DataTemplate x:DataType="dock:DockTextColorChoice"><TextBlock Text="{Binding Name}" /></DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+    </Grid>
+    <Grid ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="10">
+      <TextBlock Text="Size" VerticalAlignment="Center" />
+      <TextBox Grid.Column="1" Text="{Binding ColSpan, Mode=TwoWay}" Width="56" AutomationProperties.Name="The tile's width in cells" />
+      <TextBox Grid.Column="2" Text="{Binding RowSpan, Mode=TwoWay}" Width="56" AutomationProperties.Name="The tile's height in cells" />
+    </Grid>
+
+    <!--  Reference the tile settings' own switches: what this kind of tile shows.  -->
+    <StackPanel Spacing="8" IsVisible="{Binding IsClock}">
+      <TextBlock Text="Clock" Classes="section" />
+      <ComboBox ItemsSource="{Binding ClockStyles, FallbackValue={x:Null}}" SelectedIndex="{Binding ClockStyle, Mode=TwoWay}"
+                HorizontalAlignment="Stretch" AutomationProperties.Name="The clock's style" />
+      <CheckBox Content="Show the day and night phase" IsChecked="{Binding ClockShowDayNight}" />
+      <CheckBox Content="Show the twelve-hour time" IsChecked="{Binding Clock12Hour}" />
+    </StackPanel>
+
+    <StackPanel Spacing="8" IsVisible="{Binding IsServerInfo}">
+      <TextBlock Text="Server information" Classes="section" />
+      <CheckBox Content="The small one, as on the mini-map" IsChecked="{Binding ServerInfoMinimal}" />
+      <CheckBox Content="Draw the population line" IsChecked="{Binding ShowGraph}" />
+    </StackPanel>
+
+    <StackPanel Spacing="8" IsVisible="{Binding IsDevice}">
+      <TextBlock Text="Device" Classes="section" />
+      <CheckBox Content="Show the device's picture rather than its name" IsChecked="{Binding ShowDeviceIcon}" />
+    </StackPanel>
+
+    <StackPanel Spacing="8" IsVisible="{Binding IsEvent}">
+      <TextBlock Text="Event" Classes="section" />
+      <CheckBox Content="Hide the label" IsChecked="{Binding EventHideLabel}" />
+    </StackPanel>
+
+    <StackPanel Spacing="8" IsVisible="{Binding IsChat}">
+      <TextBlock Text="Chat" Classes="section" />
+      <CheckBox Content="Shorten the names" IsChecked="{Binding ChatAbbreviateNames}" />
+    </StackPanel>
+
+    <StackPanel Spacing="8" IsVisible="{Binding IsDeathWipe}">
+      <TextBlock Text="Death markers" Classes="section" />
+      <CheckBox Content="Stay on the dock when there is nothing to clear" IsChecked="{Binding DeathWipeAlwaysVisible}" />
+      <CheckBox Content="Keep the newest marker of each player" IsChecked="{Binding DeathWipeKeepLatest}" />
+    </StackPanel>
+
+    <StackPanel Spacing="8" IsVisible="{Binding IsCollapse}">
+      <TextBlock Text="Collapse" Classes="section" />
+      <CheckBox Content="Take the map with it" IsChecked="{Binding CollapseIncludesMap}" />
+    </StackPanel>
+
+    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+      <Button Classes="subtle" Command="{Binding ResetAppearanceCommand}" AutomationProperties.Name="Use the dock's own appearance">
+        <TextBlock Text="Use the dock's appearance" />
+      </Button>
+      <Button Classes="primary" Command="{Binding SaveCommand}" AutomationProperties.Name="Save the tile's settings">
+        <TextBlock Text="Save" />
+      </Button>
+    </StackPanel>
+  </StackPanel>
+</Window>

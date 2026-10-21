@@ -20,6 +20,14 @@
               AutomationProperties.Name="Remove tile">
         <icons:Icon Symbol="Dismiss24" FontSize="9" Foreground="White" />
       </Button>
+
+      <!--  Reference AddTileHandles' settings: the gear that opens the tile's own settings, on the hovered tile of
+            an unlocked dock.  -->
+      <Button x:Name="SettingsButton" Width="16" Height="16" CornerRadius="8" Background="#E6101518" Padding="0"
+              BorderThickness="0" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,4,0" IsVisible="False"
+              ToolTip.Tip="This tile's settings" AutomationProperties.Name="This tile's settings">
+        <icons:Icon Symbol="Settings24" FontSize="9" Foreground="White" />
+      </Button>
     </Grid>
   </Border>
 </UserControl>

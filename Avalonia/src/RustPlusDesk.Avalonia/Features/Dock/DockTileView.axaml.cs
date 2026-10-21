@@ -35,6 +35,9 @@ public sealed partial class DockTileView : UserControl
     /// <summary>Reference AddTileHandles' grip: the tile's corner was grabbed to change its size.</summary>
     public event EventHandler<PointerPressedEventArgs>? GripPressed;
 
+    /// <summary>Reference AddTileHandles' settings: the tile's own settings were asked for.</summary>
+    public event EventHandler? SettingsRequested;
+
     /// <summary>Reference MiniMapWindow.CommandDock.BuildTile: the tile, drawn in the user's chosen style.</summary>
     public DockTileView(DockViewModel model, CommandDockTile tile, DockStyle style) : this()
     {
@@ -64,6 +67,7 @@ public sealed partial class DockTileView : UserControl
         Shell.PointerPressed += OnShellPressed;
         Grip.PointerPressed += OnGripPressed;
         RemoveButton.Click += (_, _) => model.RemoveTile(tile.Id);
+        SettingsButton.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
 
         SetLocked(model.IsLocked);
     }
@@ -158,6 +162,7 @@ public sealed partial class DockTileView : UserControl
         bool show = !Locked && hovered;
         Grip.IsVisible = show;
         RemoveButton.IsVisible = show;
+        SettingsButton.IsVisible = show;
     }
 
     /// <summary>Reference AttachTileInteraction: the press is swallowed so the window's own drag does not eat the tile's click.</summary>
