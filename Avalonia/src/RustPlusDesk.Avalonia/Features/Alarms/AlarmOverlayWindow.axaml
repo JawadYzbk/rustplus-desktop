@@ -3,7 +3,7 @@
         xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
         x:Class="RustPlusDesk.Avalonia.Features.Alarms.AlarmOverlayWindow" x:DataType="vm:AlarmOverlayViewModel"
         Title="Smart alarm" Width="360" SizeToContent="Height" CanResize="False" ShowInTaskbar="False" Topmost="True"
-        SystemDecorations="None" Background="Transparent" WindowStartupLocation="Manual">
+        WindowDecorations="None" Background="Transparent" WindowStartupLocation="Manual">
   <!--  Reference the alarm overlay: the red panel in the bottom right of the app, with the alarm, the way through the
         alarms that are waiting, and the close button. It dims nothing and it never takes the focus away for long.  -->
   <Border Background="#EE660000" BorderBrush="#FFFF5555" BorderThickness="1" CornerRadius="8" Padding="16"

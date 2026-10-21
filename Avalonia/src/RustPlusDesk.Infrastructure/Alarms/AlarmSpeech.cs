@@ -42,12 +42,18 @@ public sealed class WindowsAlarmSpeech : IAlarmSpeech
 
     public WindowsAlarmSpeech()
     {
+        // SAPI is a Windows COM server, so the voice is only asked for on Windows; the other platforms never get
+        // here, and the analyser is told so rather than warned about a call it will never see.
+        if (!OperatingSystem.IsWindows()) return;
+
         try
         {
             Type? type = Type.GetTypeFromProgID("SAPI.SpVoice");
             if (type is null) return;
-            voice = Activator.CreateInstance(type);
-            object? installed = voice.GetType().InvokeMember("GetVoices", BindingFlags.InvokeMethod, null, voice, null);
+            object? created = Activator.CreateInstance(type);
+            if (created is null) return;
+            voice = created;
+            object? installed = created.GetType().InvokeMember("GetVoices", BindingFlags.InvokeMethod, null, created, null);
             voices = installed is null ? 0 : Convert.ToInt32(installed.GetType()
                 .InvokeMember("Count", BindingFlags.GetProperty, null, installed, null) ?? 0);
         }
