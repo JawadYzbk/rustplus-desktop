@@ -609,3 +609,9 @@ page preserves the supplied loopback callback in its form; no personal login was
 re-sign-in creates a new registration without revoking earlier registrations. The text feed is in-memory;
 notification-center persistence and audio remain pending. Credentials never enter UI models or logs.
 Native Linux/macOS sign-in is untested. Do not treat this preview as production-ready.
+## The reference areas this port does not have yet
+
+The WPF app's features with no counterpart in this port, each with the reason it is not here yet, are listed at the end
+of PARITY-PLAN.md: the AI companion's voice (the microphone, the transcription and the spoken answer), the 3D map and
+the Deep Sea map view, the Discord bot, the crash reporter, the FCM cloud sync and its self-test, the translation
+service, and the multi-monitor picker. Nothing is offered in the port that pretends to be one of them.
