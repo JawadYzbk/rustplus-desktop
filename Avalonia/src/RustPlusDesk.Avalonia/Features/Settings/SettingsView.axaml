@@ -726,6 +726,14 @@
             <CheckBox Grid.Column="1" IsChecked="{Binding Ai.AudioAnswers, Mode=TwoWay}" VerticalAlignment="Center"
                       AutomationProperties.Name="Read the AI answers out loud" />
           </Grid>
+          <Grid ColumnDefinitions="*,Auto" RowSpacing="4">
+            <StackPanel Spacing="2">
+              <TextBlock Text="Write the answers down as well" FontWeight="SemiBold" />
+              <TextBlock Text="The answer is posted in chat as well as read out loud." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <CheckBox Grid.Column="1" IsChecked="{Binding Ai.TextAnswers, Mode=TwoWay}" VerticalAlignment="Center"
+                      AutomationProperties.Name="Write the AI answers down as well" />
+          </Grid>
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
             <TextBlock Text="Answer language" VerticalAlignment="Center" />
             <ComboBox Grid.Column="1" ItemsSource="{Binding Ai.AnswerLanguages, FallbackValue={x:Null}}"

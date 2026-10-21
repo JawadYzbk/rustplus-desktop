@@ -1138,6 +1138,11 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             RustPlusDesk.Core.Ai.AiHistory.Add(record);
             if (string.IsNullOrWhiteSpace(reply.Answer)) return "The AI could not answer that.";
             if (!isOwner) RecordAiAsk(steamId);
+
+            // Reference AiCompanionSettings.TextAnswers: the answer is written down as well as spoken, unless the
+            // player has asked for the voice alone.
+            if (!aiSettings.TextAnswers) return "";
+
             return reply.Answer;
         }
         catch (Exception ex)
