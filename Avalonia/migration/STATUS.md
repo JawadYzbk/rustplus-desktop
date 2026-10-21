@@ -11,6 +11,27 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- The alarm overlay, the alarm sound and the spoken alarm: the alarms that are waiting are shown in a red card in the
+  bottom right of the app, over nothing, with the way through them ("1/3"), a close button and the reference's three
+  seconds before the card hides itself; the sound a device alarm makes is the file the user chose for that device or
+  the one the app ships, played without blocking; the alarm can be read out loud in the voice of the system, which is
+  Windows' own voice here and an honest "not here" on the other platforms; and the settings card and the device
+  organizer carry the switches and the file picker for all of it.
+- The dock's remaining tiles: the device tile shows the device's own picture and name, its state (ON/OFF, ACTIVE/INACTIVE,
+  the tool cupboard's upkeep), turns the switch on and off through the panel's own guarded call, dims a device that is
+  no longer paired and pulses for ten seconds when an alarm goes off; the event tile shows the newest oil-rig alarm and
+  dims one that is over fifteen minutes old; the rule tile runs a logic rule on a click and says why it cannot when the
+  rule is off or does not use the Widget Overlay trigger; the session tile shows the reference's five figures from the
+  reference's own `SessionTracker`, now wired to the connection and written through the reference's session file; the
+  death-wipe tile counts the markers the map is showing and clears them; and the map tile draws the map itself, bound
+  to the same map the workspace draws, and opens the workspace on a click. The picker offers one entry per paired device
+  and one per rule that asked to be launched by hand. The per-tile settings window is not ported yet, and the Discord,
+  AI, translate and death-track tiles are still not drawn.
+- The quick command chips and the notification pictures: the chat's command bar is built from the selected profile's own
+  chat commands - the prefix, the names, the tool cupboard's upkeep mapping - so a chip can only ever offer something the
+  profile answers, and the clan is offered the in-game time where the team is offered the base codes; a chip fills the
+  input and the player sends it, so nothing is said in their name. The notification centre shows the server's own
+  picture when the push carried one, and the type's glyph when it did not.
 - The AI companion's four providers and the settings card that edits them: `Core/Ai` carries a model and a key per
   provider in the reference's own `Models`/`ProtectedKeys` shape, and the single-slot file the port used to write is
   migrated into it on the first load; `Infrastructure/Ai` has the four providers - OpenAI, Anthropic

@@ -1,4 +1,52 @@
-# Avalonia migration handoff - 2026-10-21 (eighteenth run)
+# Avalonia migration handoff - 2026-10-21 (nineteenth run)
+
+**Plan of record: [PARITY-PLAN.md](PARITY-PLAN.md).** Bar set by Jawad on 2026-10-18: *same functionality as the WPF
+app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
+every finished slice with its commit.
+
+## Nineteenth run - the dock's remaining tiles, the mini-map's peek and the quick commands (2026-10-21)
+
+- Branch `codex/avalonia-migration`; slice commits `6653629c` (the dock's device, event, rule, session and wipe tiles and
+  the map tile), `65ef4f52` (the mini-map's peek key and the follow), `4939956d` (the quick command chips and the
+  notification pictures) and the alarm overlay's commit. Only `Avalonia/` changes.
+- The two slices that were running as subagents worked in this checkout, so their commits are on the same branch; the
+  coordinator's own slices were committed with their own files only, and the whole tree builds and the whole suite
+  passes at every commit.
+- Done, in four pieces:
+  1. **The dock's remaining tiles** (`Features/Dock`, `Core/Dock`): the device tile (the device's own picture and
+     name, its state, the switch turned on and off through the panel's guarded call, a device that is gone dimmed, the
+     reference's ten-second pulse), the oil-rig event tile, the rule tile (it runs the rule and says why it cannot),
+     the session tile (the reference's `SessionTracker`, now wired to the connection and written through the
+     reference's session file), the death-wipe tile and the map tile, which draws the map itself and opens the
+     workspace on a click. The picker offers one entry per paired device and one per rule that asked to be launched by
+     hand.
+  2. **The mini-map's peek key and the follow** (`Features/MiniMap`): the key named in the settings is held and the map
+     comes up over the game; it goes away when the key is let go, and after twenty seconds either way. The release is
+     heard with the Windows keyboard hook, so the peek is a Windows feature in this port and the setting says so where
+     it is offered. The mini-map's own settings file carries the follow switch, and the map keeps the player the
+     account is signed in as in the middle.
+  3. **The quick command chips** (`Features/Chat`): the command bar is built from the selected profile's own chat
+     commands, so a chip can only ever offer something the profile answers; the clan is offered the in-game time where
+     the team is offered the base codes, and a chip fills the input rather than saying it in the player's name.
+  4. **The notification pictures** (`Features/Notifications`): the notification centre shows the server's own picture
+     when the push carried one, and the type's glyph when it did not.
+  5. **The alarm overlay, the alarm sound and the spoken alarm** (`Core/Alarms`, `Infrastructure/Alarms`,
+     `Features/Alarms`): the red card in the bottom right with the way through the waiting alarms and the reference's
+     three seconds, the sound a device alarm makes, the voice that reads it out loud, and the switches and the file
+     picker for all of it.
+- Deviations:
+  - The per-tile settings window is not ported: the properties are on the model and the tiles honour them, but there
+    is no window that edits them yet.
+  - The reference greys the session tile for anybody who is not a supporter. The port has no supporter gate on the
+    dock, so the tile shows its figures rather than being permanently inert.
+  - The peek is a Windows feature in this port, and the reference ties it to its device overlay, which this port does
+    not have - the peek shows the mini-map window on its own.
+- Next slices: the per-tile settings window, the settings categories that are still missing (the credits, the
+  maintenance actions, the offline death and offline alert settings, the Steam account, the cloud features and the 3D
+  map settings), the AI's spoken answers and the recording, the Map 3D and Deep Sea views, and the Discord bot and the
+  cloud death sync.
+
+## Eighteenth run - the AI providers, the dock's picker and the tutorial centre (2026-10-21)
 
 **Plan of record: [PARITY-PLAN.md](PARITY-PLAN.md).** Bar set by Jawad on 2026-10-18: *same functionality as the WPF
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
