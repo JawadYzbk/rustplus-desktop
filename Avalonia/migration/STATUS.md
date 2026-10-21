@@ -11,6 +11,10 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- The companion's spoken answers: the answer is read out loud in the voice of the platform - Windows' own voice, and
+  an honest "there is no voice here" on the other platforms - and the settings card carries the switch, the three answer
+  languages (the question's own, the app's own, or English) and whether the server's clock and population go with the
+  question. The recording, the transcription and the providers' own voices are not ported yet.
 - The dock tile's own settings: the gear on the hovered tile opens a window over that tile's own appearance - how
   see-through it is, how big its text and its icon are, the colour its text is drawn in and how many cells it takes - and
   the switches that kind of tile has (the clock's style and its twelve-hour time, the server information's small
