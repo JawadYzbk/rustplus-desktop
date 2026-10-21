@@ -11,6 +11,32 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- The AI companion's four providers and the settings card that edits them: `Core/Ai` carries a model and a key per
+  provider in the reference's own `Models`/`ProtectedKeys` shape, and the single-slot file the port used to write is
+  migrated into it on the first load; `Infrastructure/Ai` has the four providers - OpenAI, Anthropic
+  (`x-api-key` and `anthropic-version`), Gemini (`generateContent`) and OpenRouter (the OpenAI-compatible chat with
+  the reference's request options) - plus the OpenRouter catalogue with the live list, the cache, the built-in
+  fallback and the reference's filters; the settings card picks the provider, edits that provider's key and model,
+  offers the known models, opens the model browser (search, free only, refresh, pricing and context) and carries
+  OpenRouter's request options. The keys stay on this machine in a private file, in the clear, because the other two
+  platforms the app runs on have no equivalent of the Windows account's data protection. **915 tests** on Windows
+  locally (915 pass). The spoken answers, the recording and the transcription are not ported.
+- The dock's picker and its saved arrangements: the catalogue is written out in full and each entry is offered only
+  when `DockTiles.IsSupported` says this build draws it, so a kind that gains a builder appears in the picker on its
+  own; the dock's own buttons - add a tile, the arrangements, the lock - sit in a row above the tiles; the
+  arrangements are saved, applied, renamed and removed in the reference's own `minimap_dock_presets.json`, the
+  built-in "map only" arrangement is always there and cannot be renamed or removed, and each row draws the shape of
+  the arrangement it holds. The reference's hover preview over the dock is drawn as a diagram in the list instead.
+  The per-tile settings, the arrangement bar and the remaining tiles are not ported.
+- The tutorial centre and the guided overlay: `Core/Tutorials` carries the models, the catalogue of 27 tutorials and
+  123 steps and the state machine, and `Infrastructure/Tutorials` keeps the progress in the reference's
+  `tutorial-progress.json`; the new **Tutorials** workspace lists the tutorials by category with their progress and
+  starts, continues, restarts and forgets them; the overlay dims the app, picks the target out with a hole in the
+  dimming and puts the step's card beside it, with back, skip, next and finish; the shell says which control answers
+  to which target id, and a target the port does not have is shown in the middle with the honest wording rather than
+  pointing at nothing. The reference's welcome panel, its first-run prompt and the 3D map's web-view target are not
+  ported.
+
 - The mini-map, the command dock, the AI history and the tray: the mini-map window (the reference's three shapes, the
   size, the opacity, the clock and population pills, the layer switches and the place on the screen) reads the
   reference's own `minimap_settings.json` and `minimap_position.json`; the command dock carries the reference's tile and
@@ -430,7 +456,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Cloud identity/consent | Website handoff, scoped permission, local sign-out, fresh quotas, own recovery/automatic sync and import sources | Live authentication/version acceptance, concurrent writers, other consents, team membership/master/chat publication and remaining account/provider/session workflows |
 | Chat/team/clan | Live roster dock, chat history/search/emoji/message menu, automated alert routing, the clan workspace (members, roles, message of the day) and team chat commands (status commands, switches/upkeep/oil rig, base codes and clan switches, custom timers, with per-server command settings and per-clan-role permissions) | Moderation and clan management, chat/clan publication and master coordination, and the remaining chat-command work (AI command, logic-engine rules, the chat-master gate, timer audio) |
 | Cameras | The cameras the user added for the server, read from the profile, with the tiles that show what they see, the add, edit and remove actions, and the camera window with its live picture, the names of the players it sees and the controls the camera supports | The live acceptance on a server with a camera |
-| Command dock and mini-map | The mini-map window (the three shapes, the size, the opacity, the clock and population pills, the layer switches, the place on the screen) and the command dock's model, its file, its cell arithmetic, its window and its first tiles (the clock in the reference's four styles, the server information with the population line, the team and clan chat, the collapse tile), the saved arrangements and the session tracker behind the session tile | The tile picker, the per-tile settings, the arrangement bar, the device, event, rule, session, Discord, AI, translate and death tiles, the mini-map as a tile, the peek hotkey and the player-following view |
+| Command dock and mini-map | The mini-map window (the three shapes, the size, the opacity, the clock and population pills, the layer switches, the place on the screen) and the command dock's model, its file, its cell arithmetic, its window and its first tiles (the clock in the reference's four styles, the server information with the population line, the team and clan chat, the collapse tile), the tile picker, the saved arrangements and the session tracker behind the session tile | The per-tile settings, the arrangement bar, the device, event, rule, session, Discord, AI, translate and death tiles, the mini-map as a tile, the peek hotkey and the player-following view |
 | Genetics Lab/web tools | Not ported | Decide and verify portable web hosting/bridge rather than copying WebView2 |
 | Settings/localization/backups | The app settings, the device settings, the chat-command settings and the 32-language catalogue with the language picker; every label the catalogue carries follows the chosen language | The port's own wording (the empty states, the descriptions and the tooltips the reference has no string for), the backup and the reset-data flows |
 | Tray/hotkeys/audio/speech/capture | The system tray: the reference's menu (the state, the time of the last pull, Open, Exit), the double-click to open, the app's own icon, and the "Minimize to Tray instead of closing" setting; the hotkeys are ported | The speech adapters, the screen capture and the per-OS availability |
@@ -442,10 +468,10 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Command dock/minimap/popouts | Not ported | Preserve tiles/templates/configuration, overlays, floating windows and appearance settings |
 | Death markers/stats/wipe tracker | Not ported | Preserve history, heatmaps, archives, marker configuration and cloud synchronization |
 | Players tab / player wipe tracker | Removed at Jawad's instruction: the Players tab, the tracked players, their groups, the group manager, the pop-out window, the how-to-track guide and the player wipe tracker's file are not in the app, and nothing of them is left behind | Nothing - the feature was removed, not reduced |
-| AI companion | The companion, the `!ai` chat command, the provider and model choice and the private key file, and the recent questions with the reason a question failed | The spoken answers, the recording, the Anthropic and Gemini providers, the history and the recipe and raid tables |
+| AI companion | The companion, the `!ai` chat command, all four providers (OpenAI, Anthropic, Gemini and OpenRouter) with a key and a model each, the OpenRouter model browser, the private key file, and the recent questions with the reason a question failed | The spoken answers, the recording, the transcription and the recipe and raid tables |
 | Notifications/custom alerts | In-memory pairing/alarm/chat/death feed while listening, sent-time normalization and duplicate suppression | Durable inbox, unread state, popup paging, sounds, channel settings and integrations |
 | Community/LFG/support/admin | The support card: the user's tickets, the thread, the categories and filing a ticket | The community profiles, moderation and reporting, the attachments in the form, the LFG and the admin panel |
-| Tutorials/achievements/help | The achievements list with its artwork, the unlock triggers and the saved state | Guided tutorial targets and their progress, patch notes, galleries, the help content and the consent dialogs |
+| Tutorials/achievements/help | The achievements list with its artwork, the unlock triggers and the saved state; the tutorial centre (the catalogue by category, the progress, start/continue/restart/reset) and the guided overlay (the dimming, the spotlight on the target, the step card with back, skip, next and finish) | The tutorial welcome panel, the first-run prompt, the 3D map's web-view target, patch notes, galleries, the help content and the consent dialogs |
 | Traffic monitor/debug/logs | The network traffic monitor: the app's own requests counted, the speeds, the per-category breakdown, the log and a CSV export, with the title-bar readout | The diagnostic log window, request details and the per-request filter |
 
 ## Evidence and limitations
@@ -486,10 +512,11 @@ themes, and full keyboard/screen-reader acceptance are still pending.
 
 ## Local verification
 
-- Windows: all **887 .NET test cases** pass on the current source (882 pass, 5 skipped), including the clan workspace and its role-gated
+- Windows: all **915 .NET test cases** pass on the current source (915 pass, 0 skipped), including the clan workspace and its role-gated
   commands, the device-automation rules, the achievements list, the traffic monitor, the timer sounds, the
-  cameras tab and its window, the organization, recycling and socket-teardown work; build and isolated-copy results
-  are recorded in HANDOFF.md at each checkpoint.
+  cameras tab and its window, the organization, recycling and socket-teardown work, the AI companion's four
+  providers and the model browser, the dock's picker and its saved arrangements, and the tutorial centre and its
+  guided overlay; build and isolated-copy results are recorded in HANDOFF.md at each checkpoint.
 - The cameras slice was verified the same way: a source-only isolation copy outside the repository with its own
   package cache builds with zero warnings and passes the same 802 tests (798 pass, 4 skipped), the three
   self-contained publishes (win-x64, linux-x64, osx-arm64) succeed and the published Windows executable starts and

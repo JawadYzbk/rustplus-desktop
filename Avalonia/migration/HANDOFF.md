@@ -1,8 +1,54 @@
-# Avalonia migration handoff — 2026-10-21 (seventeenth run)
+# Avalonia migration handoff - 2026-10-21 (eighteenth run)
 
 **Plan of record: [PARITY-PLAN.md](PARITY-PLAN.md).** Bar set by Jawad on 2026-10-18: *same functionality as the WPF
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
 every finished slice with its commit.
+
+## Eighteenth run - the AI providers, the dock's picker and the tutorial centre (2026-10-21)
+
+- Branch `codex/avalonia-migration`; slice commits `348985ac` (the AI providers, the settings card and the model
+  browser), `a7bb797c` (the dock's picker and its saved arrangements), `23126278` (the tutorials' core, merged in
+  `bd393cfd`) and `518a6c14` (the tutorial centre and the guided overlay). Only `Avalonia/` changes.
+- **915 tests** run locally on Windows: 915 pass, none fail, none skipped. Build zero warnings.
+- The three slices that were running as parallel subagents were killed by the model provider's rate limit part-way
+  through. Their half-written work was committed as it stood and the rest was finished by hand, so nothing was lost:
+  the AI providers were half done (the provider layer, the per-provider settings and the OpenRouter catalogue) and
+  the tutorials' core was half done (the models, the catalogue, the service and the progress store).
+- Done, in three pieces:
+  1. **The AI companion's four providers and its settings card** (`Core/Ai`, `Infrastructure/Ai`,
+     `Features/Settings`): a model and a key per provider in the reference's own `Models`/`ProtectedKeys` shape, with
+     the single-slot file the port used to write migrated into it on the first load; OpenAI, Anthropic, Gemini and
+     OpenRouter, each with the reference's request shape; the OpenRouter catalogue (the live list, the cache, the
+     built-in fallback, the reference's filters); and a settings card that picks the provider, edits that provider's
+     key and model, offers the known models, opens the model browser (search, free only, refresh, pricing, context)
+     and carries OpenRouter's request options.
+  2. **The dock's picker and its saved arrangements** (`Features/Dock`): the whole catalogue is written out and each
+     entry is offered only when `DockTiles.IsSupported` says this build draws it, so a kind that gains a builder
+     appears in the picker on its own; the dock's own buttons (add a tile, the arrangements, the lock) sit in a row
+     above the tiles; the arrangements are saved, applied, renamed and removed in the reference's own
+     `minimap_dock_presets.json`, the built-in "map only" arrangement cannot be renamed or removed, and each row
+     draws the shape of the arrangement it holds.
+  3. **The tutorial centre and the guided overlay** (`Core/Tutorials`, `Infrastructure/Tutorials`,
+     `Features/Tutorials`): the catalogue of 27 tutorials and 123 steps, the progress in the reference's
+     `tutorial-progress.json`, a **Tutorials** workspace that lists them by category and starts, continues, restarts
+     and forgets them, and an overlay that dims the app, picks the target out with a hole in the dimming and puts the
+     step's card beside it.
+- Deviations:
+  - The keys stay in the clear in a private file, because the Windows account's data protection the reference uses
+    does not exist on the other two platforms the app runs on.
+  - The reference's hover preview of an arrangement is drawn over the dock; the port draws it as a diagram in the
+    list, because the port's dock is a window of its own and a second transparent window over the game for a hover is
+    a lot of machinery for a picture.
+  - A tutorial step whose target the port does not have is shown in the middle of the screen with the honest wording
+    rather than pointing at nothing; 23 of the reference's 67 target ids are registered against the port's own
+    controls.
+  - The reference's welcome panel, its first-run prompt and the 3D map's web-view target are not ported, and the
+    reference's demonstration of the dock bar has no counterpart here.
+- Next slices: the rest of the command dock (the per-tile settings, the arrangement bar, the device, event, rule,
+  session, Discord, AI, translate and death tiles, and the map tile that still shows no picture), the mini-map's peek
+  hotkey and the player-following view, the generic alarm overlay with the per-device audio and speech, the remaining
+  settings categories with the notifications and the quick-command chips, and then the AI's spoken answers, the Map 3D
+  and Deep Sea views, and the Discord bot and the cloud death sync.
 
 ## Seventeenth run - the mini-map, the command dock, the AI history and the tray (2026-10-21)
 
