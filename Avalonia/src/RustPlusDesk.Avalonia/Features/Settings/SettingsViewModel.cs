@@ -50,6 +50,9 @@ public sealed partial class SettingsViewModel : ObservableObject
             MinRetentionDays, MaxRetentionDays);
         genericAlarmPopup = settings?.Get(SettingKeys.GenericAlarmPopupEnabled, false) ?? false;
         miniMapPeekHotkey = settings?.Get(SettingKeys.MiniMapPeekHotkey, "") ?? "";
+        maxSelfDeathMarkers = Math.Clamp(settings?.Get(SettingKeys.MaxSelfDeathMarkers, 3) ?? 3, 1, 50);
+        maxTeamDeathMarkers = Math.Clamp(settings?.Get(SettingKeys.MaxTeamDeathMarkers, 3) ?? 3, 1, 50);
+        showDeathTags = settings?.Get(SettingKeys.MapShowDeathTags, false) ?? false;
 
         RefreshMuted();
     }
@@ -57,6 +60,18 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool autoConnect;
     [ObservableProperty] private bool autoStart;
     [ObservableProperty] private bool minimizeToTray;
+
+    // Reference the death-marker caps: how many markers the map keeps, and whether it draws them at all.
+    [ObservableProperty] private int maxSelfDeathMarkers;
+    [ObservableProperty] private int maxTeamDeathMarkers;
+    [ObservableProperty] private bool showDeathTags;
+
+    /// <summary>The reset window's actions: the shell that owns the connection and the account provides them.</summary>
+    public Func<Task>? Disconnect { get; init; }
+    public Func<Task>? SignOut { get; init; }
+    public Action? ClearCacheAndDrawings { get; init; }
+    public Action? ClearCrosshairs { get; init; }
+    public Action? ClearProfiles { get; init; }
 
 
     /// <summary>Why the last launch-at-sign-in change did not apply (empty when it did).</summary>
@@ -217,6 +232,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         settings?.Set(SettingKeys.AutoStartEnabled, value);
     }
 
+    partial void OnMaxSelfDeathMarkersChanged(int value) => settings?.Set(SettingKeys.MaxSelfDeathMarkers, Math.Clamp(value, 1, 50));
+    partial void OnMaxTeamDeathMarkersChanged(int value) => settings?.Set(SettingKeys.MaxTeamDeathMarkers, Math.Clamp(value, 1, 50));
+    partial void OnShowDeathTagsChanged(bool value) => settings?.Set(SettingKeys.MapShowDeathTags, value);
     partial void OnToastsEnabledChanged(bool value) => settings?.Set(SettingKeys.NotificationsToastEnabled, value);
     partial void OnRetentionDaysChanged(int value)
     {

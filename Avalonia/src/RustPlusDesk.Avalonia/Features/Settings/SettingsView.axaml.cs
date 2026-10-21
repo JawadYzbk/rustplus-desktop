@@ -38,9 +38,32 @@ public sealed partial class SettingsView : UserControl
         else window.Show();
     }
 
+    /// <summary>
+    /// Reference BtnResetAppData_Click: the reset window, with the actions the settings page was given.
+    ///
+    /// The window owns the checkboxes; the shell owns the connection and the account, so the actions arrive here and go
+    /// straight through.
+    /// </summary>
+    private void OnResetData(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (model is not { } page) return;
+
+        var view = new ResetDataViewModel
+        {
+            Disconnect = page.Disconnect,
+            SignOut = page.SignOut,
+            ClearCacheAndDrawings = page.ClearCacheAndDrawings,
+            ClearCrosshairs = page.ClearCrosshairs,
+            ClearProfiles = page.ClearProfiles,
+        };
+
+        var window = new ResetDataWindow { DataContext = view };
+        if (TopLevel.GetTopLevel(this) is Window owner) window.Show(owner);
+        else window.Show();
+    }
+
     /// <summary>Scrolls the templates panel to the top of the page.</summary>
     private void ShowTemplates() => ScrollTo(TemplatesPanel);
-
     /// <summary>Scrolls the Discord webhook card to the top of the page.</summary>
     private void ShowWebhook() => ScrollTo(WebhookPanel);
 

@@ -856,6 +856,36 @@
           </StackPanel>
         </StackPanel>
       </Border>
+      <Border Classes="panel" Padding="16" Margin="0,6,0,0">
+        <StackPanel Spacing="12">
+          <TextBlock Text="{DynamicResource OfflineDeathNotifications}" Classes="section" />
+          <TextBlock Text="How many death markers are kept, and whether they are drawn on the map." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <StackPanel>
+              <TextBlock Text="Your own death markers" FontWeight="SemiBold" />
+              <TextBlock Text="How many of your deaths the map keeps." Classes="muted" FontSize="12" />
+            </StackPanel>
+            <NumericUpDown Grid.Column="1" Value="{Binding MaxSelfDeathMarkers, Mode=TwoWay}" Minimum="1" Maximum="50"
+                            FormatString="0" Width="110" AutomationProperties.Name="How many of your own death markers are kept" />
+          </Grid>
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <StackPanel>
+              <TextBlock Text="Your team's death markers" FontWeight="SemiBold" />
+              <TextBlock Text="How many of each teammate's deaths the map keeps." Classes="muted" FontSize="12" />
+            </StackPanel>
+            <NumericUpDown Grid.Column="1" Value="{Binding MaxTeamDeathMarkers, Mode=TwoWay}" Minimum="1" Maximum="50"
+                            FormatString="0" Width="110" AutomationProperties.Name="How many of each teammate's death markers are kept" />
+          </Grid>
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <StackPanel>
+              <TextBlock Text="Draw the death markers on the map" FontWeight="SemiBold" />
+              <TextBlock Text="The markers are shown at the place the player died." Classes="muted" FontSize="12" />
+            </StackPanel>
+            <CheckBox Grid.Column="1" IsChecked="{Binding ShowDeathTags, Mode=TwoWay}" VerticalAlignment="Center"
+                      AutomationProperties.Name="Draw the death markers on the map" />
+          </Grid>
+        </StackPanel>
+      </Border>
       <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0">
         <icons:Icon Symbol="Alert24" FontSize="18" Foreground="{DynamicResource Accent}" />
         <StackPanel>
@@ -1014,6 +1044,42 @@
             <ToggleSwitch Grid.Column="1" IsChecked="{Binding GenericAlarmSpeech}" IsEnabled="{Binding SpeechAvailable, FallbackValue=False}" OnContent="" OffContent=""
                           AutomationProperties.Name="Read the alarm out loud" />
           </Grid>
+        </StackPanel>
+      </Border>
+      <!--  Reference SectionMaintenance: the reset window, then the credits, as the last two sections of the page.  -->
+      <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0">
+        <icons:Icon Symbol="Wrench24" FontSize="18" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
+        <StackPanel>
+          <TextBlock Text="{DynamicResource MaintenanceTitle}" Classes="title" />
+          <TextBlock Text="{DynamicResource MaintenanceDesc}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+        </StackPanel>
+      </StackPanel>
+      <Border Classes="panel" Padding="16" Margin="0,6,0,0">
+        <StackPanel Spacing="12">
+          <Button Classes="danger" Click="OnResetData" HorizontalAlignment="Stretch" AutomationProperties.Name="Reset the app data">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <icons:Icon Symbol="ArrowReset24" FontSize="14" />
+              <TextBlock Text="{DynamicResource ResetAppData}" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+      </Border>
+      <!--  Reference SectionCredits: the map's monument icons are rustmaps.com's, and the old app says so.  -->
+      <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0">
+        <icons:Icon Symbol="Heart24" FontSize="18" Foreground="#E05070" VerticalAlignment="Center" />
+        <TextBlock Text="{DynamicResource CreditsTitle}" Classes="title" />
+      </StackPanel>
+      <Border Classes="panel" Padding="16" Margin="0,6,0,0">
+        <StackPanel Spacing="10">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <icons:Icon Symbol="Heart24" FontSize="15" Foreground="#E05070" VerticalAlignment="Center" />
+            <TextBlock VerticalAlignment="Center" FontSize="12" TextWrapping="Wrap">
+              <Run Text="{DynamicResource CreditsIconsPrefix}" Foreground="{DynamicResource TextSubtle}" />
+              <Run Text="{DynamicResource UiRustmapsCom}" Foreground="{DynamicResource Accent}" />
+              <Run Text="{DynamicResource CreditsIconsSuffix}" Foreground="{DynamicResource TextSubtle}" />
+            </TextBlock>
+          </StackPanel>
+          <TextBlock Text="{DynamicResource CreditsIconsNote}" Classes="muted" FontSize="11" FontStyle="Italic" TextWrapping="Wrap" />
         </StackPanel>
       </Border>
     </StackPanel>

@@ -1,0 +1,46 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:settings="using:RustPlusDesk.Avalonia.Features.Settings"
+        xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+        x:Class="RustPlusDesk.Avalonia.Features.Settings.ResetDataWindow" x:DataType="settings:ResetDataViewModel"
+        Title="{DynamicResource ResetDataTitle}" Width="480" Height="560" WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False" Background="{DynamicResource AppBackground}">
+  <Grid RowDefinitions="Auto,*,Auto" RowSpacing="14" Margin="20">
+    <StackPanel Spacing="8">
+      <TextBlock Text="{DynamicResource ResetDataTitle}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource ConnectionDanger}" />
+      <TextBlock Text="{DynamicResource ResetDataDesc}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+    </StackPanel>
+
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <Border Classes="card" Padding="12" VerticalAlignment="Top">
+        <StackPanel Spacing="6">
+          <CheckBox Content="{DynamicResource ResetOptionCache}" IsChecked="{Binding ResetCache}" />
+          <CheckBox Content="{DynamicResource ResetOptionConnection}" IsChecked="{Binding ResetConnection}" />
+          <CheckBox Content="{DynamicResource ResetOptionCrosshairs}" IsChecked="{Binding ResetCrosshairs}" />
+          <CheckBox Content="{DynamicResource ResetOptionPairing}" IsChecked="{Binding ResetPairing}" />
+          <CheckBox Content="{DynamicResource ResetOptionProfiles}" IsChecked="{Binding ResetProfiles}" />
+          <CheckBox Content="{DynamicResource ResetOptionSteam}" IsChecked="{Binding ResetSteam}" />
+        </StackPanel>
+      </Border>
+    </ScrollViewer>
+
+    <StackPanel Grid.Row="2" Spacing="10">
+      <!--  The warning the old app shows above the buttons: the wipe cannot be undone.  -->
+      <Border Background="#26D32A2A" BorderBrush="#50D32A2A" BorderThickness="1" CornerRadius="6" Padding="10">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <icons:Icon Symbol="Warning24" FontSize="18" Foreground="#FF6262" VerticalAlignment="Center" />
+          <TextBlock Text="{DynamicResource ResetDataWarning}" Foreground="#FF6D6D" FontSize="11" FontWeight="SemiBold"
+                     VerticalAlignment="Center" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+        <Button Grid.Column="1" Classes="danger" Content="{DynamicResource ConfirmReset}" Command="{Binding ConfirmCommand}"
+                AutomationProperties.Name="Confirm the reset" />
+        <Button Grid.Column="2" Classes="subtle" Content="{DynamicResource Cancel}" IsCancel="True"
+                AutomationProperties.Name="Close without resetting" />
+      </Grid>
+
+      <TextBlock Text="{Binding Status}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+    </StackPanel>
+  </Grid>
+</Window>

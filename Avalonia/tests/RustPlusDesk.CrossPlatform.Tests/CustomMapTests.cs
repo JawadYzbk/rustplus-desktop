@@ -149,7 +149,7 @@ public sealed class CustomMapTests
             window.Show();
             window.UpdateLayout();
             var titles = window.GetVisualDescendants().OfType<TextBlock>().Where(t => t.Classes.Contains("title") && t.IsEffectivelyVisible).Select(t => t.Text).ToList();
-            CollectionAssert.AreEqual(new[] { "General", "Map", "Alerts" }, titles);
+            CollectionAssert.AreEqual(new[] { "General", "Map", "Alerts", "Maintenance", "Credits" }, titles);
             var box = window.GetVisualDescendants().OfType<TextBox>().Single(t => AutomationProperties.GetName(t) == "Custom map image URL");
             Assert.AreEqual("https://maps.example.test/hd.png", box.Text);
             var clear = window.GetVisualDescendants().OfType<Button>().Single(b => AutomationProperties.GetName(b) == "Clear custom map URL");

@@ -714,6 +714,21 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
                 (category, subject, body, ct) => supportService.CreateTicketAsync(category, subject, body, null, null, null, ct),
                 (ticket, answer, ct) => supportService.ReplyAsync(ticket, answer, null, ct),
                 (ticket, ct) => supportService.GetTicketAsync(ticket, ct)),
+            // Reference the reset data window's actions: the shell owns the connection, the account and the files, so it
+            // is the one that can carry the wipe out.
+            Disconnect = async () =>
+            {
+                if (Connection.DisconnectCommand.CanExecute(null)) await Connection.DisconnectCommand.ExecuteAsync(null);
+            },
+            SignOut = async () =>
+            {
+                if (Account is not { } account) return;
+                account.RequestSignOutCommand.Execute(RustPlusDesk.Core.Accounts.CompanionSignOutScope.CurrentDevice);
+                if (account.ConfirmSignOutCommand.CanExecute(null)) await account.ConfirmSignOutCommand.ExecuteAsync(null);
+            },
+            ClearCacheAndDrawings = ClearLocalCacheAndDrawings,
+            ClearCrosshairs = ClearCrosshairSettings,
+            ClearProfiles = ClearSavedProfiles,
             Update = updateService is null ? null : new Settings.UpdateSettingsViewModel(
                 async () => await updateService.GetLatestAsync(Settings.UpdateSettingsViewModel.InstallerAssetName, CancellationToken.None))
             {
@@ -735,6 +750,59 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         // The alarm switches reach the alarm model at once, so the card on the screen follows them.
         model.AlarmSettingsChanged += () => Alarms.ApplySettings();
         return model;
+    }
+
+    /// <summary>
+    /// Reference ResetOptionCache: the saved maps and the lines drawn on them are wiped.
+    ///
+    /// Both are best effort: a file another copy of the app is holding is not a reason to stop the wipe of the rest.
+    /// </summary>
+    private void ClearLocalCacheAndDrawings()
+    {
+        TryDeleteDirectory(RustPlusDesk.Infrastructure.Map.MapCacheStore.DefaultFolder);
+        TryDeleteDirectory(RustPlusDesk.Infrastructure.Map.MapDrawingStore.DefaultRoot);
+    }
+
+    private static void TryDeleteDirectory(string path)
+    {
+        try
+        {
+            if (Directory.Exists(path)) Directory.Delete(path, true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // A locked file is left for the next attempt.
+        }
+    }
+
+    /// <summary>Reference ResetOptionCrosshairs: the crosshair comes back to its shipped state.</summary>
+    private void ClearCrosshairSettings()
+    {
+        appSettings?.Set(RustPlusDesk.Core.Settings.SettingKeys.CrosshairStyle, "");
+        appSettings?.Set<string?>(RustPlusDesk.Core.Settings.SettingKeys.CrosshairCustomImagePath, null);
+        appSettings?.Set(RustPlusDesk.Core.Settings.SettingKeys.CrosshairEnabled, false);
+    }
+
+    /// <summary>
+    /// Reference ResetOptionProfiles: the saved server profiles are deleted, and the list goes back to empty.
+    ///
+    /// The file is the profiles.json the app opened; deleting it is what the old app's reset does.
+    /// </summary>
+    private void ClearSavedProfiles()
+    {
+        try
+        {
+            if (File.Exists(SourcePath)) File.Delete(SourcePath);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Activity.Append("[reset] The profiles file could not be deleted: " + ex.Message);
+            return;
+        }
+
+        Servers = [];
+        SelectedServer = null;
+        StatusMessage = "Open an existing profiles.json file to see your servers.";
     }
     private Hotkeys.HotkeysViewModel? hotkeys;
     /// <summary>Reference device hotkeys for the selected server.</summary>

@@ -217,7 +217,7 @@ public sealed class GeneralSettingsTests
             toggles.Single(t => AutomationProperties.GetName(t) == "Streamer mode").IsChecked = true;
             Assert.IsTrue(model.Map!.AbbreviateNames, "The Behavior streamer switch drives the map setting.");
             var titles = window.GetVisualDescendants().OfType<TextBlock>().Where(t => t.Classes.Contains("title") && t.IsEffectivelyVisible).Select(t => t.Text).ToList();
-            CollectionAssert.AreEqual(new[] { "General", "Alerts" }, titles);
+            CollectionAssert.AreEqual(new[] { "General", "Alerts", "Maintenance", "Credits" }, titles);
             using (var frame = window.CaptureRenderedFrame())
             {
                 Assert.IsNotNull(frame);
