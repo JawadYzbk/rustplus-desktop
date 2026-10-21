@@ -5,14 +5,16 @@ namespace RustPlusDesk.Infrastructure.Ai;
 /// <summary>
 /// Reference AiProviderFactory: the provider the settings name.
 ///
-/// OpenAI and OpenRouter speak the same chat-completions shape, so one implementation serves both; the reference also
-/// carries Anthropic and Gemini, which use their own shapes and are not ported yet.
+/// The reference's fallback is OpenAI for any name it does not recognize, which keeps an older settings file working
+/// when a provider is removed rather than failing every question.
 /// </summary>
 public static class AiProviderFactory
 {
-    public static IAiProvider For(string provider, HttpClient http) => provider switch
+    public static IAiProvider For(string provider, HttpClient http, OpenRouterSettings? openRouter = null) => provider switch
     {
-        AiProviders.OpenRouter => new OpenAiProvider(http, "https://openrouter.ai/api/v1"),
+        AiProviders.Anthropic => new AnthropicProvider(http),
+        AiProviders.Gemini => new GeminiProvider(http),
+        AiProviders.OpenRouter => new OpenRouterProvider(http, openRouter),
         _ => new OpenAiProvider(http)
     };
 }

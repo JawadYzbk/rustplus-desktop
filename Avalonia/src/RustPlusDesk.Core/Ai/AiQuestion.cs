@@ -42,7 +42,7 @@ public sealed record AiQuestion
     public string? Context { get; init; }
 
     /// <summary>The model the provider is asked for.</summary>
-    public string Model { get; init; } = "gpt-4o-mini";
+    public string Model { get; init; } = AiProviders.DefaultModel(AiProviders.OpenAi);
 }
 
 /// <summary>
@@ -66,19 +66,105 @@ public interface IAiProvider
     Task<AiAnswerResult> AskAsync(AiQuestion question, string apiKey, Action<string>? onDelta, CancellationToken ct);
 }
 
-/// <summary>The providers the app can ask.</summary>
+/// <summary>
+/// The providers the app can ask, and the per-provider facts the settings and the request paths share.
+///
+/// Reference AiProviders: the order here is the order the settings offer them in. The reference also records which
+/// providers take audio and which have a voice of their own; nothing in this port records or sends audio, so those
+/// answers would describe a capability the port does not have and are deliberately not carried over.
+/// </summary>
 public static class AiProviders
 {
     public const string OpenAi = "openai";
-    public const string OpenRouter = "openrouter";
-    public const string Anthropic = "anthropic";
     public const string Gemini = "gemini";
+    public const string Anthropic = "anthropic";
+    public const string OpenRouter = "openrouter";
 
-    public static string Label(string provider) => provider switch
+    /// <summary>The providers in the reference's settings order.</summary>
+    public static readonly string[] All = [OpenAi, Gemini, Anthropic, OpenRouter];
+
+    /// <summary>Reference AiProviders.DisplayName: the name shown in the settings, not the id stored on disk.</summary>
+    public static string DisplayName(string provider) => provider switch
     {
-        OpenRouter => "OpenRouter",
-        Anthropic => "Anthropic",
-        Gemini => "Google Gemini",
-        _ => "OpenAI"
+        OpenAi => "OpenAI · GPT",
+        Gemini => "Google · Gemini",
+        Anthropic => "Anthropic · Claude",
+        OpenRouter => "OpenRouter · Many models",
+        _ => provider
     };
+
+    /// <summary>The name this app used to show before the provider list was completed.</summary>
+    public static string Label(string provider) => DisplayName(provider);
+
+    /// <summary>
+    /// The model each provider is asked by default.
+    ///
+    /// These go stale. Providers retire a name and every request starts coming back as "no such model", which is why
+    /// the settings let one be typed over the top rather than leaving the user waiting for an update.
+    /// </summary>
+    public static string DefaultModel(string provider) => provider switch
+    {
+        OpenAi => "gpt-4o",
+        Gemini => "gemini-3.6-flash",
+        Anthropic => "claude-sonnet-5",
+        OpenRouter => "openai/gpt-4o-mini",
+        _ => ""
+    };
+
+    /// <summary>
+    /// A short list of well-known model ids offered as starting points. The text field remains the source of truth;
+    /// these only save someone from guessing the exact spelling of a model id.
+    /// </summary>
+    public static string[] SuggestedModels(string provider) => provider switch
+    {
+        OpenAi => ["gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-4.1-mini"],
+        Gemini => ["gemini-3.6-flash", "gemini-2.5-flash", "gemini-2.5-pro"],
+        Anthropic => ["claude-sonnet-5", "claude-sonnet-4-5", "claude-haiku-4-5"],
+        OpenRouter =>
+        [
+            "openai/gpt-4o-mini",
+            "openai/gpt-4o",
+            "anthropic/claude-sonnet-4",
+            "anthropic/claude-3.5-sonnet",
+            "google/gemini-2.5-flash",
+            "google/gemini-2.5-pro",
+            "meta-llama/llama-3.3-70b-instruct",
+            "deepseek/deepseek-chat"
+        ],
+        _ => []
+    };
+
+    /// <summary>Where to get a key. The reference keeps the links as constants but does not put them in the card.</summary>
+    public static string KeyUrl(string provider) => provider switch
+    {
+        OpenAi => "https://platform.openai.com/api-keys",
+        Gemini => "https://aistudio.google.com/app/apikey",
+        Anthropic => "https://console.anthropic.com/settings/keys",
+        OpenRouter => "https://openrouter.ai/keys",
+        _ => ""
+    };
+
+    /// <summary>
+    /// A quick shape check before a key is stored, so an obvious paste error is caught here rather than as an
+    /// authentication failure in the middle of a raid. Reference AiProviders.LooksLikeKey, exactly.
+    /// </summary>
+    public static bool LooksLikeKey(string provider, string? key)
+    {
+        if (string.IsNullOrWhiteSpace(key)) return false;
+        key = key.Trim();
+
+        return provider switch
+        {
+            OpenAi => key.StartsWith("sk-", StringComparison.Ordinal) && key.Length > 20,
+            Anthropic => key.StartsWith("sk-ant-", StringComparison.Ordinal) && key.Length > 20,
+            // Google's keys carry no prefix worth checking; length is all there is to go on.
+            Gemini => key.Length > 20,
+            // OpenRouter keys look like sk-or-v1-…, but older ones are plain sk-or-….
+            OpenRouter => (key.StartsWith("sk-or-", StringComparison.Ordinal) || key.Length > 20) && key.Length > 20,
+            _ => key.Length > 20
+        };
+    }
+
+    /// <summary>The name the settings and the tests use for the same shape check.</summary>
+    public static bool ValidateKey(string provider, string? key) => LooksLikeKey(provider, key);
 }

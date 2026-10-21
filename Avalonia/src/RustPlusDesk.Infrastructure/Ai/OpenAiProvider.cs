@@ -9,24 +9,43 @@ namespace RustPlusDesk.Infrastructure.Ai;
 /// Reference OpenAiProvider: the chat completions call.
 ///
 /// The answer comes back in one piece or in fragments as it is written, and the model is asked to keep to the words
-/// the caller has room for.
+/// the caller has room for. The reference's transcription and speech paths are not part of this port, so the question
+/// is the text the caller already has.
 /// </summary>
 public sealed class OpenAiProvider(HttpClient http, string baseUrl = "https://api.openai.com/v1") : IAiProvider
 {
     public async Task<AiAnswerResult> AskAsync(AiQuestion question, string apiKey, Action<string>? onDelta, CancellationToken ct)
     {
         string system = AiSystemPrompt.For(question);
-        string user = question.Text ?? question.Context ?? string.Empty;
+        string prompt = question.Text ?? question.Context ?? string.Empty;
+
+        var content = new List<object> { new { type = "text", text = prompt } };
+        if (question.ScreenshotPath is not null && File.Exists(question.ScreenshotPath))
+        {
+            content.Add(new
+            {
+                type = "image_url",
+                image_url = new
+                {
+                    url = "data:image/jpeg;base64," + AiHttp.Base64(question.ScreenshotPath),
+
+                    // High detail costs more tokens and reads the frame in 512-pixel tiles instead of one
+                    // shrunken thumbnail. On a 4K screenshot that is the difference between seeing a deployable
+                    // and seeing a smudge.
+                    detail = "high"
+                }
+            });
+        }
 
         var payload = new
         {
-            model = string.IsNullOrWhiteSpace(question.Model) ? "gpt-4o-mini" : question.Model,
+            model = string.IsNullOrWhiteSpace(question.Model) ? AiProviders.DefaultModel(AiProviders.OpenAi) : question.Model,
             stream = onDelta is not null,
             max_tokens = 700,
             messages = new object[]
             {
                 new { role = "system", content = system },
-                new { role = "user", content = user }
+                new { role = "user", content }
             }
         };
 
@@ -41,49 +60,39 @@ public sealed class OpenAiProvider(HttpClient http, string baseUrl = "https://ap
             .ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
-        {
-            string body = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-            throw new AiRequestException($"The provider answered {(int)response.StatusCode}: {Shorten(body)}");
-        }
+            throw AiHttp.Failure(response, await AiHttp.ReadBody(response, ct).ConfigureAwait(false));
 
         if (onDelta is null)
         {
             await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
             using var document = await JsonDocument.ParseAsync(stream, cancellationToken: ct).ConfigureAwait(false);
-            string answer = document.RootElement
-                .GetProperty("choices")[0]
-                .GetProperty("message")
-                .GetProperty("content").GetString() ?? "";
+            JsonElement message = document.RootElement.GetProperty("choices")[0].GetProperty("message");
+            string answer = message.TryGetProperty("content", out JsonElement text) ? AiHttp.ContentToString(text) : "";
             return new AiAnswerResult(answer, null);
         }
 
         var builder = new StringBuilder();
-        await using var events = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-        using var reader = new StreamReader(events, Encoding.UTF8);
-        while (await reader.ReadLineAsync(ct).ConfigureAwait(false) is { } line)
+        await foreach (string chunk in AiHttp.ReadEvents(response, ct).ConfigureAwait(false))
         {
-            if (!line.StartsWith("data:", StringComparison.Ordinal)) continue;
-            string chunk = line["data:".Length..].Trim();
-            if (chunk.Length == 0 || chunk == "[DONE]") continue;
             string? piece = null;
             try
             {
                 using var pieceDocument = JsonDocument.Parse(chunk);
-                var choices = pieceDocument.RootElement.GetProperty("choices");
+                JsonElement choices = pieceDocument.RootElement.GetProperty("choices");
                 if (choices.GetArrayLength() == 0) continue;
-                if (choices[0].TryGetProperty("delta", out var delta) && delta.TryGetProperty("content", out var text))
-                    piece = text.GetString();
+                if (choices[0].TryGetProperty("delta", out JsonElement delta) &&
+                    delta.TryGetProperty("content", out JsonElement text))
+                    piece = AiHttp.ContentToString(text);
             }
             catch (JsonException)
             {
                 // A half-written frame; the next one carries the rest.
             }
-            if (piece is null) continue;
+
+            if (string.IsNullOrEmpty(piece)) continue;
             builder.Append(piece);
             onDelta(piece);
         }
         return new AiAnswerResult(builder.ToString(), null);
     }
-
-    private static string Shorten(string body) => body.Length <= 200 ? body : body[..200] + "…";
 }
