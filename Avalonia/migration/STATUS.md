@@ -11,6 +11,18 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- The mini-map, the command dock, the AI history and the tray: the mini-map window (the reference's three shapes, the
+  size, the opacity, the clock and population pills, the layer switches and the place on the screen) reads the
+  reference's own `minimap_settings.json` and `minimap_position.json`; the command dock carries the reference's tile and
+  layout shapes, its cell arithmetic and its `minimap_dock.json`, and its window shows the first four tiles (the clock
+  in the reference's four styles, the server information with the population line, the team and clan chat, the
+  collapse tile) on the cell grid, with the reference's lock and its one-second refresh; the saved arrangements and the
+  session tracker (the reference's 30-minute resume window and its numbers exactly) are in the same files the reference
+  writes; the AI companion's history keeps the reference's twenty exchanges in `ai-history.json` and says why a
+  question failed; and the system tray shows the reference's menu, drawn by Avalonia's own cross-platform tray icon,
+  with the reference's "Minimize to Tray instead of closing" setting. The mini-map shows the whole map fitted rather
+  than cut out around the player, and the dock's tile picker, the per-tile settings, the arrangement bar and the
+  remaining tiles are not ported yet.
 - The cameras tab: `Core/Cameras` carries the reference's camera models (the kind of camera, the buttons, the control
   flags and what the camera sees), the stick's rules and where a player the camera sees is drawn in the picture, and
   the session the reference opens - a camera of its own connection, because the server keeps one camera subscription
@@ -418,9 +430,10 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Cloud identity/consent | Website handoff, scoped permission, local sign-out, fresh quotas, own recovery/automatic sync and import sources | Live authentication/version acceptance, concurrent writers, other consents, team membership/master/chat publication and remaining account/provider/session workflows |
 | Chat/team/clan | Live roster dock, chat history/search/emoji/message menu, automated alert routing, the clan workspace (members, roles, message of the day) and team chat commands (status commands, switches/upkeep/oil rig, base codes and clan switches, custom timers, with per-server command settings and per-clan-role permissions) | Moderation and clan management, chat/clan publication and master coordination, and the remaining chat-command work (AI command, logic-engine rules, the chat-master gate, timer audio) |
 | Cameras | The cameras the user added for the server, read from the profile, with the tiles that show what they see, the add, edit and remove actions, and the camera window with its live picture, the names of the players it sees and the controls the camera supports | The live acceptance on a server with a camera |
+| Command dock and mini-map | The mini-map window (the three shapes, the size, the opacity, the clock and population pills, the layer switches, the place on the screen) and the command dock's model, its file, its cell arithmetic, its window and its first tiles (the clock in the reference's four styles, the server information with the population line, the team and clan chat, the collapse tile), the saved arrangements and the session tracker behind the session tile | The tile picker, the per-tile settings, the arrangement bar, the device, event, rule, session, Discord, AI, translate and death tiles, the mini-map as a tile, the peek hotkey and the player-following view |
 | Genetics Lab/web tools | Not ported | Decide and verify portable web hosting/bridge rather than copying WebView2 |
 | Settings/localization/backups | The app settings, the device settings, the chat-command settings and the 32-language catalogue with the language picker; every label the catalogue carries follows the chosen language | The port's own wording (the empty states, the descriptions and the tooltips the reference has no string for), the backup and the reset-data flows |
-| Tray/hotkeys/audio/speech/capture | Not ported | Platform capability audit and adapters with truthful availability |
+| Tray/hotkeys/audio/speech/capture | The system tray: the reference's menu (the state, the time of the last pull, Open, Exit), the double-click to open, the app's own icon, and the "Minimize to Tray instead of closing" setting; the hotkeys are ported | The speech adapters, the screen capture and the per-OS availability |
 | Installer/updater | Self-contained publishes for Windows, macOS and Linux, an Inno Setup installer, a macOS `.app` bundle and a per-user Linux installation, plus the update card that finds a newer published release (`installer/`, documented in `installer/PACKAGING.md`) | Signing, replacing the running build from inside the app, native macOS/Linux appearance and the shipped app's extra payloads |
 | Raid calculator | Ported workspace tab: reference engine/tests, 165-target catalogue with artwork, categories/search, per-target methods, curated and smart mixes, comparison modes, cheapest nudge, totals, shared raid-plan.json, Discord summary copy, reference breakpoints | Tutorial targets, localization, entrance animations and native visual acceptance |
 | Recycler calculator | Offline catalog, calculations, quantity shortcuts, filters/paging, comparisons, icons and stateful workspace | Original navigation integration, tutorial targets, localization and native visual/accessibility acceptance |
@@ -429,7 +442,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Command dock/minimap/popouts | Not ported | Preserve tiles/templates/configuration, overlays, floating windows and appearance settings |
 | Death markers/stats/wipe tracker | Not ported | Preserve history, heatmaps, archives, marker configuration and cloud synchronization |
 | Players tab / player wipe tracker | Removed at Jawad's instruction: the Players tab, the tracked players, their groups, the group manager, the pop-out window, the how-to-track guide and the player wipe tracker's file are not in the app, and nothing of them is left behind | Nothing - the feature was removed, not reduced |
-| AI companion | The companion, the `!ai` chat command, the provider and model choice and the private key file | The spoken answers, the recording, the Anthropic and Gemini providers, the history and the recipe and raid tables |
+| AI companion | The companion, the `!ai` chat command, the provider and model choice and the private key file, and the recent questions with the reason a question failed | The spoken answers, the recording, the Anthropic and Gemini providers, the history and the recipe and raid tables |
 | Notifications/custom alerts | In-memory pairing/alarm/chat/death feed while listening, sent-time normalization and duplicate suppression | Durable inbox, unread state, popup paging, sounds, channel settings and integrations |
 | Community/LFG/support/admin | The support card: the user's tickets, the thread, the categories and filing a ticket | The community profiles, moderation and reporting, the attachments in the form, the LFG and the admin panel |
 | Tutorials/achievements/help | The achievements list with its artwork, the unlock triggers and the saved state | Guided tutorial targets and their progress, patch notes, galleries, the help content and the consent dialogs |
@@ -473,10 +486,16 @@ themes, and full keyboard/screen-reader acceptance are still pending.
 
 ## Local verification
 
-- Windows: all **802 .NET test cases** pass on the current source, including the clan workspace and its role-gated
+- Windows: all **887 .NET test cases** pass on the current source (882 pass, 5 skipped), including the clan workspace and its role-gated
   commands, the device-automation rules, the achievements list, the traffic monitor, the timer sounds, the
   cameras tab and its window, the organization, recycling and socket-teardown work; build and isolated-copy results
   are recorded in HANDOFF.md at each checkpoint.
+- The cameras slice was verified the same way: a source-only isolation copy outside the repository with its own
+  package cache builds with zero warnings and passes the same 802 tests (798 pass, 4 skipped), the three
+  self-contained publishes (win-x64, linux-x64, osx-arm64) succeed and the published Windows executable starts and
+  stays up. The copy's path is in `artifacts/isolation-path.txt`.
+- The Avalonia work lives on the branch `codex/avalonia-migration`; the Avalonia commits have been moved off
+  `feat/rust-migration`, which now carries only the workspace chore they were branched from.
 - The suite reads its strings in English whatever language the machine it runs on is set to, and the language tests
   put back what they change: a test that renders a label used to change its answer with the machine's language, and
   one test changed the tests that ran after it.

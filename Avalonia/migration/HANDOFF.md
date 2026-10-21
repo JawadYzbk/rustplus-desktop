@@ -1,14 +1,71 @@
-# Avalonia migration handoff — 2026-10-20 (sixteenth run)
+# Avalonia migration handoff — 2026-10-21 (seventeenth run)
 
 **Plan of record: [PARITY-PLAN.md](PARITY-PLAN.md).** Bar set by Jawad on 2026-10-18: *same functionality as the WPF
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
 every finished slice with its commit.
 
+## Seventeenth run - the mini-map, the command dock, the AI history and the tray (2026-10-21)
+
+- Branch `codex/avalonia-migration`; slice commit `1ac6a625` (the model and the file came earlier, `ef22d6ce`). Only `Avalonia/` changes.
+- **887 tests** run locally on Windows: 882 pass, 5 skipped (the platform-specific ones), none fail. Build zero warnings.
+- Done, in seven pieces, each of them in the reference's own file so the two apps share it:
+  1. **The mini-map window** (`Features/MiniMap`): the map in a window of its own, in the reference's three shapes (a
+     circle, a square, 16:9), the size 160-800, the opacity, the clock and population pills, the settings panel with the
+     layer switches, and the place on the screen it was left at. The map workspace has the button that opens it.
+  2. **The command dock's model and its file** (`Core/Dock`, `Infrastructure/Dock`): the reference's tile and layout
+     shapes, its cell arithmetic (a cell was 74 pixels with an 8 pixel gap, the grid zooms between 0.75 and 2.5), the
+     rule that places a new tile in the first free run of cells, and the arrangement in
+     `%APPDATA%/RustPlusDesk/cache/minimap_dock.json`.
+  3. **The dock window with its first tiles** (`Features/Dock`): the tiles on the cell grid, the window sized to the
+     tiles' box, the lock (the reference's resting state), and the clock (the reference's four styles), the server
+     information (the figure, the population line, the minimal reading), the team and clan chat, and the collapse tile.
+  4. **The dock's saved arrangements** (the presets): the reference's file, its deep-copy rule, and the arrangement
+     that carries neither the window's place nor the appearance nor the lock.
+  5. **The session tracker** (`Core/Dock/SessionTracker.cs`): the reference's numbers exactly - the 30-minute resume
+     window, the one-second tick, the population every five minutes, the 0.5 m and 500 m movement thresholds, the
+     saved sessions under `cache/session_<server>.json`.
+  6. **The AI companion's history** (`Core/Ai/AiHistory.cs`, `Features/Ai`): the reference's twenty exchanges in
+     `%APPDATA%/RustPlusDesk/ai-history.json`, the window that lists them and says why one failed, and the button in the
+     AI companion's settings card that opens it.
+  7. **The system tray** (`Core/Platform/ITrayIcon.cs`, `Features/Shell`): the reference's menu - the tracking state,
+     the time of the last pull, "Open Rust+ Desk" and "Exit" - drawn by Avalonia's own cross-platform tray icon, so the
+     port needs no P/Invoke of its own, plus the reference's "Minimize to Tray instead of closing" setting.
+- Where: `Core/{MiniMap,Dock,Ai,Platform}`, `Infrastructure/{MiniMap,Dock,Ai}`, `Features/{MiniMap,Dock,Ai,Shell}`,
+  `Shell/{MainWindow,MapWorkspace}`, `Features/{Servers,Settings,Chat}`, `App.axaml.cs`, and the tests.
+- Tests: `MiniMapSettingsTests` (12), `MiniMapWindowTests` (7), `CommandDockTests` (15), `CommandDockPresetTests` (9),
+  `SessionTrackerTests` (16), `DockWindowTests` (9), `AiHistoryTests` (9), `TrayIconTests` (11) and the settings test
+  for the close-to-tray choice.
+- Deviations:
+  - The dock opens with the mini-map, as the reference's widget overlay does, rather than on every connection.
+  - The map tile in the dock holds its place and its cells but shows no picture yet: the reference's tile shows the
+    live map, and the port's mini-map is a window of its own until the tile can show it too.
+  - The dock has no picker, no per-tile settings and no arrangement bar yet, and the remaining tiles are not ported.
+  - The reference's tray line says "Tracking", because the reference's own tracker is a stub that is hard-coded off. The
+    port shows the server connection instead, which is what the line is for, and the same menu in the same order.
+  - The mini-map shows the whole map fitted to the chosen shape. The reference cuts a square out of its map around the
+    player; the port's map surface paints one picture, so following the player in a second window needs a zoom and an
+    offset inside that surface - not ported yet.
+  - The mini-map is a window of its own rather than a tile in the command dock, and the reference's peek hotkey, the
+    monitor picker and the mini-map's own pan and zoom are not ported.
+  - The reference's texture and no-build layer switches are kept in the settings file (the file is the reference's) but
+    have no layer behind them: the texture is baked into the port's picture and the blocked zones are not ported.
+  - The AI history is written by the chat-command path only; the reference also writes an entry from the spoken answer
+    path, and the port has no microphone yet.
+- Next slices: the rest of the command dock (the tile picker, the per-tile settings, the arrangement bar, the device,
+  event, rule, session, Discord, AI, translate and death tiles), the tutorials and the gallery (5.4), the cloud account
+  windows (6.1), the LFG and the admin panel (6.2), the AI companion's model picker (6.3), and the speech and screen
+  capture adapters (8.1).
+
 ## Sixteenth run - the cameras tab and the camera window (2026-10-20, local Windows continuation)
 
-- Branch `feat/rust-migration` (the branch this session was working on); slice commits `d8c5febc` (the tab) and `34ac56b5` (the window).
-  Only `Avalonia/` changes.
+- Branch `codex/avalonia-migration` (the Avalonia work has moved off `feat/rust-migration`, which now carries only the
+  workspace chore); slice commits `d8c5febc` (the tab) and `34ac56b5` (the window). Only `Avalonia/` changes.
 - **802 tests** run locally on Windows: 802 pass, none fail. Build zero warnings.
+- Verified: the source-only isolation copy outside the repository
+  (`C:\Users\Jawad\AppData\Local\Temp\opencode\avalonia-iso12`, with its own package cache) builds with zero warnings and
+  passes the same 802 tests - 798 pass and 4 skipped, the four being the platform-specific ones the suite has always
+  skipped. The three self-contained publishes (win-x64, linux-x64, osx-arm64) succeed and the published Windows
+  executable starts and stays up. The path of the isolation copy is in `artifacts/isolation-path.txt`.
 - Done: the reference's Cameras tab and the camera window. `Core/Cameras` carries the reference's
   camera models (the kind of camera, the buttons, the control flags and what the camera sees), the stick's rules
   and where a player the camera sees is drawn in the picture, and the session the reference opens: a camera of its own
@@ -37,7 +94,7 @@ every finished slice with its commit.
 
 ## Fifteenth run - the players tab and the tracking are removed (2026-10-20, local Windows continuation)
 
-- Branch `feat/rust-migration` (the branch this session was working on); slice commit `see git log` (docs follow).
+- Branch `codex/avalonia-migration` (the Avalonia work has moved off `feat/rust-migration`); slice commit `see git log`.
   Only `Avalonia/` changes.
 - **At Jawad's instruction the Players tab and the player tracking are removed from the app.** This reverses the
   two slices below: the players tab, the players it kept an eye on, their groups, the group manager, the pop-out
