@@ -1,0 +1,83 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:dock="using:RustPlusDesk.Avalonia.Features.Dock"
+        xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+        x:Class="RustPlusDesk.Avalonia.Features.Dock.DockTemplatesWindow" x:DataType="dock:DockTemplatesViewModel"
+        Title="Dock arrangements" Width="640" Height="560" MinWidth="460" MinHeight="360" WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource AppBackground}" CanResize="True">
+  <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10" Margin="16">
+    <StackPanel Spacing="4">
+      <TextBlock Text="Dock arrangements" FontSize="18" FontWeight="SemiBold" />
+      <TextBlock Text="Save the arrangement you have, and put another one back when you want it."
+                 Classes="muted" FontSize="12" TextWrapping="Wrap" />
+    </StackPanel>
+
+    <!--  Reference CommandDockTemplates: the box that saves the arrangement that is on the dock now.  -->
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+      <TextBox Text="{Binding NewName, Mode=TwoWay}" PlaceholderText="Name for the arrangement"
+               AutomationProperties.Name="Name for the arrangement" />
+      <Button Grid.Column="1" Classes="primary" Command="{Binding SaveCommand}" AutomationProperties.Name="Save the arrangement">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <icons:Icon Symbol="Save24" FontSize="14" />
+          <TextBlock Text="Save" />
+        </StackPanel>
+      </Button>
+    </Grid>
+
+    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+      <ItemsControl ItemsSource="{Binding Presets}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="dock:DockPresetRow">
+            <Border Classes="card" Padding="12" Margin="0,0,0,8">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                <!--  Reference the preview: the shape of the arrangement, so it can be seen before it is applied.  -->
+                <Border Grid.Column="0" Width="96" Height="96" CornerRadius="6" ClipToBounds="True"
+                        Background="{DynamicResource SubtleFillColorSecondaryBrush}" VerticalAlignment="Top">
+                  <ItemsControl Width="96" Height="96" ItemsSource="{Binding PreviewRects}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="dock:DockPresetPreviewRect">
+                        <Border Canvas.Left="{Binding X}" Canvas.Top="{Binding Y}" Width="{Binding Width}"
+                                Height="{Binding Height}" CornerRadius="3"
+                                Background="{DynamicResource Accent}" Opacity="0.55" />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </Border>
+
+                <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Top">
+                  <!--  The built-in arrangement cannot be renamed, so its name is a label rather than a box.  -->
+                  <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"
+                             IsVisible="{Binding IsBuiltIn}" />
+                  <TextBox Text="{Binding Name, Mode=TwoWay}" FontSize="14" IsVisible="{Binding !IsBuiltIn}"
+                           AutomationProperties.Name="Arrangement name" />
+                  <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="{Binding TileCount, StringFormat={}{0} tiles}" FontSize="11" Classes="muted" />
+                    <TextBlock Text="{Binding SavedText}" FontSize="11" Classes="muted" />
+                  </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Spacing="6" VerticalAlignment="Top">
+                  <Button Classes="primary" Click="OnApply" AutomationProperties.Name="Apply the arrangement">
+                    <TextBlock Text="Apply" />
+                  </Button>
+                  <Button Classes="subtle" Click="OnRename" IsVisible="{Binding !IsBuiltIn}"
+                          AutomationProperties.Name="Rename the arrangement">
+                    <TextBlock Text="Rename" />
+                  </Button>
+                  <Button Classes="subtle" Click="OnDelete" IsVisible="{Binding !IsBuiltIn}"
+                          AutomationProperties.Name="Remove the arrangement">
+                    <TextBlock Text="Remove" />
+                  </Button>
+                </StackPanel>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+    <TextBlock Grid.Row="3" Text="{Binding Status}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+  </Grid>
+</Window>

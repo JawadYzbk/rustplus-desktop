@@ -8,6 +8,7 @@ public sealed partial class MainWindow : Window
 {
     private double sidebarFraction = .31;
     private readonly ICommandDockStore? dockStore;
+    private readonly RustPlusDesk.Core.Dock.ICommandDockPresetStore? presetStore;
     private Features.Dock.DockWindow? dockWindow;
 
     /// <summary>
@@ -20,9 +21,10 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>Reference the widget overlay: the shell is built with the store the dock's arrangement is kept in.</summary>
-    public MainWindow(ICommandDockStore? dockStore)
+    public MainWindow(ICommandDockStore? dockStore, RustPlusDesk.Core.Dock.ICommandDockPresetStore? presetStore = null)
     {
         this.dockStore = dockStore;
+        this.presetStore = presetStore;
         InitializeComponent();
         SizeChanged += (_, _) => ResizePane();
         DataContextChanged += (_, _) =>
@@ -55,7 +57,7 @@ public sealed partial class MainWindow : Window
         if (DataContext is not Features.Servers.ServersViewModel { Connection: { } connection }) return;
 
         var host = new Features.Dock.ConnectionDockHost(connection);
-        var model = new Features.Dock.DockViewModel(host, dockStore);
+        var model = new Features.Dock.DockViewModel(host, dockStore, presetStore);
         // The arrangement is read before the window is made, so it opens with its tiles rather than with an empty canvas.
         await model.LoadAsync(CancellationToken.None);
 

@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using RustPlusDesk.Core.Dock;
 
 namespace RustPlusDesk.Avalonia.Features.Dock;
@@ -109,9 +110,50 @@ public sealed partial class DockWindow : Window
             view.Height = rect.Height;
         }
 
+        // The chrome sits in a row of its own above the tiles, so the window is the tiles' box plus that row.
         Width = Math.Max(1, bounds.Width);
-        Height = Math.Max(1, bounds.Height);
+        Height = Math.Max(1, bounds.Height + ChromeHeight());
+
+        LockIcon.Symbol = model.IsLocked ? Shared.Icons.FluentSymbol.LockClosed24 : Shared.Icons.FluentSymbol.LockOpen24;
     }
+
+    /// <summary>How tall the row of buttons above the tiles is.</summary>
+    private double ChromeHeight() => Chrome.Bounds.Height > 0 ? Chrome.Bounds.Height + Chrome.Margin.Bottom : 28;
+
+    /// <summary>
+    /// Reference BtnAddTile_Click: the picker opens, and the tile that is chosen is put on the dock.
+    /// </summary>
+    private void OnAddTile(object? sender, RoutedEventArgs e)
+    {
+        if (model is null) return;
+
+        var picker = new DockTilePickerWindow
+        {
+            DataContext = new DockTilePickerViewModel(model.MapTile is not null, model.Host),
+        };
+
+        picker.Picked = option => model.AddTile(option.Make());
+        picker.Show(this);
+    }
+
+    /// <summary>
+    /// Reference BtnTemplates_Click: the window over the saved arrangements opens.
+    /// </summary>
+    private async void OnTemplates(object? sender, RoutedEventArgs e)
+    {
+        if (model is null) return;
+
+        // The arrangements are read before the window opens, so it never shows an empty list that fills itself a
+        // moment later.
+        var view = new DockTemplatesViewModel(model);
+        await view.RefreshAsync();
+
+        var window = new DockTemplatesWindow { DataContext = view };
+        window.Show(this);
+    }
+
+    /// <summary>Reference BtnLockDock_Click: the lock decides whether the tiles can be arranged.</summary>
+    private void OnLock(object? sender, RoutedEventArgs e) => model?.ToggleLocked();
 
     /// <summary>Reference AttachTileInteraction: the press is swallowed and the tile may be dragged from here.</summary>
     private void OnTilePressed(object? sender, PointerPressedEventArgs e)

@@ -17,14 +17,16 @@ public sealed class DockViewModel : ObservableObject
     public const string CacheKey = "minimap_dock";
 
     private readonly ICommandDockStore store;
+    private readonly ICommandDockPresetStore? presetStore;
     private DispatcherTimer? timer;
     private CommandDockLayout layout = new();
 
     /// <summary>Reference MiniMapWindow.CommandDock: the dock, its arrangement and the state it shows.</summary>
-    public DockViewModel(IDockHost host, ICommandDockStore store)
+    public DockViewModel(IDockHost host, ICommandDockStore store, ICommandDockPresetStore? presetStore = null)
     {
         Host = host;
         this.store = store;
+        this.presetStore = presetStore;
     }
 
     /// <summary>Reference ICommandDockHost: the state the dock shows, read once a second.</summary>
@@ -106,6 +108,15 @@ public sealed class DockViewModel : ObservableObject
     /// </summary>
     public void RebuildTiles()
     {
+        // The tiles are Avalonia controls, and a control belongs to the thread that made it. The arrangement can be
+        // changed from a background task - a preset applied from a file read, say - and the rebuild is then asked of
+        // the thread that owns the window rather than done from the one that asked.
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(RebuildTiles);
+            return;
+        }
+
         Tiles.Clear();
         SyncMapCellSpan();
 
@@ -188,15 +199,21 @@ public sealed class DockViewModel : ObservableObject
 
     /// <summary>
     /// Reference MiniMapWindow.CommandDock.AddTile: a tile of a given kind is put in the first free cell and added.
-    ///
-    /// The picker itself is a later slice; this is how a tile is added once the user has chosen one.
     /// </summary>
-    public CommandDockTile AddTile(string kind)
+    public CommandDockTile AddTile(string kind) => AddTile(new CommandDockTile { Kind = kind });
+
+    /// <summary>
+    /// Reference MiniMapWindow.CommandDock.AddTile: a tile is put in the first free cell and added.
+    ///
+    /// The tile comes whole from the picker, so the settings the entry stands for - the clock's style, the chat's
+    /// width - are the ones that are kept.
+    /// </summary>
+    public CommandDockTile AddTile(CommandDockTile tile)
     {
-        var tile = new CommandDockTile { Kind = kind };
+        string kind = tile.Kind;
 
         // Chat needs room for a line of text; one cell would only ever show an ellipsis.
-        if (kind is CommandDockTileKinds.TeamChat or CommandDockTileKinds.ClanChat) tile.ColSpan = 2;
+        if (kind is CommandDockTileKinds.TeamChat or CommandDockTileKinds.ClanChat && tile.ColSpan < 2) tile.ColSpan = 2;
 
         SyncMapCellSpan();
         var map = MapTile;
@@ -281,6 +298,170 @@ public sealed class DockViewModel : ObservableObject
 
     /// <summary>Reference MiniMapWindow.CommandDock.MapTile: the map's entry in the layout, or null when it has none.</summary>
     public CommandDockTile? MapTile => layout.Tiles.FirstOrDefault(tile => tile.Kind == CommandDockTileKinds.Map);
+
+    // ---- Saved arrangements ---------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Reference MiniMapWindow.CommandDock.Presets.DefaultPresetId: the id of the arrangement that is always there.
+    ///
+    /// It is not stored: it is built on demand, so it cannot be renamed away, deleted by accident, or quietly diverge
+    /// from what a fresh install starts with. It is the way back - one click from any arrangement to the bare map.
+    /// </summary>
+    public const string DefaultPresetId = "builtin-default";
+
+    /// <summary>The map's original size, which is what the built-in arrangement is built around.</summary>
+    public const double DefaultMapSize = 260;
+
+    /// <summary>
+    /// Reference MiniMapWindow.CommandDock.Presets.BuiltInDefault: the arrangement that is always there.
+    /// </summary>
+    public static CommandDockPreset BuiltInDefault() => new()
+    {
+        Id = DefaultPresetId,
+        Name = RustPlusDesk.Core.Localization.Loc.Text("CommandDockTemplateDefault", "Map only (default)"),
+        Tiles =
+        [
+            new CommandDockTile { Id = CommandDockTileKinds.MapTileId, Kind = CommandDockTileKinds.Map, Col = 0, Row = 0 },
+        ],
+        GrowRight = false,
+        MapSize = DefaultMapSize,
+
+        // The one arrangement that does state a shape and a pitch. It is the way back to the beginning, and a dock
+        // still showing a 16:9 strip is not back at the beginning.
+        MapShapeIndex = 0,
+        GridZoom = 1.0,
+    };
+
+    /// <summary>
+    /// Reference MiniMapWindow.CommandDock.Presets.SavePreset: the arrangement as it is right now, ready to be saved.
+    ///
+    /// The tiles are copied rather than shared: a preset that held the live dock's tile objects would change every
+    /// time a tile was moved after it was saved.
+    /// </summary>
+    public CommandDockPreset CapturePreset(string name) => new()
+    {
+        Name = name.Trim(),
+        Tiles = CommandDockPreset.CopyTiles(layout.Tiles),
+        GrowRight = layout.GrowRight,
+        MapSize = MapTile is null ? null : MapSize,
+        GridZoom = layout.GridZoom,
+    };
+
+    /// <summary>Reference MiniMapWindow.CommandDock.Presets.Presets: the saved arrangements, with the built-in one first.</summary>
+    public async Task<IReadOnlyList<CommandDockPreset>> LoadPresetsAsync(CancellationToken ct)
+    {
+        var saved = new List<CommandDockPreset>();
+
+        if (presetStore is not null)
+        {
+            try
+            {
+                var store = await presetStore.LoadAsync(ct).ConfigureAwait(false);
+                saved.AddRange(store.Presets);
+            }
+            catch (Exception)
+            {
+                // Arrangements that cannot be read are none, rather than a broken dock.
+            }
+        }
+
+        saved.Insert(0, BuiltInDefault());
+        return saved;
+    }
+
+    /// <summary>
+    /// Reference MiniMapWindow.CommandDock.Presets.SavePreset: the arrangement is stored under a name, replacing one of
+    /// the same name.
+    /// </summary>
+    public async Task SavePresetAsync(string name, CancellationToken ct)
+    {
+        name = name.Trim();
+        if (name.Length == 0 || presetStore is null) return;
+
+        var presets = (await LoadPresetsAsync(ct).ConfigureAwait(false))
+            .Where(preset => preset.Id != DefaultPresetId)
+            .ToList();
+
+        presets.RemoveAll(preset => string.Equals(preset.Name, name, StringComparison.OrdinalIgnoreCase));
+        presets.Add(CapturePreset(name));
+
+        await SavePresetsAsync(presets, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Reference MiniMapWindow.CommandDock.Presets.RenamePreset: the arrangement is given another name.
+    ///
+    /// The built-in one is guarded here rather than only in the window: it is not in the store, so renaming it would
+    /// silently write a second arrangement under its name.
+    /// </summary>
+    public async Task RenamePresetAsync(string id, string name, CancellationToken ct)
+    {
+        name = name.Trim();
+        if (name.Length == 0 || id == DefaultPresetId || presetStore is null) return;
+
+        var presets = (await LoadPresetsAsync(ct).ConfigureAwait(false))
+            .Where(preset => preset.Id != DefaultPresetId)
+            .ToList();
+
+        var preset = presets.FirstOrDefault(candidate => candidate.Id == id);
+        if (preset is null) return;
+
+        preset.Name = name;
+        await SavePresetsAsync(presets, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>Reference MiniMapWindow.CommandDock.Presets.DeletePreset: the arrangement is removed.</summary>
+    public async Task DeletePresetAsync(string id, CancellationToken ct)
+    {
+        if (id == DefaultPresetId || presetStore is null) return;
+
+        var presets = (await LoadPresetsAsync(ct).ConfigureAwait(false))
+            .Where(preset => preset.Id != DefaultPresetId)
+            .ToList();
+
+        presets.RemoveAll(preset => preset.Id == id);
+        await SavePresetsAsync(presets, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Reference MiniMapWindow.CommandDock.Presets.ApplyPreset: an arrangement is put in place.
+    ///
+    /// The dock's position, its appearance defaults and the lock are left alone - those belong to the desk, not to the
+    /// layout.
+    /// </summary>
+    public async Task ApplyPresetAsync(string id, CancellationToken ct)
+    {
+        var preset = (await LoadPresetsAsync(ct).ConfigureAwait(true)).FirstOrDefault(candidate => candidate.Id == id);
+        if (preset is null) return;
+
+        layout.Tiles = CommandDockPreset.CopyTiles(preset.Tiles);
+        layout.GrowRight = preset.GrowRight;
+        layout.MapRemoved = preset.Tiles.All(tile => tile.Kind != CommandDockTileKinds.Map);
+
+        // The geometry goes in before anything is laid out, and quietly: the tiles are resolved against the map's
+        // footprint, and that footprint comes from the map's size and the grid's pitch. Resolving them against the
+        // previous arrangement's map is what pushed tiles out from under the one that was still there.
+        if (preset.GridZoom is { } zoom) layout.GridZoom = CommandDockLayout.ClampZoom(zoom);
+        if (preset.MapSize is { } size) MapSize = Math.Clamp(size, 160, 800);
+
+        await SaveAsync(ct).ConfigureAwait(false);
+        RebuildTiles();
+    }
+
+    /// <summary>The arrangements are written, replacing what was there.</summary>
+    private async Task SavePresetsAsync(List<CommandDockPreset> presets, CancellationToken ct)
+    {
+        if (presetStore is null) return;
+
+        try
+        {
+            await presetStore.SaveAsync(new CommandDockPresetStore { Presets = presets }, ct).ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            // A save that does not make it is not worth an error, as in the reference.
+        }
+    }
 
     /// <summary>
     /// Reference MiniMapWindow.CommandDock.BelongsHere: the tiles that currently take up space.

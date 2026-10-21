@@ -1,7 +1,30 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
         x:Class="RustPlusDesk.Avalonia.Features.Dock.DockWindow"
         Width="240" Height="240" CanResize="False" ShowInTaskbar="False" Topmost="True" Background="Transparent">
-  <!-- Reference the widget overlay: the dock's tiles sit on a canvas, placed on the cell grid. -->
-  <Canvas x:Name="TileCanvas" Background="Transparent" />
+  <Grid RowDefinitions="Auto,*">
+    <!--  Reference the dock's own buttons: the one that adds a tile, the one that opens the saved arrangements, and
+          the lock that decides whether the tiles can be arranged at all. They sit above the tiles rather than over
+          them, so a tile is never covered by a button.  -->
+    <StackPanel x:Name="Chrome" Grid.Row="0" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right"
+                Margin="0,0,0,4">
+      <Button x:Name="AddButton" Width="28" Height="24" Padding="0" Background="#CC101418" BorderBrush="#66FFFFFF"
+              BorderThickness="1" Click="OnAddTile" ToolTip.Tip="Add a tile" AutomationProperties.Name="Add a tile to the dock">
+        <icons:Icon Symbol="Add24" FontSize="14" Foreground="White" />
+      </Button>
+      <Button x:Name="TemplatesButton" Width="28" Height="24" Padding="0" Background="#CC101418" BorderBrush="#66FFFFFF"
+              BorderThickness="1" Click="OnTemplates" ToolTip.Tip="The saved arrangements"
+              AutomationProperties.Name="Open the saved dock arrangements">
+        <icons:Icon Symbol="Apps24" FontSize="13" Foreground="White" />
+      </Button>
+      <Button x:Name="LockButton" Width="28" Height="24" Padding="0" Background="#CC101418" BorderBrush="#66FFFFFF"
+              BorderThickness="1" Click="OnLock" AutomationProperties.Name="Lock or unlock the dock">
+        <icons:Icon x:Name="LockIcon" Symbol="LockClosed24" FontSize="13" Foreground="White" />
+      </Button>
+    </StackPanel>
+
+    <!-- Reference the widget overlay: the dock's tiles sit on a canvas, placed on the cell grid. -->
+    <Canvas x:Name="TileCanvas" Grid.Row="1" Background="Transparent" />
+  </Grid>
 </Window>

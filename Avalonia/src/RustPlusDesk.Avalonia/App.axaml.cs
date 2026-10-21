@@ -74,7 +74,9 @@ public sealed partial class App : Application
             // The command dock's arrangement lives in the reference's own cache file, so the WPF app and this one read and
             // write the same one.
             var dockStore = new LegacyCommandDockStore(LegacyCommandDockStore.DefaultPath);
-            var window = new MainWindow(dockStore);
+            // The saved arrangements of the dock live in the reference's own cache file too, so the two apps share them.
+            var dockPresetStore = new LegacyCommandDockPresetStore(LegacyCommandDockPresetStore.DefaultPath);
+            var window = new MainWindow(dockStore, dockPresetStore);
             var sessions = new RustPlusSessionFactory();
             var traffic = new RustPlusDesk.Core.Diagnostics.NetworkTrafficMonitor();
             var settingsStore = new TrackingSettingsStore(TrackingSettingsStore.DefaultPath);

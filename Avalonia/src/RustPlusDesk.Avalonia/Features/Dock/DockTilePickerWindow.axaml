@@ -1,0 +1,69 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:dock="using:RustPlusDesk.Avalonia.Features.Dock"
+        xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+        x:Class="RustPlusDesk.Avalonia.Features.Dock.DockTilePickerWindow" x:DataType="dock:DockTilePickerViewModel"
+        Title="Add a tile" Width="420" Height="520" MinWidth="320" MinHeight="280" WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource AppBackground}" CanResize="True">
+  <Window.Styles>
+    <!--  Reference the picker's entries: a card that lifts a little when the pointer is on it.  -->
+    <Style Selector="Button.pickerEntry">
+      <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="10,7" />
+      <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+    <Style Selector="Button.pickerEntry:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+    </Style>
+  </Window.Styles>
+
+  <Grid RowDefinitions="Auto,*" RowSpacing="10" Margin="16">
+    <StackPanel Spacing="4">
+      <TextBlock Text="Add a tile" FontSize="18" FontWeight="SemiBold" />
+      <TextBlock Text="What the dock shows, and how it is arranged, is yours to choose."
+                 Classes="muted" FontSize="12" TextWrapping="Wrap" />
+    </StackPanel>
+
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+      <ItemsControl ItemsSource="{Binding Rows}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="dock:DockTilePickerRow">
+            <Grid>
+              <!--  Reference the picker's section headings: a glyph and the name, in the accent colour.  -->
+              <StackPanel Orientation="Horizontal" Spacing="6" Margin="2,8,0,6"
+                          IsVisible="{Binding IsHeading}">
+                <icons:Icon Symbol="{Binding Icon}" FontSize="13" Foreground="{DynamicResource Accent}" />
+                <TextBlock Text="{Binding Title}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Accent}"
+                           VerticalAlignment="Center" />
+              </StackPanel>
+
+              <!--  Reference the picker's entries: a badge with the glyph, the name, what it does, and the chevron
+                    that says it can be added.  -->
+              <Button Classes="pickerEntry" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                      Click="OnEntryClick" IsVisible="{Binding !IsHeading}"
+                      AutomationProperties.Name="{Binding Title}">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                  <Border Grid.Column="0" Width="30" Height="30" CornerRadius="6" VerticalAlignment="Center"
+                          Background="{DynamicResource SubtleFillColorTertiaryBrush}">
+                    <icons:Icon Symbol="{Binding Icon}" FontSize="15" Foreground="{DynamicResource Accent}" />
+                  </Border>
+                  <Grid Grid.Column="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <StackPanel Grid.Column="0" Spacing="1">
+                      <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Text="{Binding Hint}" FontSize="11" Classes="muted" TextWrapping="Wrap"
+                                 IsVisible="{Binding Hint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    </StackPanel>
+                    <icons:Icon Grid.Column="1" Symbol="ChevronRight24" FontSize="12" VerticalAlignment="Center"
+                                Foreground="{DynamicResource TextSubtle}" />
+                  </Grid>
+                </Grid>
+              </Button>
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </Grid>
+</Window>
