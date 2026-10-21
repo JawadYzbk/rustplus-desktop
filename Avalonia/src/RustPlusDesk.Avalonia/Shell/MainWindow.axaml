@@ -13,6 +13,7 @@
         xmlns:cameras="using:RustPlusDesk.Avalonia.Features.Cameras"
         xmlns:achievements="using:RustPlusDesk.Avalonia.Features.Achievements"
         xmlns:shell="using:RustPlusDesk.Avalonia.Shell"
+        xmlns:shared="using:RustPlusDesk.Avalonia.Shared.Controls"
         xmlns:cloud="using:RustPlusDesk.Avalonia.Features.Cloud"
         xmlns:tutorials="using:RustPlusDesk.Avalonia.Features.Tutorials"
         xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
@@ -66,101 +67,65 @@
           <shell:MapWorkspace x:Name="MapArea" IsVisible="{Binding !IsToolSelected}" />
           <Grid RowDefinitions="Auto,*" Background="{DynamicResource Surface}" IsVisible="{Binding IsRecyclerSelected}">
             <Border Classes="toolbar">
-              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                <icons:Icon Symbol="Recycle32" FontSize="20" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Text="{DynamicResource AppRecyclingCalculator}" Classes="title" />
-                <Button Grid.Column="2" Classes="icon" Command="{Binding CloseToolCommand}" ToolTip.Tip="Close (Esc)"
-                        AutomationProperties.Name="Close recycling calculator"><icons:Icon Symbol="Dismiss24" /></Button>
-              </Grid>
+              <shared:PanelHeader Title="{DynamicResource AppRecyclingCalculator}" Symbol="Recycle32"
+                              CloseCommand="{Binding CloseToolCommand}" CloseName="Close recycling calculator" />
             </Border>
             <recycling:RecyclerView Grid.Row="1" Margin="16,12,16,16" DataContext="{Binding Recycler}" />
           </Grid>
           <Grid RowDefinitions="Auto,*" Background="{DynamicResource Surface}" IsVisible="{Binding IsRaidSelected}">
             <Border Classes="toolbar">
-              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                <icons:Icon Symbol="Rocket24" FontSize="20" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Text="{DynamicResource AppRaidCalculator}" Classes="title" />
-                <Button Grid.Column="2" Classes="icon" Command="{Binding CloseToolCommand}" ToolTip.Tip="Close (Esc)"
-                        AutomationProperties.Name="Close raid calculator"><icons:Icon Symbol="Dismiss24" /></Button>
-              </Grid>
+              <shared:PanelHeader Title="{DynamicResource AppRaidCalculator}" Symbol="Rocket24"
+                              CloseCommand="{Binding CloseToolCommand}" CloseName="Close raid calculator" />
             </Border>
             <raid:RaidCalculatorView Grid.Row="1" Margin="16,12,16,16" DataContext="{Binding Raid}" />
           </Grid>
           <Grid RowDefinitions="Auto,*" Background="{DynamicResource Surface}" IsVisible="{Binding IsConsoleSelected}">
             <Border Classes="toolbar">
-              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                <icons:Icon Symbol="WindowConsole20" FontSize="20" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Text="{DynamicResource AppConsoleHelper}" Classes="title" />
-                <Button Grid.Column="2" Classes="icon" Command="{Binding CloseToolCommand}" ToolTip.Tip="Close (Esc)"
-                        AutomationProperties.Name="Close console helper"><icons:Icon Symbol="Dismiss24" /></Button>
-              </Grid>
+              <shared:PanelHeader Title="{DynamicResource AppConsoleHelper}" Symbol="WindowConsole20"
+                              CloseCommand="{Binding CloseToolCommand}" CloseName="Close console helper" />
             </Border>
             <console:ConsoleHelperView Grid.Row="1" Margin="16,12,16,16" DataContext="{Binding ConsoleHelper}" />
           </Grid>
           <Grid RowDefinitions="Auto,*" Background="{DynamicResource Surface}" IsVisible="{Binding IsCamerasSelected}">
             <Border Classes="toolbar">
-              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                <icons:Icon Symbol="Video24" FontSize="20" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Text="{DynamicResource CamerasTab}" Classes="title" />
-                <Button Grid.Column="2" Classes="icon" Command="{Binding CloseToolCommand}" ToolTip.Tip="Close (Esc)"
-                        AutomationProperties.Name="Close cameras"><icons:Icon Symbol="Dismiss24" /></Button>
-              </Grid>
+              <shared:PanelHeader Title="{DynamicResource CamerasTab}" Symbol="Video24"
+                              CloseCommand="{Binding CloseToolCommand}" CloseName="Close cameras" />
             </Border>
             <cameras:CamerasView Grid.Row="1" Margin="16,12,16,16" DataContext="{Binding Cameras}" />
           </Grid>
           <Grid RowDefinitions="Auto,*" Background="{DynamicResource Surface}" IsVisible="{Binding IsNotificationsSelected}">
             <Border Classes="toolbar">
-              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                <icons:Icon Symbol="Alert24" FontSize="20" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Text="{DynamicResource AppNotifications}" Classes="title" />
-                <Button Grid.Column="2" Classes="icon" Command="{Binding CloseToolCommand}" ToolTip.Tip="Close (Esc)"
-                        AutomationProperties.Name="Close notifications"><icons:Icon Symbol="Dismiss24" /></Button>
-              </Grid>
+              <shared:PanelHeader Title="{DynamicResource AppNotifications}" Symbol="Alert24"
+                              CloseCommand="{Binding CloseToolCommand}" CloseName="Close notifications" />
             </Border>
             <notifications:NotificationsView Grid.Row="1" Margin="16,12,16,16" DataContext="{Binding Notifications}" />
           </Grid>
           <Grid RowDefinitions="Auto,*" Background="{DynamicResource Surface}" IsVisible="{Binding IsSettingsSelected}">
             <Border Classes="toolbar">
-              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                <icons:Icon Symbol="Settings24" FontSize="20" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Text="{DynamicResource AppSettings}" Classes="title" />
-                <Button Grid.Column="2" Classes="icon" Command="{Binding CloseToolCommand}" ToolTip.Tip="Close (Esc)"
-                        AutomationProperties.Name="Close settings"><icons:Icon Symbol="Dismiss24" /></Button>
-              </Grid>
+              <shared:PanelHeader Title="{DynamicResource AppSettings}" Symbol="Settings24"
+                              CloseCommand="{Binding CloseToolCommand}" CloseName="Close settings" />
             </Border>
             <settings:SettingsView x:Name="SettingsPanel" Grid.Row="1" Margin="16,12,16,16" DataContext="{Binding SettingsPage}" />
           </Grid>
           <Grid RowDefinitions="Auto,*" Background="{DynamicResource Surface}" IsVisible="{Binding IsDeathStatsSelected}">
             <Border Classes="toolbar">
-              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                <icons:Icon Symbol="HeartBroken24" FontSize="20" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Text="{DynamicResource AppDeathStats}" Classes="title" />
-                <Button Grid.Column="2" Classes="icon" Command="{Binding CloseToolCommand}" ToolTip.Tip="Close (Esc)"
-                        AutomationProperties.Name="Close death stats"><icons:Icon Symbol="Dismiss24" /></Button>
-              </Grid>
+              <shared:PanelHeader Title="{DynamicResource AppDeathStats}" Symbol="HeartBroken24"
+                              CloseCommand="{Binding CloseToolCommand}" CloseName="Close death stats" />
             </Border>
             <deaths:DeathStatsView Grid.Row="1" Margin="16,12,16,16" DataContext="{Binding DeathStats}" />
           </Grid>
           <Grid RowDefinitions="Auto,*" Background="{DynamicResource Surface}" IsVisible="{Binding IsClanSelected}">
             <Border Classes="toolbar">
-              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                <icons:Icon Symbol="Shield24" FontSize="20" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Text="{DynamicResource AppClan}" Classes="title" />
-                <Button Grid.Column="2" Classes="icon" Command="{Binding CloseToolCommand}" ToolTip.Tip="Close (Esc)"
-                        AutomationProperties.Name="Close clan"><icons:Icon Symbol="Dismiss24" /></Button>
-              </Grid>
+              <shared:PanelHeader Title="{DynamicResource AppClan}" Symbol="Shield24"
+                              CloseCommand="{Binding CloseToolCommand}" CloseName="Close clan" />
             </Border>
             <clans:ClanView Grid.Row="1" Margin="16,12,16,16" DataContext="{Binding Clan}" />
           </Grid>
 
           <Grid RowDefinitions="Auto,*" Background="{DynamicResource Surface}" IsVisible="{Binding IsAchievementsSelected}">
             <Border Classes="toolbar">
-              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                <icons:Icon Symbol="Trophy24" FontSize="20" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Text="{DynamicResource AppAchievements}" Classes="title" />
-                <Button Grid.Column="2" Classes="icon" Command="{Binding CloseToolCommand}" ToolTip.Tip="Close (Esc)"
-                        AutomationProperties.Name="Close achievements"><icons:Icon Symbol="Dismiss24" /></Button>
-              </Grid>
+              <shared:PanelHeader Title="{DynamicResource AppAchievements}" Symbol="Trophy24"
+                              CloseCommand="{Binding CloseToolCommand}" CloseName="Close achievements" />
             </Border>
             <achievements:AchievementsView Grid.Row="1" Margin="16,12,16,16" DataContext="{Binding Achievements}" />
           </Grid>
@@ -168,12 +133,8 @@
           <!--  Reference the tutorial centre: the page that lists the tutorials and what has been done of each.  -->
           <Grid RowDefinitions="Auto,*" Background="{DynamicResource Surface}" IsVisible="{Binding IsTutorialsSelected}">
             <Border Classes="toolbar">
-              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                <icons:Icon Symbol="Book24" FontSize="20" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Text="{DynamicResource Tutorials.Center.Title}" Classes="title" />
-                <Button Grid.Column="2" Classes="icon" Command="{Binding CloseToolCommand}" ToolTip.Tip="Close (Esc)"
-                        AutomationProperties.Name="Close the tutorial centre"><icons:Icon Symbol="Dismiss24" /></Button>
-              </Grid>
+              <shared:PanelHeader Title="{DynamicResource Tutorials.Center.Title}" Symbol="Book24"
+                              CloseCommand="{Binding CloseToolCommand}" CloseName="Close the tutorial centre" />
             </Border>
             <tutorials:TutorialsView Grid.Row="1" Margin="16,12,16,16" DataContext="{Binding TutorialsPage}" />
           </Grid>

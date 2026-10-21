@@ -1,6 +1,43 @@
-<Styles xmlns="https://github.com/avaloniaui" xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<Styles xmlns="https://github.com/avaloniaui" xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons" xmlns:shared="using:RustPlusDesk.Avalonia.Shared.Controls" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <Styles.Resources>
     <ResourceDictionary>
+  <!--  Reference the old app's PanelHeader: the icon tile with the accent wash and border, the eyebrow, the title,
+        the subtitle, the panel's own buttons and the close button last.  -->
+  <ControlTheme x:Key="{x:Type shared:PanelHeader}" TargetType="shared:PanelHeader">
+    <Setter Property="Template">
+      <ControlTemplate TargetType="shared:PanelHeader">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+          <Border Grid.Column="0" Width="{TemplateBinding IconTileSize}" Height="{TemplateBinding IconTileSize}"
+                  CornerRadius="8" VerticalAlignment="Center" IsVisible="{TemplateBinding HasIcon}">
+            <Grid>
+              <Border Background="{DynamicResource Accent}" Opacity="0.14" CornerRadius="8" />
+              <Border BorderBrush="{DynamicResource Accent}" BorderThickness="1" Opacity="0.32" CornerRadius="8" />
+              <icons:Icon Symbol="{TemplateBinding Symbol}" FontSize="17" Foreground="{DynamicResource Accent}" />
+            </Grid>
+          </Border>
+
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+            <TextBlock Text="{TemplateBinding Eyebrow}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Accent}"
+                       IsVisible="{TemplateBinding HasEyebrow}" />
+            <TextBlock Text="{TemplateBinding Title}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"
+                       TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{TemplateBinding Subtitle}" FontSize="12" Foreground="{DynamicResource TextSubtle}"
+                       TextWrapping="Wrap" IsVisible="{TemplateBinding HasSubtitle}" />
+          </StackPanel>
+
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <ContentControl Content="{TemplateBinding ActionsContent}" VerticalAlignment="Center" />
+            <Button Command="{TemplateBinding CloseCommand}" IsVisible="{TemplateBinding HasClose}" Width="32" Height="32"
+                    Padding="0" Background="Transparent" BorderThickness="0" ToolTip.Tip="{DynamicResource Close}"
+                    AutomationProperties.Name="{TemplateBinding CloseName}">
+              <icons:Icon Symbol="Dismiss24" FontSize="16" Foreground="{DynamicResource TextSubtle}" />
+            </Button>
+          </StackPanel>
+        </Grid>
+      </ControlTemplate>
+    </Setter>
+  </ControlTheme>
+
       <ResourceDictionary.ThemeDictionaries>
         <!-- Dark branding follows the reference; Light follows the system preference. -->
         <ResourceDictionary x:Key="Dark">
@@ -264,4 +301,5 @@
   <Style Selector="Ellipse.connection-dot.connected"><Setter Property="Fill" Value="{DynamicResource ConnectionSuccess}" /></Style>
   <Style Selector="Ellipse.connection-dot.pending"><Setter Property="Fill" Value="{DynamicResource ConnectionPending}" /></Style>
   <Style Selector="Ellipse.connection-dot.repair"><Setter Property="Fill" Value="{DynamicResource ConnectionRePair}" /></Style>
+
 </Styles>
