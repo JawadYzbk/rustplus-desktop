@@ -99,7 +99,7 @@ internal static class AiHttp
         using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
         using var reader = new StreamReader(stream, Encoding.UTF8);
 
-        while (!reader.EndOfStream)
+        while (true)
         {
             ct.ThrowIfCancellationRequested();
 

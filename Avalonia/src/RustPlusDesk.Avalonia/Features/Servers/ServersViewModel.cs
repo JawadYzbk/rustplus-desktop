@@ -1010,7 +1010,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         };
         try
         {
-            var provider = RustPlusDesk.Infrastructure.Ai.AiProviderFactory.For(aiSettings.Provider, aiHttp);
+            var provider = RustPlusDesk.Infrastructure.Ai.AiProviderFactory.For(aiSettings.Provider, aiHttp, aiSettings.OpenRouter);
             var reply = await provider.AskAsync(new RustPlusDesk.Core.Ai.AiQuestion
             {
                 Text = question,

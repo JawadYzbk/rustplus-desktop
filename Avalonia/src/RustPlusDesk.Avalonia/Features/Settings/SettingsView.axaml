@@ -582,19 +582,128 @@
           <TextBlock Text="{DynamicResource AiCompanionTitle}" Classes="section" />
           <TextBlock Text="The key is kept on this machine, in a file only your account can read, and is sent to nothing but the provider you choose."
                      Classes="muted" FontSize="12" TextWrapping="Wrap" />
+          <!--  Reference CmbAiProvider: the provider that answers, and what it is. One key per provider, because
+                people keep more than one and switch between them.  -->
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
             <TextBlock Text="{DynamicResource AiCompanionProvider}" VerticalAlignment="Center" />
-            <ComboBox Grid.Column="1" ItemsSource="{Binding Ai.Providers, FallbackValue={x:Null}}" SelectedItem="{Binding Ai.Provider, Mode=TwoWay}"
-                      HorizontalAlignment="Stretch" AutomationProperties.Name="AI provider" />
+            <ComboBox Grid.Column="1" ItemsSource="{Binding Ai.Providers, FallbackValue={x:Null}}"
+                      SelectedItem="{Binding Ai.SelectedProvider, Mode=TwoWay}" HorizontalAlignment="Stretch"
+                      AutomationProperties.Name="AI provider">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:AiProviderChoice"><TextBlock Text="{Binding Name}" /></DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
           </Grid>
-          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-            <TextBlock Text="{DynamicResource AiCompanionModel}" VerticalAlignment="Center" />
-            <TextBox Grid.Column="1" Text="{Binding Ai.Model, FallbackValue=''}" AutomationProperties.Name="AI model" />
-          </Grid>
-          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+          <TextBlock Text="{Binding Ai.ProviderNote, FallbackValue=''}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+
+          <!--  Reference TxtAiKey, BtnSaveAiKey and BtnRemoveAiKey: the key for the chosen provider, and what the
+                card knows about it.  -->
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
             <TextBlock Text="{DynamicResource AiCompanionApiKey}" VerticalAlignment="Center" />
-            <TextBox Grid.Column="1" Text="{Binding Ai.ApiKey, FallbackValue=''}" PasswordChar="•" AutomationProperties.Name="AI API key" />
+            <TextBox Grid.Column="1" Text="{Binding Ai.ApiKey, Mode=TwoWay, FallbackValue=''}" PasswordChar="•"
+                     AutomationProperties.Name="AI API key" />
+            <Button Grid.Column="2" Classes="primary" Content="{DynamicResource AiCompanionSaveKey}"
+                    Command="{Binding Ai.SaveCommand, FallbackValue={x:Null}}" AutomationProperties.Name="Save the AI key" />
           </Grid>
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding Ai.KeyState, FallbackValue=''}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding Ai.OtherKeysStored, FallbackValue=''}" Classes="muted" FontSize="11" TextWrapping="Wrap"
+                         IsVisible="{Binding Ai.OtherKeysStored, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            </StackPanel>
+            <Button Grid.Column="1" Classes="subtle" Content="{DynamicResource AiCompanionRemoveKey}"
+                    Command="{Binding Ai.RemoveKeyCommand, FallbackValue={x:Null}}" IsEnabled="{Binding Ai.HasKey, FallbackValue=False}"
+                    AutomationProperties.Name="Remove the AI key" />
+          </Grid>
+
+          <!--  Reference TxtAiModel and BtnAiModelReset: the model, per provider, with the provider's own default
+                behind it. The text box stays the source of truth, so a model released after this app shipped can
+                still be typed by hand.  -->
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+            <TextBlock Text="{DynamicResource AiCompanionModel}" VerticalAlignment="Center" />
+            <TextBox Grid.Column="1" Text="{Binding Ai.Model, Mode=TwoWay, FallbackValue=''}"
+                     PlaceholderText="{Binding Ai.DefaultModel, FallbackValue=''}" AutomationProperties.Name="AI model" />
+            <Button Grid.Column="2" Classes="subtle" Content="{DynamicResource AiCompanionModelReset}"
+                    Command="{Binding Ai.ResetModelCommand, FallbackValue={x:Null}}" IsEnabled="{Binding Ai.CanResetModel, FallbackValue=False}"
+                    AutomationProperties.Name="Use the default model" />
+          </Grid>
+          <ComboBox ItemsSource="{Binding Ai.SuggestedModels, FallbackValue={x:Null}}"
+                    SelectedItem="{Binding Ai.Model, Mode=TwoWay, FallbackValue=''}" HorizontalAlignment="Stretch"
+                    PlaceholderText="Known models for this provider" AutomationProperties.Name="Suggested AI models" />
+
+          <!--  Reference PanelOpenRouterTools: the catalogue of models, which only OpenRouter has.  -->
+          <StackPanel Spacing="8" IsVisible="{Binding Ai.IsOpenRouter, FallbackValue=False}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+              <Button Command="{Binding Ai.BrowseCommand, FallbackValue={x:Null}}" HorizontalAlignment="Stretch"
+                      AutomationProperties.Name="Browse the OpenRouter models">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <icons:Icon Symbol="Search24" FontSize="14" />
+                  <TextBlock Text="{DynamicResource AiCompanionOpenRouterBrowse}" />
+                </StackPanel>
+              </Button>
+            </Grid>
+
+            <!--  Reference PanelOpenRouterOptions: the request options OpenRouter itself reads.  -->
+            <Border Classes="card" Padding="12">
+              <StackPanel Spacing="10">
+                <TextBlock Text="OpenRouter request options" FontWeight="SemiBold" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="Reasoning and thinking effort" FontWeight="SemiBold" FontSize="12" />
+                    <TextBlock Text="How deeply the reasoning models think before answering." Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <ComboBox Grid.Column="1" MinWidth="140" ItemsSource="{Binding Ai.ReasoningEfforts, FallbackValue={x:Null}}"
+                            SelectedItem="{Binding Ai.ReasoningEffort, Mode=TwoWay}" VerticalAlignment="Center"
+                            AutomationProperties.Name="OpenRouter reasoning effort" />
+                </Grid>
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="Max thinking tokens" FontWeight="SemiBold" FontSize="12" />
+                    <TextBlock Text="The ceiling on the reasoning steps. Zero is the model's own default." Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <ComboBox Grid.Column="1" MinWidth="140" ItemsSource="{Binding Ai.ThinkingTokenChoices, FallbackValue={x:Null}}"
+                            SelectedItem="{Binding Ai.ReasoningMaxTokens, Mode=TwoWay}" VerticalAlignment="Center"
+                            AutomationProperties.Name="OpenRouter thinking tokens" />
+                </Grid>
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="{Binding Ai.TemperatureLabel, FallbackValue=''}" FontWeight="SemiBold" FontSize="12" />
+                    <TextBlock Text="Lower is more factual and precise; higher is more creative." Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <Slider Grid.Column="1" Width="160" Minimum="0" Maximum="1.5" SmallChange="0.05" LargeChange="0.1"
+                          Value="{Binding Ai.Temperature, Mode=TwoWay}" VerticalAlignment="Center"
+                          AutomationProperties.Name="OpenRouter temperature" />
+                </Grid>
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="Max output length" FontWeight="SemiBold" FontSize="12" />
+                    <TextBlock Text="How long an answer may be." Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <Slider Grid.Column="1" Width="160" Minimum="256" Maximum="4096" SmallChange="64" LargeChange="256"
+                          Value="{Binding Ai.MaxTokensSlider, Mode=TwoWay}" VerticalAlignment="Center"
+                          AutomationProperties.Name="OpenRouter maximum output length" />
+                </Grid>
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="Allow provider fallbacks" FontWeight="SemiBold" FontSize="12" />
+                    <TextBlock Text="Try another host on OpenRouter when the first one is down." Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <CheckBox Grid.Column="1" IsChecked="{Binding Ai.AllowFallbacks, Mode=TwoWay}" VerticalAlignment="Center"
+                            AutomationProperties.Name="Allow OpenRouter fallbacks" />
+                </Grid>
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="Strict privacy (no data retention)" FontWeight="SemiBold" FontSize="12" />
+                    <TextBlock Text="Stay with the providers that do not log what was sent. Most free models are not among them."
+                               Classes="muted" FontSize="11" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <CheckBox Grid.Column="1" IsChecked="{Binding Ai.StrictPrivacy, Mode=TwoWay}" VerticalAlignment="Center"
+                            AutomationProperties.Name="OpenRouter strict privacy" />
+                </Grid>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
           <StackPanel Orientation="Horizontal" Spacing="8">
             <Button Classes="primary" Content="{DynamicResource AppSave}" Command="{Binding Ai.SaveCommand, FallbackValue={x:Null}}"
                     AutomationProperties.Name="Save the AI settings" />

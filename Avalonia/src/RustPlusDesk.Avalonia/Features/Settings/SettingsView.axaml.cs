@@ -16,12 +16,26 @@ public sealed partial class SettingsView : UserControl
             if (model is not null) { model.TemplatesFocusRequested -= ShowTemplates; model.WebhookFocusRequested -= ShowWebhook; }
             model = DataContext as SettingsViewModel;
             if (model is not null) { model.TemplatesFocusRequested += ShowTemplates; model.WebhookFocusRequested += ShowWebhook; }
+            // The model browser is a window, and only a window can open one: the card asks for it and this view lends
+            // it the window it lives in.
+            if (model?.Ai is { } ai) ai.BrowseModels = ShowModelBrowser;
             // Only a window can open a link, so the update card borrows the one this view lives in.
             if (model?.Update is { } update)
             {
                 update.OpenUrl = url => TopLevel.GetTopLevel(this)?.Launcher?.LaunchUriAsync(new Uri(url)) ?? Task.FromResult(false);
             }
         };
+    }
+
+    /// <summary>Opens the model browser over the card that asked for it.</summary>
+    private void ShowModelBrowser()
+    {
+        if (model?.Ai is not { } card) return;
+
+        var window = new AiModelBrowserWindow { DataContext = new AiModelBrowserViewModel() };
+        window.Picked = card.ApplyModel;
+        if (TopLevel.GetTopLevel(this) is Window owner) window.Show(owner);
+        else window.Show();
     }
 
     /// <summary>Scrolls the templates panel to the top of the page.</summary>

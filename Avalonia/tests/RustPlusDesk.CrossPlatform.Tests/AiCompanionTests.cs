@@ -104,7 +104,9 @@ public sealed class AiCompanionTests
             var store = new AiSettingsStore(path);
             Assert.IsFalse((await store.LoadAsync(default)).IsSetUp);
 
-            await store.SaveAsync(new AiSettings { Provider = AiProviders.OpenRouter, Model = "gpt-4o", ApiKey = "sk-test" }, default);
+            await store.SaveAsync(new AiSettings { Provider = AiProviders.OpenRouter }
+                .WithModel(AiProviders.OpenRouter, "gpt-4o")
+                .WithKey(AiProviders.OpenRouter, "sk-test"), default);
             var loaded = await store.LoadAsync(default);
             Assert.IsTrue(loaded.IsSetUp);
             Assert.AreEqual("sk-test", loaded.ApiKey);
