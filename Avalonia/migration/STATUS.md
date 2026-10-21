@@ -495,13 +495,13 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Installer/updater | Self-contained publishes for Windows, macOS and Linux, an Inno Setup installer, a macOS `.app` bundle and a per-user Linux installation, plus the update card that finds a newer published release (`installer/`, documented in `installer/PACKAGING.md`) | Signing, replacing the running build from inside the app, native macOS/Linux appearance and the shipped app's extra payloads |
 | Raid calculator | Ported workspace tab: reference engine/tests, 165-target catalogue with artwork, categories/search, per-target methods, curated and smart mixes, comparison modes, cheapest nudge, totals, shared raid-plan.json, Discord summary copy, reference breakpoints | Tutorial targets, localization, entrance animations and native visual acceptance |
 | Recycler calculator | Offline catalog, calculations, quantity shortcuts, filters/paging, comparisons, icons and stateful workspace | Original navigation integration, tutorial targets, localization and native visual/accessibility acceptance |
-| Shop search/trades | Not ported | Preserve filters, vending offers, alerts, shopping/profit workflows and map links |
+| Shop search/trades | The shop search dock (the text over the name, the short name and the category, the sells and buys sides, the out-of-stock and monument filters, the reference's recycler catalogue, the sorts and the empty states) and the shop trade alerts with their profile and per-server settings | The profit and buy-X tools, the console helper's own share of the shops and the map links the reference offers |
 | Map drawing/routes/layers/3D | The shape tools, the named routes, the icon and the text tools, drawn on the map and saved per server | The drawing groups, import/export, keycards, no-build zones, monument overlays, the 3D map and the helper integration |
-| Command dock/minimap/popouts | Not ported | Preserve tiles/templates/configuration, overlays, floating windows and appearance settings |
-| Death markers/stats/wipe tracker | Not ported | Preserve history, heatmaps, archives, marker configuration and cloud synchronization |
+| Command dock/minimap/popouts | The command dock (the tile and layout shapes, the cell arithmetic, the window, the picker, the saved arrangements, the tiles for the clock, the server information, the two chats, the collapse button, the devices, the oil-rig event, the logic rules, the session, the death markers and the map, and each tile's own settings), the mini-map (the three shapes, the size, the opacity, the pills, the layer switches, the peek key and the follow) and the alarm overlay | The Discord, AI, translate and death-track tiles, the supporter gate on the session tile and the multi-monitor picker |
+| Death markers/stats/wipe tracker | The death markers on the map, the heatmap, the own and team death records, the death pins with their caps and the wipe, and the death statistics workspace with its export | The archives, the marker configuration beyond the caps and the cloud synchronisation |
 | Players tab / player wipe tracker | Removed at Jawad's instruction: the Players tab, the tracked players, their groups, the group manager, the pop-out window, the how-to-track guide and the player wipe tracker's file are not in the app, and nothing of them is left behind | Nothing - the feature was removed, not reduced |
-| AI companion | The companion, the `!ai` chat command, all four providers (OpenAI, Anthropic, Gemini and OpenRouter) with a key and a model each, the OpenRouter model browser, the private key file, and the recent questions with the reason a question failed | The spoken answers, the recording, the transcription and the recipe and raid tables |
-| Notifications/custom alerts | In-memory pairing/alarm/chat/death feed while listening, sent-time normalization and duplicate suppression | Durable inbox, unread state, popup paging, sounds, channel settings and integrations |
+| AI companion | The companion, the `!ai` chat command, all four providers (OpenAI, Anthropic, Gemini and OpenRouter) with a key and a model each, the OpenRouter model browser, the private key file, the recent questions with the reason a question failed, and the answer read out loud in the platform's own voice with the three answer languages | The recording, the transcription, the providers' own voices and the recipe and raid tables |
+| Notifications/custom alerts | The durable inbox (the history file, the unread count, the search, the filters, the mark-all-read, the delete and the mute of a server), the smart-alarm popup, the alarm overlay with its paging, the per-device alarm sound and the spoken alarm, the chat-alert templates and the Discord webhook alerts | The cloud sync of the history, the Telegram and smart-home services and the integrations beyond the webhook |
 | Community/LFG/support/admin | The support card: the user's tickets, the thread, the categories and filing a ticket | The community profiles, moderation and reporting, the attachments in the form, the LFG and the admin panel |
 | Tutorials/achievements/help | The achievements list with its artwork, the unlock triggers and the saved state; the tutorial centre (the catalogue by category, the progress, start/continue/restart/reset) and the guided overlay (the dimming, the spotlight on the target, the step card with back, skip, next and finish) | The tutorial welcome panel, the first-run prompt, the 3D map's web-view target, patch notes, galleries, the help content and the consent dialogs |
 | Traffic monitor/debug/logs | The network traffic monitor: the app's own requests counted, the speeds, the per-category breakdown, the log and a CSV export, with the title-bar readout | The diagnostic log window, request details and the per-request filter |
@@ -528,19 +528,26 @@ themes, and full keyboard/screen-reader acceptance are still pending.
 
 ## Next implementation slice
 
-1. Validate live Steam/Facepunch/FCM sign-in, pairing and sign-out on a native desktop with the user;
+1. The Deep Sea map view: the map mode that replaces the world map with the 27x27 underwater grid and the
+   Floating City's shops. It needs its own view over the map surface, because the Deep Sea sits outside the
+   world square, and the port draws the Deep Sea as an event until it does.
+2. The 3D map and the Discord bot: both need something this cross-platform port does not carry (a browser
+   engine inside the app, and the bot's own service on the other side), so they are recorded as deferred in
+   PARITY-PLAN.md rather than half-offered.
+3. The AI companion's recording and transcription: the microphone, the providers' audio paths and the
+   providers' own voices, on top of the spoken answers that are in.
+4. Validate live Steam/Facepunch/FCM sign-in, pairing and sign-out on a native desktop with the user;
    validate the implemented startup health checks/registration repair and add ambiguous-match resolution without losing data.
-2. Continue device import/transfer, drag gestures, cloud synchronization/deletion cleanup, notifications
+5. Continue device import/transfer, drag gestures, cloud synchronization/deletion cleanup, notifications
    and automation using the verified session/device boundary. Local alias/group/move/reorder is implemented.
-3. Port original server context menus and deletion together with its cloud cleanup; preserve all related data and consent flows.
-4. Build the original rail/sidebar/workspace arrangement using Fluent components; preserve navigation
+6. Port original server context menus and deletion together with its cloud cleanup; preserve all related data and consent flows.
+7. Build the original rail/sidebar/workspace arrangement using Fluent components; preserve navigation
    order and density instead of adding placeholder buttons for unported features.
-5. Validate actual server communication and the implemented socket-disconnect handling on Windows/Linux/macOS.
-6. Continue every candidate in the parity checklist, including tools, dialogs and embedded web features.
-7. The remaining team-chat work depends on features that are not ported yet, so each lands with its feature: the
+8. Validate actual server communication and the implemented socket-disconnect handling on Windows/Linux/macOS.
+9. The remaining team-chat work depends on features that are not ported yet, so each lands with its feature: the
    chat-master (team feature master) gate needs the cloud presence election, the logic-engine chat rules need the
-   logic engine, the AI command needs the AI companion, and the timer audio/snooze and per-timer audio switches,
-   the chinook-at-a-rig timer learning and the heli crash sites belong to the timer and event work.
+   logic engine, and the timer audio/snooze and per-timer audio switches, the chinook-at-a-rig timer learning
+   and the heli crash sites belong to the timer and event work.
 
 ## Local verification
 
