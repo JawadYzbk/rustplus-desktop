@@ -150,8 +150,21 @@ public sealed partial class App : Application
                 miniMapPosition: new RustPlusDesk.Infrastructure.MiniMap.LegacyMiniMapPositionStore(
                     RustPlusDesk.Infrastructure.MiniMap.LegacyMiniMapPositionStore.DefaultPath));
             desktop.Exit += (_, _) => { accountHttp.Dispose(); cloudHttp.Dispose(); };
+
+            // Reference the old app's splash: the app's own artwork while it starts up. It is shown before the
+            // main window and closed once the window is there, so a slow start reads as work rather than a hang.
+            var splash = new Features.Shell.SplashWindow();
+            splash.SetStatus("Starting…");
+            splash.Show();
+
             window.DataContext = servers;
-            window.Opened += async (_, _) => await servers.InitializeCommand.ExecuteAsync(null);
+            window.Opened += async (_, _) =>
+            {
+                splash.SetStatus("Starting the listener…");
+                await servers.InitializeCommand.ExecuteAsync(null);
+                splash.SetStatus("Ready");
+                splash.Close();
+            };
             bool closing = false, shutdownComplete = false, quitting = false;
             window.Closing += async (_, e) =>
             {

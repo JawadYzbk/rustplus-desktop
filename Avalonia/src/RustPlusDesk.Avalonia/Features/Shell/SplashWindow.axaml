@@ -1,0 +1,48 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="RustPlusDesk.Avalonia.Features.Shell.SplashWindow"
+        Title="Rust+ Desktop" Width="688" Height="408" CanResize="False" ShowInTaskbar="True"
+        WindowDecorations="None" Background="Transparent" WindowStartupLocation="CenterScreen">
+  <!--  Reference the old app's splash: the artwork, a gradient that keeps the text readable over it, the app's name
+        with the accent stripe, the line that says what the app is doing, and the version.  -->
+  <Border Margin="24">
+    <Grid ClipToBounds="True">
+      <Image x:Name="Artwork" Stretch="UniformToFill" />
+
+      <Border>
+        <Border.Background>
+          <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Color="#33000000" Offset="0" />
+            <GradientStop Color="#B30D0D0D" Offset="0.55" />
+            <GradientStop Color="#F00A0A0A" Offset="1" />
+          </LinearGradientBrush>
+        </Border.Background>
+      </Border>
+
+      <Grid VerticalAlignment="Bottom" Margin="40,0,40,34">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="10" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="18" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
+          <Border Width="4" Height="34" CornerRadius="2" Background="#CE4022" VerticalAlignment="Center" Margin="0,0,14,0" />
+          <TextBlock Text="Rust+ Desktop" FontSize="30" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+          <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="#CE4022" VerticalAlignment="Center" />
+          <TextBlock x:Name="StatusText" Text="Starting…" FontSize="13" Foreground="#E6E6E6" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <ProgressBar Grid.Row="4" Height="3" IsIndeterminate="True" Foreground="#CE4022" Background="#33FFFFFF" />
+
+        <TextBlock x:Name="VersionText" Grid.Row="4" HorizontalAlignment="Right" VerticalAlignment="Center"
+                   FontSize="12" Foreground="#B3FFFFFF" />
+      </Grid>
+    </Grid>
+  </Border>
+</Window>

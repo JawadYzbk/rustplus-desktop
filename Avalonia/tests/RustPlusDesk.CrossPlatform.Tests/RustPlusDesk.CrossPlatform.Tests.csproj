@@ -10,4 +10,9 @@
     <PackageReference Include="Avalonia.Headless" Version="$(AvaloniaVersion)" />
     <ProjectReference Include="../../src/RustPlusDesk.Avalonia/RustPlusDesk.Avalonia.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!--  The splash artwork is a loose file in the app, so the tests that draw the splash need it beside them too.  -->
+    <None Include="../../src/RustPlusDesk.Avalonia/Assets/splash-screen.png" Link="Assets/splash-screen.png"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
