@@ -125,6 +125,9 @@ public sealed class DockViewModel : ObservableObject
             if (!BelongsHere(tile)) continue;
             if (!DockTiles.IsSupported(tile.Kind)) continue;
 
+            // A tile whose data the connection cannot feed is left off the dock rather than shown as an empty box.
+            if (!DockTiles.CanServe(tile, Host)) continue;
+
             Tiles.Add(new DockTileView(this, tile, DockStyle.For(layout, tile)));
         }
 
@@ -469,13 +472,38 @@ public sealed class DockViewModel : ObservableObject
     /// Collapsed: the button that did it stays, and the map stays unless that button was set to take it too. Everything
     /// else is hidden where it stands - no cell is touched, so expanding puts the arrangement back rather than re-flowing
     /// it.
+    ///
+    /// A device tile belongs to the server it was added on: an entity id means nothing on another one. And nothing on the
+    /// map to clear, same rule: the cells go back until there is, and unlocking brings the tile out so it can be placed.
     /// </summary>
     public bool BelongsHere(CommandDockTile tile)
     {
-        if (!IsCollapsed || tile.Kind == CommandDockTileKinds.Collapse) return true;
-        if (tile.Kind != CommandDockTileKinds.Map) return false;
-        return !CollapseTakesMap;
+        if (IsCollapsed)
+        {
+            // The button that did it stays, and the map stays unless that button was set to take it too. Everything else
+            // is hidden where it stands - no cell is touched, so expanding puts the arrangement back rather than
+            // re-flowing it.
+            if (tile.Kind == CommandDockTileKinds.Collapse) return true;
+            if (tile.Kind != CommandDockTileKinds.Map) return false;
+            if (CollapseTakesMap) return false;
+        }
+
+        // Reference BelongsHere: a device tile belongs to the server it was added on.
+        if (tile.ServerKey is { } key && Host is IDockHostContext context
+            && !string.Equals(key, context.DockServerKey, StringComparison.OrdinalIgnoreCase)) return false;
+
+        // Reference BelongsHere: nothing on the map to clear, same rule: the cells go back until there is, and
+        // unlocking brings the tile out so it can be placed.
+        if (tile.Kind == CommandDockTileKinds.DeathWipe && !tile.DeathWipeAlwaysVisible
+            && DeathMarkerCount == 0 && IsLocked) return false;
+
+        return true;
     }
+
+    /// <summary>
+    /// Reference MiniMapWindow.CommandDock's DeathMarkerCount: how many death markers the map is showing.
+    /// </summary>
+    private int DeathMarkerCount => Host is IDockHostContext context ? context.DockDeathMarkerCount : 0;
 
     /// <summary>
     /// Reference MiniMapWindow.CommandDock.CellRect: a tile's pixel rectangle.

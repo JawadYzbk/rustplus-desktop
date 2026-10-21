@@ -50,11 +50,13 @@ public sealed partial class DockTileView : UserControl
         Shell.Background = style.Chrome(DockStyle.Theme("Surface", Color.FromRgb(0x16, 0x1B, 0x22)));
         Shell.BorderBrush = style.Chrome(DockStyle.Theme("CardBorder", Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF)));
 
-        content = DockTiles.Build(tile, model.Host, style, () => model.IsCollapsed);
+        content = DockTiles.Build(tile, model.Host, style, () => model.IsCollapsed,
+            opacity => Shell.Opacity = opacity,
+            brush => Shell.BorderBrush = brush);
         if (content is not null)
         {
             Body.Content = content.Content;
-            if (content.Tip is not null) ToolTip.SetTip(Shell, content.Tip);
+            ApplyTip();
         }
 
         PointerEntered += (_, _) => SetHovered(true);
@@ -76,6 +78,47 @@ public sealed partial class DockTileView : UserControl
         try
         {
             content?.Refresh();
+        }
+        catch (Exception)
+        {
+            // The reference catches per tile for the same reason.
+        }
+
+        ApplyTip();
+    }
+
+    /// <summary>
+    /// Reference the tile's own tip: the text the pointer rests on.
+    ///
+    /// It is read again every second, because a tile's tip says why it cannot act and that changes while the dock is
+    /// open.
+    /// </summary>
+    private void ApplyTip()
+    {
+        string? tip = null;
+        try
+        {
+            tip = content?.Tip?.Invoke();
+        }
+        catch (Exception)
+        {
+            // A tip that cannot be read is no tip; the tile itself still works.
+        }
+
+        ToolTip.SetTip(Shell, tip);
+    }
+
+    /// <summary>
+    /// Reference the tile's own click: what the tile does when it is pressed.
+    ///
+    /// A switch is turned on or off, a rule is run, the death markers are cleared and the map opens; a tile that has
+    /// nothing to do says so instead.
+    /// </summary>
+    public void Click()
+    {
+        try
+        {
+            content?.Clicked?.Invoke();
         }
         catch (Exception)
         {

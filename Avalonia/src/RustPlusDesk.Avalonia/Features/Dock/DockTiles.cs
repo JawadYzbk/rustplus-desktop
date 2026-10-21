@@ -1,3 +1,4 @@
+using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
@@ -5,6 +6,8 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
+using RustPlusDesk.Avalonia.Shared.Controls;
 using RustPlusDesk.Avalonia.Shared.Icons;
 using RustPlusDesk.Core.Dock;
 using RustPlusDesk.Core.Localization;
@@ -165,11 +168,12 @@ public sealed class DockStyle
 public sealed class DockTileContent
 {
     /// <summary>Reference the tile's element: what the tile draws itself with.</summary>
-    public DockTileContent(Control content, Action refresh, string? tip = null)
+    public DockTileContent(Control content, Action refresh, Func<string?>? tip = null, Action? clicked = null)
     {
         Content = content;
         Refresh = refresh;
         Tip = tip;
+        Clicked = clicked;
     }
 
     /// <summary>The element the tile draws itself with.</summary>
@@ -178,8 +182,16 @@ public sealed class DockTileContent
     /// <summary>What the tile re-reads once a second.</summary>
     public Action Refresh { get; }
 
-    /// <summary>The text the tile shows when the pointer rests on it, if it has any.</summary>
-    public string? Tip { get; }
+    /// <summary>
+    /// The text the tile shows when the pointer rests on it, if it has any.
+    ///
+    /// It is read afresh every time, because a tile's own tip says why it cannot act - a rule that is switched off, a
+    /// device that is not paired - and that changes while the dock is open.
+    /// </summary>
+    public Func<string?>? Tip { get; }
+
+    /// <summary>Reference the tile's own click: what the tile does when it is pressed.</summary>
+    public Action? Clicked { get; }
 }
 
 /// <summary>
@@ -212,7 +224,26 @@ public static class DockTiles
         CommandDockTileKinds.ClanChat => true,
         CommandDockTileKinds.Collapse => true,
         CommandDockTileKinds.Map => true,
+        CommandDockTileKinds.Device => true,
+        CommandDockTileKinds.Event => true,
+        CommandDockTileKinds.Rule => true,
+        CommandDockTileKinds.Session => true,
+        CommandDockTileKinds.DeathWipe => true,
         _ => false,
+    };
+
+    /// <summary>
+    /// Reference MiniMapWindow.CommandDock.BuildTile: whether the connection can feed the tile at all.
+    ///
+    /// A tile whose data the app does not have is not drawn: an empty box on the dock is worse than no tile, and a
+    /// button that cannot act is a button in the way.
+    /// </summary>
+    public static bool CanServe(CommandDockTile tile, IDockHost host) => tile.Kind switch
+    {
+        CommandDockTileKinds.Device => host is IDockHostDevices,
+        CommandDockTileKinds.Event or CommandDockTileKinds.Rule or CommandDockTileKinds.Session
+            or CommandDockTileKinds.DeathWipe or CommandDockTileKinds.Map => host is IDockHostContext,
+        _ => true,
     };
 
     /// <summary>
@@ -220,7 +251,14 @@ public static class DockTiles
     ///
     /// A kind from a newer build is skipped rather than shown as an empty box, and the tile keeps its place on the grid.
     /// </summary>
-    public static DockTileContent? Build(CommandDockTile tile, IDockHost host, DockStyle style, Func<bool> isCollapsed) =>
+    /// <param name="tile">The tile to draw.</param>
+    /// <param name="host">The state the tile reads.</param>
+    /// <param name="style">The tile's own appearance.</param>
+    /// <param name="isCollapsed">Whether the dock is collapsed to its collapse tile.</param>
+    /// <param name="setOpacity">The tile's own dimming: the whole tile, background and all.</param>
+    /// <param name="setBorder">The tile's own border colour, which a state may change.</param>
+    public static DockTileContent? Build(CommandDockTile tile, IDockHost host, DockStyle style, Func<bool> isCollapsed,
+        Action<double>? setOpacity = null, Action<IBrush?>? setBorder = null) =>
         tile.Kind switch
         {
             CommandDockTileKinds.Clock => tile.ClockStyle == ClockStyleMinimal
@@ -232,7 +270,12 @@ public static class DockTiles
             CommandDockTileKinds.TeamChat => BuildChat(tile, host, style, clan: false),
             CommandDockTileKinds.ClanChat => BuildChat(tile, host, style, clan: true),
             CommandDockTileKinds.Collapse => BuildCollapse(tile, style, isCollapsed),
-            CommandDockTileKinds.Map => BuildMap(tile, style),
+            CommandDockTileKinds.Map => BuildMap(tile, host, style),
+            CommandDockTileKinds.Device => BuildDevice(tile, host, style, setOpacity, setBorder),
+            CommandDockTileKinds.Event => BuildEvent(tile, host, style, setOpacity),
+            CommandDockTileKinds.Rule => BuildRule(tile, host, style, setOpacity),
+            CommandDockTileKinds.Session => BuildSession(tile, host, style),
+            CommandDockTileKinds.DeathWipe => BuildDeathWipe(tile, host, style, setOpacity),
             _ => null,
         };
 
@@ -763,7 +806,7 @@ public static class DockTiles
         Update();
 
         return new DockTileContent(glyph, Update,
-            isCollapsed() ? Loc.Text("CommandDockCollapseExpand", "Show the dock again")
+            () => isCollapsed() ? Loc.Text("CommandDockCollapseExpand", "Show the dock again")
                 : Loc.Text("CommandDockCollapseHide", "Hide every other tile"));
     }
 
@@ -772,30 +815,558 @@ public static class DockTiles
     /// <summary>
     /// Reference MiniMapWindow.CommandDock's map tile: the map itself, as one tile among the widgets.
     ///
-    /// The mini-map's own view lands with the map slice; until then the tile holds its place on the grid and its cells,
-    /// which is what the arrangement is measured against.
+    /// The reference's map is a window of its own, so the port's map tile is the port's own design: the same map the
+    /// workspace draws, at the tile's own size, and a click on it opens the map workspace where the map is read at
+    /// full size.
     /// </summary>
-    private static DockTileContent BuildMap(CommandDockTile tile, DockStyle style)
+    private static DockTileContent? BuildMap(CommandDockTile tile, IDockHost host, DockStyle style)
     {
-        var box = new Border
+        if (host is not IDockHostContext context) return null;
+
+        var view = new DockMapTile
         {
-            CornerRadius = new CornerRadius(12),
-            Background = DockStyle.Theme("MapBackground", Color.FromRgb(0x0B, 0x39, 0x48)),
-            BorderBrush = style.Chrome(DockStyle.Theme("CardBorder", Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF))),
-            BorderThickness = new Thickness(1),
+            Map = context.Map,
+            DeathPins = context.DeathPins,
+            ShowDeathPins = context.ShowDeathPins,
         };
 
-        var label = new TextBlock
+        void Refresh()
         {
-            Text = Loc.Text("UiMap", "Map"),
+            // The map and its pins are replaced as a whole, so they are read again and only written when they differ.
+            if (!ReferenceEquals(view.Map, context.Map)) view.Map = context.Map;
+            if (!ReferenceEquals(view.DeathPins, context.DeathPins)) view.DeathPins = context.DeathPins;
+            if (view.ShowDeathPins != context.ShowDeathPins) view.ShowDeathPins = context.ShowDeathPins;
+        }
+
+        return new DockTileContent(view, Refresh, clicked: () => context.OpenMap());
+    }
+
+    // ── Device ──────────────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Reference MiniMapWindow.CommandDock.BuildDeviceTile: the device's glyph, its name and its state.
+    ///
+    /// The click turns a smart switch on or off through the same guarded path the device list uses, so a tile cannot
+    /// drive a switch the panel would refuse. A device that is not paired any more is dimmed and says so.
+    /// </summary>
+    private static DockTileContent? BuildDevice(CommandDockTile tile, IDockHost host, DockStyle style,
+        Action<double>? setOpacity, Action<IBrush?>? setBorder)
+    {
+        if (host is not IDockHostDevices devices) return null;
+
+        var stack = new StackPanel
+        {
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+
+        // The picture from the device list, when the user gave the device one. It is what the device is recognised by
+        // everywhere else in the app, and a glyph that says "some switch" carries none of that.
+        var picture = new ItemIcon
+        {
+            Width = style.Icon(24),
+            Height = style.Icon(24),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 3),
+        };
+
+        var glyph = new Icon
+        {
+            Symbol = FluentSymbol.PlugConnected24,
+            FontSize = style.Icon(17),
+            Foreground = style.TextMain,
+            Margin = new Thickness(0, 0, 0, 3),
+        };
+
+        var name = SubtleText(style);
+        var state = new TextBlock
+        {
+            FontSize = style.Size(11),
+            FontWeight = FontWeight.SemiBold,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        };
+
+        stack.Children.Add(picture);
+        stack.Children.Add(glyph);
+        stack.Children.Add(name);
+        stack.Children.Add(state);
+
+        style.Shadow(state);
+
+        var card = style.Chrome(DockStyle.Theme("CardBorder", Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF)));
+
+        // Alarms pulse instead of just turning red: a raid alarm that fired while you were looking elsewhere has to be
+        // findable at a glance on a busy dock. An alarm stays on until someone resets it in game, so pulsing while it is
+        // on would pulse for hours: ten seconds from the moment it went off is long enough to catch the eye and short
+        // enough to stop being noise.
+        var pulse = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(550) };
+        bool pulsing = false;
+        bool bright = true;
+        bool wasFired = false;
+        DateTime firedAt = DateTime.MinValue;
+
+        void StopPulse()
+        {
+            if (!pulsing) return;
+            pulsing = false;
+            pulse.Stop();
+            setOpacity?.Invoke(1.0);
+        }
+
+        void StartPulse()
+        {
+            if (pulsing) return;
+            pulsing = true;
+            bright = true;
+            pulse.Start();
+        }
+
+        // The pulse ends by itself: a tile that is taken off the dock stops being refreshed, and a timer that waited for
+        // that would keep running for ever.
+        void OnPulseTick(object? sender, EventArgs e)
+        {
+            if (DateTime.UtcNow - firedAt >= PulseFor) { StopPulse(); return; }
+            bright = !bright;
+            setOpacity?.Invoke(bright ? 1.0 : 0.35);
+        }
+
+        pulse.Tick += OnPulseTick;
+
+        void Refresh()
+        {
+            var device = devices.DockDevices.FirstOrDefault(candidate => candidate.EntityId == tile.EntityId);
+
+            if (device is null)
+            {
+                StopPulse();
+                picture.IsVisible = false;
+                glyph.Symbol = FluentSymbol.ErrorCircle24;
+                glyph.Foreground = style.TextSub;
+                glyph.IsVisible = true;
+                name.Text = $"#{tile.EntityId}";
+                name.IsVisible = true;
+                state.Text = Loc.Text("CommandDockDeviceMissing", "not paired");
+                state.Foreground = style.TextSub;
+                setOpacity?.Invoke(0.5);
+                setBorder?.Invoke(card);
+                return;
+            }
+
+            setOpacity?.Invoke(1.0);
+            name.Text = device.DisplayName;
+            name.IsVisible = !tile.ShowDeviceIcon;
+
+            // Icon mode is the default: the picture plus one state word. Turning it off puts the name back, which is
+            // what a dock full of identical-looking switches needs.
+            picture.ItemId = device.IconId;
+            picture.ShortName = device.IconShortName;
+            picture.DefaultShortName = device.DefaultIconShortName;
+            picture.IsVisible = tile.ShowDeviceIcon;
+            glyph.IsVisible = !tile.ShowDeviceIcon;
+
+            if (device.IsSwitch)
+            {
+                bool on = device.IsOn == true;
+                glyph.Symbol = FluentSymbol.Power24;
+                // Green means on and is left alone. Off follows the chosen text colour - it used to be the theme's grey,
+                // which is the one state that stops being readable the moment the tile goes transparent.
+                glyph.Foreground = on ? OnBrush : style.TextSub;
+                state.Text = on
+                    ? Loc.Text("CommandDockSwitchOn", "ON")
+                    : Loc.Text("CommandDockSwitchOff", "OFF");
+                state.Foreground = glyph.Foreground;
+                setBorder?.Invoke(on ? style.Chrome(OnColour) : card);
+                StopPulse();
+            }
+            else if (device.IsAlarm)
+            {
+                bool fired = device.IsOn == true;
+                glyph.Symbol = FluentSymbol.Alert24;
+                // Red means it went off; armed is an ordinary resting state and follows the tile's text colour.
+                glyph.Foreground = fired ? AlarmBrush : style.TextSub;
+                state.Text = fired
+                    ? Loc.Text("CommandDockAlarmActive", "ACTIVE")
+                    : Loc.Text("CommandDockAlarmInactive", "INACTIVE");
+                state.Foreground = glyph.Foreground;
+                setBorder?.Invoke(fired ? style.Chrome(AlarmColour) : card);
+
+                if (fired && !wasFired) firedAt = DateTime.UtcNow;
+                wasFired = fired;
+
+                if (fired && DateTime.UtcNow - firedAt < PulseFor) StartPulse();
+                else StopPulse();
+            }
+            else
+            {
+                // Storage monitor, including a tool cupboard: upkeep is the number that matters, and only a TC ever
+                // reports one.
+                glyph.Symbol = FluentSymbol.Database24;
+                glyph.Foreground = style.TextSub;
+                int seconds = device.UpkeepSeconds ?? 0;
+                if (seconds > 0)
+                {
+                    state.Text = FormatUpkeep(seconds);
+                    state.Foreground = seconds < 3600 ? AlarmBrush : style.TextMain;
+                }
+                else
+                {
+                    state.Text = "—";
+                    state.Foreground = style.TextSub;
+                }
+                setBorder?.Invoke(card);
+                StopPulse();
+            }
+        }
+
+        void Click()
+        {
+            var device = devices.DockDevices.FirstOrDefault(candidate => candidate.EntityId == tile.EntityId);
+            if (device is null || !device.IsSwitch) return;
+            _ = devices.SetDockDeviceAsync(device.EntityId, device.IsOn != true, CancellationToken.None);
+        }
+
+        return new DockTileContent(stack, Refresh, () => deviceTip(tile, devices), Click);
+    }
+
+    /// <summary>Reference the device tile's own tip: the device's name, or that it is not paired any more.</summary>
+    private static string deviceTip(CommandDockTile tile, IDockHostDevices devices)
+    {
+        var device = devices.DockDevices.FirstOrDefault(candidate => candidate.EntityId == tile.EntityId);
+        return device is null
+            ? Loc.Text("CommandDockDeviceMissing", "not paired")
+            : device.DisplayName;
+    }
+
+    /// <summary>Reference the reference's FormatUpkeep: the protection left on a tool cupboard.</summary>
+    private static string FormatUpkeep(int seconds)
+    {
+        var span = TimeSpan.FromSeconds(seconds);
+        if (span.TotalDays >= 1) return $"{(int)span.TotalDays}d {span.Hours}h";
+        if (span.TotalHours >= 1) return $"{(int)span.TotalHours}h {span.Minutes}m";
+        return $"{span.Minutes}m";
+    }
+
+    // ── Event ────────────────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Reference MiniMapWindow.CommandDock.BuildEventTile: the oil rig alarm and when it went off.
+    ///
+    /// An alarm under fifteen minutes old is live; after that it is dimmed, because the tile is there to catch an alarm
+    /// that just went off rather than to be a history of them.
+    /// </summary>
+    private static DockTileContent? BuildEvent(CommandDockTile tile, IDockHost host, DockStyle style, Action<double>? setOpacity)
+    {
+        if (host is not IDockHostContext context) return null;
+
+        // The only event the port's dock carries is the oil rig, as in the reference.
+        if (!string.Equals(tile.EventKey, "oilrig", StringComparison.OrdinalIgnoreCase)) return null;
+
+        var stack = new StackPanel
+        {
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+
+        var glyph = new Icon
+        {
+            Symbol = FluentSymbol.Box24,
+            FontSize = style.Icon(26),
+            Foreground = style.TextMain,
+        };
+
+        var timestamp = new TextBlock
+        {
             FontSize = style.Size(12),
+            FontWeight = FontWeight.SemiBold,
+            Foreground = style.TextMain,
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+
+        var label = SubtleText(style);
+        label.Text = "Oil Rig Smart Alarm";
+        label.IsVisible = !tile.EventHideLabel;
+
+        stack.Children.Add(glyph);
+        stack.Children.Add(timestamp);
+        stack.Children.Add(label);
+
+        style.Shadow(timestamp);
+
+        void Refresh()
+        {
+            var latest = context.LatestOilRigAlarm;
+            timestamp.Text = latest is null
+                ? "—"
+                : latest.AtUtc.ToLocalTime().ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+
+            bool live = false;
+            if (latest is not null)
+            {
+                var elapsed = DateTime.UtcNow - latest.AtUtc;
+                live = elapsed.TotalSeconds >= 0 && elapsed.TotalMinutes < 15;
+            }
+
+            setOpacity?.Invoke(live ? 1.0 : 0.5);
+        }
+
+        return new DockTileContent(stack, Refresh, () => context.LatestOilRigAlarm is { } alarm
+            ? $"Smart Alarm received: {alarm.AtUtc.ToLocalTime():g}\n{alarm.Label}"
+            : "Pair a Smart Alarm with an RF receiver and name its notification Oil Rig.");
+    }
+
+    // ── Rule ─────────────────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Reference MiniMapWindow.CommandDock.BuildRuleTile: the rule's name, and a click that runs it.
+    ///
+    /// A rule that cannot run says why instead of doing nothing: a greyed tile that does not say why is a bug report
+    /// waiting to happen.
+    /// </summary>
+    private static DockTileContent? BuildRule(CommandDockTile tile, IDockHost host, DockStyle style, Action<double>? setOpacity)
+    {
+        if (host is not IDockHostContext context) return null;
+
+        var stack = new StackPanel
+        {
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+
+        var glyph = new Icon
+        {
+            Symbol = FluentSymbol.Branch24,
+            FontSize = style.Icon(17),
+            Foreground = DockStyle.Theme("Accent", Color.FromRgb(0x3F, 0xD7, 0xFF)),
+            Margin = new Thickness(0, 0, 0, 3),
+        };
+
+        var name = SubtleText(style);
+
+        stack.Children.Add(glyph);
+        stack.Children.Add(name);
+
+        void Refresh()
+        {
+            var rule = context.DockRules.FirstOrDefault(candidate => candidate.Id == tile.RuleId);
+            name.Text = rule?.Name ?? tile.RuleId ?? "";
+            setOpacity?.Invoke(CanRunRule(context, tile).Runnable ? 1.0 : 0.4);
+        }
+
+        void Click()
+        {
+            if (!CanRunRule(context, tile).Runnable) return;
+            if (tile.RuleId is { } ruleId) context.RunDockRule(ruleId);
+        }
+
+        return new DockTileContent(stack, Refresh, () => RuleTip(context, tile), Click);
+    }
+
+    /// <summary>
+    /// Reference MiniMapWindow.CommandDock.CanRunRule: whether the tile can start its rule, and if not, the reason in
+    /// the user's language.
+    /// </summary>
+    private static (bool Runnable, string? Why) CanRunRule(IDockHostContext context, CommandDockTile tile)
+    {
+        var rule = context.DockRules.FirstOrDefault(candidate => candidate.Id == tile.RuleId);
+
+        if (rule is null)
+        {
+            return (false, Loc.Text("CommandDockRuleMissing", "This rule no longer exists."));
+        }
+
+        if (!string.Equals(rule.TriggerType, DockRuleTriggers.CommandDock, StringComparison.Ordinal))
+        {
+            return (false, Loc.Text("CommandDockRuleWrongTrigger",
+                "This rule no longer uses the Widget Overlay trigger."));
+        }
+
+        if (!context.IsDockLogicEngineActive || !rule.IsEnabled)
+        {
+            return (false, Loc.Text("CommandDockRuleInactive", "Activate Logic Engine Mechanics or Rule"));
+        }
+
+        return (true, null);
+    }
+
+    /// <summary>Reference the rule tile's own tip: why it cannot run, or the rule's name.</summary>
+    private static string RuleTip(IDockHostContext context, CommandDockTile tile)
+    {
+        var (runnable, why) = CanRunRule(context, tile);
+        if (runnable) return context.DockRules.FirstOrDefault(candidate => candidate.Id == tile.RuleId)?.Name ?? "";
+        return why ?? "";
+    }
+
+    // ── Session ──────────────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Reference MiniMapWindow.CommandDock.Session.BuildSessionTile: what this sitting has amounted to on this server.
+    ///
+    /// Five figures in a row, because they only mean anything next to one another - an hour online reads differently
+    /// with forty minutes of it idle.
+    /// </summary>
+    private static DockTileContent? BuildSession(CommandDockTile tile, IDockHost host, DockStyle style)
+    {
+        if (host is not IDockHostContext context) return null;
+
+        var grid = new Grid
+        {
+            VerticalAlignment = VerticalAlignment.Center,
+            ColumnDefinitions = new ColumnDefinitions("*,*,*,*,*"),
+        };
+
+        var online = AddSessionCell(grid, 0, style, FluentSymbol.Clock24,
+            Loc.Text("CommandDockSessionOnline", "Online"));
+        var distance = AddSessionCell(grid, 1, style, FluentSymbol.Map24,
+            Loc.Text("CommandDockSessionDistance", "Walked"));
+        var afk = AddSessionCell(grid, 2, style, FluentSymbol.WeatherMoon24,
+            Loc.Text("CommandDockSessionAfk", "Idle"));
+        var deaths = AddSessionCell(grid, 3, style, FluentSymbol.HeartBroken24,
+            Loc.Text("CommandDockSessionDeaths", "Deaths"));
+        var teamDeaths = AddSessionCell(grid, 4, style, FluentSymbol.People24,
+            Loc.Text("CommandDockSessionTeamDeaths", "Team"));
+
+        void Refresh()
+        {
+            var session = context.DockSession;
+            if (session is null)
+            {
+                online.Text = distance.Text = afk.Text = deaths.Text = teamDeaths.Text = "—";
+                return;
+            }
+
+            online.Text = SessionTracker.FormatSpan(TimeSpan.FromSeconds(session.OnlineSeconds));
+            distance.Text = SessionTracker.FormatDistance(session.DistanceMetres);
+            afk.Text = SessionTracker.FormatSpan(TimeSpan.FromSeconds(session.AfkSeconds));
+            deaths.Text = session.Deaths.ToString(CultureInfo.InvariantCulture);
+            teamDeaths.Text = session.TeamDeaths.ToString(CultureInfo.InvariantCulture);
+        }
+
+        return new DockTileContent(grid, Refresh, () => context.DockSession is { } session
+            ? string.Format(Loc.Text("CommandDockSessionSince", "Session since {0}"),
+                session.StartedUtc.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture))
+            : Loc.Text("CommandDockSessionWaiting", "Counting starts once you are connected to a server."));
+    }
+
+    /// <summary>Reference the reference's AddSessionCell: one figure with its glyph and caption.</summary>
+    private static TextBlock AddSessionCell(Grid grid, int column, DockStyle style, FluentSymbol glyph, string caption)
+    {
+        var stack = new StackPanel
+        {
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(2, 0, 2, 0),
+        };
+
+        stack.Children.Add(new Icon
+        {
+            Symbol = glyph,
+            FontSize = style.Size(11),
             Foreground = style.TextSub,
+            HorizontalAlignment = HorizontalAlignment.Center,
+        });
+
+        var value = new TextBlock
+        {
+            Text = "—",
+            FontSize = style.Size(13),
+            FontWeight = FontWeight.SemiBold,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Foreground = style.TextMain,
+            TextAlignment = TextAlignment.Center,
+        };
+        style.Shadow(value);
+
+        // The figures are shrunk rather than cut in half: a three-digit hour count or a wide font would otherwise be
+        // clipped by the column beside it. Down only, so a short figure is never blown up to fill the width.
+        stack.Children.Add(new Viewbox
+        {
+            Child = value,
+            Stretch = Stretch.Uniform,
+            StretchDirection = StretchDirection.DownOnly,
+            HorizontalAlignment = HorizontalAlignment.Center,
+        });
+
+        stack.Children.Add(new TextBlock
+        {
+            Text = caption,
+            FontSize = style.Size(9),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            Foreground = style.TextSub,
+        });
+
+        Grid.SetColumn(stack, column);
+        grid.Children.Add(stack);
+        return value;
+    }
+
+    // ── Death wipe ───────────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Reference MiniMapWindow.CommandDock.DeathWipe.BuildDeathWipeTile: one cell that clears the map's death markers,
+    /// and says how many there are.
+    ///
+    /// A wipe's worth of pins builds up on the map, and the count is the other half: the reason to press this is that the
+    /// map has become unreadable, and a number on the tile is what tells you that before you go looking.
+    /// </summary>
+    private static DockTileContent? BuildDeathWipe(CommandDockTile tile, IDockHost host, DockStyle style,
+        Action<double>? setOpacity)
+    {
+        if (host is not IDockHostContext context) return null;
+
+        var grid = new Grid();
+
+        var icon = new Icon
+        {
+            Symbol = FluentSymbol.Eraser24,
+            FontSize = style.Size(24),
+            Foreground = style.TextMain,
+            Opacity = 0.9,
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
         };
 
-        box.Child = label;
-        return new DockTileContent(box, () => { });
+        // Bottom right, out of the icon's way. Mirrors the map rather than the stored list: what the tile counts is what
+        // the user can see.
+        var count = new TextBlock
+        {
+            FontSize = style.Size(11),
+            FontWeight = FontWeight.SemiBold,
+            Foreground = style.TextMain,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Bottom,
+            Margin = new Thickness(0, 0, 2, 0),
+        };
+        style.Shadow(count);
+
+        grid.Children.Add(icon);
+        grid.Children.Add(count);
+
+        void Refresh()
+        {
+            int n = context.DockDeathMarkerCount;
+            count.Text = n > 0 ? n.ToString(CultureInfo.InvariantCulture) : "";
+            // Only reachable with no markers while the dock is unlocked or the tile was set to stay - otherwise it has
+            // given its cells back. Dimmed either way, so the state is readable while arranging.
+            icon.Opacity = n > 0 ? 0.9 : 0.35;
+            setOpacity?.Invoke(n > 0 ? 1.0 : 0.6);
+        }
+
+        void Click() => _ = context.WipeDockDeathMarkersAsync(tile.DeathWipeKeepLatest, CancellationToken.None);
+
+        return new DockTileContent(grid, Refresh, () => DeathWipeTooltip(tile, context.DockDeathMarkerCount), Click);
+    }
+
+    /// <summary>Reference the reference's DeathWipeTooltip: what the press will do, and how many markers there are.</summary>
+    private static string DeathWipeTooltip(CommandDockTile tile, int count)
+    {
+        if (count == 0) return Loc.Text("CommandDockDeathWipeEmpty", "No death markers on the map");
+
+        string what = tile.DeathWipeKeepLatest
+            ? Loc.Text("CommandDockDeathWipeKeepLatest", "Wipe all but the last one")
+            : Loc.Text("CommandDockDeathWipeAll", "Wipe all death markers");
+
+        return $"{what}  ({count})";
     }
 
     // ── Shared ───────────────────────────────────────────────────────────────────────────────────────
@@ -902,4 +1473,23 @@ public static class DockTiles
 
     /// <summary>Reference the clock tile's night colour.</summary>
     private static Color NightColour => Color.FromRgb(0x90, 0xCA, 0xF9);
+
+    /// <summary>Reference the device tile's green: a switch that is on.</summary>
+    private static readonly IBrush OnBrush = new SolidColorBrush(Color.FromRgb(0x4C, 0xC9, 0x6A));
+
+    /// <summary>Reference the device tile's red: an alarm that went off, and the upkeep that is nearly gone.</summary>
+    private static readonly IBrush AlarmBrush = new SolidColorBrush(Color.FromRgb(0xE5, 0x39, 0x35));
+
+    /// <summary>Reference the device tile's green, as a colour the border can be faded from.</summary>
+    private static Color OnColour => Color.FromRgb(0x4C, 0xC9, 0x6A);
+
+    /// <summary>Reference the device tile's red, as a colour the border can be faded from.</summary>
+    private static Color AlarmColour => Color.FromRgb(0xE5, 0x39, 0x35);
+
+    /// <summary>
+    /// Reference the reference's pulseFor: how long an alarm pulses after it went off.
+    ///
+    /// An alarm stays on until someone resets it in game, so pulsing while it is on would pulse for hours.
+    /// </summary>
+    private static readonly TimeSpan PulseFor = TimeSpan.FromSeconds(10);
 }

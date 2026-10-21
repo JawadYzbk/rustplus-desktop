@@ -50,7 +50,7 @@ public sealed class DockWindowTests
     }
 
     /// <summary>A host that answers with whatever the test wants the dock to show.</summary>
-    private sealed class FakeHost : IDockHost
+    private sealed class FakeHost : IDockHost, IDockHostContext
     {
         public string ServerTime { get; set; } = "15:20";
         public string? TimeUntilNextPhase { get; set; } = "12m until night";
@@ -64,6 +64,22 @@ public sealed class DockWindowTests
             var feed = clan ? Clan : Team;
             return feed.Count <= count ? feed.ToList() : feed.GetRange(feed.Count - count, count);
         }
+
+        // ---- the app's own state, which the dock's tiles read --------------------------------------
+
+        public IReadOnlyList<DockHostRule> DockRules { get; set; } = [];
+        public bool IsDockLogicEngineActive { get; set; }
+        public DockHostEvent? LatestOilRigAlarm { get; set; }
+        public string? DockServerKey { get; set; }
+        public SessionState? DockSession { get; set; }
+        public int DockDeathMarkerCount { get; set; }
+        public RustPlusDesk.Avalonia.Features.Map.MapViewModel? Map { get; set; }
+        public IReadOnlyList<RustPlusDesk.Core.Deaths.DeathPin>? DeathPins { get; set; }
+        public bool ShowDeathPins { get; set; }
+
+        public void RunDockRule(string ruleId) { }
+        public Task WipeDockDeathMarkersAsync(bool keepLatest, CancellationToken ct) => Task.CompletedTask;
+        public void OpenMap() { }
     }
 
     private static async Task<DockViewModel> ALoadedDockAsync(Fixture fixture, FakeHost host)

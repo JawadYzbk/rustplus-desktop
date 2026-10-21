@@ -237,8 +237,10 @@ public sealed partial class DockWindow : Window
             return;
         }
 
-        // A click. The collapse button puts the dock away and brings it back; the rest of the tiles have nothing to do.
+        // A click. The collapse button puts the dock away and brings it back; the rest of the tiles do what they say:
+        // a switch is turned on or off, a rule is run, the death markers are cleared and the map opens.
         if (view.Tile.Kind == CommandDockTileKinds.Collapse) model.ToggleCollapsed();
+        else view.Click();
     }
 
     /// <summary>Reference the overlay bar: the dock is dragged by the space around its tiles.</summary>

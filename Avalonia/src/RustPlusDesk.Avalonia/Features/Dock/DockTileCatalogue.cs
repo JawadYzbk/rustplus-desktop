@@ -27,21 +27,6 @@ public sealed record DockTileOption(
 public sealed record DockTileSection(string Title, FluentSymbol Icon, IReadOnlyList<DockTileOption> Options);
 
 /// <summary>
-/// The devices a picker can offer, when the connection has any.
-/// </summary>
-public interface IDockHostDevices
-{
-    /// <summary>The devices that are paired on this server, in the order the picker shows them.</summary>
-    IReadOnlyList<DockHostDevice> DockDevices { get; }
-}
-
-/// <summary>One device, as the picker sees it: what it is called and which entity it is.</summary>
-/// <param name="EntityId">The entity the tile controls.</param>
-/// <param name="DisplayName">The name the user gave it.</param>
-/// <param name="Kind">What the device is, for the icon and the line under the name.</param>
-public sealed record DockHostDevice(uint EntityId, string DisplayName, string Kind);
-
-/// <summary>
 /// Reference CommandDockTilePicker: the catalogue of everything that can be added to the dock.
 ///
 /// The whole catalogue is written down here, including the kinds this build cannot draw yet, and each entry is offered
@@ -158,6 +143,10 @@ public static class DockTileCatalogue
         // put on the dock, and an entity id means nothing on another server.
         if (host is IDockHostDevices { DockDevices.Count: > 0 } devices)
         {
+            // Stamped with the server it was added on: an entity id means nothing on another one, so the tile only
+            // appears where it can actually do something.
+            string? serverKey = (host as IDockHostContext)?.DockServerKey;
+
             foreach (var device in devices.DockDevices.OrderBy(device => device.DisplayName, StringComparer.CurrentCulture))
             {
                 uint entityId = device.EntityId;
@@ -170,7 +159,29 @@ public static class DockTileCatalogue
                 };
 
                 entries.Add(new DockTileOption("Devices", device.DisplayName, device.Kind, icon, CommandDockTileKinds.Device,
-                    () => new CommandDockTile { Kind = CommandDockTileKinds.Device, EntityId = entityId }));
+                    () => new CommandDockTile
+                    {
+                        Kind = CommandDockTileKinds.Device,
+                        EntityId = entityId,
+                        ServerKey = serverKey,
+                    }));
+            }
+        }
+
+        // Only the rules that asked to be launched this way. A rule triggered by an alarm has its own timing, and
+        // putting a button on it would fire it out of turn.
+        if (host is IDockHostContext { DockRules.Count: > 0 } context)
+        {
+            foreach (var rule in context.DockRules
+                         .Where(rule => string.Equals(rule.TriggerType, DockRuleTriggers.CommandDock, StringComparison.Ordinal))
+                         .OrderBy(rule => rule.Name, StringComparer.CurrentCulture))
+            {
+                string ruleId = rule.Id;
+                var hint = rule.IsEnabled
+                    ? Loc("CommandDockRuleReady", "Runs on click")
+                    : Loc("CommandDockRuleInactive", "Activate Logic Engine Mechanics or Rule");
+                entries.Add(new DockTileOption("Rules", rule.Name, hint, FluentSymbol.Branch24, CommandDockTileKinds.Rule,
+                    () => new CommandDockTile { Kind = CommandDockTileKinds.Rule, RuleId = ruleId }));
             }
         }
 

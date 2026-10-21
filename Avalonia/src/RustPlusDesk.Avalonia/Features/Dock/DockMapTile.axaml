@@ -1,0 +1,29 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:map="using:RustPlusDesk.Avalonia.Features.Map"
+             xmlns:local="using:RustPlusDesk.Avalonia.Features.Dock"
+             x:Class="RustPlusDesk.Avalonia.Features.Dock.DockMapTile"
+             x:DataType="local:DockMapTile">
+  <!--  Reference the mini-map's own map: the same picture the workspace draws, at the tile's own size.
+        The map is not a control here - a click on the tile opens the map workspace, which is where the
+        map is read and drawn at full size.  -->
+  <Border CornerRadius="10" Background="{DynamicResource MapBackground}" ClipToBounds="True">
+    <map:MapSurface x:Name="Surface"
+                    Image="{Binding Map.Image}" Geometry="{Binding Map.Geometry}" Monuments="{Binding Map.Monuments}"
+                    Markers="{Binding Map.DrawnMarkers}" DeathPositions="{Binding Map.DeathPositions}"
+                    Avatars="{Binding Map.Avatars}" PlayerHeadings="{Binding Map.PlayerHeadings}"
+                    AvatarVersion="{Binding Map.AvatarVersion}" ShowGrid="{Binding Map.ShowGrid}"
+                    ShowPlayers="{Binding Map.ShowPlayers}" ShowMonuments="{Binding Map.ShowMonuments}"
+                    ShowShops="{Binding Map.ShowShops}" ShowDeathHeatmap="{Binding Map.ShowDeathHeatmap}"
+                    ShowDeathPins="{Binding ShowDeathPins}" DeathPins="{Binding DeathPins}"
+                    ShowSteamAvatars="{Binding Map.ShowSteamAvatars}" ShowPlayerArrows="{Binding Map.ShowPlayerArrows}"
+                    MonumentScale="{Binding Map.MonumentScale}" MonumentOpacity="{Binding Map.MonumentOpacity}"
+                    GridOpacity="{Binding Map.GridOpacity}" MonumentNames="{Binding Map.ShowMonumentNames}"
+                    AbbreviateNames="{Binding Map.AbbreviateNames}" PlayerScale="{Binding Map.PlayerIconScale}"
+                    BitmapScalingMode="{Binding Map.BitmapScalingMode}" UseAliasedEdgeMode="{Binding Map.UseAliasedEdgeMode}"
+                    SceneCache="{Binding Map.UseCacheMode}" RenderScale="{Binding Map.RenderScale}"
+                    ResetRequest="{Binding Map.ViewResetRequest}" FocusRequest="{Binding Map.FocusRequest}"
+                    Overlay="{Binding Map.Drawings.Overlay}"
+                    IsHitTestVisible="False" AutomationProperties.Name="Server map" />
+  </Border>
+</UserControl>

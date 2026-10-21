@@ -1,7 +1,10 @@
+using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.VisualTree;
 using RustPlusDesk.Core.Dock;
+using RustPlusDesk.Core.Time;
+using RustPlusDesk.Infrastructure.Dock;
 
 namespace RustPlusDesk.Avalonia.Shell;
 
@@ -11,6 +14,15 @@ public sealed partial class MainWindow : Window
     private readonly ICommandDockStore? dockStore;
     private readonly RustPlusDesk.Core.Dock.ICommandDockPresetStore? presetStore;
     private Features.Dock.DockWindow? dockWindow;
+
+    /// <summary>
+    /// Reference SessionTracker.Instance: the tracker that counts what this sitting has amounted to.
+    ///
+    /// It is built here rather than in the dock, because the dock is a window that comes and goes and the session is
+    /// not: the numbers have to keep counting while the dock is closed.
+    /// </summary>
+    private readonly SessionTracker sessionTracker = new(new SystemClock(), new SystemSessionTimer(),
+        new LegacySessionTrackerStore(LegacySessionTrackerStore.DefaultPath));
 
     /// <summary>
     /// Reference the widget overlay: the shell owns the dock's window and the arrangement it is kept in.
@@ -43,8 +55,25 @@ public sealed partial class MainWindow : Window
                 model.AllAchievementsCompleted += ShowAchievementPrompt;
                 WireTutorials(model);
                 WirePeek(model);
+                WireSessionTracking(model);
             }
         };
+    }
+
+    /// <summary>
+    /// Reference MainWindow.StartSessionTracking: the session tracker is handed one reading a second.
+    ///
+    /// Everything it counts comes from the connection, so the tracker itself holds no game knowledge at all.
+    /// </summary>
+    private void WireSessionTracking(Features.Servers.ServersViewModel model)
+    {
+        sessionTracker.Source = () => new Features.Dock.DockSessionSource(
+                model.Connection,
+                () => model.SelectedServer is { } server ? $"{server.Host}-{server.Port}" : null,
+                () => ulong.TryParse(model.Account?.Account.SteamId, NumberStyles.None, CultureInfo.InvariantCulture, out ulong id) && id != 0
+                    ? id
+                    : null)
+            .Read();
     }
 
     /// <summary>
@@ -105,14 +134,17 @@ public sealed partial class MainWindow : Window
     {
         if (dockWindow is not null) { dockWindow.Activate(); return; }
         if (dockStore is null) return;
-        if (DataContext is not Features.Servers.ServersViewModel { Connection: { } connection }) return;
+        if (DataContext is not Features.Servers.ServersViewModel { Connection: { } connection } model) return;
 
-        var host = new Features.Dock.ConnectionDockHost(connection);
-        var model = new Features.Dock.DockViewModel(host, dockStore, presetStore);
+        // Reference MainWindow's ICommandDockHost: the dock reads the app's own state - the logic rules, the oil rig
+        // alarms, the session and the death markers - as well as the connection.
+        var host = new Features.Dock.ConnectionDockHost(connection,
+            new Features.Dock.ShellDockContext(model, sessionTracker));
+        var dock = new Features.Dock.DockViewModel(host, dockStore, presetStore);
         // The arrangement is read before the window is made, so it opens with its tiles rather than with an empty canvas.
-        await model.LoadAsync(CancellationToken.None);
+        await dock.LoadAsync(CancellationToken.None);
 
-        dockWindow = new Features.Dock.DockWindow { DataContext = model };
+        dockWindow = new Features.Dock.DockWindow { DataContext = dock };
         dockWindow.Closed += (_, _) => { dockWindow = null; host.Dispose(); };
         dockWindow.Show();
     }
@@ -342,6 +374,8 @@ public sealed partial class MainWindow : Window
     {
         miniMapWindow?.Close();
         miniMapWindow = null;
+        // Reference SessionTracker: the heartbeat stops with the app, or it would keep counting a session nobody is in.
+        sessionTracker.Dispose();
         base.OnClosed(e);
     }
 

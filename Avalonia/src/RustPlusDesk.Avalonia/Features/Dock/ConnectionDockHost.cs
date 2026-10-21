@@ -1,7 +1,10 @@
 using System.ComponentModel;
 using RustPlusDesk.Avalonia.Features.Chat;
 using RustPlusDesk.Avalonia.Features.Connections;
+using RustPlusDesk.Avalonia.Features.Map;
 using RustPlusDesk.Core.Chat;
+using RustPlusDesk.Core.Deaths;
+using RustPlusDesk.Core.Devices;
 using RustPlusDesk.Core.Dock;
 
 namespace RustPlusDesk.Avalonia.Features.Dock;
@@ -10,19 +13,22 @@ namespace RustPlusDesk.Avalonia.Features.Dock;
 /// Reference MainWindow's side of the Widget Overlay: it owns the data, the dock only draws.
 ///
 /// Every member here is a read of state that already exists in the connection - the dock is a second view of the server's
-/// status, not a second source of truth.
+/// status, not a second source of truth. The parts the connection does not hold - the logic rules, the oil rig alarms,
+/// the session and the death markers - are answered by the context the shell hands over.
 /// </summary>
-public sealed class ConnectionDockHost : IDockHost, IDisposable
+public sealed class ConnectionDockHost : IDockHost, IDockHostDevices, IDockHostContext, IDisposable
 {
     private readonly ConnectionViewModel connection;
+    private readonly IDockHostContext? context;
     private readonly ChatViewModel chat;
     private readonly List<DockChatLine> teamLines = [];
     private readonly List<DockChatLine> clanLines = [];
 
     /// <summary>Reference MainWindow's DockHost: the dock reads the connection's state once a second.</summary>
-    public ConnectionDockHost(ConnectionViewModel connection)
+    public ConnectionDockHost(ConnectionViewModel connection, IDockHostContext? context = null)
     {
         this.connection = connection;
+        this.context = context;
         chat = connection.Chat;
         chat.LiveMessage += OnLiveMessage;
         chat.PropertyChanged += OnChatChanged;
@@ -40,6 +46,93 @@ public sealed class ConnectionDockHost : IDockHost, IDisposable
 
     /// <summary>Reference DockPopulation's queue: the players waiting for a slot, or nothing when there are none.</summary>
     public string Queue => connection.Queue is "-" or "" ? "" : connection.Queue;
+
+    // ---- the devices -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Reference ICommandDockHost.DockDevices: the paired devices of the connected server.
+    ///
+    /// The list is read again every time the dock asks, because a device's state changes while the dock is open and a
+    /// tile that showed a stale list would offer to switch something that has moved on.
+    /// </summary>
+    public IReadOnlyList<DockHostDevice> DockDevices => connection.Devices.Devices
+        .SelectMany(row => row.DescendantsAndSelf())
+        .Where(row => row.Definition.Kind != DeviceKind.Group && row.Definition.EntityId != 0)
+        .GroupBy(row => row.Definition.EntityId)
+        .Select(group => group.First())
+        .Select(row => new DockHostDevice(row.Definition.EntityId, row.Name, KindOf(row.Definition.Kind))
+        {
+            IsOn = row.IsOn,
+            IsMissing = row.IsMissing,
+            UpkeepSeconds = UpkeepSeconds(row.Storage),
+            IconId = row.Definition.CustomIconId,
+            IconShortName = row.Definition.CustomIconShortName,
+        })
+        .ToArray();
+
+    /// <summary>
+    /// Reference ICommandDockHost.ToggleDockSwitchAsync: a smart switch is flipped through the same guarded path the
+    /// device list uses, so a tile cannot drive a switch the panel would refuse.
+    /// </summary>
+    public async Task<bool> SetDockDeviceAsync(uint entityId, bool on, CancellationToken ct) =>
+        await connection.Devices.SetSwitchStateAsync(entityId, on, ct).ConfigureAwait(false);
+
+    /// <summary>Reference the reference's device kind names, which the dock's picture and the picker's glyph are chosen from.</summary>
+    private static string KindOf(DeviceKind kind) => kind switch
+    {
+        DeviceKind.Switch => "SmartSwitch",
+        DeviceKind.Alarm => "SmartAlarm",
+        DeviceKind.StorageMonitor => "StorageMonitor",
+        DeviceKind.Group => "Group",
+        _ => "Unknown",
+    };
+
+    /// <summary>Reference SmartDevice.UpkeepSeconds (protect seconds left); unknown when the device has no protection.</summary>
+    private static int? UpkeepSeconds(DeviceStorage? storage) =>
+        storage?.HasProtection == true && storage.ProtectionExpiry is { } expiry
+            ? Math.Max(0, (int)(expiry - DateTimeOffset.UtcNow).TotalSeconds)
+            : null;
+
+    // ---- the rest of the app's state ---------------------------------------------------------
+
+    /// <summary>Reference ICommandDockHost.DockRules: the active server's Logic Engine rules, enabled or not.</summary>
+    public IReadOnlyList<DockHostRule> DockRules => context?.DockRules ?? [];
+
+    /// <summary>Reference ICommandDockHost.IsDockLogicEngineActive: false while the Logic Engine's master switch is off.</summary>
+    public bool IsDockLogicEngineActive => context?.IsDockLogicEngineActive == true;
+
+    /// <summary>Reference ICommandDockHost.RunDockRule: a rule is run as if the Widget Overlay trigger had fired.</summary>
+    public void RunDockRule(string ruleId) => context?.RunDockRule(ruleId);
+
+    /// <summary>Reference DockOilRigAlarms: the newest oil rig alarm of the active server.</summary>
+    public DockHostEvent? LatestOilRigAlarm => context?.LatestOilRigAlarm;
+
+    /// <summary>Reference ICommandDockHost.DockServerKey: the active server as "{host}-{port}".</summary>
+    public string? DockServerKey => context?.DockServerKey;
+
+    /// <summary>Reference SessionTracker.Instance.For: the session of the active server.</summary>
+    public SessionState? DockSession => context?.DockSession;
+
+    /// <summary>Reference ICommandDockHost.DockDeathMarkerCount: how many death markers the map is showing.</summary>
+    public int DockDeathMarkerCount => context?.DockDeathMarkerCount ?? 0;
+
+    /// <summary>Reference ICommandDockHost.WipeDockDeathMarkers: the map's death markers are cleared.</summary>
+    public Task WipeDockDeathMarkersAsync(bool keepLatest, CancellationToken ct) =>
+        context?.WipeDockDeathMarkersAsync(keepLatest, ct) ?? Task.CompletedTask;
+
+    /// <summary>Reference MainWindow.Camera: the map the workspace draws, which the dock's map tile draws as well.</summary>
+    public MapViewModel? Map => context?.Map;
+
+    /// <summary>Reference the workspace's death markers: the pins the map is showing.</summary>
+    public IReadOnlyList<DeathPin>? DeathPins => context?.DeathPins;
+
+    /// <summary>Reference MapShowDeathTags: whether the death markers are drawn on the map.</summary>
+    public bool ShowDeathPins => context?.ShowDeathPins == true;
+
+    /// <summary>Reference ShowMiniMap: the map is brought forward.</summary>
+    public void OpenMap() => context?.OpenMap();
+
+    // ---- the chat ----------------------------------------------------------------------------
 
     /// <summary>
     /// Reference GetDockChat: the last lines of the team chat, or of the clan chat.
