@@ -235,6 +235,14 @@ public sealed partial class MapViewModel : ObservableObject
         if (session is IServerMarkerSession live) await PollMarkersAsync(live, ct);
     }
 
+    /// <summary>
+    /// The player the map follows, or zero when it follows nobody.
+    ///
+    /// Reference BtnFollowPlayer: the map keeps the chosen player in the middle as they move. The port follows the
+    /// player it is given rather than offering a menu of them, because the mini-map is the view that follows.
+    /// </summary>
+    public ulong FollowSteamId { get; set; }
+
     private async Task PollMarkersAsync(IServerMarkerSession session, CancellationToken ct)
     {
         using var timer = new PeriodicTimer(MarkerInterval);
@@ -247,6 +255,9 @@ public sealed partial class MapViewModel : ObservableObject
                     var current = await session.ReadMarkersAsync(ct).WaitAsync(ct);
                     ct.ThrowIfCancellationRequested();
                     Markers = current;
+
+                    // The map follows the player it was told to follow, on every poll, so the view keeps up with them.
+                    if (FollowSteamId != 0) CenterOnPlayer(FollowSteamId);
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
                 // A missed poll keeps the last markers; connection loss is handled by the connection owner.

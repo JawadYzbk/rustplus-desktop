@@ -41,6 +41,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         retentionDays = Math.Clamp(NotificationInbox.Retention(settings?.Get(SettingKeys.NotificationsRetentionDays, NotificationInbox.DefaultRetentionDays) ?? 30),
             MinRetentionDays, MaxRetentionDays);
         genericAlarmPopup = settings?.Get(SettingKeys.GenericAlarmPopupEnabled, false) ?? false;
+        miniMapPeekHotkey = settings?.Get(SettingKeys.MiniMapPeekHotkey, "") ?? "";
 
         RefreshMuted();
     }
@@ -131,6 +132,32 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     /// <summary>Raised when the generic alarm popup setting changes (the alarm model applies it live).</summary>
     public event Action<bool>? GenericAlarmPopupChanged;
+
+    /// <summary>
+    /// Reference TrackingService.MiniMapPeekHotkey: the key that is held to see the map over the game.
+    ///
+    /// Empty means no peek. The gesture is the reference's own form, so a key name on its own ("Tab") or a
+    /// combination ("Ctrl+Alt+K") is what it expects.
+    /// </summary>
+    [ObservableProperty] private string miniMapPeekHotkey = "";
+
+    /// <summary>Raised when the peek key changes, so the shell can give the key back and take the new one.</summary>
+    public event Action<string>? MiniMapPeekChanged;
+
+    /// <summary>
+    /// Whether the peek works on this machine, and why not when it does not.
+    ///
+    /// The release of a key is only told to a Windows application, so the peek is a Windows feature in this port.
+    /// </summary>
+    public static string MiniMapPeekNote => OperatingSystem.IsWindows()
+        ? ""
+        : "Holding a key to see the map over the game needs the Windows keyboard hook, which the other platforms do not have yet.";
+
+    partial void OnMiniMapPeekHotkeyChanged(string value)
+    {
+        settings?.Set(SettingKeys.MiniMapPeekHotkey, value.Trim());
+        MiniMapPeekChanged?.Invoke(value.Trim());
+    }
 
     partial void OnAutoConnectChanged(bool value) => settings?.Set(SettingKeys.AutoConnectEnabled, value);
 

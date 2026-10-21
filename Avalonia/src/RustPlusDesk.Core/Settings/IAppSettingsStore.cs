@@ -67,7 +67,8 @@ public static class SettingKeys
     public const string AutoStartEnabled = "AutoStartEnabled";             // default false: launch at sign-in (--background)
     public const string LastSelectedServerKey = "LastSelectedServerKey";   // "host:port|steamId64" of the last selected server
     public const string MinimizeToTray = "MinimizeToTray";             // default false: closing the window leaves the app in the tray
-    public const string MutedNotificationServerNames = "MutedNotificationServerNames"; // "host:port" → server name
+    public const string MutedNotificationServerNames = "MutedNotificationServerNames"; // "host:port" → server name
+    public const string MiniMapPeekHotkey = "MiniMapPeekHotkey";             // "" = none: the key held to see the map over the game
     public const string CrosshairStyle = "CrosshairStyle";                 // the crosshair style shown over the game
     public const string CrosshairCustomImagePath = "CrosshairCustomImagePath"; // the image the custom style shows
     public const string CrosshairEnabled = "CrosshairEnabled";             // default false: the crosshair is off

@@ -42,6 +42,7 @@ public sealed partial class MainWindow : Window
                 model.AiHistoryRequested += ShowAiHistory;
                 model.AllAchievementsCompleted += ShowAchievementPrompt;
                 WireTutorials(model);
+                WirePeek(model);
             }
         };
     }
@@ -284,6 +285,51 @@ public sealed partial class MainWindow : Window
         // one tile among the dock's - the user asked for the map, and the dock is where the rest of it lives.
         await ShowDockAsync();
     }
+
+    /// <summary>
+    /// Reference MainWindow.MiniMapPeek: the key that is held to see the map over the game.
+    ///
+    /// The peek is a Windows feature in this port, because only Windows tells an application that a key was let go.
+    /// The setting says so where it is offered, and the controller does nothing on the other platforms.
+    /// </summary>
+    private void WirePeek(Features.Servers.ServersViewModel model)
+    {
+        if (!OperatingSystem.IsWindows()) return;
+
+        peekController ??= new Features.MiniMap.MiniMapPeekController(this)
+        {
+            Show = () => ShowMiniMapForPeek(model),
+            Hide = () => peekMapWindow?.Hide(),
+        };
+
+        peekController.Gesture = model.SettingsPage.MiniMapPeekHotkey;
+        model.SettingsPage.MiniMapPeekChanged += gesture =>
+        {
+            if (peekController is not null) peekController.Gesture = gesture;
+        };
+    }
+
+    /// <summary>
+    /// The map comes up over the game while the peek key is held.
+    ///
+    /// The window is made once and shown and hidden as the key is held and let go, rather than being made afresh each
+    /// time: the map is a mirror of the live one, and a new window would have to catch up with it.
+    /// </summary>
+    private void ShowMiniMapForPeek(Features.Servers.ServersViewModel model)
+    {
+        if (model.MiniMap is not { } miniMap) return;
+
+        if (peekMapWindow is null)
+        {
+            peekMapWindow = new Features.MiniMap.MiniMapWindow { DataContext = miniMap };
+            peekMapWindow.Closed += (_, _) => peekMapWindow = null;
+        }
+
+        peekMapWindow.Show();
+    }
+
+    private Features.MiniMap.MiniMapPeekController? peekController;
+    private Features.MiniMap.MiniMapWindow? peekMapWindow;
 
 
     /// <summary>

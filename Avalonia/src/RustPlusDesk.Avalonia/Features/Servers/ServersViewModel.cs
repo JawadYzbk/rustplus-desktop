@@ -842,6 +842,12 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         {
             if (args.PropertyName == nameof(DeathPins)) model.DeathPins = DeathPins;
         };
+        // The account arrives after the mini-map is made, and the mini-map follows the player it is signed in as.
+        PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(Account)) model.OwnSteamId = Account?.Account.SteamId;
+        };
+        model.OwnSteamId = Account?.Account.SteamId;
         return model;
     }
 

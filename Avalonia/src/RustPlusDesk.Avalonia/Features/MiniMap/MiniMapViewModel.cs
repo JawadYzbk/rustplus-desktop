@@ -31,7 +31,17 @@ public sealed partial class MiniMapViewModel : ObservableObject
     /// Reference MainWindow.Camera: the map the mini-map mirrors - the same map the workspace shows, so both look at
     /// one server.
     /// </summary>
-    public MapViewModel? Map { get; set; }
+    public MapViewModel? Map
+    {
+        get => map;
+        set
+        {
+            map = value;
+            ApplyFollow();
+        }
+    }
+
+    private MapViewModel? map;
 
     /// <summary>
     /// Reference the workspace's death markers: the mini-map shows the same pins, on its own switch.
@@ -108,6 +118,39 @@ public sealed partial class MiniMapViewModel : ObservableObject
     [ObservableProperty]
     private bool showNoBuild;
 
+    /// <summary>
+    /// Reference BtnFollowPlayer: the map keeps the player in the middle as they move.
+    ///
+    /// The mini-map follows the player it is given, which is the one the account is signed in as. The switch is in the
+    /// mini-map's own settings file, with the rest of the mini-map's settings.
+    /// </summary>
+    [ObservableProperty]
+    private bool followPlayer;
+
+    /// <summary>
+    /// The player the map follows, as the account gives them.
+    ///
+    /// The account arrives after the mini-map is made, so this is set when it turns up rather than in the constructor.
+    /// </summary>
+    public string? OwnSteamId
+    {
+        get => ownSteamId;
+        set
+        {
+            ownSteamId = value;
+            ApplyFollow();
+        }
+    }
+
+    private string? ownSteamId;
+
+    /// <summary>Tells the map which player to follow, or that it follows nobody.</summary>
+    private void ApplyFollow()
+    {
+        if (Map is null) return;
+        Map.FollowSteamId = FollowPlayer && ulong.TryParse(OwnSteamId, out ulong id) ? id : 0;
+    }
+
     /// <summary>Reference MiniMapWindow.TxtServerTime: the clock the pill along the bottom edge shows.</summary>
     [ObservableProperty]
     private string serverTime = "";
@@ -170,11 +213,13 @@ public sealed partial class MiniMapViewModel : ObservableObject
         ShowDeaths = settings.ShowDeaths;
         ShowHeatmap = settings.ShowHeatmap;
         ShowNoBuild = settings.ShowNoBuild;
+        FollowPlayer = settings.FollowPlayer;
+        ApplyFollow();
     }
 
     /// <summary>Reference MiniMapSettingsOverlay.CurrentSettings: the settings as the panel shows them.</summary>
     public MiniMapSettings CurrentSettings => new(ShapeIndex, Size, Opacity, ShowTime, ShowPop,
-        ShowTexture, ShowGrid, ShowDrawings, ShowIcons, ShowPlayers, ShowDeaths, ShowHeatmap, ShowNoBuild);
+        ShowTexture, ShowGrid, ShowDrawings, ShowIcons, ShowPlayers, ShowDeaths, ShowHeatmap, ShowNoBuild, FollowPlayer);
 
     /// <summary>Reference MiniMapSettingsOverlay.SaveSettings: the settings are written to the cache file.</summary>
     public async Task SaveAsync(CancellationToken ct = default)
@@ -219,8 +264,12 @@ public sealed partial class MiniMapViewModel : ObservableObject
         if (e.PropertyName is nameof(ShapeIndex) or nameof(Size) or nameof(Opacity)
             or nameof(ShowTime) or nameof(ShowPop) or nameof(ShowTexture) or nameof(ShowGrid)
             or nameof(ShowDrawings) or nameof(ShowIcons) or nameof(ShowPlayers)
-            or nameof(ShowDeaths) or nameof(ShowHeatmap) or nameof(ShowNoBuild))
+            or nameof(ShowDeaths) or nameof(ShowHeatmap) or nameof(ShowNoBuild)
+            or nameof(FollowPlayer))
             RequestSave();
+
+        // The follow tells the map which player to keep in the middle, so it is put in place as it is switched.
+        if (e.PropertyName == nameof(FollowPlayer)) ApplyFollow();
     }
 
     /// <summary>The settings are written in the background; a file that cannot be written is not worth an error.</summary>

@@ -20,7 +20,8 @@ public sealed record MiniMapSettings(
     bool ShowPlayers = true,
     bool ShowDeaths = true,
     bool ShowHeatmap = true,
-    bool ShowNoBuild = false);
+    bool ShowNoBuild = false,
+    bool FollowPlayer = false);
 
 /// <summary>Reference MiniMapWindow's shapes: a circle, a square, or 16:9.</summary>
 public static class MiniMapShapes

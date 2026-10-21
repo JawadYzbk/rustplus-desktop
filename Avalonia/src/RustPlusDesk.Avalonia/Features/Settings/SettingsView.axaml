@@ -83,6 +83,20 @@
             <Slider Grid.Row="1" Grid.ColumnSpan="2" Minimum="0.5" Maximum="1.5" Value="{Binding Map.PlayerIconScale, FallbackValue=1}"
                     AutomationProperties.Name="Player icon size" />
           </Grid>
+
+          <!--  Reference TrackingService.MiniMapPeekHotkey: the key that is held to see the map over the game. It goes
+                away when the key is let go, and after twenty seconds either way.  -->
+          <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="4">
+            <StackPanel>
+              <TextBlock Text="Peek key" FontWeight="SemiBold" />
+              <TextBlock Text="Hold this key to see the map over the game. It goes away when you let go, and after twenty seconds either way."
+                         Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <TextBox Grid.Column="1" Text="{Binding MiniMapPeekHotkey, Mode=TwoWay}" MinWidth="130"
+                     PlaceholderText="None" AutomationProperties.Name="The key that shows the map while it is held" />
+            <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding MiniMapPeekNote, FallbackValue=''}" Classes="muted" FontSize="11" TextWrapping="Wrap"
+                       IsVisible="{Binding MiniMapPeekNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          </Grid>
         </StackPanel>
       </Border>
       <Border Classes="panel" Padding="16" IsVisible="{Binding HasMap}">

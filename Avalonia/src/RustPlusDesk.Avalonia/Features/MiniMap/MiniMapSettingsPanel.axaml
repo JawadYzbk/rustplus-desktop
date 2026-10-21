@@ -46,6 +46,10 @@
         <CheckBox Content="Pop" IsChecked="{Binding ShowPop}" AutomationProperties.Name="Show the population" />
       </StackPanel>
 
+      <!--  Reference BtnFollowPlayer: the map keeps the player in the middle as they move.  -->
+      <CheckBox Content="Follow the player" IsChecked="{Binding FollowPlayer}"
+                AutomationProperties.Name="Follow the player" />
+
       <Separator Background="{DynamicResource CardBorder}" />
       <TextBlock Text="{DynamicResource MiniMapLayers}" FontSize="11" Foreground="{DynamicResource TextSubtle}" FontWeight="SemiBold" />
       <CheckBox Content="{DynamicResource MiniMapLayerTexture}" IsChecked="{Binding ShowTexture}"
