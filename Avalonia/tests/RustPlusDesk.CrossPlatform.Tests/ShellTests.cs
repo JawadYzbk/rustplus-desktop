@@ -1,5 +1,7 @@
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Media.Imaging;
 using Avalonia.VisualTree;
@@ -454,6 +456,49 @@ public sealed class ShellTests
             return true;
         }, CancellationToken.None);
     }
+    [TestMethod]
+    public async Task TheTitleBarHasTheOldAppsHeaderButtons()
+    {
+        var session = UiTestSession.Current;
+        await session.Dispatch(async () =>
+        {
+            var model = new ServersViewModel(new PreviewCatalog(), new UnusedPicker(), "profiles.json", new PreviewSessionFactory());
+            var window = new MainWindow { DataContext = model, Width = 1200, Height = 760, RequestedThemeVariant = ThemeVariant.Dark };
+            try
+            {
+                window.Show();
+                window.UpdateLayout();
+
+                //  The old app's header: the Discord link, the cloud portal, the patch notes, the traffic monitor
+                //  and the notifications bell.  
+                string[] names = ["Join the Discord", "Open the Rust+ portal", "Patch notes", "Network traffic"];
+                foreach (string name in names)
+                {
+                    Assert.IsTrue(window.GetVisualDescendants().OfType<Button>().Any(button =>
+                        button.Classes.Contains("icon") && AutomationProperties.GetName(button) == name),
+                        $"The title bar has the {name} button.");
+                }
+
+                var bell = window.GetVisualDescendants().OfType<Button>().Single(button =>
+                    AutomationProperties.GetName(button) == "Notifications");
+                Assert.IsNotNull(bell, "The notifications bell is there.");
+
+                using (var frame = window.CaptureRenderedFrame())
+                {
+                    Assert.IsNotNull(frame);
+                    frame.Save(Path.Combine(AppContext.BaseDirectory, "ui-title-bar.png"), PngBitmapEncoderOptions.Default);
+                }
+
+                //  The bell opens the panel of what has arrived.  
+                bell.Command ??= null;
+                var popup = window.FindControl<Popup>("NotificationsPopup");
+                Assert.IsNotNull(popup, "The notifications panel is under the bell.");
+            }
+            finally { await model.ShutdownAsync(); window.Close(); }
+            return true;
+        }, CancellationToken.None);
+    }
+
 
     private sealed class PreviewCatalog : IServerCatalog
     {

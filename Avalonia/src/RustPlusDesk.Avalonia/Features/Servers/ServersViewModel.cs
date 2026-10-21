@@ -720,6 +720,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
                 ReleasesPageUrl = updateService.ReleasesPageUrl
             }
         };
+        if (updateService is not null)
+            Releases = async () => await updateService.GetReleasesAsync(20, CancellationToken.None);
         _ = model.CustomMap?.LoadAsync();
         _ = model.ChatCommands?.LoadAsync();
         // The clan's roles come and go while the app runs, so the card is told about every change.
@@ -1068,6 +1070,12 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     }
 
     /// <summary>
+    /// Reference the patch notes window: the published releases and their notes.
+    ///
+    /// The same release service the update card asks, so the notes and the version on offer are the same release.
+    /// </summary>
+    public Func<Task<IReadOnlyList<RustPlusDesk.Core.Updates.ReleaseNote>>>? Releases { get; private set; }
+
     /// Reference the AI chat command: ask the companion from inside the game, and get the answer in chat.
     ///
     /// It is the one command that costs money to answer, and the money is the owner's, so it is off until it is set

@@ -10,6 +10,21 @@ public sealed record ReleaseInfo(Version Version, string Tag, string Name, strin
 }
 
 /// <summary>
+/// One published release, with the notes that go with it.
+///
+/// The old app's patch notes window shows what each release changed; the port reads the same list from the release
+/// API rather than carrying a frozen copy of it, so the notes are the ones the release actually has.
+/// </summary>
+public sealed record ReleaseNote(Version Version, string Title, string Body, string Url, DateTime? PublishedAt, bool IsPreRelease)
+{
+    /// <summary>The release's name, with the version in front of it.</summary>
+    public string Heading => $"{Version} - {Title}";
+
+    /// <summary>When it was published, in the app's own way of saying it.</summary>
+    public string PublishedText => PublishedAt is { } at ? at.ToLocalTime().ToString("d MMM yyyy") : "";
+}
+
+/// <summary>
 /// The app's own version, read the way the reference reads it: the informational version of the entry assembly,
 /// falling back to the file version of the running program.
 /// </summary>

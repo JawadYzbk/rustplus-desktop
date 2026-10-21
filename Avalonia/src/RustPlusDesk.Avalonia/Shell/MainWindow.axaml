@@ -24,22 +24,42 @@
         WindowDecorations="Full">
   <Window.KeyBindings><KeyBinding Gesture="Escape" Command="{Binding CloseToolCommand}" /></Window.KeyBindings>
   <Grid RowDefinitions="42,*,26">
+    <!--  Reference the old app's title bar: the logo and the name on the left, and the header buttons on the right -
+          the Discord link, the cloud portal, the patch notes, the traffic monitor and the notifications bell.  -->
     <Grid ColumnDefinitions="*,Auto" Margin="14,0" IsEnabled="{Binding !HasOverlay}">
       <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-        <Image Source="/Assets/app.ico" Width="20" Height="20" />
+        <Image Source="/Assets/logo-light-mode.png" Width="18" Height="18" />
         <TextBlock Text="{DynamicResource AppTitle}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
-        <TextBlock Text="Avalonia preview" FontSize="11" Classes="muted" VerticalAlignment="Center" />
       </StackPanel>
-      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-        <Button Classes="subtle" Command="{Binding OpenTrafficCommand}" IsVisible="{Binding Traffic, FallbackValue=False}"
-                ToolTip.Tip="Show the network traffic of this app" AutomationProperties.Name="Network traffic">
-          <Border Classes="pill">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <icons:Icon Symbol="DataTrending24" FontSize="13" />
-              <TextBlock Text="{Binding Traffic.Summary, FallbackValue=''}" FontSize="12" />
-            </StackPanel>
-          </Border>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+        <Button Classes="icon" Click="OnDiscord" ToolTip.Tip="Join the Discord" AutomationProperties.Name="Join the Discord">
+          <Image Source="/Assets/icons/discord.png" Width="16" Height="16" />
         </Button>
+        <Button Classes="icon" Click="OnCloudPortal" ToolTip.Tip="Open the Rust+ portal" AutomationProperties.Name="Open the Rust+ portal">
+          <Image Source="/Assets/icons/r+desktop-icon.png" Width="16" Height="16" />
+        </Button>
+        <Button Classes="icon" Click="OnPatchNotes" ToolTip.Tip="Patch notes" AutomationProperties.Name="Patch notes">
+          <icons:Icon Symbol="DocumentBulletList24" FontSize="16" />
+        </Button>
+        <Button Classes="icon" Command="{Binding OpenTrafficCommand}" IsVisible="{Binding Traffic, FallbackValue=False}"
+                ToolTip.Tip="Show the network traffic of this app" AutomationProperties.Name="Network traffic">
+          <icons:Icon Symbol="DataUsage24" FontSize="15" Foreground="{DynamicResource Accent}" />
+        </Button>
+        <Button x:Name="BellButton" Classes="icon" Click="OnNotificationsBell" ToolTip.Tip="{DynamicResource AppNotificationsTitle}"
+                AutomationProperties.Name="{DynamicResource AppNotificationsTitle}">
+          <Panel>
+            <icons:Icon Symbol="MailInbox24" FontSize="16" />
+            <Border Classes="railBadge" IsVisible="{Binding Notifications.HasUnread}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-4,0">
+              <TextBlock Text="{Binding Notifications.UnreadText}" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource OnAccent}" />
+            </Border>
+          </Panel>
+        </Button>
+
+        <!--  Reference BtnTopNotifications' popup: the recent notifications under the bell.  -->
+        <Popup x:Name="NotificationsPopup" PlacementTarget="{Binding #BellButton}" Placement="BottomEdgeAlignedRight"
+               IsLightDismissEnabled="True" Width="384">
+          <notifications:NotificationBellView DataContext="{Binding Notifications}" />
+        </Popup>
         <Button Classes="subtle" Command="{Binding OpenAccountCommand}" IsVisible="{Binding RequiresSignIn}" ToolTip.Tip="Open account and pairing">
           <Border Classes="pill" BorderBrush="{DynamicResource ConnectionPending}">
             <TextBlock Text="Sign in for Rust+ pairing" FontSize="12" Foreground="{DynamicResource ConnectionPending}" />

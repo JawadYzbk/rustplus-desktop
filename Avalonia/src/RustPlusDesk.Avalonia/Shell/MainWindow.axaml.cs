@@ -1,5 +1,6 @@
 using System.Globalization;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.VisualTree;
 using RustPlusDesk.Core.Dock;
@@ -14,6 +15,57 @@ public sealed partial class MainWindow : Window
     private readonly ICommandDockStore? dockStore;
     private readonly RustPlusDesk.Core.Dock.ICommandDockPresetStore? presetStore;
     private Features.Dock.DockWindow? dockWindow;
+
+    /// <summary>
+    /// The old app's header buttons: the Discord invite and the cloud portal are links, the patch notes are a window
+    /// of their own, and the notifications bell shows what has arrived.
+    /// </summary>
+    private const string DiscordInviteUrl = "https://discord.gg/v4X584wye4";
+    private const string CloudPortalUrl = "https://rustplusdesktop.cloud/dashboard";
+
+    /// <summary>
+    /// Reference BtnDiscord_Click: the Discord invite opens in the user's browser.
+    ///
+    /// Only a window can open a link, so the button asks this one.
+    /// </summary>
+    private async void OnDiscord(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e) => await OpenUrlAsync(DiscordInviteUrl);
+
+    /// <summary>Reference BtnCloudPortal_Click: the cloud portal opens in the user's browser.</summary>
+    private async void OnCloudPortal(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e) => await OpenUrlAsync(CloudPortalUrl);
+
+    /// <summary>Opens a link in the user's browser, and says so when it cannot.</summary>
+    private async Task<bool> OpenUrlAsync(string url)
+    {
+        if (TopLevel.GetTopLevel(this)?.Launcher is not { } launcher) return false;
+        try
+        {
+            return await launcher.LaunchUriAsync(new Uri(url));
+        }
+        catch (Exception ex)
+        {
+            if (DataContext is Features.Servers.ServersViewModel model)
+                model.Activity.Append("[link] Could not open " + url + ": " + ex.Message);
+            return false;
+        }
+    }
+
+    /// <summary>Reference BtnPatchNotes_Click: the patch notes open in a window of their own.</summary>
+    private void OnPatchNotes(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var view = new Features.Updates.PatchNotesViewModel();
+        if (DataContext is Features.Servers.ServersViewModel model && model.Releases is { } releases) view = new(releases);
+
+        view.OpenUrl = OpenUrlAsync;
+
+        var window = new Features.Updates.PatchNotesWindow { DataContext = view };
+        window.Show(this);
+    }
+
+    /// <summary>Reference BtnTopNotifications_Click: the bell shows what has arrived.</summary>
+    private void OnNotificationsBell(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (this.FindControl<Popup>("NotificationsPopup") is { } popup) popup.IsOpen = !popup.IsOpen;
+    }
 
     /// <summary>
     /// Reference SessionTracker.Instance: the tracker that counts what this sitting has amounted to.

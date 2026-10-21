@@ -1,0 +1,54 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:updates="using:RustPlusDesk.Avalonia.Features.Updates"
+        xmlns:shared="using:RustPlusDesk.Avalonia.Shared.Controls"
+        xmlns:core="using:RustPlusDesk.Core.Updates"
+        xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+        x:Class="RustPlusDesk.Avalonia.Features.Updates.PatchNotesWindow" x:DataType="updates:PatchNotesViewModel"
+        Title="Patch notes" Width="900" Height="640" MinWidth="640" MinHeight="420"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource AppBackground}">
+  <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12" Margin="16">
+    <!--  Reference the patch notes' header: the icon tile, the title and the version badge.  -->
+    <shared:PanelHeader Title="Patch notes" Eyebrow="What is new" Symbol="Sparkle24" HasClose="False">
+      <shared:PanelHeader.ActionsContent>
+        <Border Background="{DynamicResource ConnectionPending}" CornerRadius="4" Padding="6,1">
+          <TextBlock Text="{Binding CurrentVersion}" FontSize="11" FontWeight="Bold" Foreground="White" />
+        </Border>
+      </shared:PanelHeader.ActionsContent>
+    </shared:PanelHeader>
+
+    <Grid Grid.Row="1" ColumnDefinitions="240,*" ColumnSpacing="12">
+      <!--  The versions, newest first.  -->
+      <ListBox ItemsSource="{Binding Releases}" SelectedItem="{Binding Selected}" Background="Transparent"
+               AutomationProperties.Name="The published releases">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="core:ReleaseNote">
+            <StackPanel Spacing="1">
+              <TextBlock Text="{Binding Version}" FontSize="13" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding Title}" FontSize="11" Classes="muted" TextTrimming="CharacterEllipsis" />
+              <TextBlock Text="{Binding PublishedText}" FontSize="10" Classes="muted" />
+            </StackPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+
+      <!--  The notes of the release that is chosen.  -->
+      <Border Grid.Column="1" Classes="card" Padding="16">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel Spacing="10">
+            <TextBlock Text="{Binding Selected.Title}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding Selected.Body}" FontSize="12" TextWrapping="Wrap" />
+            <Button Classes="subtle" Click="OnOpenRelease" IsVisible="{Binding HasSelected}"
+                    AutomationProperties.Name="Open the release's own page">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <icons:Icon Symbol="Link24" FontSize="13" />
+                <TextBlock Text="Open the release's page" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
+    </Grid>
+
+    <TextBlock Grid.Row="2" Text="{Binding Status}" Classes="muted" FontSize="12" />
+  </Grid>
+</Window>

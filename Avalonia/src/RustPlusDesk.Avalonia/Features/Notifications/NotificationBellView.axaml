@@ -1,0 +1,45 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RustPlusDesk.Avalonia.Features.Notifications"
+             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+             x:Class="RustPlusDesk.Avalonia.Features.Notifications.NotificationBellView" x:DataType="vm:NotificationsViewModel">
+  <!--  Reference the old app's notifications bell: the recent notifications in a panel under the title bar, with the
+        unread dot, the time and the two actions at the bottom.  -->
+  <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
+          CornerRadius="10" Padding="12" Width="360">
+    <Grid RowDefinitions="*,Auto" RowSpacing="10">
+      <ScrollViewer Grid.Row="0" MaxHeight="420" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <ItemsControl ItemsSource="{Binding Rows}" AutomationProperties.Name="The recent notifications">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:NotificationRow">
+              <Border Background="{DynamicResource SurfaceAlt}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
+                      CornerRadius="8" Margin="0,0,0,8" Padding="12,10">
+                <StackPanel Spacing="3">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Ellipse Width="7" Height="7" Fill="{DynamicResource Accent}" VerticalAlignment="Center"
+                             IsVisible="{Binding IsUnread}" />
+                    <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <TextBlock Text="{Binding Message}" FontSize="12" Classes="muted" TextWrapping="Wrap" Margin="13,0,0,0" />
+                  <StackPanel Orientation="Horizontal" Spacing="8" Margin="13,4,0,0">
+                    <TextBlock Text="{Binding ServerTag}" FontSize="11" Classes="muted" IsVisible="{Binding HasServer}" />
+                    <TextBlock Text="{Binding Time}" FontSize="11" Classes="muted" />
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+
+      <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <Button Grid.Column="0" Classes="subtle" HorizontalAlignment="Left" Command="{Binding MarkAllReadCommand}"
+                IsVisible="{Binding HasUnread}" AutomationProperties.Name="Mark every notification as read">
+          <TextBlock Text="Mark all read" />
+        </Button>
+        <Button Grid.Column="1" Classes="subtle" Command="{Binding RequestClearCommand}" AutomationProperties.Name="Clear the notification history">
+          <TextBlock Text="Clear" />
+        </Button>
+      </Grid>
+    </Grid>
+  </Border>
+</UserControl>
