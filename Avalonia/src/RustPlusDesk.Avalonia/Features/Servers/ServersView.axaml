@@ -39,7 +39,7 @@
       </ComboBox.ItemTemplate>
     </ComboBox>
     <TextBlock Text="{DynamicResource SnackbarTitleConnection}" Classes="section" Margin="0,6,0,0" IsVisible="{Binding HasServers}" />
-    <connections:ConnectionStatusView DataContext="{Binding Connection}" IsVisible="{Binding $parent[UserControl].((vm:ServersViewModel)DataContext).HasServers}" />
+    <connections:ConnectionStatusView x:Name="ConnectionActions" DataContext="{Binding Connection}" IsVisible="{Binding $parent[UserControl].((vm:ServersViewModel)DataContext).HasServers}" />
     <Border Classes="panel" Padding="10,6" IsVisible="{Binding HasListener}">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
         <Ellipse Width="8" Height="8" Classes="connection-dot" Classes.connected="{Binding Listener.IsRunning, FallbackValue=False}" VerticalAlignment="Center" />
@@ -48,7 +48,7 @@
           <TextBlock Text="{Binding Listener.Status, FallbackValue=''}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
         </StackPanel>
         <Panel Grid.Column="2" VerticalAlignment="Center">
-          <Button Classes="subtle" Content="{DynamicResource Tutorials.Common.Start}" Command="{Binding Listener.StartCommand}" IsVisible="{Binding !Listener.IsRunning, FallbackValue=True}"
+          <Button x:Name="PairingStart" Classes="subtle" Content="{DynamicResource Tutorials.Common.Start}" Command="{Binding Listener.StartCommand}" IsVisible="{Binding !Listener.IsRunning, FallbackValue=True}"
                   AutomationProperties.Name="Start listening for pairing" />
           <Button Classes="subtle" Content="{DynamicResource Stop}" Command="{Binding Listener.StopCommand}" IsVisible="{Binding Listener.IsRunning, FallbackValue=False}"
                   AutomationProperties.Name="Stop listening for pairing" />

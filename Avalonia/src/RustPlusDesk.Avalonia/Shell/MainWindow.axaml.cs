@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.VisualTree;
 using RustPlusDesk.Core.Dock;
 
 namespace RustPlusDesk.Avalonia.Shell;
@@ -40,8 +41,57 @@ public sealed partial class MainWindow : Window
                 model.MiniMapRequested += ShowMiniMap;
                 model.AiHistoryRequested += ShowAiHistory;
                 model.AllAchievementsCompleted += ShowAchievementPrompt;
+                WireTutorials(model);
             }
         };
+    }
+
+    /// <summary>
+    /// Reference the tutorial overlay: the shell hands it the service that moves the tutorial on, and says which
+    /// control answers to which target id.
+    ///
+    /// A target the port does not have is left unregistered, and the step that points at it is shown in the middle with
+    /// the honest wording rather than pointing at nothing.
+    /// </summary>
+    private void WireTutorials(Features.Servers.ServersViewModel model)
+    {
+        TutorialOverlayHost.Service = model.TutorialService;
+
+        var targets = model.TutorialTargets;
+        targets.Register("Navigation.Main", () => Find("RailDevices"));
+        targets.Register("Navigation.Collapse", () => Find("RailToggle"));
+        targets.Register("Tutorials.NavigationItem", () => Find("RailTutorials"));
+        targets.Register("Servers.List", () => Find("ServersList"));
+        targets.Register("Servers.Current", () => Find("SavedServerSelector"));
+        targets.Register("Servers.PairingService", () => Find("PairingStart"));
+        targets.Register("Servers.ConnectionActions", () => Find("ConnectionActions"));
+        targets.Register("Notifications.Center", () => Find("RailNotifications"));
+        targets.Register("Notifications.Filters", () => Find("NotificationsFilters"));
+        targets.Register("Notifications.Search", () => Find("NotificationsSearch"));
+        targets.Register("Devices.List", () => Find("DevicesList"));
+        targets.Register("Devices.Search", () => Find("DevicesSearch"));
+        targets.Register("Team.List", () => Find("TeamList"));
+        targets.Register("Chat.Input", () => Find("DraftBox"));
+        targets.Register("Chat.History", () => Find("Scroller"));
+        targets.Register("Map.Canvas", () => Find("Surface"));
+        targets.Register("Map.Layers", () => Find("LayersButton"));
+        targets.Register("Map.Drawing", () => Find("DrawButton"));
+        targets.Register("Map.EventDock", () => Find("EventDock"));
+        targets.Register("Settings.Panel", () => Find("SettingsPanel"));
+        targets.Register("Settings.AiCompanion", () => Find("SettingsAiCompanion"));
+        targets.Register("Settings.Language", () => Find("SettingsLanguage"));
+    }
+
+    /// <summary>
+    /// The control with a name, anywhere in the window.
+    ///
+    /// The rail and the pages are separate controls, so their own names live in their own scopes; the tree is searched
+    /// rather than the window's own scope.
+    /// </summary>
+    private Control? Find(string name)
+    {
+        if (this.FindControl<Control>(name) is { } direct) return direct;
+        return this.GetVisualDescendants().OfType<Control>().FirstOrDefault(control => control.Name == name);
     }
 
     /// <summary>

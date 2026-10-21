@@ -1,0 +1,68 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:tutorials="using:RustPlusDesk.Avalonia.Features.Tutorials"
+             xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+             x:Class="RustPlusDesk.Avalonia.Features.Tutorials.TutorialOverlay"
+             x:DataType="tutorials:TutorialOverlayPresenter"
+             IsVisible="{Binding IsVisible}" Background="Transparent">
+  <!--  Reference the tutorial overlay: the screen is dimmed, the target is picked out, and the step's card is put
+        beside it. The dimming is drawn with a hole rather than a layer over the target, so the target stays crisp.  -->
+  <Canvas x:Name="Layer">
+    <Path x:Name="Dim" Fill="#B3000000" />
+    <Border x:Name="Spotlight" BorderBrush="{DynamicResource Accent}" BorderThickness="2" CornerRadius="6" IsHitTestVisible="False" />
+
+    <Border x:Name="Card" Width="380" Padding="18" CornerRadius="12" Background="{DynamicResource Surface}"
+            BorderBrush="{DynamicResource CardBorder}" BorderThickness="1" BoxShadow="0 8 32 0 #66000000">
+      <StackPanel Spacing="10">
+        <StackPanel Spacing="2">
+          <TextBlock Text="{Binding Title}" FontSize="12" Classes="muted" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding StepTitle}" FontSize="17" FontWeight="SemiBold" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <TextBlock Text="{Binding Description}" FontSize="13" TextWrapping="Wrap" />
+
+        <!--  Reference the illustration under the description, for the steps that explain something outside the app.  -->
+        <Image x:Name="StepImage" MaxHeight="180" Stretch="Uniform" HorizontalAlignment="Left" IsVisible="False" />
+
+        <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="8" Padding="10,8"
+                IsVisible="{Binding Tip, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+          <TextBlock Text="{Binding Tip}" FontSize="12" TextWrapping="Wrap" />
+        </Border>
+
+        <TextBlock Text="This part of the app is not open right now, so the step is shown here instead."
+                   FontSize="12" Classes="muted" TextWrapping="Wrap"
+                   IsVisible="{Binding IsTargetUnavailable}" />
+
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+          <Button Classes="subtle" Click="OnSkip" AutomationProperties.Name="Skip the tutorial">
+            <TextBlock Text="{DynamicResource Tutorials.Common.Skip}" />
+          </Button>
+
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <TextBlock Text="{Binding StepText}" FontSize="11" Classes="muted" VerticalAlignment="Center" />
+          </StackPanel>
+
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+            <Button Classes="subtle" Click="OnBack" IsEnabled="{Binding CanGoBack}" AutomationProperties.Name="Go back a step">
+              <TextBlock Text="{DynamicResource Tutorials.Common.Back}" />
+            </Button>
+            <Button Classes="primary" Click="OnNext" IsVisible="{Binding IsLastStep, Converter={x:Static BoolConverters.Not}}"
+                    AutomationProperties.Name="Go to the next step">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <icons:Icon Symbol="ChevronRight24" FontSize="13" />
+                <TextBlock Text="{DynamicResource Tutorials.Common.Next}" />
+              </StackPanel>
+            </Button>
+            <Button Classes="primary" Click="OnFinish" IsVisible="{Binding IsLastStep}"
+                    AutomationProperties.Name="Finish the tutorial">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <icons:Icon Symbol="Checkmark24" FontSize="13" />
+                <TextBlock Text="{DynamicResource Tutorials.Common.Finish}" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </Grid>
+      </StackPanel>
+    </Border>
+  </Canvas>
+</UserControl>

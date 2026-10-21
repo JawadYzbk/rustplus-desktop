@@ -16,13 +16,13 @@
   <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,0,1,0">
     <Grid RowDefinitions="Auto,*,Auto" Margin="8,10,7,10">
       <StackPanel Spacing="4">
-        <Button Classes="nav" Command="{Binding ToggleSidebarCommand}" ToolTip.Tip="Show or hide server and device panel"
+        <Button x:Name="RailToggle" Classes="nav" Command="{Binding ToggleSidebarCommand}" ToolTip.Tip="Show or hide server and device panel"
                 AutomationProperties.Name="Toggle server and device panel">
           <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Navigation24" />
             <TextBlock Grid.Column="1" Classes="navLabel" Text="Servers panel" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
         <Border Height="1" Margin="6,6" Background="{DynamicResource CardBorder}" />
-        <Button Classes="nav" Classes.selected="{Binding !IsToolSelected}" Command="{Binding ShowDevicesCommand}"
+        <Button x:Name="RailDevices" Classes="nav" Classes.selected="{Binding !IsToolSelected}" Command="{Binding ShowDevicesCommand}"
                 ToolTip.Tip="{DynamicResource UiMonitorAndControlPairedSmartDevices}" AutomationProperties.Name="Devices">
           <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Connector24" />
             <TextBlock Grid.Column="1" Classes="navLabel" Text="{DynamicResource AppDevices}" IsVisible="{Binding IsRailExpanded}" /></Grid>
@@ -38,7 +38,7 @@
           <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Video24" />
             <TextBlock Grid.Column="1" Classes="navLabel" Text="{DynamicResource CamerasTab}" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
-        <Button Classes="nav" Classes.selected="{Binding IsNotificationsSelected}" Command="{Binding OpenNotificationsCommand}"
+        <Button x:Name="RailNotifications" Classes="nav" Classes.selected="{Binding IsNotificationsSelected}" Command="{Binding OpenNotificationsCommand}"
                 ToolTip.Tip="{DynamicResource UiReviewAlertsAndRecentServerEvents}" AutomationProperties.Name="Notifications">
           <Grid ColumnDefinitions="28,*,Auto"><Panel><icons:Icon Symbol="Alert24" />
               <Border Classes="railBadge" IsVisible="{Binding Notifications.HasUnread}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-4,-4,0">
@@ -53,6 +53,12 @@
                 <TextBlock Text="{Binding Achievements.UnseenCount, FallbackValue=0}" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource OnAccent}" />
               </Border></Panel>
             <TextBlock Grid.Column="1" Classes="navLabel" Text="{DynamicResource AppAchievements}" IsVisible="{Binding IsRailExpanded}" /></Grid>
+        </Button>
+        <!--  Reference the tutorial centre's entry in the rail.  -->
+        <Button x:Name="RailTutorials" Classes="nav" Classes.selected="{Binding IsTutorialsSelected}" Command="{Binding OpenTutorialsCommand}"
+                ToolTip.Tip="The guided tours of the app" AutomationProperties.Name="Tutorials">
+          <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Book24" />
+            <TextBlock Grid.Column="1" Classes="navLabel" Text="{DynamicResource Tutorials.Center.Title}" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
         <TextBlock Classes="navSection" Text="{DynamicResource SidebarToolsFolder}" IsVisible="{Binding IsRailExpanded}" />
         <Border Height="1" Margin="6,6" Background="{DynamicResource CardBorder}" IsVisible="{Binding !IsRailExpanded}" />
@@ -78,17 +84,17 @@
         </Button>
       </StackPanel>
       <StackPanel Grid.Row="2" Spacing="4">
-        <Button Classes="nav" Command="{Binding OpenCloudAccountCommand}" IsVisible="{Binding HasCloudAccount}"
+        <Button x:Name="RailCloud" Classes="nav" Command="{Binding OpenCloudAccountCommand}" IsVisible="{Binding HasCloudAccount}"
                 ToolTip.Tip="Cloud account, sync and backups" AutomationProperties.Name="Cloud account">
           <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Cloud24" />
             <TextBlock Grid.Column="1" Classes="navLabel" Text="Cloud" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
-        <Button Classes="nav" Command="{Binding OpenAccountCommand}" IsVisible="{Binding HasAccount}"
+        <Button x:Name="RailAccount" Classes="nav" Command="{Binding OpenAccountCommand}" IsVisible="{Binding HasAccount}"
                 ToolTip.Tip="Account and pairing" AutomationProperties.Name="Account and pairing">
           <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Person24" />
             <TextBlock Grid.Column="1" Classes="navLabel" Text="{DynamicResource AppAccount}" IsVisible="{Binding IsRailExpanded}" /></Grid>
         </Button>
-        <Button Classes="nav" Classes.selected="{Binding IsSettingsSelected}" Command="{Binding OpenSettingsCommand}"
+        <Button x:Name="RailSettings" Classes="nav" Classes.selected="{Binding IsSettingsSelected}" Command="{Binding OpenSettingsCommand}"
                 ToolTip.Tip="App settings" AutomationProperties.Name="Settings">
           <Grid ColumnDefinitions="28,*"><icons:Icon Symbol="Settings24" />
             <TextBlock Grid.Column="1" Classes="navLabel" Text="{DynamicResource AppSettings}" IsVisible="{Binding IsRailExpanded}" /></Grid>

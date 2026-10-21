@@ -577,7 +577,7 @@
           <TextBlock Text="Ask the companion from inside the game" Classes="muted" FontSize="12" />
         </StackPanel>
       </StackPanel>
-      <Border Classes="panel" Padding="16" IsVisible="{Binding HasAi, FallbackValue=False}">
+      <Border x:Name="SettingsAiCompanion" Classes="panel" Padding="16" IsVisible="{Binding HasAi, FallbackValue=False}">
         <StackPanel Spacing="12">
           <TextBlock Text="{DynamicResource AiCompanionTitle}" Classes="section" />
           <TextBlock Text="The key is kept on this machine, in a file only your account can read, and is sent to nothing but the provider you choose."
@@ -727,7 +727,7 @@
           <TextBlock Text="The language the app reads its strings in" Classes="muted" FontSize="12" />
         </StackPanel>
       </StackPanel>
-      <Border Classes="panel" Padding="16" IsVisible="{Binding HasLanguage, FallbackValue=False}">
+      <Border x:Name="SettingsLanguage" Classes="panel" Padding="16" IsVisible="{Binding HasLanguage, FallbackValue=False}">
         <StackPanel Spacing="12">
           <TextBlock Text="{DynamicResource Language}" Classes="section" />
           <TextBlock Text="The app ships 32 languages. Until one is chosen, the language of the operating system is used."

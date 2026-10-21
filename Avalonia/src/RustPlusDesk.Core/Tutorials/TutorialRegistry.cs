@@ -144,7 +144,7 @@ public sealed class TutorialRegistry : ITutorialRegistry
         Def("command-dock", 56, "Maps", false, true,
             Step("commanddock.open", "Map.MiniMap", "map", TutorialPlacement.Bottom, condition: c => c.IsFullConnected),
             Step("commanddock.widgets", placement: TutorialPlacement.Center,
-                 image: "pack://application:,,,/Assets/Screenshots/10.0/CommandDock.jpg"),
+                 image: "avares://RustPlusDesk.Avalonia/Assets/Screenshots/10.0/CommandDock.jpg"),
             // The reference bar hides at the top of the screen and demonstrates itself; the port's dock window has
             // no demonstration hook, so this step keeps its words and leaves the bar to the user.
             Step("commanddock.bar", placement: TutorialPlacement.Center, condition: c => c.IsFullConnected),
@@ -161,7 +161,7 @@ public sealed class TutorialRegistry : ITutorialRegistry
             Step("aicompanion.key", "Settings.AiCompanion", "settings", TutorialPlacement.Right),
             Step("aicompanion.ask", placement: TutorialPlacement.Center),
             Step("aicompanion.chat", "ChatCommands.AskAi", "settings", TutorialPlacement.Left,
-                 image: "pack://application:,,,/Assets/Screenshots/10.0/ai-chat-command.jpg")),
+                 image: "avares://RustPlusDesk.Avalonia/Assets/Screenshots/10.0/ai-chat-command.jpg")),
 
         Def("map-3d", 60, "Maps", false,
             Step("map3d.open", "Map.Open3D", "map", TutorialPlacement.Left, allowInteraction: true),
@@ -255,7 +255,7 @@ public sealed class TutorialRegistry : ITutorialRegistry
         Def("oilrig-crate-alerts", 205, "Monitoring", false, true,
             Step("oilrigcrate.intro", placement: TutorialPlacement.Center),
             Step("oilrigcrate.wiring", placement: TutorialPlacement.Center,
-                 image: "pack://application:,,,/Assets/Screenshots/8.0/SmartAlarmOilrig.png"),
+                 image: "avares://RustPlusDesk.Avalonia/Assets/Screenshots/8.0/SmartAlarmOilrig.png"),
             Step("oilrigcrate.rule", "Map.EventDock", "map", TutorialPlacement.Bottom),
             Step("oilrigcrate.silence", placement: TutorialPlacement.Center)),
 

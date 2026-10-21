@@ -52,7 +52,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Core.Cameras.ICameraSnapshotSource? cameraSnapshots = null,
     RustPlusDesk.Core.Cameras.ICameraSessionFactory? cameraSessions = null,
     RustPlusDesk.Core.MiniMap.IMiniMapSettingsStore? miniMapSettings = null,
-    RustPlusDesk.Core.MiniMap.IMiniMapPositionStore? miniMapPosition = null)
+    RustPlusDesk.Core.MiniMap.IMiniMapPositionStore? miniMapPosition = null,
+    RustPlusDesk.Core.Tutorials.ITutorialProgressStore? tutorialStore = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
@@ -950,6 +951,102 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     /// <summary>Opens the achievements workspace.</summary>
     [RelayCommand]
     private void OpenAchievements() => WorkspaceIndex = 8;
+
+    // ---- The guided tutorials -----------------------------------------------------------------
+
+    /// <summary>Reference the tutorial overlay's presenter: the step that is on screen.</summary>
+    private RustPlusDesk.Avalonia.Features.Tutorials.TutorialOverlayPresenter? tutorialPresenter;
+
+    /// <summary>Reference the tutorial centre: the page that lists the tutorials and what has been done of each.</summary>
+    private RustPlusDesk.Avalonia.Features.Tutorials.TutorialsViewModel? tutorialsPage;
+
+    /// <summary>Reference the guided tutorials: the state machine that runs them.</summary>
+    private RustPlusDesk.Core.Tutorials.ITutorialService? tutorialService;
+
+    /// <summary>
+    /// Where the tutorial steps point.
+    ///
+    /// The port has no attached property for this, so the shell says which control answers to which target id. A step
+    /// whose target was never registered is shown in the middle with the honest "not available" wording.
+    /// </summary>
+    public RustPlusDesk.Avalonia.Features.Tutorials.TutorialTargetRegistry TutorialTargets { get; } = new();
+
+    /// <summary>The overlay that draws the step that is on screen.</summary>
+    public RustPlusDesk.Avalonia.Features.Tutorials.TutorialOverlayPresenter? TutorialOverlay =>
+        tutorialPresenter ??= new RustPlusDesk.Avalonia.Features.Tutorials.TutorialOverlayPresenter();
+
+    /// <summary>The guided tutorials: the state machine that starts, advances and ends them.</summary>
+    public RustPlusDesk.Core.Tutorials.ITutorialService? TutorialService => tutorialService ??= CreateTutorialService();
+
+    /// <summary>The tutorial centre: the page that lists the tutorials and what has been done of each.</summary>
+    public RustPlusDesk.Avalonia.Features.Tutorials.TutorialsViewModel? TutorialsPage =>
+        tutorialsPage ??= CreateTutorialsPage();
+
+    /// <summary>Whether the tutorial centre is the open workspace.</summary>
+    public bool IsTutorialsSelected => WorkspaceIndex == 9;
+
+    /// <summary>Opens the tutorial centre.</summary>
+    [RelayCommand]
+    private void OpenTutorials() => WorkspaceIndex = 9;
+
+    /// <summary>
+    /// Reference the tutorial service: the state machine, the catalogue, the saved progress and the state the steps
+    /// read.
+    /// </summary>
+    private RustPlusDesk.Core.Tutorials.ITutorialService CreateTutorialService()
+    {
+        var store = tutorialStore ?? new RustPlusDesk.Infrastructure.Tutorials.LegacyTutorialProgressStore();
+        var navigation = new RustPlusDesk.Avalonia.Features.Tutorials.TutorialNavigationCoordinator(OpenTutorialPage);
+        var resolver = new RustPlusDesk.Avalonia.Features.Tutorials.AvaloniaTutorialTargetResolver(TutorialTargets);
+
+        var context = new RustPlusDesk.Avalonia.Features.Tutorials.TutorialContext
+        {
+            IsLoggedIn = () => Account is not null,
+            IsPremium = () => Cloud?.Account.Plan?.IsPremium == true,
+            HasPairedServer = () => Servers.Count > 0,
+            HasSelectedServer = () => SelectedServer is not null,
+            IsSoftConnected = () => Connection.IsConnected,
+            IsFullConnected = () => Connection.IsConnected,
+            HasMap = () => Connection.Map.Image is not null,
+            HasDevices = () => SelectedServer?.Devices.Count > 0,
+            HasTeam = () => Connection.Team.Members.Count > 0,
+            IsDiscordConfigured = () => SettingsPage.Webhook is not null,
+            HasAutomationRules = () => SettingsPage.Automation is not null,
+        };
+
+        return new RustPlusDesk.Core.Tutorials.TutorialService(
+            new RustPlusDesk.Core.Tutorials.TutorialRegistry(), store, resolver, navigation, TutorialOverlay!, context);
+    }
+
+    /// <summary>The tutorial centre's page, with the catalogue and the saved progress in it.</summary>
+    private RustPlusDesk.Avalonia.Features.Tutorials.TutorialsViewModel CreateTutorialsPage()
+    {
+        var store = tutorialStore ?? new RustPlusDesk.Infrastructure.Tutorials.LegacyTutorialProgressStore();
+        var page = new RustPlusDesk.Avalonia.Features.Tutorials.TutorialsViewModel(
+            new RustPlusDesk.Core.Tutorials.TutorialRegistry(), store, TutorialService!);
+        _ = page.RefreshCommand.ExecuteAsync(null);
+        return page;
+    }
+
+    /// <summary>
+    /// Reference the tutorial's navigation: the page a step points at is opened before the step is shown.
+    ///
+    /// The pages this port has a workspace for are opened; the ones it does not are shown in the map workspace, which
+    /// is where the port keeps them.
+    /// </summary>
+    private void OpenTutorialPage(string pageKey)
+    {
+        switch (pageKey)
+        {
+            case "settings": WorkspaceIndex = 5; break;
+            case "notifications": WorkspaceIndex = 4; break;
+            case "cameras": WorkspaceIndex = 10; break;
+            case "raid": WorkspaceIndex = 2; break;
+            case "recycler": WorkspaceIndex = 1; break;
+            case "tutorials": WorkspaceIndex = 9; break;
+            default: WorkspaceIndex = 0; break;
+        }
+    }
 
     /// <summary>
     /// Reference the AI chat command: ask the companion from inside the game, and get the answer in chat.

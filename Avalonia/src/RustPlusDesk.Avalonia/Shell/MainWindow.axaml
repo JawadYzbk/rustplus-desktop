@@ -14,6 +14,7 @@
         xmlns:achievements="using:RustPlusDesk.Avalonia.Features.Achievements"
         xmlns:shell="using:RustPlusDesk.Avalonia.Shell"
         xmlns:cloud="using:RustPlusDesk.Avalonia.Features.Cloud"
+        xmlns:tutorials="using:RustPlusDesk.Avalonia.Features.Tutorials"
         xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
         x:Class="RustPlusDesk.Avalonia.Shell.MainWindow"
         x:DataType="servers:ServersViewModel"
@@ -127,7 +128,7 @@
                         AutomationProperties.Name="Close settings"><icons:Icon Symbol="Dismiss24" /></Button>
               </Grid>
             </Border>
-            <settings:SettingsView Grid.Row="1" Margin="16,12,16,16" DataContext="{Binding SettingsPage}" />
+            <settings:SettingsView x:Name="SettingsPanel" Grid.Row="1" Margin="16,12,16,16" DataContext="{Binding SettingsPage}" />
           </Grid>
           <Grid RowDefinitions="Auto,*" Background="{DynamicResource Surface}" IsVisible="{Binding IsDeathStatsSelected}">
             <Border Classes="toolbar">
@@ -162,6 +163,19 @@
               </Grid>
             </Border>
             <achievements:AchievementsView Grid.Row="1" Margin="16,12,16,16" DataContext="{Binding Achievements}" />
+          </Grid>
+
+          <!--  Reference the tutorial centre: the page that lists the tutorials and what has been done of each.  -->
+          <Grid RowDefinitions="Auto,*" Background="{DynamicResource Surface}" IsVisible="{Binding IsTutorialsSelected}">
+            <Border Classes="toolbar">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                <icons:Icon Symbol="Book24" FontSize="20" Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="{DynamicResource Tutorials.Center.Title}" Classes="title" />
+                <Button Grid.Column="2" Classes="icon" Command="{Binding CloseToolCommand}" ToolTip.Tip="Close (Esc)"
+                        AutomationProperties.Name="Close the tutorial centre"><icons:Icon Symbol="Dismiss24" /></Button>
+              </Grid>
+            </Border>
+            <tutorials:TutorialsView Grid.Row="1" Margin="16,12,16,16" DataContext="{Binding TutorialsPage}" />
           </Grid>
         </Grid>
       </SplitView>
@@ -231,5 +245,9 @@
       </Border>
     </Border>
     <toasts:ToastHost Grid.RowSpan="3" DataContext="{Binding Toasts}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,16,36" />
+
+    <!--  Reference the tutorial overlay: it dims the app and points at what the step is about, so it sits over
+          everything else in the window.  -->
+    <tutorials:TutorialOverlay x:Name="TutorialOverlayHost" Grid.RowSpan="3" DataContext="{Binding TutorialOverlay}" />
   </Grid>
 </Window>

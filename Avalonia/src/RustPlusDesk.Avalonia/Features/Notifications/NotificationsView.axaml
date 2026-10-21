@@ -21,7 +21,7 @@
         <RadioButton Classes="chip" Content="{DynamicResource Alarms}" IsChecked="{Binding ShowAlarms, Mode=OneWay}" GroupName="NotificationFilter" Command="{Binding SetFilterCommand}" CommandParameter="{x:Static core:NotificationFilter.Alarms}" AutomationProperties.Name="Alarm notifications" />
         <RadioButton Classes="chip" Content="{DynamicResource NotificationsDeaths}" IsChecked="{Binding ShowDeaths, Mode=OneWay}" GroupName="NotificationFilter" Command="{Binding SetFilterCommand}" CommandParameter="{x:Static core:NotificationFilter.Deaths}" AutomationProperties.Name="Death notifications" />
       </StackPanel>
-      <TextBox Grid.Column="1" Text="{Binding SearchText}" PlaceholderText="{DynamicResource SearchNotificationsPlaceholder}" AutomationProperties.Name="Search notifications">
+      <TextBox x:Name="NotificationsSearch" Grid.Column="1" Text="{Binding SearchText}" PlaceholderText="{DynamicResource SearchNotificationsPlaceholder}" AutomationProperties.Name="Search notifications">
         <TextBox.InnerLeftContent><icons:Icon Symbol="Search24" FontSize="15" Margin="8,0,0,0" Foreground="{DynamicResource TextSubtle}" /></TextBox.InnerLeftContent>
       </TextBox>
     </Grid>

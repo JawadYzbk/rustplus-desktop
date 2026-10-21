@@ -40,7 +40,7 @@
     </StackPanel>
     <StackPanel Grid.Row="1" Spacing="6">
       <Grid ColumnDefinitions="*,110" ColumnSpacing="8" IsVisible="{Binding HasDevices}">
-        <TextBox Text="{Binding SearchText}" PlaceholderText="{DynamicResource UiSearchDevices}" AutomationProperties.Name="Search devices" />
+        <TextBox x:Name="DevicesSearch" Text="{Binding SearchText}" PlaceholderText="{DynamicResource UiSearchDevices}" AutomationProperties.Name="Search devices" />
         <ComboBox Grid.Column="1" ItemsSource="{Binding KindFilters}" SelectedItem="{Binding KindFilter}" HorizontalAlignment="Stretch"
                   AutomationProperties.Name="Device type filter" />
       </Grid>

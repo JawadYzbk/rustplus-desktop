@@ -12,7 +12,7 @@
       <Grid RowDefinitions="Auto,*" RowSpacing="6">
         <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontSize="11" Classes="muted" Margin="4,0" />
         <ScrollViewer Grid.Row="1" MaxHeight="180" HorizontalScrollBarVisibility="Disabled">
-          <ItemsControl ItemsSource="{Binding Members}">
+          <ItemsControl x:Name="TeamList" ItemsSource="{Binding Members}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:TeamMemberRow">
                 <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" Margin="4,3">

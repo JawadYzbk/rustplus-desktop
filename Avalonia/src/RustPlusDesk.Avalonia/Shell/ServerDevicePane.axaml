@@ -6,9 +6,9 @@
   <Border Background="{DynamicResource Surface}" Padding="12,16,12,10">
     <Grid RowDefinitions="Auto,*" RowSpacing="16">
       <ScrollViewer MaxHeight="360" HorizontalScrollBarVisibility="Disabled">
-        <servers:ServersView />
+        <servers:ServersView x:Name="ServersList" />
       </ScrollViewer>
-      <devices:DevicesView Grid.Row="1" DataContext="{Binding Connection.Devices}" />
+      <devices:DevicesView x:Name="DevicesList" Grid.Row="1" DataContext="{Binding Connection.Devices}" />
     </Grid>
   </Border>
 </UserControl>
