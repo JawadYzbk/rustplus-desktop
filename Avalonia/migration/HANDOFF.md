@@ -30,6 +30,8 @@ every finished slice with its commit.
      the team is offered the base codes, and a chip fills the input rather than saying it in the player's name.
   4. **The notification pictures** (`Features/Notifications`): the notification centre shows the server's own picture
      when the push carried one, and the type's glyph when it did not.
+  6. **The dock tile's own settings** (`Features/Dock`): the gear on the hovered tile opens a window over that tile's own
+     appearance and the switches that kind of tile has, written with the arrangement.
   5. **The alarm overlay, the alarm sound and the spoken alarm** (`Core/Alarms`, `Infrastructure/Alarms`,
      `Features/Alarms`): the red card in the bottom right with the way through the waiting alarms and the reference's
      three seconds, the sound a device alarm makes, the voice that reads it out loud, and the switches and the file

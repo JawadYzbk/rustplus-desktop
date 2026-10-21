@@ -11,6 +11,13 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- The dock tile's own settings: the gear on the hovered tile opens a window over that tile's own appearance - how
+  see-through it is, how big its text and its icon are, the colour its text is drawn in and how many cells it takes - and
+  the switches that kind of tile has (the clock's style and its twelve-hour time, the server information's small
+  reading, the device's picture rather than its name, the event's hidden label, the chat's shortened names, the death
+  wipe's always-visible and keep-the-newest switches, and the collapse button's map). The settings are the tile's own
+  fields, so they are written with the arrangement, and "use the dock's appearance" puts the tile back to the dock's
+  defaults.
 - The alarm overlay, the alarm sound and the spoken alarm: the alarms that are waiting are shown in a red card in the
   bottom right of the app, over nothing, with the way through them ("1/3"), a close button and the reference's three
   seconds before the card hides itself; the sound a device alarm makes is the file the user chose for that device or
