@@ -11,7 +11,7 @@ namespace RustPlusDesk.CrossPlatform.Tests;
 public sealed class SmartAlertChatTests
 {
     [TestMethod]
-    public async Task AcceptedAlarms_PostAlertAlarmTriggered_WhileConnectedWithTheFlagOn()
+    public async Task AcceptedAlarms_PostAlertAlarmTriggered_WhileConnectedWithTheFlagOn() => await UiTestSession.Current.Dispatch(async () =>
     {
         var settings = new ShopNoticeTests.MemorySettings();
         var shell = new ServersViewModel(new OneServer(), new NoPicker(), "profiles.json", new Sessions(), appSettings: settings);
@@ -38,7 +38,8 @@ public sealed class SmartAlertChatTests
         shell.Alarms.Handle(alarm with { OccurredAt = alarm.OccurredAt.AddSeconds(60) });
         Assert.AreEqual(2, shell.Activity.Lines.Count(line => line.Contains("ALARM:", StringComparison.Ordinal)));
         await shell.ShutdownAsync();
-    }
+        return true;
+    }, default);
 
     private const string AlarmGateMessage = RustPlusDesk.Core.Alarms.AlarmGate.GenericMessage;
 
