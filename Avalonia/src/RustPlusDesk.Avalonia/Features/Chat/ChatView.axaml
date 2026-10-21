@@ -6,7 +6,7 @@
              xmlns:core="clr-namespace:RustPlusDesk.Core.Chat;assembly=RustPlusDesk.Core"
              x:Class="RustPlusDesk.Avalonia.Features.Chat.ChatView" x:DataType="vm:ChatViewModel">
   <Grid RowDefinitions="Auto,*,Auto,Auto" RowSpacing="6">
-    <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+    <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="8">
       <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasClan}" VerticalAlignment="Center">
         <RadioButton Classes="chip" Content="{DynamicResource TeamTab}" IsChecked="{Binding !IsClan}" GroupName="ChatChannel" AutomationProperties.Name="Team chat" />
         <RadioButton Classes="chip" Content="{DynamicResource ClanTab}" IsChecked="{Binding IsClan}" GroupName="ChatChannel" AutomationProperties.Name="Clan chat" />
@@ -132,7 +132,25 @@
           </Button.Flyout>
         </Button>
       </StackPanel>
-      <ToggleButton Grid.Column="3" Classes="chip" IsChecked="{Binding IsSearchOpen, Mode=OneWay}" Command="{Binding ToggleSearchCommand}"
+      <!--  Reference BtnToggleQuickCommands: the commands the profile answers, as chips. A chip fills the input and the
+            player sends it, so nothing is said in their name.  -->
+      <Button Grid.Column="3" Classes="icon" ToolTip.Tip="Quick commands"
+              IsVisible="{Binding HasQuickCommands, FallbackValue=False}" AutomationProperties.Name="Show the quick commands">
+        <icons:Icon Symbol="Flash24" FontSize="14" />
+        <Button.Flyout>
+          <MenuFlyout Placement="BottomEdgeAlignedRight">
+            <ItemsControl ItemsSource="{Binding QuickCommandChips}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:QuickCommandChip">
+                  <MenuItem Header="{Binding Label}" ToolTip.Tip="{Binding Tooltip}" Click="OnQuickCommandClick"
+                            AutomationProperties.Name="{Binding Label}" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </MenuFlyout>
+        </Button.Flyout>
+      </Button>
+      <ToggleButton Grid.Column="4" Classes="chip" IsChecked="{Binding IsSearchOpen, Mode=OneWay}" Command="{Binding ToggleSearchCommand}"
                     IsVisible="{Binding IsConnected}"
                     ToolTip.Tip="Search chat" AutomationProperties.Name="Toggle chat search" Padding="8,4"><icons:Icon Symbol="Search24" /></ToggleButton>
     </Grid>

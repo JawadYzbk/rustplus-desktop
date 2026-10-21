@@ -56,9 +56,17 @@
               <Button Classes="notification" Classes.unread="{Binding IsUnread}" CommandParameter="{Binding}"
                       Command="{Binding $parent[UserControl].((vm:NotificationsViewModel)DataContext).OpenCommand}" AutomationProperties.Name="{Binding Title}">
                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                  <Border Width="36" Height="36" CornerRadius="18" Background="{DynamicResource SurfaceHover}" VerticalAlignment="Top">
-                    <icons:Icon Symbol="{Binding Symbol}" FontSize="18" Classes.alarm="{Binding IsAlarm}" Classes.death="{Binding IsDeath}" />
-                  </Border>
+                  <!--  Reference the notification centre: the server's own picture when the push sent one, and the
+                        type's glyph otherwise.  -->
+                  <Grid Width="36" Height="36" VerticalAlignment="Top">
+                    <Border CornerRadius="18" Background="{DynamicResource SurfaceHover}">
+                      <Panel>
+                        <Image Source="{Binding Picture}" Stretch="UniformToFill" IsVisible="{Binding HasPicture}" />
+                        <icons:Icon Symbol="{Binding Symbol}" FontSize="18" Classes.alarm="{Binding IsAlarm}" Classes.death="{Binding IsDeath}"
+                                    IsVisible="{Binding !HasPicture}" />
+                      </Panel>
+                    </Border>
+                  </Grid>
                   <StackPanel Grid.Column="1" Spacing="2">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                       <Ellipse Width="8" Height="8" Fill="{DynamicResource Accent}" IsVisible="{Binding IsUnread}" VerticalAlignment="Center" />

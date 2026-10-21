@@ -9,8 +9,20 @@ using RustPlusDesk.Core.Settings;
 namespace RustPlusDesk.Avalonia.Features.Notifications;
 
 /// <summary>One inbox row as shown: type icon, unread dot, title, message, server tag and time.</summary>
-public sealed record NotificationRow(InboxNotification Item, bool HideServer = false)
+public sealed partial class NotificationRow : ObservableObject
 {
+    public NotificationRow(InboxNotification item, bool hideServer = false)
+    {
+        Item = item;
+        HideServer = hideServer;
+    }
+
+    /// <summary>The notification this row shows.</summary>
+    public InboxNotification Item { get; }
+
+    /// <summary>Whether the server behind the notification is hidden (streamer mode).</summary>
+    public bool HideServer { get; }
+
     public string Title => Item.Title;
     public string Message => Item.Message;
     public bool IsUnread => !Item.IsRead;
@@ -29,8 +41,20 @@ public sealed record NotificationRow(InboxNotification Item, bool HideServer = f
     };
     public bool IsAlarm => Item.Type is "Alarm" or "OilRigAlarm";
     public bool IsDeath => Item.Type == "Death";
-}
 
+    /// <summary>
+    /// The server's own picture, when the push carried one.
+    ///
+    /// The reference's notification centre shows the picture the push sent with the server's logo, and falls back to the
+    /// type's glyph when there is none.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPicture))]
+    private global::Avalonia.Media.Imaging.Bitmap? picture;
+
+    /// <summary>Whether the row has a picture to show rather than the glyph.</summary>
+    public bool HasPicture => Picture is not null;
+}
 /// <summary>
 /// The reference Notifications tab (NotificationsTabContent + NotificationCenterService): durable history in
 /// cache/notifications_history.json, unread count, search, All/Alarms/Deaths filter, click to mark read, mark all read,
@@ -195,7 +219,32 @@ public sealed partial class NotificationsViewModel : ObservableObject
     private void Refresh()
     {
         Rows = inbox.Filter(SearchText, Filter, !IsStreamerMode).Select(item => new NotificationRow(item, IsStreamerMode)).ToList();
+        LoadPictures();
         UnreadCount = inbox.UnreadCount;
+    }
+
+    /// <summary>
+    /// The server's own picture, for the rows that have one.
+    ///
+    /// The pictures are fetched in the background and put on the rows as they arrive, so the list is never held up by a
+    /// picture that is slow to come.
+    /// </summary>
+    private void LoadPictures()
+    {
+        foreach (var row in Rows)
+        {
+            if (row.Item.ImageUrl is not { Length: > 0 } url) continue;
+
+            _ = LoadPictureAsync(row, url);
+        }
+    }
+
+    private static async Task LoadPictureAsync(NotificationRow row, string url)
+    {
+        var picture = await NotificationPictures.LoadAsync(url).ConfigureAwait(true);
+        if (picture is null) return;
+
+        row.Picture = picture;
     }
 
     private void QueueSave()

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using RustPlusDesk.Core.Chat;
+using RustPlusDesk.Core.Localization;
 
 namespace RustPlusDesk.Avalonia.Features.Chat;
 
@@ -25,6 +26,12 @@ public sealed record ChatLine(ChatMessage Message)
 /// Search filters by text or author; the message menu copies text or Steam ID, mentions the author and
 /// centres the map on them.
 /// </summary>
+/// <summary>One chip in the quick command bar: what it reads as, and what it types.</summary>
+/// <param name="Label">What the chip says.</param>
+/// <param name="Command">What it puts in the chat input.</param>
+/// <param name="Tooltip">What the chip does, under the pointer.</param>
+public sealed record QuickCommandChip(string Label, string Command, string Tooltip);
+
 public sealed partial class ChatViewModel : ObservableObject
 {
     private const int MaxLines = 300;
@@ -46,6 +53,81 @@ public sealed partial class ChatViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(HasNoMatches))]
     private string searchText = "";
     [ObservableProperty] private bool isSearchOpen;
+
+    /// <summary>The channel changed, so the chips are the ones that channel answers.</summary>
+    partial void OnChannelChanged(ChatChannel value) => RebuildQuickCommandChips();
+
+    /// <summary>Reference MainWindow.Map.Chat.QuickCommandChips: the commands the profile answers, as chips.</summary>
+    public ObservableCollection<QuickCommandChip> QuickCommandChips { get; } = [];
+
+    /// <summary>Whether there are any quick commands to offer.</summary>
+    public bool HasQuickCommands => QuickCommandChips.Count > 0;
+
+    /// <summary>Whether the quick commands are on show.</summary>
+    [ObservableProperty] private bool isQuickCommandsOpen;
+
+    /// <summary>
+    /// The selected profile's chat commands, which the chips are built from.
+    ///
+    /// The chips used to be seven hard-coded buttons reading "!upkeep" and "!heli", which was wrong in three ways: the
+    /// prefix is configurable and is not always "!", the command names are configurable too, and two of the chips named
+    /// commands that do not exist. Building them from the profile means a chip can only ever offer something the profile
+    /// actually answers.
+    /// </summary>
+    public ChatCommandSettings? CommandSettings
+    {
+        get => commandSettings;
+        set
+        {
+            commandSettings = value;
+            RebuildQuickCommandChips();
+        }
+    }
+
+    private ChatCommandSettings? commandSettings;
+
+    /// <summary>Reference RebuildQuickCommandChips: the chip bar for the channel now in front.</summary>
+    public void RebuildQuickCommandChips()
+    {
+        QuickCommandChips.Clear();
+        OnPropertyChanged(nameof(HasQuickCommands));
+        if (CommandSettings is not { } settings) return;
+
+        string prefix = settings.EffectivePrefix;
+
+        void Chip(string command, string tip) =>
+            QuickCommandChips.Add(new QuickCommandChip(prefix + command, prefix + command, tip));
+
+        // The first tool cupboard mapping is named "upkeep" when it is created, but the player can rename it; fall back
+        // to the all-cupboards command when nothing is paired yet.
+        string upkeep = settings.UpkeepMappings
+            .FirstOrDefault(mapping => !string.IsNullOrWhiteSpace(mapping.Command) && mapping.EntityId != 0)?.Command
+            ?? settings.UpkeepDetail;
+
+        Chip(upkeep, Loc.Text("QuickCmdUpkeepTip", "Tool cupboard upkeep"));
+        Chip(settings.Cargo, Loc.Text("QuickCmdCargoTip", "Cargo ship status"));
+
+        // Timers are created as "<name>,<minutes>" - a single comma-separated pair.
+        QuickCommandChips.Add(new QuickCommandChip(
+            $"{prefix}{settings.CustomTimer} 15",
+            $"{prefix}{settings.CustomTimer} oilrig,15",
+            Loc.Text("QuickCmdTimerTip", "Start a 15 minute Oil Rig timer")));
+
+        // Door codes belong to the team. A clan can hold a hundred accounts, so the clan bar offers the in-game time
+        // instead of a shortcut to the base codes.
+        if (IsClan) Chip(settings.Time, Loc.Text("QuickCmdTimeTip", "In-game time"));
+        else Chip(settings.BaseCodes, Loc.Text("QuickCmdCodeTip", "Base codes"));
+
+        Chip(settings.Pop, Loc.Text("QuickCmdPopTip", "Server player count"));
+        Chip(settings.List, Loc.Text("QuickCmdCommandsTip", "List available commands"));
+    }
+
+    /// <summary>Reference BtnQuickCommandChip_Click: the chip fills the input, and the player sends it.</summary>
+    public void UseQuickCommand(QuickCommandChip chip)
+    {
+        Draft = chip.Command;
+        IsQuickCommandsOpen = false;
+    }
     /// <summary>Short confirmation or hint from the message menu (copied, not on the map).</summary>
     [ObservableProperty] private string notice = "";
     [ObservableProperty]

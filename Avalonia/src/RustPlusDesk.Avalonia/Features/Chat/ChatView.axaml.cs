@@ -70,6 +70,17 @@ public sealed partial class ChatView : UserControl
         }
     }
 
+    /// <summary>Reference BtnQuickCommandChip_Click: the chip fills the input, and the player sends it.</summary>
+    private void OnQuickCommandClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not ChatViewModel model) return;
+        if ((sender as Control)?.DataContext is not QuickCommandChip chip) return;
+
+        model.UseQuickCommand(chip);
+        DraftBox.Focus();
+        DraftBox.CaretIndex = DraftBox.Text?.Length ?? 0;
+    }
+
     private static ChatLine? LineOf(object? sender) => (sender as MenuItem)?.DataContext as ChatLine;
 
     private async void CopyText(object? sender, RoutedEventArgs e)
