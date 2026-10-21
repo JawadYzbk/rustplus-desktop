@@ -53,10 +53,14 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     RustPlusDesk.Core.Cameras.ICameraSessionFactory? cameraSessions = null,
     RustPlusDesk.Core.MiniMap.IMiniMapSettingsStore? miniMapSettings = null,
     RustPlusDesk.Core.MiniMap.IMiniMapPositionStore? miniMapPosition = null,
-    RustPlusDesk.Core.Tutorials.ITutorialProgressStore? tutorialStore = null)
+    RustPlusDesk.Core.Tutorials.ITutorialProgressStore? tutorialStore = null,
+    RustPlusDesk.Infrastructure.Speech.ISpeech? speech = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = CreateConnection(sessionFactory, appSettings);
+
+    /// <summary>The voice that reads the companion's answers, which is the platform's own.</summary>
+    private readonly RustPlusDesk.Infrastructure.Speech.ISpeech speech = speech ?? RustPlusDesk.Infrastructure.Speech.PlatformSpeech.ForCurrentPlatform();
 
     private static ConnectionViewModel CreateConnection(IServerSessionFactory factory, RustPlusDesk.Core.Settings.IAppSettingsStore? settings)
     {
@@ -1144,6 +1148,18 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             return "The AI could not answer that.";
         }
     }
+
+    /// <summary>
+    /// The language the answer is in: the question's own, the app's own, or English.
+    ///
+    /// Reference AiCompanionSettings.AnswerLanguage: the reference offers the same three.
+    /// </summary>
+    private string AnswerLanguage() => aiSettings.AnswerLanguage switch
+    {
+        RustPlusDesk.Core.Ai.AiAnswerLanguages.App => RustPlusDesk.Core.Localization.Loc.Culture?.EnglishName ?? "English",
+        RustPlusDesk.Core.Ai.AiAnswerLanguages.English => "English",
+        _ => "English",
+    };
 
     /// <summary>What the app knows, for a question asked from chat: the clock and the population.</summary>
     private string? AiContext()

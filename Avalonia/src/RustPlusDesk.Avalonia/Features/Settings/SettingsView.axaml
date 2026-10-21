@@ -717,6 +717,34 @@
               </StackPanel>
             </Border>
           </StackPanel>
+          <!--  Reference the companion's own voice: the answer read out loud, and the language it is in.  -->
+          <Grid ColumnDefinitions="*,Auto" RowSpacing="4">
+            <StackPanel Spacing="2">
+              <TextBlock Text="Read the answers out loud" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding Ai.SpeechNote, FallbackValue=''}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <CheckBox Grid.Column="1" IsChecked="{Binding Ai.AudioAnswers, Mode=TwoWay}" VerticalAlignment="Center"
+                      AutomationProperties.Name="Read the AI answers out loud" />
+          </Grid>
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+            <TextBlock Text="Answer language" VerticalAlignment="Center" />
+            <ComboBox Grid.Column="1" ItemsSource="{Binding Ai.AnswerLanguages, FallbackValue={x:Null}}"
+                      SelectedValue="{Binding Ai.AnswerLanguage, Mode=TwoWay}" SelectedValueBinding="{Binding Key}"
+                      HorizontalAlignment="Stretch" AutomationProperties.Name="The language the answer is in">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:AiAnswerLanguageChoice"><TextBlock Text="{Binding Name}" /></DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </Grid>
+          <Grid ColumnDefinitions="*,Auto" RowSpacing="4">
+            <StackPanel Spacing="2">
+              <TextBlock Text="Tell the companion what is going on" FontWeight="SemiBold" />
+              <TextBlock Text="The server's clock and how many players are on it are sent with the question."
+                         Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <CheckBox Grid.Column="1" IsChecked="{Binding Ai.IncludeGameData, Mode=TwoWay}" VerticalAlignment="Center"
+                      AutomationProperties.Name="Send the game data with the question" />
+          </Grid>
 
           <StackPanel Orientation="Horizontal" Spacing="8">
             <Button Classes="primary" Content="{DynamicResource AppSave}" Command="{Binding Ai.SaveCommand, FallbackValue={x:Null}}"

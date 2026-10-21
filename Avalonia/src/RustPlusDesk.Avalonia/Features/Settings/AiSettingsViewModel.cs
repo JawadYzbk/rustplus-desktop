@@ -5,6 +5,11 @@ using RustPlusDesk.Core.Localization;
 
 namespace RustPlusDesk.Avalonia.Features.Settings;
 
+/// <summary>One of the languages an answer can be in.</summary>
+/// <param name="Key">The language's key, as it is written to the settings file.</param>
+/// <param name="Name">The name it is shown under.</param>
+public sealed record AiAnswerLanguageChoice(string Key, string Name);
+
 /// <summary>One provider in the picker: the id that is stored, and the name that is shown.</summary>
 /// <param name="Id">The provider's id, as it is written to the settings file.</param>
 /// <param name="Name">The name shown in the picker.</param>
@@ -184,6 +189,33 @@ public sealed partial class AiSettingsViewModel(IAiSettingsStore store) : Observ
     /// <summary>The thinking-token ceilings the picker offers.</summary>
     public IReadOnlyList<int> ThinkingTokenChoices { get; } = [0, 1024, 2048, 4096, 8192, 16384, 32768];
 
+    /// <summary>Reference AiCompanionSettings.AudioAnswers: the answer is read out loud as well as written.</summary>
+    [ObservableProperty] private bool audioAnswers = true;
+
+    /// <summary>Reference AiCompanionSettings.TextAnswers: the answer is written down as well as spoken.</summary>
+    [ObservableProperty] private bool textAnswers = true;
+
+    /// <summary>Reference AiCompanionSettings.IncludeGameData: the app tells the companion what is going on.</summary>
+    [ObservableProperty] private bool includeGameData = true;
+
+    /// <summary>Reference AiCompanionSettings.AnswerLanguage: the language the answer is in.</summary>
+    [ObservableProperty] private string answerLanguage = AiAnswerLanguages.MatchQuestion;
+
+    /// <summary>The languages an answer can be in, in the reference's order.</summary>
+    public IReadOnlyList<AiAnswerLanguageChoice> AnswerLanguages { get; } =
+        AiAnswerLanguages.All.Select(key => new AiAnswerLanguageChoice(key, AiAnswerLanguages.Name(key))).ToArray();
+
+    /// <summary>Whether this machine has a voice that can read the answers aloud.</summary>
+    public bool SpeechAvailable => Speech.IsAvailable;
+
+    /// <summary>What the voice does, or why there is none.</summary>
+    public string SpeechNote => SpeechAvailable
+        ? Loc.Text("AiCompanionVoiceWindows", "The answer is read out loud in the voice of the system.")
+        : Speech.UnavailableReason;
+
+    /// <summary>The voice that reads the answers, which is the platform's own.</summary>
+    public RustPlusDesk.Infrastructure.Speech.ISpeech Speech { get; } = RustPlusDesk.Infrastructure.Speech.PlatformSpeech.ForCurrentPlatform();
+
     /// <summary>
     /// Opens the model browser.
     ///
@@ -199,6 +231,11 @@ public sealed partial class AiSettingsViewModel(IAiSettingsStore store) : Observ
         Provider = settings.Provider;
         Model = settings.ModelFor(Provider);
         ApiKey = settings.KeyFor(Provider);
+
+        AudioAnswers = settings.AudioAnswers;
+        TextAnswers = settings.TextAnswers;
+        IncludeGameData = settings.IncludeGameData;
+        AnswerLanguage = settings.AnswerLanguage;
 
         var openRouter = settings.OpenRouter;
         ReasoningEffort = string.IsNullOrWhiteSpace(openRouter.ReasoningEffort) ? "auto" : openRouter.ReasoningEffort;
@@ -264,6 +301,7 @@ public sealed partial class AiSettingsViewModel(IAiSettingsStore store) : Observ
                 .WithProvider(Provider)
                 .WithModel(Provider, Model)
                 .WithKey(Provider, ApiKey)
+                .WithVoice(AudioAnswers, TextAnswers, IncludeGameData, AnswerLanguage)
                 .WithOpenRouter(new OpenRouterSettings
                 {
                     ReasoningEffort = ReasoningEffort,

@@ -34,6 +34,31 @@ public sealed record AiSettings
     /// <summary>The OpenRouter request options, with the reference's names and defaults.</summary>
     public OpenRouterSettings OpenRouter { get; init; } = new();
 
+    /// <summary>Reference AiCompanionSettings.AudioAnswers: the answer is read out loud as well as written.</summary>
+    public bool AudioAnswers { get; init; } = true;
+
+    /// <summary>Reference AiCompanionSettings.TextAnswers: the answer is written down as well as spoken.</summary>
+    public bool TextAnswers { get; init; } = true;
+
+    /// <summary>Reference AiCompanionSettings.StreamingVoice: the answer is spoken as it is written.</summary>
+    public bool StreamingVoice { get; init; } = true;
+
+    /// <summary>Reference AiCompanionSettings.TtsLanguage: the voice's language, empty for the system's own.</summary>
+    public string TtsLanguage { get; init; } = "";
+
+    /// <summary>
+    /// Reference AiCompanionSettings.AnswerLanguage: the language the answer is in.
+    ///
+    /// The reference's three choices are kept: the language the question was asked in, the app's own language, or English.
+    /// </summary>
+    public string AnswerLanguage { get; init; } = AiAnswerLanguages.MatchQuestion;
+
+    /// <summary>Reference AiCompanionSettings.IncludeGameData: the app tells the companion what is going on.</summary>
+    public bool IncludeGameData { get; init; } = true;
+
+    /// <summary>Reference AiCompanionSettings.CustomPromptRules: the player's own rules for the companion.</summary>
+    public string CustomPromptRules { get; init; } = "";
+
     /// <summary>Top-level fields written by the reference or a newer build that this slice does not use.</summary>
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? Extra { get; init; }
@@ -90,6 +115,19 @@ public sealed record AiSettings
 
     /// <summary>The same settings with different OpenRouter request options.</summary>
     public AiSettings WithOpenRouter(OpenRouterSettings options) => this with { OpenRouter = options };
+
+    /// <summary>
+    /// The same settings with the voice's own choices.
+    ///
+    /// The reference keeps them in the same file as the keys, so they are written and read with them.
+    /// </summary>
+    public AiSettings WithVoice(bool audioAnswers, bool textAnswers, bool includeGameData, string answerLanguage) => this with
+    {
+        AudioAnswers = audioAnswers,
+        TextAnswers = textAnswers,
+        IncludeGameData = includeGameData,
+        AnswerLanguage = string.IsNullOrWhiteSpace(answerLanguage) ? AiAnswerLanguages.MatchQuestion : answerLanguage,
+    };
 
     /// <summary>
     /// Moves the single <c>Model</c>/<c>ApiKey</c> slots this port used to write into the per-provider dictionaries.
@@ -170,7 +208,33 @@ public sealed class OpenRouterSettings
     public Dictionary<string, JsonElement>? Extra { get; set; }
 }
 
-/// <summary>Reads and writes the AI companion's settings.</summary>
+/// <summary>
+/// Reference AiCompanion.AnswerLanguages: the three languages an answer can be in.
+/// </summary>
+public static class AiAnswerLanguages
+{
+    /// <summary>Answer in the language the question was asked in.</summary>
+    public const string MatchQuestion = "MatchQuestion";
+
+    /// <summary>Answer in the language the app is in.</summary>
+    public const string App = "App";
+
+    /// <summary>Answer in English.</summary>
+    public const string English = "English";
+
+    /// <summary>The three choices, in the reference's order.</summary>
+    public static readonly string[] All = [MatchQuestion, App, English];
+
+    /// <summary>The name a choice is shown under.</summary>
+    public static string Name(string key) => key switch
+    {
+        App => "The app''s language",
+        English => "English",
+        _ => "The language the question was asked in",
+    };
+}
+
+/// <summary>Reads and writes the AI companion''s settings.</summary>
 public interface IAiSettingsStore
 {
     Task<AiSettings> LoadAsync(CancellationToken ct);
