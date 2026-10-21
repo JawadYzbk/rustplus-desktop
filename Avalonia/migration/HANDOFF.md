@@ -61,7 +61,7 @@ every finished slice with its commit.
 - Branch `codex/avalonia-migration`; slice commits `348985ac` (the AI providers, the settings card and the model
   browser), `a7bb797c` (the dock's picker and its saved arrangements), `23126278` (the tutorials' core, merged in
   `bd393cfd`) and `518a6c14` (the tutorial centre and the guided overlay). Only `Avalonia/` changes.
-- **915 tests** run locally on Windows: 915 pass, none fail, none skipped. Build zero warnings.
+- **954 tests** run locally on Windows: 954 pass, none fail, none skipped. A full rebuild is warning-free.
 - The three slices that were running as parallel subagents were killed by the model provider's rate limit part-way
   through. Their half-written work was committed as it stood and the rest was finished by hand, so nothing was lost:
   the AI providers were half done (the provider layer, the per-provider settings and the OpenRouter catalogue) and

@@ -544,11 +544,17 @@ themes, and full keyboard/screen-reader acceptance are still pending.
 
 ## Local verification
 
-- Windows: all **915 .NET test cases** pass on the current source (915 pass, 0 skipped), including the clan workspace and its role-gated
+- Windows: all **954 .NET test cases** pass on the current source (954 pass, 0 skipped), including the clan workspace and its role-gated
   commands, the device-automation rules, the achievements list, the traffic monitor, the timer sounds, the
   cameras tab and its window, the organization, recycling and socket-teardown work, the AI companion's four
   providers and the model browser, the dock's picker and its saved arrangements, and the tutorial centre and its
-  guided overlay; build and isolated-copy results are recorded in HANDOFF.md at each checkpoint.
+  guided overlay, the dock's remaining tiles and their own settings, the alarm overlay with its sound and its
+  speech, the quick command chips, the notification pictures and the companion's spoken answers; build and
+  isolated-copy results are recorded in HANDOFF.md at each checkpoint.
+- Every button, switch, combo box, slider and text box in the port's views was swept for one that does nothing: a
+  control with no command, no click handler, no pointer handler and no flyout would show up, and none does. The controls
+  that depend on a platform say so where they are offered (the peek key and the voice), rather than sitting there doing
+  nothing.
 - The cameras slice was verified the same way: a source-only isolation copy outside the repository with its own
   package cache builds with zero warnings and passes the same 802 tests (798 pass, 4 skipped), the three
   self-contained publishes (win-x64, linux-x64, osx-arm64) succeed and the published Windows executable starts and
