@@ -234,6 +234,7 @@ public sealed class DeviceOrganizerViewModelTests
         }
         public Task<DeviceEditResult> GroupAsync(string path, ServerSummary original, string deviceKey, string name, CancellationToken ct) => throw new AssertFailedException();
         public Task<DeviceEditResult> SaveAlarmTitleAsync(string path, ServerSummary original, string deviceKey, string title, CancellationToken ct) => throw new AssertFailedException();
+        public Task<DeviceEditResult> SaveAlarmAudioAsync(string path, ServerSummary original, string deviceKey, string? audioFilePath, CancellationToken ct) => throw new AssertFailedException();
         public Task<DeviceEditResult> MoveAsync(string path, ServerSummary original, string deviceKey, string? parentKey, int? index, CancellationToken ct) => throw new AssertFailedException();
         public Task<DeviceDeleteResult> DeleteAsync(string path, ServerSummary original, string deviceKey, CancellationToken ct) => throw new AssertFailedException();
     }

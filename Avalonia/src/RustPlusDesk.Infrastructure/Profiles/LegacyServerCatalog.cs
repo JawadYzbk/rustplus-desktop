@@ -63,6 +63,7 @@ public sealed class LegacyServerCatalog : IServerCatalog
                 DeviceKey = key,
                 Alias = device.Alias,
                 InGameAlarmTitle = device.InGameAlarmTitle,
+                AudioFilePath = device.AudioFilePath,
                 CustomIconId = device.CustomIconId,
                 CustomIconShortName = device.CustomIconShortName,
                 PairedX = device.PairedX,
@@ -90,6 +91,8 @@ public sealed class LegacyServerCatalog : IServerCatalog
         public string? Name { get; init; }
         public string? Alias { get; init; }
         public string? InGameAlarmTitle { get; init; }
+        /// <summary>Reference SmartDevice.AudioFilePath: the sound this alarm makes, when it has one of its own.</summary>
+        public string? AudioFilePath { get; init; }
         public int? CustomIconId { get; init; }
         public string? CustomIconShortName { get; init; }
         /// <summary>Reference SmartDevice.PairedX: the position a proximity rule anchors to.</summary>

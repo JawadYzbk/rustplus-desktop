@@ -13,6 +13,7 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
 {
     private readonly string path;
     private readonly IDeviceProfileEditor editor;
+    private readonly Func<Task<string?>>? pickSound;
     private ServerSummary current;
     private bool changed;
     private bool closing;
@@ -46,6 +47,13 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
     [ObservableProperty] private string alarmTitle = "";
     public bool IsAlarm => Selected?.Kind == DeviceKind.Alarm;
     private bool CanEditAlarm => CanEdit && IsAlarm;
+    /// <summary>Reference SmartDevice.AudioFilePath: the sound this alarm makes, when it has one of its own.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasAlarmAudio))]
+    private string alarmAudioPath = "";
+
+    /// <summary>Whether this alarm has a sound file of its own.</summary>
+    public bool HasAlarmAudio => !string.IsNullOrWhiteSpace(AlarmAudioPath);
     [ObservableProperty] private string groupName = "Group";
     [ObservableProperty] private IReadOnlyList<DeviceGroupChoice> destinations = [];
     [ObservableProperty] private DeviceGroupChoice? destination;
@@ -76,10 +84,12 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
     private IReadOnlyList<PairedDevice> Siblings => ParentKey is { } key
         ? Devices.SelectMany(item => item.DescendantsAndSelf()).First(item => item.DeviceKey == key).Children : Devices;
 
-    public DeviceOrganizerViewModel(string path, ServerSummary original, IDeviceProfileEditor editor, IReadOnlyList<DeviceIcon>? icons = null)
+    public DeviceOrganizerViewModel(string path, ServerSummary original, IDeviceProfileEditor editor,
+        IReadOnlyList<DeviceIcon>? icons = null, Func<Task<string?>>? pickSound = null)
     {
         this.path = path; current = original; this.editor = editor;
         this.icons = icons ?? [];
+        this.pickSound = pickSound;
         Selected = Devices.FirstOrDefault();
     }
 
@@ -89,6 +99,7 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
         OnPropertyChanged(nameof(DeleteConfirmation));
         Alias = value?.Alias ?? "";
         AlarmTitle = value?.InGameAlarmTitle ?? "";
+        AlarmAudioPath = value?.AudioFilePath ?? "";
         IconSearch = "";
         SelectedIcon = icons.FirstOrDefault(icon => icon.Id == value?.CustomIconId || icon.ShortName == value?.CustomIconShortName);
         var choices = new List<DeviceGroupChoice> { new("All devices", null) };
@@ -115,6 +126,28 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
     private Task ResetIconAsync(CancellationToken ct) => SaveAsync((server, key) => editor.SaveIconAsync(path, server, key, null, null, ct));
     [RelayCommand(CanExecute = nameof(CanEditAlarm))]
     private Task SaveAlarmTitleAsync(CancellationToken ct) => SaveAsync((server, key) => editor.SaveAlarmTitleAsync(path, server, key, AlarmTitle, ct));
+
+    /// <summary>Reference OnSelectAlarmAudioFileClick: the user chooses the sound this alarm makes.</summary>
+    [RelayCommand(CanExecute = nameof(CanEditAlarm))]
+    private async Task PickAlarmAudioAsync()
+    {
+        if (pickSound is not { } pick) return;
+        string? file = await pick();
+        if (string.IsNullOrWhiteSpace(file)) return;
+        AlarmAudioPath = file;
+        await SaveAudioAsync(CancellationToken.None);
+    }
+
+    /// <summary>Reference OnResetAlarmAudioFileClick: the sound goes back to the one the app ships.</summary>
+    [RelayCommand(CanExecute = nameof(CanEditAlarm))]
+    private async Task ResetAlarmAudioAsync()
+    {
+        AlarmAudioPath = "";
+        await SaveAudioAsync(CancellationToken.None);
+    }
+
+    private Task SaveAudioAsync(CancellationToken ct) =>
+        SaveAsync((server, key) => editor.SaveAlarmAudioAsync(path, server, key, AlarmAudioPath, ct));
     [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task GroupAsync(CancellationToken ct) => SaveAsync((server, key) => editor.GroupAsync(path, server, key, GroupName, ct));
     [RelayCommand(CanExecute = nameof(CanEdit))]
@@ -201,5 +234,6 @@ public sealed partial class DeviceOrganizerViewModel : ObservableObject
         foreach (var command in Commands) if (command.ExecutionTask is { } task) await task;
     }
 
-    private IAsyncRelayCommand[] Commands => [RenameCommand, SaveIconCommand, ResetIconCommand, SaveAlarmTitleCommand, GroupCommand, MoveCommand, MoveUpCommand, MoveDownCommand, DeleteCommand];
+    private IAsyncRelayCommand[] Commands => [RenameCommand, SaveIconCommand, ResetIconCommand, SaveAlarmTitleCommand,
+        PickAlarmAudioCommand, ResetAlarmAudioCommand, GroupCommand, MoveCommand, MoveUpCommand, MoveDownCommand, DeleteCommand];
 }

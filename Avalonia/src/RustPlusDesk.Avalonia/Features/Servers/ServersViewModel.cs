@@ -313,6 +313,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         var server = SelectedServer;
         engine.Reset();
         engine.Settings = RustPlusDesk.Core.Chat.ChatCommandSettings.Defaults;
+        Connection.Chat.CommandSettings = engine.Settings;
         if (chatCommandStore is null || server is null)
         {
             Timers.Prefix = engine.Settings.EffectivePrefix;
@@ -321,7 +322,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         try
         {
             var settings = await chatCommandStore.GetAsync(path, server.ProfileKey, CancellationToken.None);
-            if (SourcePath == path && SelectedServer == server) engine.Settings = settings;
+            if (SourcePath == path && SelectedServer == server) { engine.Settings = settings; Connection.Chat.CommandSettings = settings; }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
         {
@@ -580,7 +581,12 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     {
         var model = new RustPlusDesk.Avalonia.Features.Alarms.AlarmsViewModel
         {
-            GenericPopupEnabled = appSettings?.Get(RustPlusDesk.Core.Settings.SettingKeys.GenericAlarmPopupEnabled, false) ?? false
+            GenericPopupEnabled = appSettings?.Get(RustPlusDesk.Core.Settings.SettingKeys.GenericAlarmPopupEnabled, false) ?? false,
+            // The alarm switches live in the settings, so the alarm model reads them there and they take effect at once.
+            Settings = appSettings,
+            // The device behind an alarm knows the sound file of its own.
+            FindDevice = id => Connection.Devices.Devices.SelectMany(row => row.DescendantsAndSelf())
+                .FirstOrDefault(row => row.Definition.EntityId == id)?.Definition
         };
         // Reference ShowAlarmPopup: an Oil Rig Smart Alarm is reported as an event, never as an alarm popup.
         model.Intercept = TryHandleOilRigAlarm;
@@ -674,7 +680,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
 
     private Settings.SettingsViewModel CreateSettings()
     {
-        var model = new Settings.SettingsViewModel(appSettings, key => Servers.FirstOrDefault(server => $"{server.Host}:{server.Port}" == key)?.Name, launchAtLogin)
+        var model = new Settings.SettingsViewModel(appSettings, key => Servers.FirstOrDefault(server => $"{server.Host}:{server.Port}" == key)?.Name, launchAtLogin,
+            pickSound)
         {
             Map = Connection.Map,
             Activity = Activity,
@@ -684,7 +691,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
                 () => SelectedServer is { } server ? (SourcePath, server) : null, ReloadAfterCustomMapChangeAsync),
             ChatCommands = chatCommandStore is null ? null : new(chatCommandStore,
                 () => SelectedServer is { } server ? (SourcePath, server) : null,
-                settings => { if (ChatCommandEngine is { } engine) engine.Settings = settings; },
+                settings => { if (ChatCommandEngine is { } engine) engine.Settings = settings; Connection.Chat.CommandSettings = settings; },
                 () => Connection.Clan.Roles),
             ShowAiHistory = () => OpenAiHistoryCommand.Execute(null),
             Automation = automationStore is null ? null : new(automationStore,
@@ -719,6 +726,8 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         };
         ObserveStreamerMode();
         model.GenericAlarmPopupChanged += value => Alarms.GenericPopupEnabled = value;
+        // The alarm switches reach the alarm model at once, so the card on the screen follows them.
+        model.AlarmSettingsChanged += () => Alarms.ApplySettings();
         return model;
     }
     private Hotkeys.HotkeysViewModel? hotkeys;
@@ -1921,7 +1930,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         IsBusy = true;
         try
         {
-            Organizer = new(SourcePath, selected, deviceEditor!, deviceIcons)
+            Organizer = new(SourcePath, selected, deviceEditor!, deviceIcons, pickSound is null ? null : () => pickSound())
             {
                 DevicesRemoved = ids => Hotkeys.RemoveDevices(selected.Host, selected.Port, ids)
             };

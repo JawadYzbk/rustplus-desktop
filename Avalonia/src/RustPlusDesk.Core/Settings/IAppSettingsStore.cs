@@ -27,6 +27,11 @@ public static class SettingKeys
     public const string RailShowLabels = "RailShowLabels";                 // default false
     public const string SidebarWidth = "SidebarWidth";                     // default 420
     public const string GenericAlarmPopupEnabled = "GenericAlarmPopupEnabled"; // default false
+    public const string GenericAlarmOverlayEnabled = "GenericAlarmOverlayEnabled"; // default true: the red card in the corner
+    public const string GenericAlarmOverlayAutoHide = "GenericAlarmOverlayAutoHide"; // default true: the card hides itself after three seconds
+    public const string GenericAlarmAudioEnabled = "GenericAlarmAudioEnabled"; // default true: the alarm makes a sound
+    public const string GenericAlarmAudioFilePath = "GenericAlarmAudioFilePath"; // "" = the sound the app ships
+    public const string GenericAlarmSpeechEnabled = "GenericAlarmSpeechEnabled"; // default false: the alarm is read out loud
     public const string AnnounceSpawnsMaster = "AnnounceSpawnsMaster";     // default false: chat alerts master
     public const string AnnounceNewShops = "AnnounceNewShops";             // default false
     public const string AnnounceCargo = "AnnounceCargo";                   // default false: cargo spawn

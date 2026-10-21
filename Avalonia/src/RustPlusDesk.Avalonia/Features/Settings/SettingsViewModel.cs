@@ -2,8 +2,11 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using RustPlusDesk.Core.Alarms;
+using RustPlusDesk.Core.Localization;
 using RustPlusDesk.Core.Notifications;
 using RustPlusDesk.Core.Settings;
+using RustPlusDesk.Infrastructure.Alarms;
 
 namespace RustPlusDesk.Avalonia.Features.Settings;
 
@@ -27,13 +30,18 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly IAppSettingsStore? settings;
     private readonly Func<string, string?> serverName;
     private readonly ILaunchAtLogin? launchAtLogin;
+    private readonly Func<Task<string?>>? pickSound;
+    private IAlarmSpeech? speech;
     private bool revertingAutoStart;
 
-    public SettingsViewModel(IAppSettingsStore? settings, Func<string, string?>? serverName = null, ILaunchAtLogin? launchAtLogin = null)
+    public SettingsViewModel(IAppSettingsStore? settings, Func<string, string?>? serverName = null, ILaunchAtLogin? launchAtLogin = null,
+        Func<Task<string?>>? pickSound = null, IAlarmSpeech? speech = null)
     {
         this.settings = settings;
         this.serverName = serverName ?? (_ => null);
         this.launchAtLogin = launchAtLogin;
+        this.pickSound = pickSound;
+        this.speech = speech;
         autoConnect = settings?.Get(SettingKeys.AutoConnectEnabled, false) ?? false;
         autoStart = settings?.Get(SettingKeys.AutoStartEnabled, false) ?? false;
         minimizeToTray = settings?.Get(SettingKeys.MinimizeToTray, false) ?? false;
@@ -126,12 +134,41 @@ public sealed partial class SettingsViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(RetentionText))]
     private int retentionDays;
     [ObservableProperty] private bool genericAlarmPopup;
+    /// <summary>Reference GenericAlarmOverlayEnabled: the red card in the corner for an alarm without a device.</summary>
+    [ObservableProperty] private bool genericAlarmOverlay;
+    /// <summary>Reference the overlay's auto-hide: the card hides itself after three seconds.</summary>
+    [ObservableProperty] private bool genericAlarmAutoHide;
+    /// <summary>Reference GenericAlarmAudioEnabled: the alarm makes a sound.</summary>
+    [ObservableProperty] private bool genericAlarmAudio;
+    /// <summary>The alarm is read out loud in the voice of the system.</summary>
+    [ObservableProperty] private bool genericAlarmSpeech;
+    /// <summary>Reference GenericAlarmAudioFilePath: the sound the user chose for an alarm without a device.</summary>
+    [ObservableProperty] private string genericAlarmSoundFile = "";
     public string RetentionText => $"{RetentionDays.ToString(CultureInfo.CurrentCulture)} days";
     public ObservableCollection<MutedServerRow> MutedServers { get; } = [];
     public bool HasMutedServers => MutedServers.Count > 0;
 
     /// <summary>Raised when the generic alarm popup setting changes (the alarm model applies it live).</summary>
     public event Action<bool>? GenericAlarmPopupChanged;
+
+    /// <summary>Raised when an alarm setting changes, so the alarm model applies it at once.</summary>
+    public event Action? AlarmSettingsChanged;
+
+    /// <summary>The platform's voice, which reads the alarm out loud.</summary>
+    public IAlarmSpeech Speech => speech ??= AlarmSpeech.ForCurrentPlatform();
+
+    /// <summary>Whether this platform can read the alarm out loud.</summary>
+    public bool SpeechAvailable => Speech.IsAvailable;
+
+    /// <summary>What the voice does, or why there is none.</summary>
+    public string SpeechNote => SpeechAvailable
+        ? Loc.Text("AlarmSpeechNote", "The alarm is read out loud in the voice of the system.")
+        : Speech.UnavailableReason;
+
+    /// <summary>The sound the alarm makes: the file the user chose, or the one the app ships.</summary>
+    public string GenericAlarmSoundText => string.IsNullOrWhiteSpace(GenericAlarmSoundFile)
+        ? Loc.Text("AlarmSoundDefault", "The sound the app ships.")
+        : Path.GetFileName(GenericAlarmSoundFile);
 
     /// <summary>
     /// Reference TrackingService.MiniMapPeekHotkey: the key that is held to see the map over the game.
@@ -192,6 +229,45 @@ public sealed partial class SettingsViewModel : ObservableObject
         settings?.Set(SettingKeys.GenericAlarmPopupEnabled, value);
         GenericAlarmPopupChanged?.Invoke(value);
     }
+    partial void OnGenericAlarmOverlayChanged(bool value)
+    {
+        settings?.Set(SettingKeys.GenericAlarmOverlayEnabled, value);
+        AlarmSettingsChanged?.Invoke();
+    }
+    partial void OnGenericAlarmAutoHideChanged(bool value)
+    {
+        settings?.Set(SettingKeys.GenericAlarmOverlayAutoHide, value);
+        AlarmSettingsChanged?.Invoke();
+    }
+    partial void OnGenericAlarmAudioChanged(bool value)
+    {
+        settings?.Set(SettingKeys.GenericAlarmAudioEnabled, value);
+        AlarmSettingsChanged?.Invoke();
+    }
+    partial void OnGenericAlarmSpeechChanged(bool value)
+    {
+        settings?.Set(SettingKeys.GenericAlarmSpeechEnabled, value);
+        AlarmSettingsChanged?.Invoke();
+    }
+    partial void OnGenericAlarmSoundFileChanged(string value)
+    {
+        settings?.Set(SettingKeys.GenericAlarmAudioFilePath, value);
+        AlarmSettingsChanged?.Invoke();
+    }
+
+    /// <summary>Reference OnSelectAlarmAudioFileClick: the user chooses the sound an alarm without a device makes.</summary>
+    [RelayCommand]
+    private async Task PickGenericAlarmSoundAsync()
+    {
+        if (pickSound is not { } pick) return;
+        string? path = await pick();
+        if (string.IsNullOrWhiteSpace(path)) return;
+        GenericAlarmSoundFile = path;
+    }
+
+    /// <summary>Reference OnResetAlarmAudioFileClick: the sound goes back to the one the app ships.</summary>
+    [RelayCommand]
+    private void ResetGenericAlarmSound() => GenericAlarmSoundFile = "";
 
     /// <summary>Reference PopulateMutedServers: saved name, else the matching profile's name, else the endpoint.</summary>
     public void RefreshMuted()

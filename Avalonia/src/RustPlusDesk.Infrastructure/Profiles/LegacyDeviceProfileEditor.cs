@@ -37,6 +37,14 @@ public sealed class LegacyDeviceProfileEditor : IDeviceProfileEditor
             return selected.Node;
         }, cancellationToken);
 
+    /// <summary>Reference OnSelectAlarmAudioFileClick: the sound this alarm makes, and none when it is empty.</summary>
+    public Task<DeviceEditResult> SaveAlarmAudioAsync(string path, ServerSummary original, string deviceKey, string? audioFilePath, CancellationToken cancellationToken)
+        => EditAsync(path, original, deviceKey, (root, selected) =>
+        {
+            selected.Node["AudioFilePath"] = string.IsNullOrWhiteSpace(audioFilePath) ? null : audioFilePath.Trim();
+            return selected.Node;
+        }, cancellationToken);
+
     public Task<DeviceEditResult> GroupAsync(string path, ServerSummary original, string deviceKey, string name, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);

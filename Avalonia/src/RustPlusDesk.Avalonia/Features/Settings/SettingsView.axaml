@@ -924,12 +924,59 @@
       <Border Classes="panel" Padding="16">
         <StackPanel Spacing="12">
           <TextBlock Text="GENERIC SMART ALARMS" Classes="section" />
+          <TextBlock Text="An alarm that does not name a paired device is a generic alarm. These switches say what happens when one comes in."
+                     Classes="muted" FontSize="12" TextWrapping="Wrap" />
           <Grid ColumnDefinitions="*,Auto">
             <StackPanel>
               <TextBlock Text="Popup window" FontWeight="SemiBold" />
               <TextBlock Text="Alarms that do not name a paired device open the Incoming Alarms window." Classes="muted" FontSize="12" TextWrapping="Wrap" />
             </StackPanel>
             <ToggleSwitch Grid.Column="1" IsChecked="{Binding GenericAlarmPopup}" OnContent="" OffContent="" AutomationProperties.Name="Popup window for generic alarms" />
+          </Grid>
+          <!--  Reference the in-app alert toggle: the red alarm card in the corner of the app.  -->
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="{DynamicResource InAppAlert}" FontWeight="SemiBold" />
+              <TextBlock Text="Shows the red alarm card in the corner of the screen, with the alarms that are waiting." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding GenericAlarmOverlay}" OnContent="" OffContent="" AutomationProperties.Name="In-app alert for generic alarms" />
+          </Grid>
+          <!--  Reference the overlay's auto-hide: the card closes itself after three seconds.  -->
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Hide the card after three seconds" FontWeight="SemiBold" />
+              <TextBlock Text="The red card closes itself three seconds after the alarm, so it never sits in the way." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding GenericAlarmAutoHide}" OnContent="" OffContent="" AutomationProperties.Name="Hide the alarm card after three seconds" />
+          </Grid>
+          <!--  Reference the audio alert toggle and the custom audio file behind it.  -->
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="{DynamicResource AudioAlert}" FontWeight="SemiBold" />
+              <TextBlock Text="Plays the alarm sound. A device with its own sound file makes that one instead." Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding GenericAlarmAudio}" OnContent="" OffContent="" AutomationProperties.Name="Audio alert for generic alarms" />
+          </Grid>
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <StackPanel>
+              <TextBlock Text="{DynamicResource CustomAudioFile}" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding GenericAlarmSoundText, FallbackValue=''}" Classes="muted" FontSize="12" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+              <Button Classes="subtle" Content="{DynamicResource CustomAudioFile}" Command="{Binding PickGenericAlarmSoundCommand, FallbackValue={x:Null}}"
+                      AutomationProperties.Name="Choose the generic alarm sound" />
+              <Button Classes="subtle" Content="{DynamicResource ResetToDefault}" Command="{Binding ResetGenericAlarmSoundCommand, FallbackValue={x:Null}}"
+                      AutomationProperties.Name="Reset the generic alarm sound" />
+            </StackPanel>
+          </Grid>
+          <!--  Reference the platform's voice: the alarm is read out loud, and a platform without a voice says so.  -->
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Read the alarm out loud" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding SpeechNote, FallbackValue=''}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding GenericAlarmSpeech}" IsEnabled="{Binding SpeechAvailable, FallbackValue=False}" OnContent="" OffContent=""
+                          AutomationProperties.Name="Read the alarm out loud" />
           </Grid>
         </StackPanel>
       </Border>

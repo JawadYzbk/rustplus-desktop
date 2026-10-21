@@ -9,6 +9,8 @@ public sealed record PairedDevice(uint EntityId, string Name, DeviceKind Kind)
     public string DeviceKey { get; init; } = "";
     public string? Alias { get; init; }
     public string? InGameAlarmTitle { get; init; }
+    /// <summary>Reference SmartDevice.AudioFilePath: the sound this alarm makes, when it has one of its own.</summary>
+    public string? AudioFilePath { get; init; }
     public int? CustomIconId { get; init; }
     public string? CustomIconShortName { get; init; }
     /// <summary>Reference SmartDevice.PairedX: where the device was last seen, used as the automation anchor.</summary>

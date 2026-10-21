@@ -14,6 +14,8 @@ public interface IDeviceProfileEditor
     Task<DeviceEditResult> SaveIconAsync(string path, ServerSummary original, string deviceKey, int? iconId, string? shortName, CancellationToken cancellationToken);
     Task<DeviceEditResult> RenameAsync(string path, ServerSummary original, string deviceKey, string alias, CancellationToken cancellationToken);
     Task<DeviceEditResult> SaveAlarmTitleAsync(string path, ServerSummary original, string deviceKey, string title, CancellationToken cancellationToken);
+    /// <summary>Reference OnSelectAlarmAudioFileClick: the sound this alarm makes, or none when it is empty.</summary>
+    Task<DeviceEditResult> SaveAlarmAudioAsync(string path, ServerSummary original, string deviceKey, string? audioFilePath, CancellationToken cancellationToken);
     Task<DeviceEditResult> GroupAsync(string path, ServerSummary original, string deviceKey, string name, CancellationToken cancellationToken);
     Task<DeviceEditResult> MoveAsync(string path, ServerSummary original, string deviceKey, string? parentKey, int? index, CancellationToken cancellationToken);
     /// <summary>Removes a device or group subtree with its owned oil-rig rules and chat-command bindings.</summary>

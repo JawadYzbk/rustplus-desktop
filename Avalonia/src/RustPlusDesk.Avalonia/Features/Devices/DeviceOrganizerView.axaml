@@ -27,6 +27,17 @@
               <TextBox Text="{Binding AlarmTitle}" AutomationProperties.Name="In-game alarm title" />
               <Button Content="Save _alarm title" Command="{Binding SaveAlarmTitleCommand}" />
             </StackPanel>
+            <!--  Reference OnSelectAlarmAudioFileClick: the sound this alarm makes, and the button that resets it.  -->
+            <StackPanel IsVisible="{Binding IsAlarm}" Spacing="6">
+              <TextBlock Text="Alarm sound file" />
+              <TextBlock Text="{Binding AlarmAudioPath}" Classes="muted" FontSize="11" TextWrapping="Wrap"
+                         AutomationProperties.Name="The sound this alarm makes" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="_Choose sound…" Command="{Binding PickAlarmAudioCommand}" AutomationProperties.Name="Choose the alarm sound" />
+                <Button Content="Reset s_ound" Command="{Binding ResetAlarmAudioCommand}" IsEnabled="{Binding HasAlarmAudio}"
+                        AutomationProperties.Name="Reset the alarm sound" />
+              </StackPanel>
+            </StackPanel>
             <TextBlock Text="New group name" />
             <TextBox Text="{Binding GroupName}" AutomationProperties.Name="New device group name" />
             <Button Content="_Group selected item" Command="{Binding GroupCommand}" />

@@ -1,0 +1,33 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RustPlusDesk.Avalonia.Features.Alarms"
+        xmlns:icons="using:RustPlusDesk.Avalonia.Shared.Icons"
+        x:Class="RustPlusDesk.Avalonia.Features.Alarms.AlarmOverlayWindow" x:DataType="vm:AlarmOverlayViewModel"
+        Title="Smart alarm" Width="360" SizeToContent="Height" CanResize="False" ShowInTaskbar="False" Topmost="True"
+        SystemDecorations="None" Background="Transparent" WindowStartupLocation="Manual">
+  <!--  Reference the alarm overlay: the red panel in the bottom right of the app, with the alarm, the way through the
+        alarms that are waiting, and the close button. It dims nothing and it never takes the focus away for long.  -->
+  <Border Background="#EE660000" BorderBrush="#FFFF5555" BorderThickness="1" CornerRadius="8" Padding="16"
+          BoxShadow="0 6 24 0 #66000000">
+    <StackPanel Spacing="6">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+        <icons:Icon Symbol="Alert24" FontSize="18" Foreground="White" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="1" Text="{DynamicResource SmartAlarm}" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" />
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" IsVisible="{Binding HasMultiple}">
+          <Button Classes="icon" Command="{Binding PreviousCommand}" IsEnabled="{Binding CanGoPrevious}"
+                  AutomationProperties.Name="Previous alarm"><icons:Icon Symbol="ChevronLeft24" FontSize="14" Foreground="White" /></Button>
+          <TextBlock Text="{Binding PagingText}" FontSize="12" Foreground="White" VerticalAlignment="Center" />
+          <Button Classes="icon" Command="{Binding NextCommand}" IsEnabled="{Binding CanGoNext}"
+                  AutomationProperties.Name="Next alarm"><icons:Icon Symbol="ChevronRight24" FontSize="14" Foreground="White" /></Button>
+        </StackPanel>
+        <Button Grid.Column="3" Classes="icon" Command="{Binding CloseCommand}"
+                AutomationProperties.Name="Close the alarm card"><icons:Icon Symbol="Dismiss24" FontSize="14" Foreground="White" /></Button>
+      </Grid>
+      <StackPanel Spacing="2">
+        <TextBlock Text="{Binding Server}" FontSize="12" Foreground="#D8FFFFFF" TextTrimming="CharacterEllipsis" />
+        <TextBlock Text="{Binding TimeText}" FontSize="12" Foreground="#D8FFFFFF" />
+      </StackPanel>
+      <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
+      <TextBlock Text="{Binding Message}" FontSize="14" Foreground="#D8FFFFFF" TextWrapping="Wrap" />
+    </StackPanel>
+  </Border>
+</Window>
