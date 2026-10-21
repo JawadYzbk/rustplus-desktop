@@ -11,6 +11,15 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
 ## Implemented
 
+- The old app's frame, in the port: the shared panel header every tool page draws (`Shared/Controls/PanelHeader.cs` - the
+  icon tile with the accent wash, the eyebrow, the title, the subtitle, the page's own actions and the close button
+  last), the title bar (the logo and the name, the Discord link, the Rust+ portal, the patch notes, the traffic readout
+  with its live badge and the notifications bell with its unread badge and its popup) and the splash window, which shows
+  the old app's artwork while the app starts and closes when the shell is ready.
+- The settings page's last sections and the reset window: Offline death notifications (the own and team death-marker
+  caps and the switch that draws them), Maintenance (the reset button) and Credits (the rustmaps.com credit), and the
+  reset window with the reference's six components - the cache and the drawings, the connection, the crosshairs, the
+  pairing, the profiles and the Steam account - each wipe run only when it is ticked.
 - The companion's spoken answers: the answer is read out loud in the voice of the platform - Windows' own voice, and
   an honest "there is no voice here" on the other platforms - and the settings card carries the switch, the three answer
   languages (the question's own, the app's own, or English) and whether the server's clock and population go with the
@@ -490,7 +499,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Cameras | The cameras the user added for the server, read from the profile, with the tiles that show what they see, the add, edit and remove actions, and the camera window with its live picture, the names of the players it sees and the controls the camera supports | The live acceptance on a server with a camera |
 | Command dock and mini-map | The mini-map window (the three shapes, the size, the opacity, the clock and population pills, the layer switches, the place on the screen), the peek key that shows it over the game while it is held, the follow switch that keeps the player in the middle, the command dock's model, its file, its cell arithmetic, its window and its first tiles (the clock in the reference's four styles, the server information with the population line, the team and clan chat, the collapse tile), the tile picker, the saved arrangements and the session tracker behind the session tile | The per-tile settings, the arrangement bar, the device, event, rule, session, Discord, AI, translate and death tiles, the mini-map as a tile; the peek needs the Windows keyboard hook, so it is a Windows feature in this port |
 | Genetics Lab/web tools | Not ported | Decide and verify portable web hosting/bridge rather than copying WebView2 |
-| Settings/localization/backups | The app settings, the device settings, the chat-command settings and the 32-language catalogue with the language picker; every label the catalogue carries follows the chosen language | The port's own wording (the empty states, the descriptions and the tooltips the reference has no string for), the backup and the reset-data flows |
+| Settings/localization/backups | The app settings, the device settings, the chat-command settings and the 32-language catalogue with the language picker; every label the catalogue carries follows the chosen language; the maintenance, credits and offline-death-notification sections and the reset-data window that wipes the chosen components | The port's own wording (the empty states, the descriptions and the tooltips the reference has no string for), the reference's backup and restore flow with its password window, and the purge of orphaned cloud data |
 | Tray/hotkeys/audio/speech/capture | The system tray: the reference's menu (the state, the time of the last pull, Open, Exit), the double-click to open, the app's own icon, and the "Minimize to Tray instead of closing" setting; the hotkeys are ported | The speech adapters, the screen capture and the per-OS availability |
 | Installer/updater | Self-contained publishes for Windows, macOS and Linux, an Inno Setup installer, a macOS `.app` bundle and a per-user Linux installation, plus the update card that finds a newer published release (`installer/`, documented in `installer/PACKAGING.md`) | Signing, replacing the running build from inside the app, native macOS/Linux appearance and the shipped app's extra payloads |
 | Raid calculator | Ported workspace tab: reference engine/tests, 165-target catalogue with artwork, categories/search, per-target methods, curated and smart mixes, comparison modes, cheapest nudge, totals, shared raid-plan.json, Discord summary copy, reference breakpoints | Tutorial targets, localization, entrance animations and native visual acceptance |
@@ -528,6 +537,27 @@ themes, and full keyboard/screen-reader acceptance are still pending.
 
 ## Next implementation slice
 
+The current program (Jawad's instruction of 2026-10-21) is the UI work: add every screen, window, panel, dialog, card and
+tile the old app has and the port does not, and rework what is already there so it reads as the old app. It runs in four
+phases; the frame is nearly done.
+
+1. **The shell frame** (`shell-frame`). In: the shared panel header (`fdbbbed4`), the title bar with its header buttons
+   and the traffic readout (`400271da`, `47938de6`) and the splash window (`0ce7daaf`). Left: the rail (the Team entry,
+   the Tools folder and the reference's order) and the bottom strip (the status line restyled).
+2. **The windows the port is still missing** (`missing-windows`), in three batches: the image gallery with its zoom and
+   the "what's new" and supporter/premium panels; the AI answer window (colour, opacity, size), the dock settings
+   overlay, the base notes and the base screenshots; then the LFG overlay, the admin panel, the cloud windows (login
+   prompt, disclaimer, features, 24×7), the device transfer, the offline deaths history, the email login, the crosshair
+   editor, the custom alerts window, the death-marker settings, the camera add dialog, the change-device-icon dialog and
+   the server info modal.
+3. **The settings categories and the remaining surfaces** (`settings-categories`, `remaining-surfaces`): the maintenance
+   card's backup, restore and purge buttons with their password window, and then the AI companion's recording and
+   transcription and the dock's Discord, AI, translate and death-track tiles.
+4. **The final audit** (`final-audit`): every window, tab, overlay and dialog of the old app walked against the port,
+   every remaining difference recorded with its reason, and the docs brought in line with the code.
+
+Recorded as deferred inside that program, each with its reason:
+
 1. The Deep Sea map view: the map mode that replaces the world map with the 27x27 underwater grid and the
    Floating City's shops. It needs its own view over the map surface, because the Deep Sea sits outside the
    world square, and the port draws the Deep Sea as an event until it does.
@@ -536,28 +566,34 @@ themes, and full keyboard/screen-reader acceptance are still pending.
    PARITY-PLAN.md rather than half-offered.
 3. The AI companion's recording and transcription: the microphone, the providers' audio paths and the
    providers' own voices, on top of the spoken answers that are in.
-4. Validate live Steam/Facepunch/FCM sign-in, pairing and sign-out on a native desktop with the user;
+4. The global chat ticker: the reference's `Global` channel is the social layer's, and this port has no social
+   layer, so nothing is drawn for it rather than a ticker that could never fill.
+5. The Steam account settings section: the linked Steam identity is already shown on the cloud account page, and
+   the section needs the cloud account model, so it is a recorded difference rather than a duplicate card.
+6. Validate live Steam/Facepunch/FCM sign-in, pairing and sign-out on a native desktop with the user;
    validate the implemented startup health checks/registration repair and add ambiguous-match resolution without losing data.
-5. Continue device import/transfer, drag gestures, cloud synchronization/deletion cleanup, notifications
+7. Continue device import/transfer, drag gestures, cloud synchronization/deletion cleanup, notifications
    and automation using the verified session/device boundary. Local alias/group/move/reorder is implemented.
-6. Port original server context menus and deletion together with its cloud cleanup; preserve all related data and consent flows.
-7. Build the original rail/sidebar/workspace arrangement using Fluent components; preserve navigation
+8. Build the original rail/sidebar/workspace arrangement using Fluent components; preserve navigation
    order and density instead of adding placeholder buttons for unported features.
-8. Validate actual server communication and the implemented socket-disconnect handling on Windows/Linux/macOS.
-9. The remaining team-chat work depends on features that are not ported yet, so each lands with its feature: the
-   chat-master (team feature master) gate needs the cloud presence election, the logic-engine chat rules need the
-   logic engine, and the timer audio/snooze and per-timer audio switches, the chinook-at-a-rig timer learning
-   and the heli crash sites belong to the timer and event work.
+9. Port the original server context menus; deletion with its cloud cleanup is in, and the menus land with the
+   server list's own surface work.
+10. Validate actual server communication and the implemented socket-disconnect handling on Windows/Linux/macOS.
+11. The remaining team-chat work depends on features that are not ported yet, so each lands with its feature: the
+    chat-master (team feature master) gate needs the cloud presence election, the logic-engine chat rules need the
+    logic engine, and the timer audio/snooze and per-timer audio switches, the chinook-at-a-rig timer learning
+    and the heli crash sites belong to the timer and event work.
 
 ## Local verification
 
-- Windows: all **954 .NET test cases** pass on the current source (954 pass, 0 skipped), including the clan workspace and its role-gated
+- Windows: all **964 .NET test cases** pass on the current source (964 pass, 0 skipped), including the clan workspace and its role-gated
   commands, the device-automation rules, the achievements list, the traffic monitor, the timer sounds, the
   cameras tab and its window, the organization, recycling and socket-teardown work, the AI companion's four
   providers and the model browser, the dock's picker and its saved arrangements, and the tutorial centre and its
   guided overlay, the dock's remaining tiles and their own settings, the alarm overlay with its sound and its
-  speech, the quick command chips, the notification pictures and the companion's spoken answers; build and
-  isolated-copy results are recorded in HANDOFF.md at each checkpoint.
+  speech, the quick command chips, the notification pictures, the companion's spoken answers, the panel header,
+  the title bar and the splash window, and the settings page's death-marker, maintenance and credits cards with
+  the reset window; build and isolated-copy results are recorded in HANDOFF.md at each checkpoint.
 - Every button, switch, combo box, slider and text box in the port's views was swept for one that does nothing: a
   control with no command, no click handler, no pointer handler and no flyout would show up, and none does. The controls
   that depend on a platform say so where they are offered (the peek key and the voice), rather than sitting there doing

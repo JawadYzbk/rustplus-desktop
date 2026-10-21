@@ -4,6 +4,52 @@
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
 every finished slice with its commit.
 
+## Twentieth run - the old app's frame and the settings the port was missing (2026-10-21)
+
+Jawad's instruction for this run: add the UI the port is still missing, and rework what is there so it reads as the old
+app - the same screens in the same places, the same layout and density, the same wording, the same colours, icons and
+illustrations, the same empty and error states, the same interactions. The old app stays the reference for how it looks;
+the port keeps its own Avalonia implementation, its cross-platform paths and its data layer.
+
+- Branch `codex/avalonia-migration`. Slices so far, in order, each of them building the Debug solution with no warnings,
+  passing the whole suite, with its surfaces rendered and saved as a `ui-*.png` under the test output:
+  1. `fdbbbed4` - **the shell's panel header** (reference `Views/Themes/PanelHeader.xaml`). `Shared/Controls/PanelHeader.cs`
+     is one templated control: the icon tile (the accent wash and the border), the eyebrow, the title, the subtitle, the
+     page's own actions and the close button last, themed once in `Styles/Components.axaml`. All ten tool pages of the
+     shell draw their header with it (`PanelHeaderTests`, `ui-panel-header.png`).
+  2. `400271da`, `47938de6` - **the title bar** (reference `MainWindow.xaml`'s header): the logo and the app's name on the
+     left; the Discord link, the Rust+ portal, the patch notes, the traffic readout and the notifications bell with its
+     unread badge on the right, the bell's popup listing the recent rows. The patch notes window reads the published
+     releases from GitHub live (`ReleaseNote`, `GitHubReleaseClient.GetReleasesAsync`) instead of copying the old app's
+     frozen notes list, and the traffic button carries the reference's live badge beside its icon.
+  3. `0ce7daaf` - **the splash window** (688×408, borderless) with the old app's artwork, the status line, the
+     indeterminate bar and the version, shown while the app starts and closed when the shell is ready (`ui-splash.png`).
+     The artwork ships as a loose file beside the executable rather than as an embedded 3.2 MB resource.
+  4. `827d1792` - **the settings page's last sections and the reset window**: Offline death notifications (`MaxSelf` and
+     `MaxTeamDeathMarkers`, `MapShowDeathTags`), the maintenance card, the credits card naming rustmaps.com, and the reset
+     window with the reference's six components, each wipe run only when it is ticked (`ui-reset-data.png`,
+     `ui-settings-bottom.png`).
+- Suite: **964 tests**, all passing; build clean at every commit.
+
+### Exact next work
+
+1. **The maintenance card's remaining buttons** (reference `BtnBackupData`, `BtnRestoreData`, `BtnPurgeOrphanedCloudData`,
+   `BackupDataModule`, `BackupPasswordDialog`): the backup module (a zip of the app's data, encrypted with the reference's
+   own AES-256/PBKDF2 file shape so a backup made by either app restores in the other), the password window, and the
+   restore's confirmation. The purge needs the cloud layer and stays deferred with its reason.
+2. **The rest of the shell frame**: the rail (the Team entry, the Tools folder and the reference's order) and the bottom
+   strip (the status line restyled). The old app's global chat ticker is deferred: it needs the cloud social layer, which
+   this port does not have - the gap goes on the record rather than a fake ticker being drawn.
+3. **The windows the port is still missing**, in three batches: the image gallery with its zoom and the "what's new" and
+   supporter/premium panels; the AI answer window (colour, opacity, size), the dock settings overlay, the base notes and
+   base screenshots; then the LFG overlay, the admin panel, the cloud windows (login prompt, disclaimer, features, 24×7),
+   the device transfer, the offline deaths history, the email login, the crosshair editor, the custom alerts window, the
+   death-marker settings, the camera add dialog, the change-device-icon dialog and the server info modal.
+4. **The remaining surfaces**: the AI companion's recording and transcription (with the platform's limits said plainly)
+   and the dock's Discord, AI, translate and death-track tiles.
+5. **The final audit**: every window, tab, overlay and dialog of the old app walked against the port, every difference
+   recorded with its reason, and the docs brought in line with the code.
+
 ## Nineteenth run - the dock's remaining tiles, the mini-map's peek and the quick commands (2026-10-21)
 
 - Branch `codex/avalonia-migration`; slice commits `6653629c` (the dock's device, event, rule, session and wipe tiles and
