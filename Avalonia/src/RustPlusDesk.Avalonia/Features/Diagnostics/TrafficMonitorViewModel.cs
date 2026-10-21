@@ -27,8 +27,11 @@ public sealed partial class TrafficMonitorViewModel(NetworkTrafficMonitor monito
     [NotifyPropertyChangedFor(nameof(Summary))]
     private int requestCount;
 
-    /// <summary>The one-line readout the title bar shows (reference BandwidthSummaryBadge).</summary>
-    public string Summary => $"{DownloadSpeed} ↓ {UploadSpeed} ↑";
+    /// <summary>
+    /// The one-line readout the title bar shows (reference BandwidthSummaryBadge): the live down and up rates, or "Off"
+    /// while the monitor is switched off.
+    /// </summary>
+    public string Summary => monitor.IsEnabled ? $"{DownloadSpeed} ↓ {UploadSpeed} ↑" : "Off";
 
     /// <summary>Reference IsRecording: the log can be paused without losing what is already there.</summary>
     public bool IsRecording

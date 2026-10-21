@@ -41,9 +41,15 @@
         <Button Classes="icon" Click="OnPatchNotes" ToolTip.Tip="Patch notes" AutomationProperties.Name="Patch notes">
           <icons:Icon Symbol="DocumentBulletList24" FontSize="16" />
         </Button>
+        <!--  Reference BtnTrafficMonitor: the accent data-usage icon with the live readout beside it, in a box of a
+              fixed width so the bar does not jitter as the rate changes.  -->
         <Button Classes="icon" Command="{Binding OpenTrafficCommand}" IsVisible="{Binding Traffic, FallbackValue=False}"
-                ToolTip.Tip="Show the network traffic of this app" AutomationProperties.Name="Network traffic">
-          <icons:Icon Symbol="DataUsage24" FontSize="15" Foreground="{DynamicResource Accent}" />
+                ToolTip.Tip="Network Traffic &amp; Bandwidth Monitor" AutomationProperties.Name="Network traffic">
+          <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+            <icons:Icon Symbol="DataUsage24" FontSize="15" Foreground="{DynamicResource Accent}" />
+            <TextBlock Text="{Binding Traffic.Summary, FallbackValue=''}" Width="104" FontSize="11"
+                       VerticalAlignment="Center" TextAlignment="Left" Foreground="{DynamicResource TextSubtle}" />
+          </StackPanel>
         </Button>
         <Button x:Name="BellButton" Classes="icon" Click="OnNotificationsBell" ToolTip.Tip="{DynamicResource AppNotificationsTitle}"
                 AutomationProperties.Name="{DynamicResource AppNotificationsTitle}">
