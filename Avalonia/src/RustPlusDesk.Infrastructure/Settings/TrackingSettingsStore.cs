@@ -9,7 +9,7 @@ namespace RustPlusDesk.Infrastructure.Settings;
 /// every save re-reads the file and applies just those keys, so settings the WPF app changed meanwhile
 /// and keys this app does not know survive. An unreadable file is backed up before it is replaced.
 /// </summary>
-public sealed class TrackingSettingsStore : IAppSettingsStore
+public sealed class TrackingSettingsStore : IAppSettingsStore, IReloadableSettingsStore
 {
     private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
     private readonly string path;
@@ -75,6 +75,21 @@ public sealed class TrackingSettingsStore : IAppSettingsStore
         catch (OperationCanceledException) { return; }
         try { await FlushAsync(CancellationToken.None).ConfigureAwait(false); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* Retried on the next change or flush. */ }
+    }
+
+    /// <summary>
+    /// Reference ReloadApplicationData's re-read of the settings: the file a restored backup replaced is the one the
+    /// app reads from here on, while a change this app made and has not written yet is kept.
+    /// </summary>
+    public void Reload()
+    {
+        lock (gate)
+        {
+            var latest = Read(out bool failed);
+            if (failed || latest is null) return;
+            foreach (var pair in latest)
+                if (!pending.ContainsKey(pair.Key)) document[pair.Key] = pair.Value?.DeepClone();
+        }
     }
 
     public async Task FlushAsync(CancellationToken ct = default)
