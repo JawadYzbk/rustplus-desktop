@@ -8,7 +8,7 @@ reference screens/components; `migration/STATUS.md` distinguishes working behavi
 
 The shell follows the supplied layout: left navigation rail, server/device panel, main map area,
 bottom activity panel and status bar. The side panel scales, resizes and collapses; Recycler opens
-from the rail. See [layout guidance](migration/LAYOUT.md). Live map rendering is still pending.
+from the rail. See [layout guidance](migration/LAYOUT.md). Standard server terrain and team/clan chat now render in the workspace; advanced map features remain pending.
 
 ## Build and run
 
@@ -84,6 +84,25 @@ The **Recycler** workspace works offline with the original 776-item catalog and 
 Search/filter items, enter quantities or use click/scroll shortcuts (Shift changes by 10), compare wild
 and outpost guaranteed/chance yields and processing times, and use **Fill stacks** or **Clear all**.
 Quantities survive filtering and closing/reopening the workspace. See [port evidence](migration/RECYCLER.md).
+
+## Map and in-game chat
+
+After connecting, the workspace loads the server terrain and monument labels. Wheel to zoom at the pointer,
+drag to pan, and use **+**, **−** or **Fit** on the map. Keyboard **+ / −**, arrow keys and **Home / 0** also work
+when the terrain has focus. **Labels** toggles monument names; **Refresh map** retries a failed load.
+A disconnect keeps the last terrain with an explicit status; selecting another profile clears it.
+Standard-map coordinates follow the original app's 1 km ocean padding on each edge. Terrain still displays
+when the world size is unavailable, with labels omitted rather than incorrectly positioned.
+Dynamic markers, grid, team positions, custom/offline/deep-sea sources, drawing, routes and the remaining map tools are pending.
+
+**Team** and **Clan** tabs share the bottom panel with **Pairing activity**. They load server history,
+receive live messages and poll history every 15 seconds. Search messages or players, load earlier messages,
+and send up to 128 characters with **Send** or **Enter**. Channels keep separate drafts and unread counts.
+Failed or uncertain sends retain the draft; check history before retrying to avoid duplicates. Accepted
+messages appear from server-returned data or incoming echoes. An unsupported clan channel reports its own error.
+History is in memory, capped at 1,000 entries per channel, and clears when the profile changes.
+Avatars, emoji picker, commands, roster and community/cloud chat remain pending. Automated verification uses
+synthetic protocol responses and terrain; real Rust+ delivery and native Linux/macOS acceptance remain required.
 
 ## Structure
 

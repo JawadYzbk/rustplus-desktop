@@ -196,6 +196,8 @@ public sealed class ConnectionRoutingTests
 
     private sealed class TestTransport(RustPlusConnection route) : IRustTransport
     {
+        public RustPlusDesk.Core.Map.IServerMap Map { get; init; } = new TestMapClient();
+        public RustPlusDesk.Core.Chat.IServerChat Chat { get; init; } = new TestChatClient();
         public IDeviceClient Devices { get; init; } = new TestDeviceClient();
         public RustPlusConnection Route { get; } = route;
         public bool Disposed { get; private set; }

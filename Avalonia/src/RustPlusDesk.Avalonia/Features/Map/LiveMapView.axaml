@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:map="using:RustPlusDesk.Avalonia.Features.Map"
+             xmlns:models="clr-namespace:RustPlusDesk.Core.Map;assembly=RustPlusDesk.Core"
+             x:Class="RustPlusDesk.Avalonia.Features.Map.LiveMapView" x:DataType="map:MapViewModel">
+  <Grid RowDefinitions="Auto,Auto,*,Auto">
+    <Grid ColumnDefinitions="*,Auto" Margin="8,4" ColumnSpacing="8">
+      <TextBlock Text="{Binding Status}" Classes="muted" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Status}" />
+      <Button Grid.Column="1" Content="Refresh map" Command="{Binding RefreshCommand}" Padding="8,3" MinHeight="28" />
+    </Grid>
+    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6" Margin="8,0,8,6">
+      <StackPanel Orientation="Horizontal" Spacing="4">
+        <Button Content="+" Click="ZoomIn" AutomationProperties.Name="Zoom in" Padding="8,3" MinWidth="28" MinHeight="28" />
+        <Button Content="−" Click="ZoomOut" AutomationProperties.Name="Zoom out" Padding="8,3" MinWidth="28" MinHeight="28" />
+        <Button Content="Fit" Click="Fit" AutomationProperties.Name="Fit map" Padding="8,3" MinHeight="28" />
+        <Button Content="Layers" Padding="8,3" MinHeight="28">
+          <Button.Flyout>
+            <Flyout>
+              <StackPanel Spacing="4">
+                <CheckBox Content="Monument labels" IsChecked="{Binding ShowMonuments}" />
+                <CheckBox Content="Grid" IsChecked="{Binding ShowGrid}" />
+                <CheckBox Content="Team positions" IsChecked="{Binding ShowTeam}" />
+                <CheckBox Content="Events and vehicles" IsChecked="{Binding ShowEvents}" />
+                <CheckBox Content="Vending machines" IsChecked="{Binding ShowShops}" />
+              </StackPanel>
+            </Flyout>
+          </Button.Flyout>
+        </Button>
+      </StackPanel>
+      <ComboBox Grid.Column="1" ItemsSource="{Binding TeamMembers}" SelectedItem="{Binding SelectedMember, Mode=TwoWay}"
+                PlaceholderText="Find teammate" HorizontalAlignment="Stretch" MinHeight="28" Padding="6,3"
+                AutomationProperties.Name="Team member to locate" ToolTip.Tip="Locate a teammate on the map">
+        <ComboBox.ItemTemplate>
+          <DataTemplate x:DataType="models:MapTeamMember"><TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" /></DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+      <CheckBox Grid.Column="2" Content="Follow" IsChecked="{Binding FollowSelectedMember}" MinHeight="28"
+                IsEnabled="{Binding SelectedMember.HasPosition, FallbackValue=False}" AutomationProperties.Name="Follow selected teammate" />
+    </Grid>
+    <map:MapSurface Grid.Row="2" x:Name="Terrain" Map="{Binding Data}" ShowMonuments="{Binding ShowMonuments}"
+                    LiveData="{Binding LiveData}" ShowGrid="{Binding ShowGrid}" ShowTeam="{Binding ShowTeam}"
+                    ShowEvents="{Binding ShowEvents}" ShowShops="{Binding ShowShops}" FocusPosition="{Binding FocusPosition}"
+                    AutomationProperties.Name="Server terrain. Scroll to zoom, drag to pan, Home to fit." />
+    <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="8,2" ColumnSpacing="8">
+      <TextBlock Text="{Binding LiveStatus}" Classes="muted" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding LiveStatus}" />
+      <Button Grid.Column="1" Content="Refresh live" Command="{Binding RefreshLiveCommand}" Padding="6,2" MinHeight="24" />
+    </Grid>
+  </Grid>
+</UserControl>

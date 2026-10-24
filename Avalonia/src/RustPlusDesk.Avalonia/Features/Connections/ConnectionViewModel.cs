@@ -11,6 +11,8 @@ namespace RustPlusDesk.Avalonia.Features.Connections;
 public sealed partial class ConnectionViewModel(IServerSessionFactory factory) : ObservableObject
 {
     public DevicesViewModel Devices { get; } = new();
+    public Features.Chat.ServerChatViewModel Chat { get; } = new();
+    public Features.Map.MapViewModel Map { get; } = new();
     private string profilesPath = "";
     private ServerSummary? selectedServer;
     private ServerClock clock = new();
@@ -47,6 +49,8 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
         profilesPath = path;
         selectedServer = server;
         Devices.Select(server?.Devices ?? []);
+        Chat.Clear();
+        Map.Clear();
         ServerName = server?.Name ?? "Select a server";
         ResetStatus();
         Phase = ConnectionPhase.Disconnected;
@@ -83,6 +87,8 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
                     using var connectedCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                     var disconnectWatch = CancelOnDisconnectAsync(session.Disconnected, connectedCancellation);
                     var clockUpdates = UpdateClockAsync(connectedCancellation.Token);
+                    var chatUpdates = Chat.RunAsync(session.Chat, connectedCancellation.Token);
+                    var mapUpdates = Map.RunAsync(session.Map, connectedCancellation.Token);
                     var deviceUpdates = target.Devices.Count > 0
                         ? Devices.RunAsync(session.Devices, connectedCancellation.Token) : Task.CompletedTask;
                     try
@@ -101,9 +107,8 @@ public sealed partial class ConnectionViewModel(IServerSessionFactory factory) :
                     {
                         connectedCancellation.Cancel();
                         await disconnectWatch;
-                        try { await clockUpdates; }
+                        try { await Task.WhenAll(clockUpdates, deviceUpdates, chatUpdates, mapUpdates); }
                         catch (OperationCanceledException) when (connectedCancellation.IsCancellationRequested) { }
-                        await deviceUpdates;
                     }
                 }
                 catch (ServerConnectionException ex) when (ex.Failure == ConnectionFailure.Unreachable && hasConnected)

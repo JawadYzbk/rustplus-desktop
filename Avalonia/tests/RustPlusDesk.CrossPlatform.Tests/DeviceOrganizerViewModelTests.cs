@@ -146,6 +146,8 @@ public sealed class DeviceOrganizerViewModelTests
     }
     private sealed class Session : IServerSession
     {
+        public RustPlusDesk.Core.Map.IServerMap Map { get; init; } = new TestMapClient();
+        public RustPlusDesk.Core.Chat.IServerChat Chat { get; init; } = new TestChatClient();
         public IDeviceClient Devices { get; } = new TestDeviceClient();
         public ServerStatus InitialStatus { get; } = new("Fixture", 1, 100, 0);
         public Task Disconnected { get; } = new TaskCompletionSource().Task;

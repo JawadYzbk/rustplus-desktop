@@ -70,6 +70,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
 
     partial void OnWorkspaceIndexChanged(int value)
     {
+        Connection.Chat.IsVisible = value == 0;
         if (value != 1 || Recycler is not null) return;
         try
         {

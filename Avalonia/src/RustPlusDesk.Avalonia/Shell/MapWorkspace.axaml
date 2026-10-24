@@ -1,11 +1,11 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:RustPlusDesk.Avalonia.Features.Servers" xmlns:account="clr-namespace:RustPlusDesk.Core.Accounts;assembly=RustPlusDesk.Core"
+             xmlns:map="using:RustPlusDesk.Avalonia.Features.Map" xmlns:chat="using:RustPlusDesk.Avalonia.Features.Chat" xmlns:vm="using:RustPlusDesk.Avalonia.Features.Servers" xmlns:account="clr-namespace:RustPlusDesk.Core.Accounts;assembly=RustPlusDesk.Core"
              x:Class="RustPlusDesk.Avalonia.Shell.MapWorkspace" x:DataType="vm:ServersViewModel">
   <Grid>
     <Grid.RowDefinitions>
       <RowDefinition Height="*" MinHeight="190" />
       <RowDefinition Height="4" />
-      <RowDefinition Height="180" MinHeight="90" MaxHeight="400" />
+      <RowDefinition Height="240" MinHeight="180" MaxHeight="400" />
     </Grid.RowDefinitions>
     <Grid RowDefinitions="Auto,*">
       <Border Background="{DynamicResource SurfaceAlt}" Padding="16,10" BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,0,0,1">
@@ -17,7 +17,8 @@
           </StackPanel>
         </Grid>
       </Border>
-      <Border Grid.Row="1" Background="{DynamicResource MapBackground}" Padding="20">
+      <map:LiveMapView Grid.Row="1" DataContext="{Binding Connection.Map}" IsVisible="{Binding HasMap}" />
+      <Border Grid.Row="1" Background="{DynamicResource MapBackground}" Padding="20" IsVisible="{Binding !Connection.Map.HasMap}">
         <ScrollViewer HorizontalScrollBarVisibility="Disabled">
         <Border Classes="card" MaxWidth="360" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center">
           <StackPanel Spacing="14">
@@ -27,7 +28,8 @@
                     IsVisible="{Binding !Connection.IsActive}" HorizontalAlignment="Center" />
             <Button Content="_Disconnect" Command="{Binding Connection.DisconnectCommand}"
                     IsVisible="{Binding Connection.IsActive}" HorizontalAlignment="Center" />
-            <TextBlock Text="Live map rendering is still being migrated. Server connections and device controls are available in this preview."
+            <Button Content="Retry map" Command="{Binding Connection.Map.RefreshCommand}" IsVisible="{Binding Connection.IsConnected}" HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding Connection.Map.Status}"
                        Classes="muted" FontSize="12" TextAlignment="Center" TextWrapping="Wrap" />
           </StackPanel>
         </Border>
@@ -37,9 +39,15 @@
     <GridSplitter Grid.Row="1" Height="4" ResizeDirection="Rows" Background="{DynamicResource CardBorder}"
                   AutomationProperties.Name="Resize activity panel" />
     <Border Grid.Row="2" Background="{DynamicResource Surface}" Padding="12,8" x:Name="ActivityPanel">
-      <Grid RowDefinitions="Auto,*" RowSpacing="8">
-        <TextBlock Text="Pairing activity" FontWeight="SemiBold" />
-        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+      <TabControl SelectedIndex="{Binding Connection.Chat.SelectedIndex, Mode=TwoWay}">
+        <TabItem Header="{Binding Connection.Chat.Team.Title}">
+          <chat:ChatLaneView DataContext="{Binding Connection.Chat.Team}" />
+        </TabItem>
+        <TabItem Header="{Binding Connection.Chat.Clan.Title}">
+          <chat:ChatLaneView DataContext="{Binding Connection.Chat.Clan}" />
+        </TabItem>
+        <TabItem Header="Pairing activity">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
           <StackPanel Spacing="6">
             <TextBlock Text="{Binding Listener.Status}" Classes="muted" TextWrapping="Wrap" />
             <TextBlock Text="{Binding Listener.HealthMessage}" Classes="muted" TextWrapping="Wrap" IsVisible="{Binding HasListener}" />
@@ -55,7 +63,8 @@
             </ItemsControl>
           </StackPanel>
         </ScrollViewer>
-      </Grid>
+        </TabItem>
+      </TabControl>
     </Border>
   </Grid>
 </UserControl>

@@ -7,14 +7,42 @@ All migration source lives inside `Avalonia/`. Migration edits do not modify the
 The initial saved-server preview is groundwork, not fulfillment of that scope. No feature may be
 dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 
+## Latest continuation — 2026-10-24
+
+- Standard Rust+ terrain now replaces the empty map workspace: authenticated map loading, native image rendering,
+  monument labels, label toggle, cursor-centered wheel zoom, drag panning, toolbar zoom/fit, keyboard +/-/arrows/Home,
+  retry and last-terrain display after disconnect. World coordinates preserve the reference standard-map 1 km ocean
+  padding on each side, north up. Missing world size displays terrain without guessing label positions.
+- Team/clan chat occupy tabs beside Pairing activity in the bottom panel. Both use typed SDK history/send/events,
+  128-character single-line input, Enter-to-send, channel-specific drafts/search, earlier-message paging, exact-message
+  deduplication, chronological history, unread counts and bounded in-memory history (1,000 per channel).
+  The event queue holds 256 messages; 15-second history reads recover missed broadcasts within server history.
+  Scrolling follows new messages only while already at the bottom. Hidden workspace channels keep counting unread.
+- Chat sends use server acknowledgement; only a server-returned message or echo appears as a delivered row.
+  Uncertain delivery keeps the draft and prompts history review; there is no automatic resend. Clan support errors
+  stay in the clan panel and do not fail the server connection. No public/community message is routed to Rust chat.
+- Map/chat requests share the existing session request limiter. Source changes clear terrain/history/drafts; disconnect,
+  reconnect and shutdown cancel and await map/chat/device/clock work before transport disposal. Late old results cannot
+  replace the next profile. Chat SDK event handlers unsubscribe on disposal. No profile/config writer changes.
+- Release build and **221 tests pass**, with no warnings. New checks include real typed SDK dispatch proxies, malformed
+  map metadata, coordinates, history/search/paging, safe errors, cancellation/late replies, compact light/dark chat,
+  keyboard sends, native map pointer/keyboard navigation, image-decode failures and combined shell renders.
+  The source-only copy outside the repository also restored, built and passed all 221 tests using the existing
+  machine package cache. Terrain in screenshots is a generated test fixture, not live server evidence.
+- Full map, chat and product parity remain pending: dynamic/team markers, grid, custom/offline/deep-sea maps, drawings,
+  routes, shops, overlays, full monument naming/styles, chat avatars/emoji/date grouping, commands, cloud/community chat,
+  moderation, localization and the other required feature rows below. Live Rust+ and native Linux/macOS acceptance
+  were not performed. The graph refresh was attempted after the source review; AST extraction finished but the
+  command exceeded its 55-second budget before confirming a completed graph update. This continuation stayed on the existing `main` checkout; no branch switch or publication.
+
 ## Implemented
 
 - Reference-layout shell: compact header, 60px navigation rail, responsive/collapsible server and device
-  panel, reserved map area, resizable pairing activity panel and bottom status bar. See `LAYOUT.md` and
+  panel, terrain workspace, resizable chat/pairing panel and bottom status bar. See `LAYOUT.md` and
   the supplied screenshot. Devices now remain beside the workspace; Recycler uses rail navigation.
-  Map rendering/tools, full logs, team/shop docks and other navigation/footer actions are still pending.
+  Advanced map tools, full logs, team/shop docks and other navigation/footer actions are still pending.
   Layout regression renders cover 1000×700, 1380×1000 and 2560×1440, sidebar keyboard resizing and
-  collapse/reopen, Recycler navigation and long names in light mode. Current suite: **202 passing cases**.
+  collapse/reopen, Recycler navigation and long names in light mode. Layout checkpoint suite: **202 passing cases**.
   Debug/Release compile cleanly and all three self-contained target publishes succeed. The source-only
   external copy passed 202 cases; after the final style/scroll refinement its seven UI cases pass again.
 
@@ -107,9 +135,9 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Server-clock calibration | Wired to live samples, independent display ticks and pause state | Native/live-server acceptance, localized countdown formatting and full original status layout |
 | Pairing/auth/accounts | Native-browser sign-in/status, FCM registration/listener, startup delivery checks, one-shot renewal, server/device pairing and re-pair, private writes, confirmed device/global sign-out | Live Steam/Facepunch/FCM acceptance and ambiguous-match resolution UI |
 | Rust+ connection/reconnect | Authenticated status session, fallback, immediate socket-disconnect handling, cancellation and recovery | Native/live-server acceptance; soft/full modes and remaining feature subscriptions |
-| Live map/markers/overlays | Not ported | Separate coordinate/state logic from rendering; choose portable map/helper hosting |
+| Live map/markers/overlays | Standard server terrain, native pan/zoom/fit, monument labels, retry and safe session ownership | Live coordinate acceptance, dynamic/team markers, grid, full original overlays/styles, custom/offline/deep-sea sources and helper hosting |
 | Smart devices/automation/timers | Confirmed switches, nested group commands, alarm/storage state, subscriptions, local alias/group/move/reorder editor | Live-server acceptance, drag gestures, empty-group cleanup, cloud sync, add/delete/import/transfer, custom icons, automation, timers, alarm notifications/audio and original layout |
-| Chat/team/clan/cloud | Not ported | Port protocol/services, moderation/history, synchronization and presentation |
+| Chat/team/clan/cloud | Team/clan history, send/echo, live subscriptions, search/paging, drafts and unread tabs | Live-server acceptance, roster, chat avatars/emoji/grouping/commands, cloud/community chat, moderation and remaining original presentation |
 | Cameras | Not ported | Validate camera SDK/runtime, stream decoding and portable rendering |
 | Genetics Lab/web tools | Not ported | Decide and verify portable web hosting/bridge rather than copying WebView2 |
 | Settings/localization/backups | Not ported | Portable settings models, resources, storage, lossless schema migration |

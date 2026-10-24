@@ -11,14 +11,20 @@ internal sealed class RustPlusTransport : IRustTransport
     private bool disposed;
     private readonly RustRequestGate requests = new();
     private readonly RustPlusDeviceClient devices;
+    private readonly RustPlusChatClient chat;
+    private readonly RustPlusMapClient map;
     private readonly TaskCompletionSource disconnected = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public Task Disconnected => disconnected.Task;
     public IDeviceClient Devices => devices;
+    public Core.Chat.IServerChat Chat => chat;
+    public Core.Map.IServerMap Map => map;
 
     public RustPlusTransport(RustPlusConnection connection)
     {
         api = new RustPlus(connection, new RustPlusSocketOptions { RequestTimeout = TimeSpan.FromSeconds(6) });
         devices = new RustPlusDeviceClient(api, requests);
+        chat = new RustPlusChatClient(api, requests);
+        map = new RustPlusMapClient(api, requests);
         api.Disconnected += OnDisconnected;
         companionSocket = connection.ServerId is not null;
     }
@@ -78,6 +84,7 @@ internal sealed class RustPlusTransport : IRustTransport
         api.Disconnected -= OnDisconnected;
         disconnected.TrySetResult();
         devices.Dispose();
+        chat.Dispose();
         try { await api.DisconnectAsync(true).WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false); }
         catch (Exception) { /* Teardown must still release the socket after a failed disconnect. */ }
         finally { api.Dispose(); }

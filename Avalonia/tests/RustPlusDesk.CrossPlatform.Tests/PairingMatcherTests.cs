@@ -103,6 +103,8 @@ public sealed class PairingMatcherTests
     private sealed class Transport : IRustTransport
     {
         public IDeviceClient Device { get; init; } = new TestDeviceClient();
+        public RustPlusDesk.Core.Map.IServerMap Map { get; init; } = new TestMapClient();
+        public RustPlusDesk.Core.Chat.IServerChat Chat { get; init; } = new TestChatClient();
         public IDeviceClient Devices => Device;
         public ServerStatus InitialStatus { get; } = new("Fixture", 1, 100, 0);
         public Task Disconnected { get; } = new TaskCompletionSource().Task;

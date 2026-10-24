@@ -261,6 +261,26 @@ public sealed class ConnectionViewModelTests
         Assert.IsTrue(session.Disposed);
     }
 
+    [TestMethod]
+    public async Task Chat_IsOwnedByConnection_AndProfileSwitchStopsWatcherAndClearsMessages()
+    {
+        var chat = new TestChatClient();
+        var session = new TestSession { Chat = chat };
+        var model = CreateModel(new TestFactory((_, _, _) => Task.FromResult<IServerSession>(session)));
+        var running = model.ConnectCommand.ExecuteAsync(null);
+        Assert.IsTrue(chat.Watching);
+        chat.Emit(ChatViewModelTests.Message(1));
+        await ChatViewModelTests.Eventually(() => model.Chat.Team.Messages.Count == 1);
+        model.Chat.Team.Draft = "old draft";
+        model.Select("another.json", new ServerSummary("Another", "another.example.test", 28082));
+        await running.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.IsFalse(chat.Watching);
+        Assert.IsFalse(model.Chat.Team.IsConnected);
+        Assert.AreEqual(0, model.Chat.Team.Messages.Count);
+        Assert.AreEqual("", model.Chat.Team.Draft);
+        Assert.IsTrue(session.Disposed);
+    }
+
     private static ConnectionViewModel CreateModel(IServerSessionFactory factory)
     {
         var model = new ConnectionViewModel(factory);
@@ -299,6 +319,8 @@ public sealed class ConnectionViewModelTests
     {
         public TaskCompletionSource Disconnection { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public Task Disconnected => Disconnection.Task;
+        public RustPlusDesk.Core.Map.IServerMap Map { get; init; } = new TestMapClient();
+        public RustPlusDesk.Core.Chat.IServerChat Chat { get; init; } = new TestChatClient();
         public RustPlusDesk.Core.Devices.IDeviceClient Devices { get; init; } = new TestDeviceClient();
         public ServerStatus InitialStatus { get; init; } = new("Live server", 42, 200, 3, 14.5);
         public Exception? ReadError { get; init; }

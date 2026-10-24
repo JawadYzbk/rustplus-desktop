@@ -1,5 +1,23 @@
 # Avalonia migration handoff — 2026-10-16
 
+## Latest continuation — 2026-10-24
+
+- Continued on the existing main checkout without switching branches. All source changes remain in Avalonia/.
+- Standard server terrain replaces the placeholder. New Core Map contract, typed SDK adapter and owned map loader
+  feed a native viewport with wheel zoom, drag pan, keyboard navigation, fit and monument labels. See STATUS.md.
+- New Core Chat contract and SDK adapter provide Team/Clan history, send/echo, events, search, paging, unread counts
+  and separate drafts. The bottom panel now has Team, Clan and Pairing activity tabs. All session fixtures implement
+  the mandatory Map/Chat contracts; production shares the existing request gate across features.
+- Release build and 221 tests pass with zero warnings, both in the repository and a source-only external copy
+  restored against the existing machine package cache. Map/chat UI images use synthetic fixtures and exercise
+  the native Avalonia control tree, including minimum shell dimensions. No live server or Linux/macOS run is claimed.
+- No data schema changes, user credentials, source-app edits, new dependencies, branch switch, commit or publication.
+- Continue the parity table: dynamic/team map markers and roster are the next map slice; retain the cloud investigation
+  in CLOUD-CONTRACT.md. Full product parity is still far from complete. Do not mark whole UI candidates complete.
+
+The dated sections below are earlier checkpoints and their test/publish counts are historical.
+
+
 ## Latest continuation — requested layout
 
 - Source checkpoint **`6cc3f083`** adds Jawad's supplied responsive layout inside `Avalonia/` only.

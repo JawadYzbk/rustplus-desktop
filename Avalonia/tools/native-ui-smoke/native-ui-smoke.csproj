@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <ApplicationManifest>../../src/RustPlusDesk.Avalonia/app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/RustPlusDesk.Avalonia/RustPlusDesk.Avalonia.csproj" />
+    <Compile Include="../../tests/RustPlusDesk.CrossPlatform.Tests/TestMapClient.cs" Link="Fixtures/TestMapClient.cs" />
+    <Compile Include="../../tests/RustPlusDesk.CrossPlatform.Tests/TestChatClient.cs" Link="Fixtures/TestChatClient.cs" />
+    <Compile Include="../../tests/RustPlusDesk.CrossPlatform.Tests/TestDeviceClient.cs" Link="Fixtures/TestDeviceClient.cs" />
+  </ItemGroup>
+</Project>

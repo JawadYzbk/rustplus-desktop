@@ -337,6 +337,8 @@ public sealed class ShellTests
 
     private sealed class PreviewSessionFactory : IServerSessionFactory, IServerSession
     {
+        public RustPlusDesk.Core.Map.IServerMap Map { get; init; } = new TestMapClient { Read = _ => Task.FromResult(MapViewTests.Fixture()), ReadLive = _ => Task.FromResult(LiveMapTests.Fixture()) };
+        public RustPlusDesk.Core.Chat.IServerChat Chat { get; init; } = new TestChatClient();
         public IDeviceClient Devices { get; } = new TestDeviceClient
         {
             Read = (device, _) => Task.FromResult(

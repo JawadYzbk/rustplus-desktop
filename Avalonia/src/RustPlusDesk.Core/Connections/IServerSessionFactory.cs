@@ -10,6 +10,8 @@ public interface IServerSessionFactory
 public interface IServerSession : IAsyncDisposable
 {
     Devices.IDeviceClient Devices { get; }
+    Chat.IServerChat Chat { get; }
+    Map.IServerMap Map { get; }
     ServerStatus InitialStatus { get; }
     /// <summary>Completes when this socket reports disconnection; scoped to this session only.</summary>
     Task Disconnected { get; }

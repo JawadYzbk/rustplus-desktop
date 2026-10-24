@@ -1,0 +1,37 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RustPlusDesk.Avalonia.Features.Chat"
+             xmlns:chat="clr-namespace:RustPlusDesk.Core.Chat;assembly=RustPlusDesk.Core"
+             x:Class="RustPlusDesk.Avalonia.Features.Chat.ChatLaneView" x:DataType="vm:ChatLaneViewModel">
+  <Grid RowDefinitions="Auto,*,Auto" RowSpacing="4" Margin="8,4">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+      <TextBox Text="{Binding Search}" PlaceholderText="Search messages or players" MinHeight="28" Padding="8,3"
+               AutomationProperties.Name="Search chat history" />
+      <Button Grid.Column="1" Content="Refresh" Command="{Binding RefreshCommand}" MinHeight="28" Padding="10,3" />
+    </Grid>
+    <ScrollViewer Grid.Row="1" x:Name="MessageScroll" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Spacing="4">
+        <Button Content="Load earlier messages" Command="{Binding LoadMoreCommand}" IsVisible="{Binding HasMore}" HorizontalAlignment="Center" />
+        <TextBlock Text="{Binding Status}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+        <ItemsControl ItemsSource="{Binding Messages}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="chat:ChatMessage">
+              <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8" Margin="0,3" ToolTip.Tip="{Binding FullTime}">
+                <TextBlock Text="{Binding LocalTime}" Classes="muted" FontSize="11" VerticalAlignment="Top" />
+                <TextBlock Grid.Column="1" Text="{Binding Author}" FontWeight="SemiBold" MaxWidth="130" TextTrimming="CharacterEllipsis" />
+                <TextBlock Grid.Column="2" Text="{Binding Text}" TextWrapping="Wrap" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </ScrollViewer>
+    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+      <TextBox x:Name="ChatInputBox" Text="{Binding Draft}" PlaceholderText="Message your in-game channel" MaxLength="128"
+               IsEnabled="{Binding IsConnected}" AutomationProperties.Name="Chat message" MinHeight="28" Padding="8,3">
+        <TextBox.KeyBindings><KeyBinding Gesture="Enter" Command="{Binding SendCommand}" /></TextBox.KeyBindings>
+      </TextBox>
+      <TextBlock Grid.Column="1" Text="{Binding CharacterCount}" FontSize="11" Classes="muted" VerticalAlignment="Center" />
+      <Button Grid.Column="2" Content="_Send" Command="{Binding SendCommand}" Classes="accent" MinHeight="28" Padding="10,3" />
+    </Grid>
+  </Grid>
+</UserControl>

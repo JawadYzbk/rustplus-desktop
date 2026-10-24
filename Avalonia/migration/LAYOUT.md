@@ -19,13 +19,15 @@ feature views. Minimum size is 1000×700 logical pixels; default size is 1380×9
 window width. The rail is 60 pixels; the side panel scales with the window between 300 and 480 pixels.
 Its divider supports pointer dragging and focused Left/Right keys. The rail toggle collapses/reopens
 the panel. Devices reopens it; Recycler keeps it available. The map fills the remaining width.
-The activity divider resizes its panel between 90 and 400 pixels, preserving the map's minimum area.
+The activity divider resizes its panel between 180 and 400 pixels (240 by default), preserving the map's minimum area.
 Server selection uses a compact dropdown, device actions wrap, and device names wrap inside the tree.
 Native window decorations and system light/dark mode remain enabled.
 
-The activity panel displays the existing safe pairing feed and health status. Connection and pairing
-commands are real. Live map rendering, map toolbars/layers, full log filtering/expansion, team/shop
-docks, remaining navigation entries, device search/filter and legacy footer actions are still pending.
+The bottom panel now offers Team, Clan and Pairing activity tabs, preserving the existing safe pairing feed
+and health status. In-game chat has history, live updates, search, paging and send controls. The map workspace
+loads standard server terrain with native pan/zoom/fit and monument labels. Advanced map tools/layers, full log
+filtering/expansion, team/shop docks, remaining navigation entries, device search/filter and legacy footer actions
+are still pending.
 Do not add inert buttons merely to make a screenshot look complete. This foundation does not establish
 full visual or shipped-feature parity.
 
@@ -39,6 +41,6 @@ Generated `ui-layout-*.png` files are under the test output folder and contain s
 
 ## Next layout work
 
-Port the real map and its tools into the reserved map area; integrate full logs, team/shop docks and
+Continue dynamic map markers, grid and the remaining tools; integrate full logs, team/shop docks and
 the remaining original navigation/actions without changing this panel arrangement. Run native visual
 acceptance at the minimum size, maximized, and at common desktop scaling factors on each target OS.
