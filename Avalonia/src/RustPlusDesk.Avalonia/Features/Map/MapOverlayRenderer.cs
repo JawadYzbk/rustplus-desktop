@@ -1,6 +1,7 @@
 using System.Globalization;
 using Avalonia;
 using Avalonia.Media;
+using Avalonia.Media.Immutable;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using RustPlusDesk.Core.Map;
@@ -10,9 +11,9 @@ namespace RustPlusDesk.Avalonia.Features.Map;
 internal sealed class MapOverlayRenderer : IDisposable
 {
     private readonly Dictionary<MapMarkerKind, Bitmap> icons = [];
-    private static readonly IBrush LabelBackground = new SolidColorBrush(Color.FromArgb(190, 15, 20, 25));
-    private static readonly Pen Outline = new(Brushes.Black, 1);
-    private static readonly Pen GridPen = new(new SolidColorBrush(Color.FromArgb(75, 255, 255, 255)), .6);
+    private static readonly IBrush LabelBackground = new ImmutableSolidColorBrush(Color.FromArgb(190, 15, 20, 25));
+    private static readonly ImmutablePen Outline = new(Brushes.Black, 1);
+    private static readonly ImmutablePen GridPen = new(new ImmutableSolidColorBrush(Color.FromArgb(75, 255, 255, 255)), .6);
 
     public MapOverlayRenderer()
     {

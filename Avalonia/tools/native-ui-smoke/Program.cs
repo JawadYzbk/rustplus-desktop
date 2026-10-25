@@ -12,6 +12,7 @@ using RustPlusDesk.Avalonia.Features.Servers;
 using RustPlusDesk.Avalonia.Services;
 using RustPlusDesk.Avalonia.Shell;
 using RustPlusDesk.Core.Connections;
+using RustPlusDesk.Core.Accounts;
 using RustPlusDesk.Core.Devices;
 using RustPlusDesk.Core.Chat;
 using RustPlusDesk.Core.Map;
@@ -31,7 +32,8 @@ internal static class Program
         string output = Path.GetFullPath(args.FirstOrDefault() ?? Path.Combine(AppContext.BaseDirectory, "captures"));
         Directory.CreateDirectory(output);
         var factory = new FixtureSessions();
-        var model = new ServersViewModel(new Catalog(), new Picker(), "fixture-profiles.json", factory, recyclerCatalog: new BundledRecyclerCatalog());
+        var model = new ServersViewModel(new Catalog(), new Picker(), "fixture-profiles.json", factory, recyclerCatalog: new BundledRecyclerCatalog(),
+            accountService: new CompanionFixture(), cloudAccountService: new CloudFixture());
         var window = new MainWindow { DataContext = model, Title = "Rust+ Desktop — native UI smoke (fixtures only)" };
         window.Opened += async (_, _) =>
         {
@@ -58,6 +60,22 @@ internal static class Program
                     }
                 }
                 window.Width = 1000; window.Height = 700;
+                model.OpenAccountCommand.Execute(null);
+                foreach (var theme in new[] { ThemeVariant.Dark, ThemeVariant.Light })
+                {
+                    window.RequestedThemeVariant = theme;
+                    await model.CloudAccount!.CheckCommand.ExecuteAsync(null);
+                    await Task.Delay(100);
+                    Capture(window, Path.Combine(output, $"cloud-signed-out-{theme}.png"));
+                    await model.CloudAccount.SignInCommand.ExecuteAsync(null);
+                    await Task.Delay(100);
+                    Capture(window, Path.Combine(output, $"cloud-signed-in-{theme}.png"));
+                    var close = window.GetVisualDescendants().OfType<Button>().Single(b => ReferenceEquals(b.Command, model.CloseAccountCommand));
+                    var closePoint = close.TranslatePoint(default, window)!.Value;
+                    Require(closePoint.Y + close.Bounds.Height <= window.ClientSize.Height, "Account close remains visible");
+                    await model.CloudAccount.SignOutCommand.ExecuteAsync(null);
+                }
+                await model.CloseAccountCommand.ExecuteAsync(null);
                 model.Connection.Map.SelectedMember = model.Connection.Map.TeamMembers[0];
                 await Task.Delay(100);
                 Require(window.GetVisualDescendants().OfType<MapSurface>().Single().ZoomLevel >= 4, "Native follow selection");
@@ -102,6 +120,20 @@ internal static class Program
         using var image = new RenderTargetBitmap(new PixelSize((int)window.ClientSize.Width, (int)window.ClientSize.Height), new Vector(96, 96));
         image.Render(window);
         image.Save(path, PngBitmapEncoderOptions.Default);
+    }
+
+    private sealed class CloudFixture : ICloudAccountService
+    {
+        public Task<CloudAccount> CheckAsync(CancellationToken ct) => Task.FromResult(new CloudAccount(CloudAccountState.SignedOut));
+        public Task<CloudAccount> SignInAsync(CancellationToken ct) => Task.FromResult(new CloudAccount(CloudAccountState.Active, "fixture-cloud", "Fixture cloud account", "fixture@example.test"));
+        public Task SignOutAsync(CancellationToken ct) => Task.CompletedTask;
+    }
+    private sealed class CompanionFixture : ICompanionAccountService
+    {
+        public Task<CompanionAccount> CheckAsync(string path, CancellationToken ct) => Task.FromResult(new CompanionAccount(AccountState.Missing));
+        public Task<CompanionAccount> SignInAsync(string path, CancellationToken ct) => throw new NotSupportedException();
+        public Task<CompanionAccount> RenewPushAsync(string path, CancellationToken ct) => throw new NotSupportedException();
+        public Task<CompanionSignOutResult> SignOutAsync(string path, CompanionSignOutScope scope, CancellationToken ct) => throw new NotSupportedException();
     }
 
     private sealed class Catalog : IServerCatalog

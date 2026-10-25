@@ -17,11 +17,13 @@ namespace RustPlusDesk.Avalonia.Features.Servers;
 public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFilePicker picker, string initialPath, IServerSessionFactory sessionFactory,
     IServerProfileEditor? profileEditor = null, IServerConnectionTester? connectionTester = null, ICompanionAccountService? accountService = null,
     ICompanionListener? companionListener = null, ICompanionPushHealth? pushHealth = null, IDeviceProfileEditor? deviceEditor = null,
-    IRecyclerCatalog? recyclerCatalog = null)
+    IRecyclerCatalog? recyclerCatalog = null, ICloudAccountService? cloudAccountService = null)
     : ObservableObject
 {
     public ConnectionViewModel Connection { get; } = new(sessionFactory);
     public CompanionAccountViewModel? Account { get; private set; }
+    public CloudAccountViewModel? CloudAccount { get; } = cloudAccountService is null ? null : new(cloudAccountService);
+    public bool HasCloudAccount => CloudAccount is not null;
     public CompanionListenerViewModel? Listener { get; private set; }
     public bool HasListener => Listener is not null;
     public bool RequiresSignIn => Account?.RequiresSignIn == true || Listener?.RequiresSignIn == true;
@@ -29,7 +31,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     private bool initialized;
     private bool pendingPairingRefresh;
     private readonly Dictionary<string, string> pairedProfileKeys = [];
-    public bool HasAccount => accountService is not null;
+    public bool HasAccount => accountService is not null || cloudAccountService is not null;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasOverlay))]
     [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
@@ -90,7 +92,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     [RelayCommand]
     private void OpenAccount()
     {
-        if (IsBusy || HasOverlay || accountService is null) return;
+        if (IsBusy || HasOverlay || !HasAccount) return;
         EnsureAccountServices();
         IsAccountOpen = true;
     }
@@ -150,6 +152,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     private async Task CloseAccountAsync()
     {
         if (Account is not null) await Account.StopAsync();
+        if (CloudAccount is not null) await CloudAccount.StopAsync();
         IsAccountOpen = false;
         await RefreshPairingsAsync();
     }
@@ -344,6 +347,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     public async Task ShutdownAsync()
     {
         shuttingDown = true;
+        if (CloudAccount is not null) await CloudAccount.StopAsync(shutdown: true);
         InitializeCommand.Cancel();
         RefreshCommand.Cancel();
         OpenFileCommand.Cancel();

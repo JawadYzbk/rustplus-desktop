@@ -67,6 +67,7 @@
         <Grid RowDefinitions="Auto,Auto" RowSpacing="16" KeyboardNavigation.TabNavigation="Cycle">
         <ScrollViewer MaxHeight="500" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Spacing="16">
+          <accounts:CloudAccountView DataContext="{Binding CloudAccount}" IsVisible="{Binding $parent[Window].((servers:ServersViewModel)DataContext).HasCloudAccount}" />
           <accounts:CompanionAccountView DataContext="{Binding Account}" IsVisible="{Binding $parent[Window].((servers:ServersViewModel)DataContext).IsAccountOpen}" />
           <accounts:CompanionListenerView DataContext="{Binding Listener}"
               IsVisible="{Binding $parent[Window].((servers:ServersViewModel)DataContext).HasListener}"

@@ -1,0 +1,18 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:RustPlusDesk.Avalonia.Features.Accounts"
+             x:Class="RustPlusDesk.Avalonia.Features.Accounts.CloudAccountView" x:DataType="local:CloudAccountViewModel">
+  <StackPanel Spacing="10">
+    <TextBlock Text="Cloud account" FontSize="20" FontWeight="SemiBold" />
+    <TextBlock Text="{Binding Account.DisplayName}" FontWeight="SemiBold" TextWrapping="Wrap" />
+    <TextBlock Text="{Binding Account.Email}" Classes="muted" TextWrapping="Wrap" />
+    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+    <TextBlock Text="Cloud login is separate from Steam pairing. Sharing consent and device sync are still pending in this preview."
+               Classes="muted" TextWrapping="Wrap" />
+    <WrapPanel Orientation="Horizontal">
+      <Button Content="_Sign in on website" Command="{Binding SignInCommand}" Margin="0,0,8,8" />
+      <Button Content="Check _cloud status" Command="{Binding CheckCommand}" Margin="0,0,8,8" />
+      <Button Content="Sign out of cloud _locally" Command="{Binding SignOutCommand}" Margin="0,0,0,8" />
+    </WrapPanel>
+    <Button Content="Cancel cloud _operation" Command="{Binding CancelCommand}" IsVisible="{Binding IsBusy}" HorizontalAlignment="Left" />
+  </StackPanel>
+</UserControl>
