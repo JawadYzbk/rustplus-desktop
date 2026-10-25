@@ -3,9 +3,11 @@
 /vendor/MapParser/
 /vendor/RustPlus.Auth/
 /Submodules/
-/experiments/
+/experiments/*
+!/experiments/Avalonia/
 /.cache/
 /artifacts/
+/.codex/
 /tools/release/package.json
 /tools/release/package-lock.json
 **/bin/
