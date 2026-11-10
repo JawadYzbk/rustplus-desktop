@@ -661,6 +661,15 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
     private Settings.SettingsViewModel? settingsPage;
     /// <summary>App settings (reference AppSettingsOverlay), ported category by category.</summary>
     public Settings.SettingsViewModel SettingsPage => settingsPage ??= CreateSettings();
+    private Settings.DataBackupViewModel? backup;
+    /// <summary>
+    /// Reference BackupDataModule: the app's data as one archive. The shell knows which profiles file is open, so it
+    /// owns the card and the reload that follows a restore.
+    /// </summary>
+    public Settings.DataBackupViewModel Backup => backup ??= new(
+        new RustPlusDesk.Infrastructure.Backup.DataBackupService(() => SourcePath),
+        Activity.Append,
+        ReloadAfterRestoreAsync);
     [RelayCommand]
     private void OpenSettings()
     {
@@ -729,6 +738,7 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
             ClearCacheAndDrawings = ClearLocalCacheAndDrawings,
             ClearCrosshairs = ClearCrosshairSettings,
             ClearProfiles = ClearSavedProfiles,
+            Backup = Backup,
             Update = updateService is null ? null : new Settings.UpdateSettingsViewModel(
                 async () => await updateService.GetLatestAsync(Settings.UpdateSettingsViewModel.InstallerAssetName, CancellationToken.None))
             {
@@ -803,6 +813,31 @@ public sealed partial class ServersViewModel(IServerCatalog catalog, IProfileFil
         Servers = [];
         SelectedServer = null;
         StatusMessage = "Open an existing profiles.json file to see your servers.";
+    }
+
+    /// <summary>
+    /// Reference ReloadApplicationData: a restored backup is read again without a restart.
+    ///
+    /// The settings are re-read from the file the backup replaced, the page is rebuilt so every card shows the restored
+    /// values, the crosshairs are loaded again and the profiles are read from the restored profiles.json (which also
+    /// re-reads the FCM configuration beside it). The connection comes back if it was up before the restore, because
+    /// the reference's reload leaves the app as it was.
+    /// </summary>
+    private async Task ReloadAfterRestoreAsync()
+    {
+        bool wasConnected = Connection.IsConnected;
+
+        if (appSettings is RustPlusDesk.Core.Settings.IReloadableSettingsStore reloadable) reloadable.Reload();
+        CrosshairSettings?.Load();
+        settingsPage = null;
+        OnPropertyChanged(nameof(SettingsPage));
+
+        await LoadAsync(SourcePath, CancellationToken.None).ConfigureAwait(true);
+
+        if (wasConnected && SelectedServer is not null && Connection.ConnectCommand.CanExecute(null))
+            Connection.ConnectCommand.Execute(null);
+
+        Activity.Append("[SYSTEM] Application data reloaded successfully after restore.");
     }
     private Hotkeys.HotkeysViewModel? hotkeys;
     /// <summary>Reference device hotkeys for the selected server.</summary>

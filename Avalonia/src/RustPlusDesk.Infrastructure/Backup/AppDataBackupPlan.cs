@@ -88,6 +88,11 @@ public static class AppDataBackupPlan
             new("console-helper.json", Path.Combine(local, "console-helper.json")),
             new("raid-plan.json", Path.Combine(local, "raid-plan.json")),
             new("shop_alerts.json", alerts),
+
+            // Reference CrosshairDataModule: the old app's saved crosshairs. This port keeps its crosshair in the
+            // settings above, but the file is carried and put back verbatim so a backup made by either app keeps it
+            // for the other.
+            new("custom_crosshairs.json", Path.Combine(local, "custom_crosshairs.json")),
         ];
     }
 }

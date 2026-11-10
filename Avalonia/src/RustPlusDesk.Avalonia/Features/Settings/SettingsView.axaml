@@ -11,6 +11,7 @@
   <UserControl.Styles>
     <Style Selector="TextBlock.muted.error"><Setter Property="Foreground" Value="{DynamicResource ConnectionDanger}" /></Style>
   </UserControl.Styles>
+  <Grid>
   <ScrollViewer x:Name="PageScroll" HorizontalScrollBarVisibility="Disabled">
     <StackPanel Spacing="14" MaxWidth="820" HorizontalAlignment="Stretch">
       <StackPanel Orientation="Horizontal" Spacing="10">
@@ -1055,13 +1056,32 @@
         </StackPanel>
       </StackPanel>
       <Border Classes="panel" Padding="16" Margin="0,6,0,0">
-        <StackPanel Spacing="12">
+        <StackPanel Spacing="8">
           <Button Classes="danger" Click="OnResetData" HorizontalAlignment="Stretch" AutomationProperties.Name="Reset the app data">
             <StackPanel Orientation="Horizontal" Spacing="6">
               <icons:Icon Symbol="ArrowReset24" FontSize="14" />
               <TextBlock Text="{DynamicResource ResetAppData}" />
             </StackPanel>
           </Button>
+          <!--  Reference BtnBackupData and BtnRestoreData: the two files side by side under the reset.  -->
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+            <Button Click="OnBackupData" HorizontalAlignment="Stretch" IsEnabled="{Binding !Backup.IsWorking}"
+                    AutomationProperties.Name="Back up the app data">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <icons:Icon Symbol="ArrowUpload24" FontSize="14" />
+                <TextBlock Text="{DynamicResource BackupData}" />
+              </StackPanel>
+            </Button>
+            <Button Grid.Column="1" Click="OnRestoreData" HorizontalAlignment="Stretch" IsEnabled="{Binding !Backup.IsWorking}"
+                    AutomationProperties.Name="Restore the app data from a backup">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <icons:Icon Symbol="ArrowDownload24" FontSize="14" />
+                <TextBlock Text="{DynamicResource RestoreData}" />
+              </StackPanel>
+            </Button>
+          </Grid>
+          <TextBlock Text="{Binding Backup.Status}" IsVisible="{Binding Backup.HasStatus, FallbackValue=False}"
+                     Classes="muted" FontSize="11" TextWrapping="Wrap" />
         </StackPanel>
       </Border>
       <!--  Reference SectionCredits: the map's monument icons are rustmaps.com's, and the old app says so.  -->
@@ -1084,4 +1104,20 @@
       </Border>
     </StackPanel>
   </ScrollViewer>
+  <!--  Reference the restore message box: the page asks before the picker opens, and the port asks with its own overlay.  -->
+  <Border Background="#B0000000" IsVisible="{Binding Backup.HasRestoreConfirmation, FallbackValue=False}">
+    <Border Classes="panel" Width="420" Padding="20" HorizontalAlignment="Center" VerticalAlignment="Center">
+      <StackPanel Spacing="12">
+        <TextBlock Text="{DynamicResource RestoreConfirmTitle}" Classes="title" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding Backup.RestoreConfirmationText}" FontSize="12" TextWrapping="Wrap" />
+        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+          <Button Classes="subtle" Content="{DynamicResource Cancel}" Command="{Binding Backup.CancelRestoreCommand}"
+                  AutomationProperties.Name="Cancel the restore" />
+          <Button Classes="primary" Content="{DynamicResource OK}" Command="{Binding Backup.ConfirmRestoreCommand}"
+                  AutomationProperties.Name="Continue with the restore" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+  </Border>
+  </Grid>
 </UserControl>

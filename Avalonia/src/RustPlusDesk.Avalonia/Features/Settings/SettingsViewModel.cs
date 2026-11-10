@@ -73,6 +73,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     public Action? ClearCrosshairs { get; init; }
     public Action? ClearProfiles { get; init; }
 
+    /// <summary>
+    /// Reference SectionMaintenance's backup and restore: the shell owns the profile path and the files, so it owns
+    /// the service; this page only shows what the card says.
+    /// </summary>
+    public DataBackupViewModel? Backup { get; init; }
+
 
     /// <summary>Why the last launch-at-sign-in change did not apply (empty when it did).</summary>
     [ObservableProperty] private string autoStartError = "";
