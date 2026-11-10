@@ -483,6 +483,17 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
   fill/clear, numeric and click/wheel/Shift input. Reopening retains quantities/filters. Full-width
   workspace tabs retain the server sidebar. Remaining navigation/localization/tutorial/visual acceptance
   is recorded in RECYCLER.md; long quantities/times no longer wrap 32-bit counts or 24-hour clocks.
+- The maintenance card's backup and restore (reference `BtnBackupData`/`BtnRestoreData`,
+  `BackupDataModule`, `BackupPasswordDialog`): a backup carries the profile and FCM configuration, the
+  settings, the alerts and companion, the cache state, the deaths, the drawings, the port's saved lists,
+  the shop alerts and the old app's `custom_crosshairs.json` verbatim, written as a zip inside the
+  reference's own AES-256/PBKDF2 envelope (`RUST+DESK_ENC`, 16-byte salt and IV, 10,000 iterations), so
+  backups interoperate with the old app. Restore asks with the reference's warning first, asks for the
+  password only when the archive carries the signature, restores only the entries it knows and reports
+  the reference's success and failure lines. Afterwards the settings store, settings page, crosshairs,
+  profiles and FCM configuration are read again, and the connection returns only if it was up before.
+  The password window is the reference's one field (empty leaves the backup unencrypted); the
+  confirmation is the port's page overlay with OK/Cancel.
 
 ## Feature parity
 
@@ -499,7 +510,7 @@ dropped or replaced by a reduced workflow without Jawad's explicit instruction.
 | Cameras | The cameras the user added for the server, read from the profile, with the tiles that show what they see, the add, edit and remove actions, and the camera window with its live picture, the names of the players it sees and the controls the camera supports | The live acceptance on a server with a camera |
 | Command dock and mini-map | The mini-map window (the three shapes, the size, the opacity, the clock and population pills, the layer switches, the place on the screen), the peek key that shows it over the game while it is held, the follow switch that keeps the player in the middle, the command dock's model, its file, its cell arithmetic, its window and its first tiles (the clock in the reference's four styles, the server information with the population line, the team and clan chat, the collapse tile), the tile picker, the saved arrangements and the session tracker behind the session tile | The per-tile settings, the arrangement bar, the device, event, rule, session, Discord, AI, translate and death tiles, the mini-map as a tile; the peek needs the Windows keyboard hook, so it is a Windows feature in this port |
 | Genetics Lab/web tools | Not ported | Decide and verify portable web hosting/bridge rather than copying WebView2 |
-| Settings/localization/backups | The app settings, the device settings, the chat-command settings and the 32-language catalogue with the language picker; every label the catalogue carries follows the chosen language; the maintenance, credits and offline-death-notification sections and the reset-data window that wipes the chosen components | The port's own wording (the empty states, the descriptions and the tooltips the reference has no string for), the reference's backup and restore flow with its password window, and the purge of orphaned cloud data |
+| Settings/localization/backups | The app settings, the device settings, the chat-command settings and the 32-language catalogue with the language picker; every label the catalogue carries follows the chosen language; the maintenance, credits and offline-death-notification sections, the reset-data window that wipes the chosen components, and the backup and restore with their password window and confirmation | The port's own wording (the empty states, the descriptions and the tooltips the reference has no string for) and the purge of orphaned cloud data |
 | Tray/hotkeys/audio/speech/capture | The system tray: the reference's menu (the state, the time of the last pull, Open, Exit), the double-click to open, the app's own icon, and the "Minimize to Tray instead of closing" setting; the hotkeys are ported | The speech adapters, the screen capture and the per-OS availability |
 | Installer/updater | Self-contained publishes for Windows, macOS and Linux, an Inno Setup installer, a macOS `.app` bundle and a per-user Linux installation, plus the update card that finds a newer published release (`installer/`, documented in `installer/PACKAGING.md`) | Signing, replacing the running build from inside the app, native macOS/Linux appearance and the shipped app's extra payloads |
 | Raid calculator | Ported workspace tab: reference engine/tests, 165-target catalogue with artwork, categories/search, per-target methods, curated and smart mixes, comparison modes, cheapest nudge, totals, shared raid-plan.json, Discord summary copy, reference breakpoints | Tutorial targets, localization, entrance animations and native visual acceptance |
@@ -551,8 +562,9 @@ phases; the frame is nearly done.
    editor, the custom alerts window, the death-marker settings, the camera add dialog, the change-device-icon dialog and
    the server info modal.
 3. **The settings categories and the remaining surfaces** (`settings-categories`, `remaining-surfaces`): the maintenance
-   card's backup, restore and purge buttons with their password window, and then the AI companion's recording and
-   transcription and the dock's Discord, AI, translate and death-track tiles.
+   card's backup and restore are in (`6d4ffaba`, `76731ffb`) with their password window and the restore's confirmation;
+   the purge of orphaned cloud data waits for the cloud account and stays recorded. What is left is the AI companion's
+   recording and transcription and the dock's Discord, AI, translate and death-track tiles.
 4. **The final audit** (`final-audit`): every window, tab, overlay and dialog of the old app walked against the port,
    every remaining difference recorded with its reason, and the docs brought in line with the code.
 
@@ -586,14 +598,15 @@ Recorded as deferred inside that program, each with its reason:
 
 ## Local verification
 
-- Windows: all **964 .NET test cases** pass on the current source (964 pass, 0 skipped), including the clan workspace and its role-gated
+- Windows: all **973 .NET test cases** pass on the current source (973 pass, 0 skipped), including the clan workspace and its role-gated
   commands, the device-automation rules, the achievements list, the traffic monitor, the timer sounds, the
   cameras tab and its window, the organization, recycling and socket-teardown work, the AI companion's four
   providers and the model browser, the dock's picker and its saved arrangements, and the tutorial centre and its
   guided overlay, the dock's remaining tiles and their own settings, the alarm overlay with its sound and its
   speech, the quick command chips, the notification pictures, the companion's spoken answers, the panel header,
-  the title bar and the splash window, and the settings page's death-marker, maintenance and credits cards with
-  the reset window; build and isolated-copy results are recorded in HANDOFF.md at each checkpoint.
+  the title bar and the splash window, the settings page's death-marker, maintenance and credits cards with
+  the reset window, and the backup and restore with their password window and confirmation; build and
+  isolated-copy results are recorded in HANDOFF.md at each checkpoint.
 - Every button, switch, combo box, slider and text box in the port's views was swept for one that does nothing: a
   control with no command, no click handler, no pointer handler and no flyout would show up, and none does. The controls
   that depend on a platform say so where they are offered (the peek key and the voice), rather than sitting there doing

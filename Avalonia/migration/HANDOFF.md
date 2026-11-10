@@ -1,8 +1,46 @@
-# Avalonia migration handoff - 2026-10-21 (nineteenth run)
+# Avalonia migration handoff - 2026-10-21
 
 **Plan of record: [PARITY-PLAN.md](PARITY-PLAN.md).** Bar set by Jawad on 2026-10-18: *same functionality as the WPF
 app; the UI may get an enterprise UI/UX overhaul*. The progress table at the bottom of PARITY-PLAN.md lists
 every finished slice with its commit.
+
+## Twenty-first run - the maintenance card's backup and restore (2026-10-21)
+
+- Branch `codex/avalonia-migration`; slice commits `6d4ffaba` (the archive, the plan and the reloadable settings store)
+  and `76731ffb` (the card, the password window, the confirmation and the reload).
+- **Backup Data...** writes a zip of the curated list in `AppDataBackupPlan`: the profile and the FCM configuration,
+  the settings, the hotkeys, the alerts, the companion, the achievements and the tutorial progress, the cache state,
+  the deaths and the drawings, the port's own saved lists, the shop alerts, and the old app's
+  `%LOCALAPPDATA%/RustPlusDesk/custom_crosshairs.json` verbatim. A password puts the zip inside the reference's own
+  envelope (`RUST+DESK_ENC` signature, 16-byte salt, 16-byte IV, 10,000 PBKDF2 iterations, AES-256), so a backup
+  written here opens in the old app and the other way round; an empty password writes a plain zip, as the old app does.
+- **Restore Data...** shows the reference's `RestoreConfirmTitle`/`RestoreConfirmMessage` in the port's page overlay
+  (OK/Cancel rather than the message box's Yes/No) before the picker opens, asks for the password only when the archive
+  carries the signature, restores only the entries the plan knows and puts each back where this machine keeps it, and
+  reports the reference's success/failure lines on the card and in the activity log.
+- The password window (`BackupPasswordWindow`) is the reference's `BackupPasswordDialog`: one field, the mode's own
+  title and description, and an empty password allowed when protecting a backup.
+- After a restore the shell re-reads the settings store, rebuilds the settings page, reloads the crosshairs and the
+  profiles (which re-reads the FCM configuration beside the profile), reconnects only if it was connected, and logs the
+  reference's `[SYSTEM] Application data reloaded successfully after restore.` line.
+- Renders: `ui-backup-password.png`, `ui-restore-confirm.png`, `ui-settings-bottom.png`. `BackupTests` covers the
+  archive round trip, the envelope's signature, the plan's entries and paths, the service's create/restore with an
+  unknown entry ignored, the password rules, the confirmation order, the messages and both renders.
+- Suite: **973 tests**, all passing; build clean at every commit.
+
+### Exact next work
+
+1. **The rest of the shell frame**: the rail (the Team entry, the Tools folder and the reference's order), the bottom
+   strip (the status line restyled) and whatever the frame's remaining surfaces are.
+2. **The windows the port is still missing**, in three batches: the image gallery with its zoom and the "what's new" and
+   supporter/premium panels; the AI answer window (colour, opacity, size), the dock settings overlay, the base notes and
+   base screenshots; then the LFG overlay, the admin panel, the cloud windows (login prompt, disclaimer, features, 24x7),
+   the device transfer, the offline deaths history, the email login, the crosshair editor, the custom alerts window,
+   the death-marker settings, the camera add dialog, the change-device-icon dialog and the server info modal.
+3. **The remaining surfaces**: the AI companion's recording and transcription (with the platform's limits said plainly)
+   and the dock's Discord, AI, translate and death-track tiles.
+4. **The final audit**: every window, tab, overlay and dialog of the old app walked against the port, every difference
+   recorded with its reason, and the docs brought in line with the code.
 
 ## Twentieth run - the old app's frame and the settings the port was missing (2026-10-21)
 
