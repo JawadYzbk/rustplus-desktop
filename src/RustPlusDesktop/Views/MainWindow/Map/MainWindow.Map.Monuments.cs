@@ -1,0 +1,454 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Effects;
+using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
+using RustPlusDesk.Services;
+
+namespace RustPlusDesk.Views;
+
+public partial class MainWindow
+{
+    private bool _loadingLayerControls;
+
+    private void BtnLayers_Click(object sender, RoutedEventArgs e)
+    {
+        LoadLayerControls();
+        PopupLayers.IsOpen = true;
+    }
+
+    private void LoadLayerControls()
+    {
+        _loadingLayerControls = true;
+        CmbLayerMonumentStyle.SelectedIndex = Math.Clamp(TrackingService.MapMonumentDisplayMode, 0, 1);
+        SliderLayerMonumentScale.Value = TrackingService.MapMonumentScale;
+        SliderLayerMonumentOpacity.Value = TrackingService.MapMonumentOpacity;
+        SliderLayerGridOpacity.Value = TrackingService.MapGridOpacity;
+        ChkLayerAutoLoadShops.IsChecked = TrackingService.AutoLoadShops;
+        NumLayerMaxSelfDeathMarkers.Value = TrackingService.MaxSelfDeathMarkers;
+        NumLayerMaxTeamDeathMarkers.Value = TrackingService.MaxTeamDeathMarkers;
+
+        PnlLayerExtraMonumentFilters.Children.Clear();
+        var types = GetKnownExtraMonumentTypes();
+        // Nothing to filter is not worth a row in a compact flyout.
+        LayerExtraMonumentsSection.Visibility = types.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        if (types.Count > 0)
+        {
+            foreach (string name in types)
+            {
+                var toggle = new Wpf.Ui.Controls.ToggleSwitch
+                {
+                    Content = name,
+                    IsChecked = !TrackingService.IsExtraMonumentTypeHidden(name),
+                    Margin = new Thickness(0, 4, 0, 4),
+                    Tag = name,
+                    ToolTip = name,
+                    HorizontalAlignment = HorizontalAlignment.Left
+                };
+                toggle.Checked += LayerExtraMonumentFilter_Changed;
+                toggle.Unchecked += LayerExtraMonumentFilter_Changed;
+                PnlLayerExtraMonumentFilters.Children.Add(toggle);
+            }
+        }
+
+        _loadingLayerControls = false;
+        UpdateLayerExtraMonumentBulkButtons();
+    }
+
+    /// <summary>Show all and hide all, each greyed out once it has nothing left to do.</summary>
+    private void UpdateLayerExtraMonumentBulkButtons()
+    {
+        var toggles = PnlLayerExtraMonumentFilters.Children.OfType<Wpf.Ui.Controls.ToggleSwitch>().ToList();
+        BtnLayerExtraShowAll.IsEnabled = toggles.Any(t => t.IsChecked != true);
+        BtnLayerExtraHideAll.IsEnabled = toggles.Any(t => t.IsChecked == true);
+    }
+
+    private void BtnLayerExtraMonumentsAll_Click(object sender, RoutedEventArgs e)
+    {
+        bool show = ReferenceEquals(sender, BtnLayerExtraShowAll);
+        var toggles = PnlLayerExtraMonumentFilters.Children.OfType<Wpf.Ui.Controls.ToggleSwitch>().ToList();
+
+        // One save and one redraw for the lot, rather than one per switch.
+        TrackingService.SetExtraMonumentTypesHidden(toggles.Select(t => (string)t.Tag), !show);
+        _loadingLayerControls = true;
+        foreach (var toggle in toggles) toggle.IsChecked = show;
+        _loadingLayerControls = false;
+
+        RebuildExtraMonumentOverlay();
+        UpdateLayerExtraMonumentBulkButtons();
+    }
+
+    private void CmbLayerMonumentStyle_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!IsLoaded || _loadingLayerControls || CmbLayerMonumentStyle.SelectedIndex < 0) return;
+        TrackingService.MapMonumentDisplayMode = CmbLayerMonumentStyle.SelectedIndex;
+        BuildMonumentOverlays();
+    }
+
+    private void LayerMonumentVisual_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (!IsLoaded || _loadingLayerControls || SliderLayerMonumentScale == null || SliderLayerMonumentOpacity == null) return;
+        TrackingService.MapMonumentScale = SliderLayerMonumentScale.Value;
+        TrackingService.MapMonumentOpacity = SliderLayerMonumentOpacity.Value;
+        RefreshMonumentOverlayPositions();
+    }
+
+    private void LayerGridOpacity_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (!IsLoaded || _loadingLayerControls || GridLayer == null) return;
+        TrackingService.MapGridOpacity = e.NewValue;
+        ApplyIndependentLayerVisibility();   // the wrapper owns the grid opacity
+    }
+
+    private void LayerExtraMonumentFilter_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loadingLayerControls || sender is not Wpf.Ui.Controls.ToggleSwitch { Tag: string name } toggle) return;
+        TrackingService.SetExtraMonumentTypeHidden(name, toggle.IsChecked != true);
+        RebuildExtraMonumentOverlay();
+        UpdateLayerExtraMonumentBulkButtons();
+    }
+
+    private void ChkLayerAutoLoadShops_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded || _loadingLayerControls) return;
+        TrackingService.AutoLoadShops = ChkLayerAutoLoadShops.IsChecked == true;
+    }
+
+    private void NumLayerDeathMarkerCap_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded || _loadingLayerControls) return;
+
+        if (NumLayerMaxSelfDeathMarkers.Value is { } self)
+            TrackingService.MaxSelfDeathMarkers = (int)Math.Clamp(self, 1, 50);
+
+        if (NumLayerMaxTeamDeathMarkers.Value is { } team)
+            TrackingService.MaxTeamDeathMarkers = (int)Math.Clamp(team, 1, 50);
+    }
+
+    private void BtnLayerWipeDeathMarkers_Click(object sender, RoutedEventArgs e)
+    {
+        PopupLayers.IsOpen = false;
+        ConfirmAndClearDeathMarkers();
+    }
+
+    private void BtnOpenMonumentList_Click(object sender, RoutedEventArgs e)
+    {
+        PopupLayers.IsOpen = false;
+        if (MonumentNavPanel.Visibility != Visibility.Visible)
+            BtnToggleMonumentsPanel_Click(sender, e);
+        else
+            TxtMonumentSearch.Focus();
+    }
+
+    private void BtnOpenShopFilters_Click(object sender, RoutedEventArgs e)
+    {
+        PopupLayers.IsOpen = false;
+        if (ShopSearchContent.Visibility != Visibility.Visible)
+            ToggleShopSearch();
+    }
+
+    private void BtnToggleMonumentsPanel_Click(object sender, RoutedEventArgs e)
+    {
+        if (MonumentNavPanel == null) return;
+
+        if (MonumentNavPanel.Visibility == Visibility.Collapsed)
+        {
+            MonumentNavPanel.Visibility = Visibility.Visible;
+            TxtMonumentSearch.Text = "";
+            PopulateMonumentList();
+            TxtMonumentSearch.Focus();
+        }
+        else
+        {
+            MonumentNavPanel.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void TxtMonumentSearch_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        FilterMonumentList();
+    }
+
+    private void FilterMonumentList()
+    {
+        if (MonumentListContainer == null) return;
+
+        string query = TxtMonumentSearch?.Text?.Trim()?.ToLower() ?? "";
+        bool searching = query.Length > 0;
+
+        bool RowMatches(ValueTuple<double, double, string> m) =>
+            !searching
+            || Beautify(m.Item3).ToLower().Contains(query)
+            || GetGridLabel(m.Item1, m.Item2).ToLower().Contains(query);
+
+        foreach (UIElement child in MonumentListContainer.Children)
+        {
+            if (child is Border itemBorder && itemBorder.Tag is ValueTuple<double, double, string> mon)
+            {
+                itemBorder.Visibility = RowMatches(mon) ? Visibility.Visible : Visibility.Collapsed;
+            }
+            else if (child is Border header && header.Tag is MonumentGroup group)
+            {
+                // A matching group name shows all its rows; otherwise only rows whose grid matches.
+                bool nameMatch = !searching || group.Name.ToLower().Contains(query);
+                int shown = 0;
+                foreach (UIElement r in group.Rows.Children)
+                {
+                    if (r is Border row && row.Tag is ValueTuple<double, double, string> m)
+                    {
+                        bool visible = nameMatch || RowMatches(m);
+                        row.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+                        if (visible) shown++;
+                    }
+                }
+
+                // Searching opens every group with a hit; otherwise groups keep the user's choice.
+                bool expanded = shown > 0 && (searching || _expandedMonumentGroups.Contains(group.Name));
+                header.Visibility = shown > 0 ? Visibility.Visible : Visibility.Collapsed;
+                group.Rows.Visibility = expanded ? Visibility.Visible : Visibility.Collapsed;
+                group.Chevron.Symbol = expanded
+                    ? Wpf.Ui.Controls.SymbolRegular.ChevronDown12
+                    : Wpf.Ui.Controls.SymbolRegular.ChevronRight12;
+            }
+        }
+    }
+
+    public void PopulateMonumentList()
+    {
+        if (MonumentListContainer == null || _monData == null) return;
+
+        MonumentListContainer.Children.Clear();
+
+        // Sort monuments alphabetically by their beautified name
+        var sortedMons = _monData
+            .Where(m => !string.IsNullOrWhiteSpace(m.Name) && !string.IsNullOrWhiteSpace(Beautify(m.Name)))
+            .OrderBy(m => Beautify(m.Name))
+            .ToList();
+
+        // Monuments that share a name (nine Anvil Rocks) fold under one header; a name that
+        // appears once stays a plain row. Single monuments come first, then the groups, each
+        // part still alphabetical (OrderBy is stable).
+        foreach (var group in sortedMons.GroupBy(m => Beautify(m.Name)).OrderBy(g => g.Count() > 1))
+        {
+            Panel target = MonumentListContainer;
+            if (group.Count() > 1)
+            {
+                target = AddMonumentGroup(group.Key, group.Count());
+            }
+
+            foreach (var mon in group)
+            {
+            string niceName = Beautify(mon.Name);
+            string key = NormalizeMonName(mon.Name, out var variant);
+            
+            // Build Left Indicator Bar (Accent Color, visible on hover)
+            var accentBar = new Border
+            {
+                Width = 3,
+                Background = new SolidColorBrush(Color.FromRgb(96, 205, 255)), // WinUI 3 Accent Blue
+                CornerRadius = new CornerRadius(1.5),
+                Margin = new Thickness(0, 4, 6, 4),
+                Visibility = Visibility.Hidden
+            };
+
+            // Monument Row Grid
+            var grid = new Grid();
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Accent bar
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // Icon
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Name
+
+            // Accent bar placement
+            Grid.SetColumn(accentBar, 0);
+            grid.Children.Add(accentBar);
+
+            // Icon Element
+            FrameworkElement iconEl;
+            string canonKey = Canon(key);
+            
+            if (MonumentFormatter.IsTrainTunnel(mon.Name) || canonKey.Contains("train tunnel"))
+            {
+                // Custom Train Icon
+                var img = new Image
+                {
+                    Source = Services.Map.MapIconCache.Get("pack://application:,,,/Assets/icons/assets_markers_train.png"),
+                    Width = 16,
+                    Height = 16,
+                    Margin = new Thickness(0, 0, 8, 0),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                iconEl = img;
+            }
+            else if (sMonIconByKey.TryGetValue(canonKey, out var uri))
+            {
+                // Standard Monument Icon
+                var img = new Image
+                {
+                    Source = Services.Map.MapIconCache.Get(uri),
+                    Width = 16,
+                    Height = 16,
+                    Margin = new Thickness(0, 0, 8, 0),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                iconEl = img;
+            }
+            else
+            {
+                // Fallback: A nice small colored ellipse/dot to keep align alignment clean
+                var dot = new Ellipse
+                {
+                    Width = 6,
+                    Height = 6,
+                    Fill = Brushes.SlateGray,
+                    Margin = new Thickness(5, 0, 13, 0),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                iconEl = dot;
+            }
+
+            Grid.SetColumn(iconEl, 1);
+            grid.Children.Add(iconEl);
+
+            // Text Label
+            string gridName = GetGridLabel(mon.X, mon.Y);
+            var txt = new TextBlock
+            {
+                Text = $"{niceName} [{gridName}]",
+                Foreground = new SolidColorBrush(Color.FromRgb(240, 243, 247)), // TextPrimary
+                FontSize = 12,
+                FontWeight = FontWeights.Medium,
+                VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis
+            };
+
+            Grid.SetColumn(txt, 2);
+            grid.Children.Add(txt);
+
+            // Row Container Border
+            var rowBorder = new Border
+            {
+                Background = Brushes.Transparent,
+                CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(4, 6, 8, 6),
+                Margin = new Thickness(0, 2, 0, 2),
+                Cursor = Cursors.Hand,
+                Child = grid,
+                Tag = mon // Keep reference to coordinate data
+            };
+
+            // Hover & Interactive Micro-Animations
+            rowBorder.MouseEnter += (s, e) =>
+            {
+                rowBorder.Background = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255)); // Subtle light hover glow
+                accentBar.Visibility = Visibility.Visible;
+                txt.Foreground = Brushes.White;
+
+                // Scale up the marker on the map for immersive tracking
+                var p = WorldToImagePx(mon.X, mon.Y);
+                string monKey = key + "@" + p.X.ToString("0") + "," + p.Y.ToString("0");
+                if (_monEls.TryGetValue(monKey, out var el))
+                {
+                    el.RenderTransform = new ScaleTransform(1.6, 1.6);
+                    Panel.SetZIndex(el, 999); // Bring to front
+                }
+            };
+
+            rowBorder.MouseLeave += (s, e) =>
+            {
+                rowBorder.Background = Brushes.Transparent;
+                accentBar.Visibility = Visibility.Hidden;
+                txt.Foreground = new SolidColorBrush(Color.FromRgb(240, 243, 247)); // TextPrimary
+
+                // Restore marker scale back to standard
+                var p = WorldToImagePx(mon.X, mon.Y);
+                string monKey = key + "@" + p.X.ToString("0") + "," + p.Y.ToString("0");
+                if (_monEls.TryGetValue(monKey, out var el))
+                {
+                    ApplyMonumentScale(el);
+                    Panel.SetZIndex(el, 900); // Reset ZIndex
+                }
+            };
+
+            rowBorder.MouseLeftButtonUp += (s, e) =>
+            {
+                // Smoothly fly to coordinates, overview dip, focus zoom level 6.0!
+                CenterMapOnWorldAnimated(mon.X, mon.Y, allowDip: true, fast: false, keepTracking: false, targetZoom: 6.0);
+            };
+
+            target.Children.Add(rowBorder);
+            }
+        }
+
+        FilterMonumentList();
+    }
+
+    // Monument names whose group the user opened; kept across list rebuilds.
+    private readonly HashSet<string> _expandedMonumentGroups = new(StringComparer.OrdinalIgnoreCase);
+
+    private sealed record MonumentGroup(string Name, StackPanel Rows, Wpf.Ui.Controls.SymbolIcon Chevron);
+
+    /// <summary>Adds a collapsible header for a repeated monument name; returns the panel for its rows.</summary>
+    private StackPanel AddMonumentGroup(string name, int count)
+    {
+        var rows = new StackPanel { Margin = new Thickness(14, 0, 0, 0) };
+        var chevron = new Wpf.Ui.Controls.SymbolIcon
+        {
+            Symbol = Wpf.Ui.Controls.SymbolRegular.ChevronRight12,
+            FontSize = 12,
+            Foreground = new SolidColorBrush(Color.FromRgb(140, 150, 168)),
+            Margin = new Thickness(4, 0, 8, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var label = new TextBlock
+        {
+            Text = name,
+            Foreground = new SolidColorBrush(Color.FromRgb(240, 243, 247)),
+            FontSize = 12,
+            FontWeight = FontWeights.SemiBold,
+            VerticalAlignment = VerticalAlignment.Center,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        };
+        var countText = new TextBlock
+        {
+            Text = count.ToString(),
+            Foreground = new SolidColorBrush(Color.FromRgb(140, 150, 168)),
+            FontSize = 11,
+            Margin = new Thickness(8, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+
+        var line = new DockPanel();
+        DockPanel.SetDock(chevron, Dock.Left);
+        DockPanel.SetDock(countText, Dock.Right);
+        line.Children.Add(chevron);
+        line.Children.Add(countText);
+        line.Children.Add(label);
+
+        var group = new MonumentGroup(name, rows, chevron);
+        var header = new Border
+        {
+            Background = Brushes.Transparent,
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(4, 6, 8, 6),
+            Margin = new Thickness(0, 2, 0, 2),
+            Cursor = Cursors.Hand,
+            Child = line,
+            Tag = group,
+        };
+        header.MouseEnter += (_, _) => header.Background = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255));
+        header.MouseLeave += (_, _) => header.Background = Brushes.Transparent;
+        header.MouseLeftButtonUp += (_, _) =>
+        {
+            if (!_expandedMonumentGroups.Remove(name)) _expandedMonumentGroups.Add(name);
+            FilterMonumentList();
+        };
+
+        MonumentListContainer.Children.Add(header);
+        MonumentListContainer.Children.Add(rows);
+        return rows;
+    }
+}

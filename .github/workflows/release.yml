@@ -8,7 +8,7 @@ on:
         required: false
         type: string
       mapparser_repository:
-        description: "Repository to checkout into ./MapParser."
+        description: "Repository to checkout into ./vendor/MapParser."
         required: true
         default: "Pronwan/MapParser"
         type: string
@@ -17,6 +17,16 @@ on:
         required: true
         default: "main"
         type: string
+      geneticslab_release:
+        description: "Genetics Lab release to bundle from JawadYzbk/rust-genetics-lab (e.g. v1.8.0), 'latest', or 'source' to build the copy in this repo."
+        required: false
+        default: "latest"
+        type: string
+      lite_build:
+        description: "Leave the 3D models out of the package. Only once the bridge release is out and the app can download them."
+        required: true
+        default: true
+        type: boolean
       create_github_release:
         description: "Create or update a GitHub Release with installer artifacts."
         required: true
@@ -27,9 +37,6 @@ on:
         required: true
         default: false
         type: boolean
-  push:
-    tags:
-      - "v*"
 
 permissions:
   contents: write
@@ -38,8 +45,8 @@ env:
   DOTNET_VERSION: "8.0.x"
   CONFIGURATION: "Release"
   RUNTIME_IDENTIFIER: "win-x64"
-  APP_PROJECT: "RustPlusDesktop/RustPlusDesk.csproj"
-  PUBLISH_DIR: "${{ github.workspace }}/RustPlusDesktop/bin/Installer/publish"
+  APP_PROJECT: "src/RustPlusDesktop/RustPlusDesk.csproj"
+  PUBLISH_DIR: "${{ github.workspace }}/src/RustPlusDesktop/bin/Installer/publish"
   VELOPACK_OUTPUT_DIR: "${{ github.workspace }}/artifacts/velopack"
   VELOPACK_ID: "RustPlusDesk"
 
@@ -59,7 +66,7 @@ jobs:
           repository: 'JawadYzbk/rustplus-auth-private'
           ref: 'main'
           token: ${{ secrets.AUTH_SUBMODULE_TOKEN || secrets.MAP_PARSER_TOKEN || secrets.GITHUB_TOKEN }}
-          path: Submodules/RustPlus.Auth
+          path: vendor/RustPlus.Auth
 
       - name: Checkout MapParser
         uses: actions/checkout@v4
@@ -67,7 +74,7 @@ jobs:
           repository: ${{ inputs.mapparser_repository || 'Pronwan/MapParser' }}
           ref: ${{ inputs.mapparser_ref || 'main' }}
           token: ${{ secrets.MAP_PARSER_TOKEN || secrets.GITHUB_TOKEN }}
-          path: MapParser
+          path: vendor/MapParser
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -80,14 +87,84 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: |
-            MapParser/package-lock.json
-            RustPlusDesktop/Features/GeneticsLab/package-lock.json
+            vendor/MapParser/package-lock.json
+            src/RustPlusDesktop/Features/GeneticsLab/package-lock.json
 
-      - name: Build GeneticsLab frontend
-        working-directory: RustPlusDesktop/Features/GeneticsLab
+      - name: Record MapParser commit
+        shell: pwsh
+        run: |
+          $sha = git -C vendor/MapParser rev-parse HEAD
+          "MapParser commit: $sha" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+
+      - name: Test MapParser builder
+        shell: pwsh
+        working-directory: vendor/MapParser
+        env:
+          REQUIRE_BUNDLE: "1"
         run: |
           npm ci
-          npm run build
+          if ($LASTEXITCODE -ne 0) { throw "npm ci failed" }
+          npm run build:client
+          if ($LASTEXITCODE -ne 0) { throw "build:client failed" }
+          npm test
+          if ($LASTEXITCODE -ne 0) { throw "MapParser tests failed" }
+
+      # The installer ships the newest published Genetics Lab build. Installed apps then
+      # keep themselves current from rust-genetics-lab's `dist` branch (or the hosted
+      # site), downloading only changed files, so this copy is just the starting point.
+      - name: Get GeneticsLab build
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GENETICSLAB_RELEASE: ${{ inputs.geneticslab_release || 'latest' }}
+        run: |
+          $labDir = "src/RustPlusDesktop/Features/GeneticsLab"
+          $dist = Join-Path $labDir "dist"
+          $bundled = $false
+
+          if ($env:GENETICSLAB_RELEASE -ne "source") {
+            $download = Join-Path $env:RUNNER_TEMP "geneticslab"
+            New-Item -ItemType Directory -Force -Path $download | Out-Null
+            $ghArgs = @("release", "download")
+            if ($env:GENETICSLAB_RELEASE -ne "latest") { $ghArgs += $env:GENETICSLAB_RELEASE }
+            $ghArgs += @("--repo", "JawadYzbk/rust-genetics-lab", "--pattern", "genetics-lab-dist.zip", "--dir", $download, "--clobber")
+            gh @ghArgs
+
+            $zip = Join-Path $download "genetics-lab-dist.zip"
+            if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $zip)) {
+              $extract = Join-Path $download "dist"
+              Expand-Archive -LiteralPath $zip -DestinationPath $extract -Force
+              # Releases from before the update manifest cannot seed partial updates.
+              if (Test-Path -LiteralPath (Join-Path $extract "genetics-lab-manifest.json")) {
+                if (Test-Path -LiteralPath $dist) { Remove-Item -LiteralPath $dist -Recurse -Force }
+                Move-Item -LiteralPath $extract -Destination $dist
+                $bundled = $true
+              } else {
+                Write-Warning "Genetics Lab release $($env:GENETICSLAB_RELEASE) has no update manifest; building from source."
+              }
+            } else {
+              Write-Warning "Could not download Genetics Lab release $($env:GENETICSLAB_RELEASE); building from source."
+            }
+          }
+
+          if (-not $bundled) {
+            Push-Location $labDir
+            npm ci
+            if ($LASTEXITCODE -ne 0) { throw "npm ci failed" }
+            npm run build
+            if ($LASTEXITCODE -ne 0) { throw "Genetics Lab build failed" }
+            Pop-Location
+          }
+
+      - name: Verify GeneticsLab update manifest
+        shell: pwsh
+        run: |
+          $manifestPath = "src/RustPlusDesktop/Features/GeneticsLab/dist/genetics-lab-manifest.json"
+          if (-not (Test-Path -LiteralPath $manifestPath)) {
+            throw "$manifestPath is missing; the GeneticsLab build must run scripts/generate-update-manifest.mjs."
+          }
+          $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+          Write-Host "Bundling Genetics Lab v$($manifest.version) ($($manifest.files.Count) files, build $($manifest.buildId.Substring(0, 12)))"
 
       - name: Resolve release version
         id: version
@@ -146,6 +223,20 @@ jobs:
           CLOUD_API_BASEURL=$env:CLOUD_API_BASEURL
           "@.Trim() | Set-Content -LiteralPath ".env" -Encoding UTF8
 
+      # A lite app can only fetch models that are published, so its manifest has to be the live one.
+      - name: Check the models are published
+        if: ${{ inputs.lite_build }}
+        shell: pwsh
+        run: |
+          $local = Get-Content -LiteralPath "vendor/MapParser/Rust_Assets/FP/models-manifest.json" -Raw | ConvertFrom-Json
+          $published = Invoke-RestMethod "https://raw.githubusercontent.com/JawadYzbk/rustplus-models/master/latest.json"
+          if ($local.contentId -ne $published.contentId) {
+            throw "This build uses models $($local.contentId), but $($published.contentId) is published. Run the Publish models workflow first."
+          }
+
+      - name: Test desktop app
+        run: dotnet test tests/RustPlusDesktop.Tests/RustPlusDesktop.Tests.csproj --configuration "${{ env.CONFIGURATION }}" -p:SkipGeneticsLabBuild=true
+
       - name: Publish Windows app
         run: >
           dotnet publish "${{ env.APP_PROJECT }}"
@@ -159,6 +250,8 @@ jobs:
           -p:IncludeNativeLibrariesForSelfExtract=true
           -p:PublishDocumentationFiles=false
           -p:GenerateDocumentationFile=false
+          -p:SkipGeneticsLabBuild=true
+          -p:IncludeRustModels=${{ inputs.lite_build && 'false' || 'true' }}
 
       - name: Build Velopack release
         shell: pwsh
@@ -178,7 +271,7 @@ jobs:
             --packDir "${{ env.PUBLISH_DIR }}" `
             --mainExe "RustPlusDesk.exe" `
             --outputDir "${{ env.VELOPACK_OUTPUT_DIR }}" `
-            --icon "RustPlusDesktop/Assets/rustplus-desktop-icon.ico" `
+            --icon "src/RustPlusDesktop/Assets/rustplus-desktop-icon.ico" `
             --packAuthors "Pronwan" `
             --packTitle "RustPlusDesk" `
             --noPortable `
@@ -205,14 +298,20 @@ jobs:
           compression-level: 0
 
       - name: Create or update GitHub Release
-        if: ${{ github.ref_type == 'tag' || (github.event_name == 'workflow_dispatch' && inputs.create_github_release) }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.create_github_release }}
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $tag = "${{ steps.version.outputs.tag }}"
           $title = "Rust+ Desktop ${{ steps.version.outputs.version }}"
-          $notes = "Automated Rust+ Desktop release for $tag."
+          $notesFile = ".github/release-notes.md"
+
+          if (-not (Test-Path -LiteralPath $notesFile)) {
+            Write-Host "Generating release notes from commits..."
+            node tools/release/bump-version.mjs --generate-notes-only --to-ref=$tag
+          }
+
           $assets = @(
             Get-ChildItem -Path "${{ env.VELOPACK_OUTPUT_DIR }}" -File -Recurse
           ) | Select-Object -ExpandProperty FullName -Unique
@@ -225,9 +324,18 @@ jobs:
           }
 
           if (-not $releaseExists) {
-            $args = @("release", "create", $tag, "--target", "${{ github.sha }}", "--title", $title, "--notes", $notes)
+            $args = @("release", "create", $tag, "--target", "${{ github.sha }}", "--title", $title)
+            if (Test-Path -LiteralPath $notesFile) {
+              $args += @("--notes-file", $notesFile)
+            } else {
+              $args += @("--notes", "Automated Rust+ Desktop release for $tag.")
+            }
             if ($prerelease) { $args += "--prerelease" }
             gh @args
+          } else {
+            if (Test-Path -LiteralPath $notesFile) {
+              gh release edit $tag --notes-file $notesFile
+            }
           }
 
           gh release upload $tag @assets --clobber

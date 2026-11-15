@@ -1,9 +1,11 @@
-![Headline](RustPlusDesktop/Assets/Images/headlineGIT.jpg)  
+![Headline](docs/media/app/Images/headlineGIT.jpg)
 [![Discord](https://img.shields.io/badge/Discord-Rust²%20|%20Rust%2B%20Desktop-5865f2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/v4X584wye4)
-[![Cloud](https://github.com/Pronwan/rustplus-desktop/blob/master/cloud.png?raw=true)](https://rustplusdesktop.cloud)
+[![Cloud](docs/media/cloud.png)](https://rustplusdesktop.cloud)
 
 
 # Rust+ Desktop App (Unofficial)
+
+[Repository layout](docs/README.md) · [Build locally](docs/development/BUILDING.md) · [Changelog](docs/releases/CHANGELOG.md)
 
 
 ⚠️ **Note**: This is an **unofficial** project and is not affiliated with Facepunch Studios or the game *Rust*.  
@@ -31,7 +33,11 @@ so you don’t have to install dependencies manually.
 
 ---
 
+### Facepunch's review
+Recently, facepunch reviewed our app internally and asked us to remove some features to prevent unfair use. We complied and
+removed and/or adjusted the features in question. Details can be found here:
 
+[<img width="1672" height="941" alt="Image" src="https://github.com/user-attachments/assets/9f15a99f-76a3-4d8a-8063-bc53583d497f" />](https://www.youtube.com/watch?v=bJtCQMEbKaM)
 
 ## 🚀 Latest Release
 
@@ -48,8 +54,52 @@ so you don’t have to install dependencies manually.
 [![YouTube V6](./RustPlusDesktop/Assets/Images/6.0%20Cloud%20Patch/Thumbnail_RustPlus6_V6.jpg?raw=true)](https://www.youtube.com/watch?v=Ywv0hjE8nAI)
 [![YouTube V5](./RustPlusDesktop/Assets/Images/RustPlus_V5_Thumbnail.jpg?raw=true)](https://www.youtube.com/watch?v=wrqGoTCtAjs)
 
-[![YouTube Video](./RustPlusDesktop/Assets/Images/RustPlus_V4_Thumbnail.png)](https://youtu.be/tmbAn3lIKmM)  
+[![YouTube Video](./docs/media/app/Images/RustPlus_V4_Thumbnail.png)](https://youtu.be/tmbAn3lIKmM)
 *(click the image to watch on YouTube)*
+
+# v11.0.0 — The Base & Ship Builder: Build Your Base, Sail Your Ship, Build Together
+
+Rust+ Desktop now has two builders. The **Base Builder** lets you design, furnish and walk through your base under the game's own building rules. The new **Ship Builder** does the same for boats on a Boat Building Station, and its **Ship Simulator** shows how fast your boat will be, whether it holds a straight course and what it takes to sink it. Then take the wheel and sail it. With the Cloud package, you can build both together with friends.
+
+![The Ship Builder and Ship Simulator](docs/media/app/Screenshots/11.0/ship-builder-and-simulator.jpg)
+
+## ⛵ The Ship Builder
+
+- **Build on a Boat Building Station** — open the Ship Builder from Tools, pick a shore or open water, and build your hull, deck and walls on the station's netting, square to its grid as in the game. Every boat piece is in: hulls, floors, walls, stairs, steering wheel, sails, small engines, anchor, cannons, plank and small ramp.
+- **Fit it out** — ladder hatches, doors, lockers, boxes, repair benches, barricades, batteries, switches, tesla coils and shotgun traps. While you place them, the tesla coil shows its shock radius and the shotgun trap its sensor cone. Sails face straight or at 45 degrees, and a blue arrow shows which way they will push.
+- **The same rules as the game** — one connected hull, one steering wheel, up to 10 sails, 5 engines and one anchor, the build area, the netting and the height limit. The builder shows the boat's cost and health, and how many cannonballs, C4, rockets or HV rockets it takes to sink it.
+- **Up to three ships per plot** — add more stations and build up to three boats side by side. The top bar always shows the ship you are on, with its health, top speed and course.
+
+## 🧭 The Ship Simulator
+
+- **How fast, how straight** — speed, drag and course come from the game's own boat physics. Sail and engine thrust, the boat's mass, your hull's shape (a pointed bow is faster than a flat one) and shallow water all count.
+- **Course overlay** — a line on the water shows where the boat goes with the wheel left alone: green when it runs straight, orange when it pulls a little, red when it turns hard. A panel tells you why, for example which engine pulls it to one side or which sails get no wind.
+- **Sails, engines, anchor & ramp** — set or furl the sails, start the engines and drop the anchor, all at once or one by one with E. Sails fill out in the wind and hang slack when blocked.
+- **Take the wheel** — press E at the steering wheel and sail with W, S, A and D, at the speed the boat would really reach. It stops at the shore and bumps into other boats, so you can test whether two of your boats lock together.
+
+## 👥 Build Together *(Premium)*
+
+- **Bases and ships with friends** — start a session on the base or ship you have open and invite friends from your friends list or by Steam ID. The invite takes them straight into the right builder. Give each guest build rights or take them away, and every change appears for everyone as it happens. Guests join for free.
+- **See each other** — everyone walks around as a player figure with a name tag. When someone takes the wheel, the others see them steering, and nobody can edit that boat until the driver lets go.
+
+![Build Together](docs/media/app/Screenshots/11.0/Build-together.jpg)
+
+## 🏗️ The Base Builder
+
+- **Building like in-game** — the Building Plan, the Hammer and the building wheel under the game's rules for sockets, stability and collision. Every grade and DLC skin, the spray can, undo and redo, and a plot you can shape. Furnish your base with boxes, shelves, beds, workbenches, furnaces, batteries, traps and more, then walk through it on foot.
+- **TC range & costs** — see where each tool cupboard reaches, what the base costs to build and what its upkeep takes per day.
+- **God Rock, iceberg & cliff bases** — plan bases on the game's large rocks, cliffs and icebergs. Add them to your plot under *Scene › Structures*, or build against them on the 3D map, and the base keeps them.
+- **Import, export & the real map** — open Builders Sanctuary designs and CopyPaste or Fortify files, and export bases as CopyPaste (uMod/Oxide) for real Rust servers.
+
+![A God Rock base on the 3D map](docs/media/app/Screenshots/11.0/God-Rock-Base.jpg)
+
+## 🗺️ Bases on Your Server's 3D Map
+
+- **Place it and see whether it fits** — every piece is checked where it would stand, by the game's own building rules: terrain, rock, water, roads and monument zones. You see straight away whether the base can be placed or which pieces need adjusting.
+- **Back onto the same rock** — a base built against a rock, cliff or iceberg gets a list of the same structures on the new map, the ones it fits first. *Show* flies you there with the base on it, *Place here* keeps it, and Shift+wheel fine-tunes the height.
+- **Build right on the map** — each base you build on the map is a base of its own, with its own name, ready to save to your library and keep building in the Base Builder.
+
+![Place a base on the 3D map](docs/media/app/Screenshots/11.0/place-in-3D-map.jpg)
 
 # v10.0.0 — Widget Overlay, AI Companion, Map Layers & Global Chat
 
@@ -454,7 +504,7 @@ automatically. Nothing needs configuring — the app checks on connect and adapt
 - **Map Parser Monument Support:** The map parser now recognizes apartment complex prefab data so the 3D view can place the monument correctly.
 - **2D Map Icon:** Apartment Complex monuments now use the proper apartments icon in the map view, with the icon bundled in release builds.
 
-![Apartment Complex 3D model](./RustPlusDesktop/Assets/Screenshots/7.1.8/apartment_complex.png)
+![Apartment Complex 3D model](./src/RustPlusDesktop/Assets/Screenshots/7.1.8/apartment_complex.png)
 
 # 🧊 Update v7.1.7 | 3D Map Monuments & Build Surfaces
 
@@ -741,7 +791,7 @@ BattleMetrics Refactor: The BM button has been upgraded to a clean icon and move
 **🛠️ Bug Fixes:** We fixed a LOT of smaller bugs, issues, improved the UI dramatically, the Battlemetrics integration etc. 
 
 ## Update 4.5.1 — The Intelligence Update (May 12th) + Shop Polling Hotfix
-<img width="595" height="331" alt="grafik" src="RustPlusDesktop/Assets/Screenshots/4.5.0.png" />
+<img width="595" height="331" alt="grafik" src="src/RustPlusDesktop/Assets/Screenshots/4.5.0.png" />
 
 **📍 Smart Map Follow**
 - **Player Tracking**: Lock the camera onto any teammate or yourself. The map smoothly centers on the target, making it ideal for tracking raids or roams in real-time.
@@ -782,7 +832,7 @@ BattleMetrics Refactor: The BM button has been upgraded to a clean icon and move
 **𖦏 Custom Crosshairs**
 - **Draw your own**: intuitive pixel-art style editor. Supports drawing tools (Pen, Pixel, Line, Square, Circle), custom colors, adjustable thickness and opacity, and full Undo/Redo support.
 - **Upload PNGs**: Upload existing PNG images to use as crosshairs. The editor automatically scales them to fit the pixel grid. You can also right-click to erase individual pixels and easily rename or delete your creations.
-![CrosshairEditor](./RustPlusDesktop/Assets/Screenshots/v4_5.png)
+![CrosshairEditor](./docs/media/app/Screenshots/v4_5.png)
 ---
 
 ## Update 4.0.0 - The Evolution Update | Major Map & Stability Overhaul (April 30th)
@@ -793,7 +843,7 @@ BattleMetrics Refactor: The BM button has been upgraded to a clean icon and move
 - **Interactive Event Dock**: A new real-time sidebar for active events (Patrol Heli, Cargo Ship, Chinook, etc.). Click any event to **auto-lock and track** it dynamically across the map.
 - **Smart Shop Clustering**: Multiple vending machines in one base are now grouped into clean cluster icons. Hovering over them reveals a redesigned, scrollable list of all items without map clutter.
 
-![V4 Map Overhaul](./RustPlusDesktop/Assets/Screenshots/v4_map_overhaul.png)
+![V4 Map Overhaul](./docs/media/app/Screenshots/v4_map_overhaul.png)
 
 **🛠 Improvements**
 - **60 FPS Map Animations**: Butter-smooth zooming and panning with a new cinematic "Overview Dip" when jumping across the map.
@@ -843,7 +893,7 @@ A massive shout-out to [JawadYzbk](https://github.com/JawadYzbk) for contributin
 
 ## Update Notes 3.1.2 (November 17th 25)
 Version 3.1.2 brings full Storage Monitor integration and the following optimizations:
-![Update](./RustPlusDesktop/Assets/Screenshots/3.1.0.png)  
+![Update](./docs/media/app/Screenshots/3.1.0.png)
 - Shop alerts now also trigger when item was sold out and then comes back online
 - Storage Monitor shows traffic light upkeep indicator (from 1 hr. and less)
 - Map can be zoomed with NUM +/-
@@ -875,9 +925,9 @@ Version 3.1.2 brings full Storage Monitor integration and the following optimiza
 - Notifications in Chat for Deaths, Spawns, Online, Offline
 - added fetching icon symbols from rusthelp.com (including Blueprint Fragments)
 
-![Update](./RustPlusDesktop/Assets/Images/V2-1.png)  
-![Update](./RustPlusDesktop/Assets/Images/V2-2.png) 
-![Update](./RustPlusDesktop/Assets/Images/V2-3.png) 
+![Update](./docs/media/app/Images/V2-1.png)
+![Update](./docs/media/app/Images/V2-2.png)
+![Update](./docs/media/app/Images/V2-3.png)
 
 Enjoy! :) 
 ---
@@ -1031,27 +1081,27 @@ On next launch the registration will run again.
 
 ### Main Screenshots
 
-![Main Background](./RustPlusDesktop/Assets/Images/rustplusbg.png)  
+![Main Background](./docs/media/app/Images/rustplusbg.png)
 
-![Background 2](./RustPlusDesktop/Assets/Images/rustplusbg2.png)  
+![Background 2](./docs/media/app/Images/rustplusbg2.png)
 
-![Background 3](./RustPlusDesktop/Assets/Images/rustplusbg3.png)  
+![Background 3](./docs/media/app/Images/rustplusbg3.png)
 
-![Background 4](./RustPlusDesktop/Assets/Images/rustplusbg4.png)  
+![Background 4](./docs/media/app/Images/rustplusbg4.png)
 
-![Background 5](./RustPlusDesktop/Assets/Images/rustplusbg5.png)  
+![Background 5](./docs/media/app/Images/rustplusbg5.png)
 
-![Background 6](./RustPlusDesktop/Assets/Images/rustplusbg6.png)  
+![Background 6](./docs/media/app/Images/rustplusbg6.png)
 
-![Background 7](./RustPlusDesktop/Assets/Images/rustplusbg7.png)  
+![Background 7](./docs/media/app/Images/rustplusbg7.png)
 
-![Background 8](./RustPlusDesktop/Assets/Images/rustplusbg8.png)
+![Background 8](./docs/media/app/Images/rustplusbg8.png)
 
 
 
 ### Video Overview
 
-[![YouTube Video](./RustPlusDesktop/Assets/Images/rustplusbg.png)](https://www.youtube.com/watch?v=4NlFuLPK4wk)  
+[![YouTube Video](./docs/media/app/Images/rustplusbg.png)](https://www.youtube.com/watch?v=4NlFuLPK4wk)
 
 *(click the image to watch on YouTube)*
 

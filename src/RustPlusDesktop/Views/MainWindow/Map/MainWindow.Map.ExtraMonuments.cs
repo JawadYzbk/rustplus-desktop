@@ -1,0 +1,315 @@
+using RustPlusDesk.Services;
+using RustPlusDesk.Services.PlayerWipeTracker;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace RustPlusDesk.Views;
+
+public partial class MainWindow
+{
+    private const string ExtraMonumentsFileName = "map_extra_monuments.json";
+
+    /// <summary>
+    /// Canonical type names present in the most-recently loaded <c>map_extra_monuments.json</c>.
+    /// Used by the settings panel to populate filter checkboxes.
+    /// </summary>
+    private readonly HashSet<string> _extraMonumentNames = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Last deserialized extra monuments list, kept so we can re-apply filters without re-reading disk.</summary>
+    private List<ExtraMonument>? _lastExtraMonuments;
+
+    private bool _extraMonumentResetWired;
+
+    /// <summary>
+    /// Listens for a wipe map's 3D monuments being discarded on the platform.
+    ///
+    /// Without this the correction still happens — the upload path asks the server rather than
+    /// trusting its own marker, so the next map load sends them again — but "next map load" can be
+    /// days away. Since the parsed list is already in hand, a reset that arrives while the app is
+    /// running can be answered immediately.
+    /// </summary>
+    private void EnsureExtraMonumentResetWired()
+    {
+        if (_extraMonumentResetWired) return;
+        _extraMonumentResetWired = true;
+
+        Services.Cloud.RealtimeClient.Shared.EventReceived += OnCloudEventForExtraMonuments;
+    }
+
+    private void OnCloudEventForExtraMonuments(string channel, string eventName, Newtonsoft.Json.Linq.JObject data)
+    {
+        // Laravel marks a custom broadcast name with a leading dot.
+        if (!string.Equals(eventName?.TrimStart('.'), "wipe_map.extra_monuments_reset", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        var serverKey = data["server_key"]?.ToString();
+        var wipeKey = data["wipe_key"]?.ToString();
+        if (string.IsNullOrWhiteSpace(serverKey) || string.IsNullOrWhiteSpace(wipeKey)) return;
+
+        // The reset is addressed to every account paired with that server, which may not be the
+        // map this client currently has open. Only the one on screen can be re-sent from memory.
+        Dispatcher.InvokeAsync(() =>
+        {
+            var extras = _lastExtraMonuments;
+            if (extras is not { Count: > 0 }) return;
+
+            var currentServer = _playerWipeTracker.CurrentServerKey ?? GetServerKey();
+            if (!string.Equals(currentServer, serverKey, StringComparison.OrdinalIgnoreCase)) return;
+
+            UploadExtraMonumentsToCloud(extras);
+        });
+    }
+
+    /// <summary>The extra monument a prefab stands for, or null. Both arguments in lower case.</summary>
+    private static string? ExtraMonumentNameOf(string category, string id)
+    {
+        if (category == "iceberg") return "Iceberg";
+        if (category == "oasis") return "Oasis";
+        if (id.StartsWith("water_well", StringComparison.OrdinalIgnoreCase)) return "Water Well";
+        if (id.StartsWith("ice_lake", StringComparison.OrdinalIgnoreCase)) return "Ice Lake";
+        if (id.StartsWith("jungle_ruins", StringComparison.OrdinalIgnoreCase)) return "Jungle Ruins";
+        if (id.StartsWith("ue_jungle_swamp", StringComparison.OrdinalIgnoreCase)) return "Jungle Swamp";
+        if (id.StartsWith("cave_", StringComparison.OrdinalIgnoreCase)) return "Cave";
+        if (category == "lake") return "Lake";
+        return null; // "Jungle Ziggurat" among them: the API already returns it
+    }
+
+    /// <summary>Whether anything on the 2D map reads this entry of map_resolved.json; few of its 100,000 do.</summary>
+    private static bool IsResolvedPrefabUsed(JsonElement prefab)
+    {
+        string id = ReadString(prefab, "i").ToLowerInvariant();
+        return ExtraMonumentNameOf(ReadString(prefab, "c").ToLowerInvariant(), id) != null
+            || IsBuildingBlockedPrefab(id);
+    }
+
+    // mapRoot / resolvedPrefabs are read once, off the UI thread, by LoadParsedMapDataAsync.
+    private void GenerateAndLoadExtraMonumentsForCurrentMap(string? folderPath, JsonElement mapRoot, IReadOnlyList<JsonElement>? resolvedPrefabs)
+    {
+        if (string.IsNullOrWhiteSpace(folderPath)) return;
+        try
+        {
+            var root = mapRoot;
+            double half = root.TryGetProperty("size", out var sizeEl) ? sizeEl.GetDouble() * 0.5 : _worldSizeS * 0.5;
+            var extras = new List<ExtraMonument>();
+
+            void AddIfExtra(JsonElement el)
+            {
+                string? name = ExtraMonumentNameOf(ReadString(el, "c").ToLowerInvariant(), ReadString(el, "i").ToLowerInvariant());
+                if (name == null || !TryReadPoint(el, out double x, out double y)) return;
+                extras.Add(new ExtraMonument { X = x + half, Y = y + half, Name = name });
+            }
+
+            if (root.TryGetProperty("prefabs", out var prefabs) && prefabs.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var el in prefabs.EnumerateArray()) AddIfExtra(el);
+            }
+
+            // Fallback: scan map_resolved.json for extra monuments missed by map_data.json
+            // (handles maps processed by older Program.cs versions that didn't include oasis in isOfInterest)
+            if (resolvedPrefabs != null)
+            {
+                foreach (var el in resolvedPrefabs) AddIfExtra(el);
+            }
+
+            if (root.TryGetProperty("rockClusters", out var rocks) && rocks.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var el in rocks.EnumerateArray())
+                {
+                    string kind = ReadString(el, "kind");
+                    if (!kind.Contains("God Rock", StringComparison.OrdinalIgnoreCase) && !kind.Contains("Anvil Rock", StringComparison.OrdinalIgnoreCase)) continue;
+                    if (!TryReadPoint(el, out double x, out double y)) continue;
+                    string name = NormalizeRockClusterExtraMonumentName(kind, ReadString(el, "size"));
+                    extras.Add(new ExtraMonument { X = x + half, Y = y + half, Name = name });
+                }
+            }
+
+            var filtered = extras
+                .GroupBy(m => $"{m.Name}:{Math.Round(m.X / 20) * 20}:{Math.Round(m.Y / 20) * 20}")
+                .Select(g => g.First())
+                .OrderBy(m => m.Name)
+                .ThenBy(m => m.X)
+                .ToList();
+
+            string outPath = Path.Combine(folderPath, ExtraMonumentsFileName);
+            File.WriteAllText(outPath, JsonSerializer.Serialize(filtered, new JsonSerializerOptions { WriteIndented = true }));
+            StoreAndMergeExtraMonuments(filtered);
+            BuildMonumentOverlays();
+        }
+        catch (Exception ex)
+        {
+            AppendLog($"[3D Map] Failed to generate extra monuments: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Whether this folder's extra monuments and building-blocked zones can be used as they are.
+    /// Generating them walks every prefab on the map. The app counts as an input because the
+    /// rules, and the monument bounds they read, ship inside it.
+    /// </summary>
+    private static bool AreGeneratedMapFilesCurrent(string folderPath)
+    {
+        var inputs = new List<string>
+        {
+            Path.Combine(folderPath, Services.Map.MapDataSlices.MapDataFileName),
+            Path.Combine(folderPath, "map_resolved.json")
+        };
+        if (Environment.ProcessPath is { } app) inputs.Add(app);
+
+        return Services.Map.ParsedMapDataCache.AreOutputsCurrent(
+            new[] { Path.Combine(folderPath, ExtraMonumentsFileName), Path.Combine(folderPath, "building_blocked.json") },
+            inputs);
+    }
+
+    /// <summary>Shows the extra monuments already generated for this folder; false if that failed.</summary>
+    private bool TryLoadGeneratedExtraMonuments(string folderPath)
+    {
+        try
+        {
+            var extras = JsonSerializer.Deserialize<List<ExtraMonument>>(
+                File.ReadAllText(Path.Combine(folderPath, ExtraMonumentsFileName)),
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (extras == null) return false;
+
+            StoreAndMergeExtraMonuments(extras);
+            BuildMonumentOverlays();
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        {
+            return false;
+        }
+    }
+
+    private void MergeCachedExtraMonumentsForCurrentMap()
+    {
+        try
+        {
+            if (_vm?.Selected == null) return;
+            string folder = Map3DLocalBuildService.GetPreparedFolderPath(_vm.Selected, _vm.Selected.RustMapsMapId);
+            string path = Path.Combine(folder, ExtraMonumentsFileName);
+            if (!File.Exists(path)) return;
+            var extras = JsonSerializer.Deserialize<List<ExtraMonument>>(File.ReadAllText(path), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (extras != null) StoreAndMergeExtraMonuments(extras);
+        }
+        catch { }
+    }
+
+    /// <summary>
+    /// Stores the full extra monument list for later re-filtering and merges the visible subset into <c>_monData</c>.
+    /// Tracks the distinct type names present so the settings panel can enumerate them.
+    /// </summary>
+    private void StoreAndMergeExtraMonuments(List<ExtraMonument> extras)
+    {
+        _lastExtraMonuments = extras;
+        _extraMonumentNames.Clear();
+        foreach (var e in extras)
+            _extraMonumentNames.Add(e.Name);
+
+        MergeExtraMonuments(extras);
+        UploadExtraMonumentsToCloud(extras);
+
+        // Wired once there is something to re-send, so a reset arriving later can be answered
+        // from memory instead of waiting for the next map load.
+        EnsureExtraMonumentResetWired();
+    }
+
+    /// <summary>
+    /// Uploads the freshly 3D-parsed extra monuments to the cloud, once, via the
+    /// decoupled wipe-map service. Safe to call after the base map is already
+    /// uploaded — the server accepts extras separately and the service skips if
+    /// they are already present, so no quota is wasted.
+    /// </summary>
+    private void UploadExtraMonumentsToCloud(List<ExtraMonument> extras)
+    {
+        var serverKey = _playerWipeTracker.CurrentServerKey ?? GetServerKey();
+        var wipeKey = _playerWipeTracker.CurrentWipeKey;
+
+        if (string.IsNullOrWhiteSpace(wipeKey) && _vm?.Selected != null && !string.IsNullOrWhiteSpace(serverKey))
+        {
+            var wipeTime = (_vm.Selected.WipeTime ?? _vm.Selected.RustMapsWipeTime)?.ToUniversalTime();
+            wipeKey = PlayerWipeTrackerService.BuildWipeKey(serverKey, wipeTime, _vm.Selected.RustMapsMapId);
+        }
+
+        if (string.IsNullOrWhiteSpace(serverKey) || string.IsNullOrWhiteSpace(wipeKey) || extras.Count == 0)
+            return;
+
+        var payload = extras
+            .Where(e => !string.IsNullOrWhiteSpace(e.Name))
+            .Select(e => new TrackerMonument(e.Name, e.X, e.Y))
+            .ToList();
+
+        _serverWipeMaps.QueueUploadExtraMonuments(serverKey, wipeKey, payload);
+    }
+
+    private void MergeExtraMonuments(IEnumerable<ExtraMonument> extras)
+    {
+        foreach (var extra in extras)
+        {
+            // Skip types that the user has filtered out.
+            if (TrackingService.IsExtraMonumentTypeHidden(extra.Name)) continue;
+
+            if (_monData.Any(m => string.Equals(m.Name, extra.Name, StringComparison.OrdinalIgnoreCase) &&
+                                  Math.Sqrt((m.X - extra.X) * (m.X - extra.X) + (m.Y - extra.Y) * (m.Y - extra.Y)) < 35))
+                continue;
+            _monData.Add((extra.X, extra.Y, extra.Name));
+        }
+    }
+
+    /// <summary>
+    /// Re-applies the current extra monument type filter to <c>_monData</c> and rebuilds the map overlays.
+    /// Call this after the user changes the hidden-types setting.
+    /// </summary>
+    internal void RebuildExtraMonumentOverlay()
+    {
+        if (_lastExtraMonuments == null) return;
+
+        // Remove all previously-injected extra monument entries from _monData.
+        _monData.RemoveAll(m => _extraMonumentNames.Contains(m.Name));
+
+        // Re-merge, now with the updated filter.
+        MergeExtraMonuments(_lastExtraMonuments);
+        BuildMonumentOverlays();
+    }
+
+    /// <summary>
+    /// Returns the sorted distinct type names present in the extra monuments JSON for the current map.
+    /// Returns an empty list if no extra monuments have been loaded yet.
+    /// </summary>
+    internal IReadOnlyList<string> GetKnownExtraMonumentTypes()
+        => _extraMonumentNames.OrderBy(n => n).ToList();
+
+    private static bool TryReadPoint(JsonElement el, out double x, out double y)
+    {
+        x = y = 0;
+        if (!el.TryGetProperty("x", out var xEl) || !el.TryGetProperty("y", out var yEl)) return false;
+        x = xEl.GetDouble();
+        y = yEl.GetDouble();
+        return true;
+    }
+
+    private static string ReadString(JsonElement el, string name)
+        => el.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" : "";
+
+    private static string NormalizeRockClusterExtraMonumentName(string kind, string size)
+    {
+        if (kind.Contains("Anvil", StringComparison.OrdinalIgnoreCase)) return "Anvil Rock";
+        if (kind.Contains("Small God Rock", StringComparison.OrdinalIgnoreCase) ||
+            size.Equals("small", StringComparison.OrdinalIgnoreCase)) return "Small God Rock";
+        if (kind.Contains("Medium God Rock", StringComparison.OrdinalIgnoreCase) ||
+            size.Equals("medium", StringComparison.OrdinalIgnoreCase)) return "Medium God Rock";
+        if (kind.Contains("Large God Rock", StringComparison.OrdinalIgnoreCase) ||
+            size.Equals("large", StringComparison.OrdinalIgnoreCase)) return "Large God Rock";
+        return "God Rock";
+    }
+
+    private sealed class ExtraMonument
+    {
+        [JsonPropertyName("x")] public double X { get; set; }
+        [JsonPropertyName("y")] public double Y { get; set; }
+        [JsonPropertyName("name")] public string Name { get; set; } = "";
+    }
+}
